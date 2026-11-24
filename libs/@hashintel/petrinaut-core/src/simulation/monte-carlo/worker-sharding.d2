@@ -1,22 +1,26 @@
 # Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+# The step classes play it on the docs page and step it on a slide that
+# inlines it: the plan, then the shards, then their frames merging, then the
+# merged timeline.
 direction: right
 
 plan: "shard plan\n(contiguous run slices,\nglobal index offsets)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
 
 workers: "one MonteCarloSimulator per worker" {
+  class: at-1
   style.stroke-dash: 4
   w1: "Worker 1\nruns 0..k" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
   w2: "Worker 2\nruns k..2k" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
   w3: "Worker 3\nruns 2k..N" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 }
 
-merger: "shard merger\n(watermark: slowest\nstill-running shard)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-timeline: "merged metric timeline\n(monotonic frame numbers)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+merger: "shard merger\n(watermark: slowest\nstill-running shard)" {class: at-2; style.fill: "#dcecff"; style.stroke: "#3676b8"}
+timeline: "merged metric timeline\n(monotonic frame numbers)" {class: at-3; style.fill: "#f2f2f2"; style.stroke: "#777777"}
 
 plan -> workers.w1
 plan -> workers.w2
 plan -> workers.w3
-workers.w1 -> merger: accumulator state per frame
-workers.w2 -> merger: accumulator state per frame
-workers.w3 -> merger: accumulator state per frame
-merger -> timeline: frames at or below the watermark
+workers.w1 -> merger: accumulator state per frame {class: token-2}
+workers.w2 -> merger: accumulator state per frame {class: token-2}
+workers.w3 -> merger: accumulator state per frame {class: token-2}
+merger -> timeline: frames at or below the watermark {class: token-3}

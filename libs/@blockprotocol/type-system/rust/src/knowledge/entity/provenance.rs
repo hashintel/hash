@@ -6,6 +6,7 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use postgres_types::{FromSql, Json, Type};
 
 use crate::{
+    knowledge::entity::id::DraftId,
     principal::actor::{ActorEntityUuid, ActorType},
     provenance::{OriginProvenance, SourceProvenance},
 };
@@ -19,6 +20,10 @@ pub struct EntityEditionProvenance {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub archived_by_id: Option<ActorEntityUuid>,
+    /// The draft whose publication created this edition.
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_from_draft_id: Option<DraftId>,
     #[serde(flatten)]
     pub provided: ProvidedEntityEditionProvenance,
 }

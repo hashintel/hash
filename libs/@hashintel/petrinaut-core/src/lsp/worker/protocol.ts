@@ -1,8 +1,8 @@
-import type { ConstraintSpace } from "../../constraint/constraint";
+import type { ConstraintSpace } from "../../constraints/constraint";
 import type {
   ConstraintSource,
   LowerConstraintContext,
-} from "../../constraint/lower";
+} from "../../constraints/lower";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -17,13 +17,15 @@ import type {
  * public Petrinaut APIs, so downstream packages do not need to depend on this
  * upstream package directly.
  */
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
+import type { NetClass } from "../../extensions/net-class";
 import type { CompileHirArtifactsOptions } from "../../hir/compile";
+import type { MetricShape } from "../../hir/metric-shape";
 import type { HirVisualizerContext } from "../../hir/surface-context";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
-} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+} from "../../scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,
@@ -275,12 +277,25 @@ type ServerResponse<Result = unknown> =
   | { jsonrpc: "2.0"; id: number; result: Result }
   | { jsonrpc: "2.0"; id: number; error: { code: number; message: string } };
 
-/** Server-initiated notifications (no `id`). */
-type ServerNotification = {
-  jsonrpc: "2.0";
-  method: "textDocument/publishDiagnostics";
-  params: PublishDiagnosticsParams[];
+/**
+ * What the net's check learned beyond its diagnostics, pushed with them:
+ * classifications the editor reads rather than recompiles for.
+ */
+export type NetAnalysis = {
+  /** By metric id, for every metric whose code lowers. */
+  metricShapes: Record<string, MetricShape>;
+  /** The class of the net. `null` until the first check lands. */
+  netClass: NetClass | null;
 };
+
+/** Server-initiated notifications (no `id`). */
+type ServerNotification =
+  | {
+      jsonrpc: "2.0";
+      method: "textDocument/publishDiagnostics";
+      params: PublishDiagnosticsParams[];
+    }
+  | { jsonrpc: "2.0"; method: "sdcpn/netAnalysis"; params: NetAnalysis };
 
 /** Any message from the worker to the main thread. */
 export type ServerMessage = ServerResponse | ServerNotification;

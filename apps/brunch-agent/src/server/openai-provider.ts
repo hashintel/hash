@@ -4,11 +4,12 @@ import { OPENAI_MODELS } from "@earendil-works/pi-ai/providers/openai.models";
 import type { Provider } from "@earendil-works/pi-ai";
 
 /**
- * The snapshot Petrinaut assistants run by default. Pi's catalogue lists only
+ * The snapshot the Petrinaut website's stock assistant runs by default, and
+ * Brunch's tests name. Pi's catalogue lists only
  * the undated `gpt-5.5` alias, which points at this snapshot, so the snapshot
  * takes the alias's metadata under its dated id. Read from Pi's catalogue
  * module rather than the provider factory: tests substitute the factory with a
- * faux provider that must still resolve the default model.
+ * faux provider that must still resolve this snapshot.
  */
 const gpt55Snapshot = {
   ...OPENAI_MODELS["gpt-5.5"],

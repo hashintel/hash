@@ -1,4 +1,4 @@
-import { Either } from "effect";
+import { Result } from "effect";
 import { describe, test, expect } from "vitest";
 
 import { MutableBuffer, MutableBytes } from "../../src/binary/index.js";
@@ -7,7 +7,7 @@ describe("put", () => {
   test("u8", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putU8(buffer, 0x04).pipe(Either.getOrThrow);
+    MutableBuffer.putU8(buffer, 0x04).pipe(Result.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -17,7 +17,7 @@ describe("put", () => {
   test("u16", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putU16(buffer, 0x04_03).pipe(Either.getOrThrow);
+    MutableBuffer.putU16(buffer, 0x04_03).pipe(Result.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -27,7 +27,7 @@ describe("put", () => {
   test("u32", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putU32(buffer, 0x04_03_02_01).pipe(Either.getOrThrow);
+    MutableBuffer.putU32(buffer, 0x04_03_02_01).pipe(Result.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -39,7 +39,7 @@ describe("put", () => {
   test("i8", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putI8(buffer, -0x04).pipe(Either.getOrThrow);
+    MutableBuffer.putI8(buffer, -0x04).pipe(Result.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -49,7 +49,7 @@ describe("put", () => {
   test("i16", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putI16(buffer, -0x04_03).pipe(Either.getOrThrow);
+    MutableBuffer.putI16(buffer, -0x04_03).pipe(Result.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -59,7 +59,7 @@ describe("put", () => {
   test("i32", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putI32(buffer, -0x04_03_02_01).pipe(Either.getOrThrow);
+    MutableBuffer.putI32(buffer, -0x04_03_02_01).pipe(Result.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -72,7 +72,7 @@ describe("put", () => {
     const buffer = MutableBuffer.makeWrite();
 
     MutableBuffer.putSlice(buffer, new Uint8Array([0x04, 0x03])).pipe(
-      Either.getOrThrow,
+      Result.getOrThrow,
     );
 
     const array = MutableBuffer.take(buffer);
@@ -83,11 +83,11 @@ describe("put", () => {
   test("length", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putU8(buffer, 0x04).pipe(Either.getOrThrow);
+    MutableBuffer.putU8(buffer, 0x04).pipe(Result.getOrThrow);
 
     expect(MutableBuffer.length(buffer)).toBe(1);
 
-    MutableBuffer.putU16(buffer, 0x04_03).pipe(Either.getOrThrow);
+    MutableBuffer.putU16(buffer, 0x04_03).pipe(Result.getOrThrow);
 
     expect(MutableBuffer.length(buffer)).toBe(3);
   });
@@ -105,55 +105,55 @@ describe("get", () => {
     MutableBuffer.makeRead(MutableBytes.from(new Uint8Array(elements).buffer));
 
   test("u8", () => {
-    expect(MutableBuffer.getU8(makeBuffer()).pipe(Either.getOrThrow)).toBe(
+    expect(MutableBuffer.getU8(makeBuffer()).pipe(Result.getOrThrow)).toBe(
       0xff,
     );
   });
 
   test("u16", () => {
-    expect(MutableBuffer.getU16(makeBuffer()).pipe(Either.getOrThrow)).toBe(
+    expect(MutableBuffer.getU16(makeBuffer()).pipe(Result.getOrThrow)).toBe(
       0xff_fe,
     );
   });
 
   test("u32", () => {
-    expect(MutableBuffer.getU32(makeBuffer()).pipe(Either.getOrThrow)).toBe(
+    expect(MutableBuffer.getU32(makeBuffer()).pipe(Result.getOrThrow)).toBe(
       0xff_fe_fd_fc,
     );
   });
 
   test("i8", () => {
-    expect(MutableBuffer.getI8(makeBuffer()).pipe(Either.getOrThrow)).toBe(-1);
+    expect(MutableBuffer.getI8(makeBuffer()).pipe(Result.getOrThrow)).toBe(-1);
   });
 
   test("i16", () => {
-    expect(MutableBuffer.getI16(makeBuffer()).pipe(Either.getOrThrow)).toBe(-2);
+    expect(MutableBuffer.getI16(makeBuffer()).pipe(Result.getOrThrow)).toBe(-2);
   });
 
   test("i32", () => {
-    expect(MutableBuffer.getI32(makeBuffer()).pipe(Either.getOrThrow)).toBe(
+    expect(MutableBuffer.getI32(makeBuffer()).pipe(Result.getOrThrow)).toBe(
       -66052,
     );
   });
 
   test("slice", () => {
     expect(
-      MutableBuffer.getSlice(makeBuffer(), 2).pipe(Either.getOrThrow),
+      MutableBuffer.getSlice(makeBuffer(), 2).pipe(Result.getOrThrow),
     ).toStrictEqual(new Uint8Array([0xff, 0xfe]));
   });
 
   test("advance", () => {
     const buffer = makeBuffer();
 
-    MutableBuffer.advance(buffer, 2).pipe(Either.getOrThrow);
+    MutableBuffer.advance(buffer, 2).pipe(Result.getOrThrow);
 
-    expect(MutableBuffer.getU8(buffer).pipe(Either.getOrThrow)).toBe(0xfd);
+    expect(MutableBuffer.getU8(buffer).pipe(Result.getOrThrow)).toBe(0xfd);
   });
 
   test("remaining", () => {
     const buffer = makeBuffer();
 
-    MutableBuffer.advance(buffer, 2).pipe(Either.getOrThrow);
+    MutableBuffer.advance(buffer, 2).pipe(Result.getOrThrow);
 
     expect(MutableBuffer.remaining(buffer)).toBe(254);
   });

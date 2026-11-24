@@ -10,6 +10,7 @@ import {
   inputArc,
   outputArc,
   placeEndpoint,
+  toPetrinautEndpoint,
 } from "./shared/net-elements.js";
 
 import type { FlowSteps } from "./shared/flow-steps.js";
@@ -50,6 +51,11 @@ export const compileForEachStep = ({
   });
 
   const arrayArc = values.forEachArrayArc(step.stepId);
+  const {
+    arcs: runAfterArcs,
+    runAfter,
+    paths,
+  } = values.runAfterArcs(step, arrayArc ? [arrayArc] : []);
 
   net.addTransitions(
     createTransition({
@@ -62,10 +68,15 @@ export const compileForEachStep = ({
         ...(step.over.kind === "constant"
           ? { constant: step.over.payload as JsonValue }
           : {}),
+        ...(runAfter.length > 0
+          ? { runAfter: runAfter.map(toPetrinautEndpoint) }
+          : {}),
+        ...(paths.length > 0 ? { paths: paths.map(toPetrinautEndpoint) } : {}),
       },
       inputArcs: [
         inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
         ...(arrayArc ? [arrayArc] : []),
+        ...runAfterArcs,
       ],
       outputArcs: [outputArc(placeEndpoint(iteratorPlaceId))],
     }),

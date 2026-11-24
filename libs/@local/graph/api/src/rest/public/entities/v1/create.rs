@@ -87,9 +87,9 @@ struct NewEntityFields {
     entity_type_ids: EntityTypeIds,
     /// The entity's properties, keyed by the base URL of their property type.
     properties: PropertyObject,
-    /// The data type of every value in `properties`, and where the value comes from.
+    /// The data types of the values in `properties`, and where they come from.
     property_metadata: PropertyObjectMetadata,
-    /// The entities it connects, for an entity of a link type.
+    /// The entities it connects, if the entity is a link.
     #[serde(
         default,
         deserialize_with = "non_null",
@@ -296,6 +296,11 @@ const LISTED_VIOLATIONS: usize = 10;
 
 /// The provenance of one or more entities breaks a rule.
 #[derive(Serialize, JsonSchema)]
+#[schemars(extend("description" = format!(
+    "The provenance of one or more entities breaks a rule.\n\n`detail` lists up to \
+     {LISTED_VIOLATIONS} broken rules, each after the entity it applies to, such as \
+     `entities[0]`."
+)))]
 struct InvalidProvenance {
     #[serde(skip)]
     violations: Vec<(usize, ProvenanceViolation)>,

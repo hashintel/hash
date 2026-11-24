@@ -367,6 +367,33 @@ const getCurrentFlowRunRecord = async ({
   return { kind: "notStored", workflow };
 };
 
+/** The record of a closed run that has none stored, built from its history, and stored if it can be. */
+const recordClosedFlowRun = async ({
+  temporalClient,
+  storageProvider,
+  workflow,
+}: {
+  temporalClient: TemporalClient;
+  storageProvider: FileStorageProvider;
+  workflow: WorkflowExecutionDescription;
+}): Promise<FlowRunRecord> => {
+  const record = await readFlowRunRecordFromHistory({
+    temporalClient,
+    workflow,
+  });
+
+  try {
+    await writeFlowRunRecord({ storageProvider, record });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Could not write the record of closed flow run ${workflow.workflowId}: ${(error as Error).message}`,
+    );
+  }
+
+  return record;
+};
+
 /**
  * A run's record: the one it wrote when it ended, or else built from its history in Temporal. A run that closed
  * without writing its record has it written now.
@@ -398,23 +425,12 @@ const readFlowRunRecord = async ({
         workflow: current.workflow,
         runningHistories,
       });
-    case "notStored": {
-      const record = await readFlowRunRecordFromHistory({
+    case "notStored":
+      return recordClosedFlowRun({
         temporalClient,
+        storageProvider,
         workflow: current.workflow,
       });
-
-      try {
-        await writeFlowRunRecord({ storageProvider, record });
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `Could not write the record of closed flow run ${workflowId}: ${(error as Error).message}`,
-        );
-      }
-
-      return record;
-    }
   }
 };
 
@@ -477,4 +493,31 @@ export const getStoredFlowRunRecordKey = async (params: {
   }
 
   return getFlowRunRecordStorageKey(params.workflowId);
+};
+
+/**
+ * The header of a run's record once it has ended, or `null` while it's running, without reading its history. A
+ * closed run whose stored record is missing or out of date has it written, as `getFlowRunRecord` does.
+ */
+export const getEndedFlowRunRecordHeader = async (params: {
+  temporalClient: TemporalClient;
+  storageProvider: FileStorageProvider;
+  workflowId: string;
+}): Promise<FlowRunRecordHeader | null> => {
+  const current = await getCurrentFlowRunRecord(params);
+
+  switch (current.kind) {
+    case "running":
+      return null;
+    case "stored":
+      return current.header;
+    case "notStored":
+      return (
+        await recordClosedFlowRun({
+          temporalClient: params.temporalClient,
+          storageProvider: params.storageProvider,
+          workflow: current.workflow,
+        })
+      ).header;
+  }
 };

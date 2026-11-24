@@ -76,6 +76,16 @@ function assess(
   // run's draws are uploaded to a per-run buffer the shader reads instead of
   // a baked literal. Draws the f32 buffer cannot carry are refused at
   // instantiation by `deriveRunParameters`.
+  if (request.simulator !== undefined) {
+    const blockers: ExperimentBlockers = [
+      {
+        code: "simulator-not-hosted",
+        message: `The GPU backend runs its own fixed-step engine and does not host the simulator "${request.simulator.id}".`,
+        origin: "configuration",
+      },
+    ];
+    return { eligible: false, blockers };
+  }
   if (request.hirArtifacts === undefined) {
     const blockers: ExperimentBlockers = [
       {

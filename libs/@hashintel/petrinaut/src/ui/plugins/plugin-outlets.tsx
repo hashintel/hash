@@ -4,7 +4,7 @@ import { Button } from "@hashintel/ds-components";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { PluginBoundary } from "./plugin-boundary";
-import { useRunningPlugins } from "./plugins-provider";
+import { usePluginStatuses, useRunningPlugin } from "./running-plugins";
 
 import type { PluginButtonPlace } from "./define-petrinaut-plugin";
 import type { ComponentProps } from "react";
@@ -28,22 +28,25 @@ const atPlace = <Spec extends { readonly place: string }>(
   place: PluginButtonPlace,
 ) => Object.entries(specs ?? {}).filter(([, spec]) => spec.place === place);
 
-/**
- * Every plugin's buttons and top-bar items for one place, in plugin order: a
- * plugin's buttons, then its items. The toolbar sets the button size and
- * variant, so plugin buttons match the built-in ones beside them.
- */
-export const PluginToolbarItems = ({
-  place,
-  buttonClassName,
-}: {
+interface PluginToolbarItemsProps {
   place: PluginButtonPlace;
   /** Added to every plugin button, e.g. the viewport controls' chrome. */
   buttonClassName?: string;
-}) => {
-  const running = useRunningPlugins();
+}
 
-  return running.flatMap(({ manifest, instanceKey, contributions }) => [
+/** One plugin's buttons, then its top-bar items, for one place. */
+const PluginToolbarItemsOf = ({
+  pluginId,
+  place,
+  buttonClassName,
+}: PluginToolbarItemsProps & { pluginId: string }) => {
+  const running = useRunningPlugin(pluginId);
+  if (running === undefined) {
+    return null;
+  }
+  const { manifest, instanceKey, contributions } = running;
+
+  return [
     ...atPlace(manifest.buttons, place).map(([key, spec]) => {
       const button = contributions.buttons?.[key];
 
@@ -88,13 +91,32 @@ export const PluginToolbarItems = ({
         {contributions.topBarItems?.[key]}
       </PluginBoundary>
     )),
-  ]);
+  ];
+};
+
+/**
+ * Every plugin's buttons and top-bar items for one place, in plugin order.
+ * The toolbar sets the button size and variant, so plugin buttons match the
+ * built-in ones beside them. Each plugin's items read that plugin alone, so
+ * one plugin publishing renders no other's.
+ */
+export const PluginToolbarItems = (props: PluginToolbarItemsProps) =>
+  usePluginStatuses().map(({ plugin: { manifest } }) => (
+    <PluginToolbarItemsOf key={manifest.id} pluginId={manifest.id} {...props} />
+  ));
+
+const PluginRoot = ({ pluginId }: { pluginId: string }) => {
+  const running = useRunningPlugin(pluginId);
+
+  return running === undefined ? null : (
+    <PluginBoundary key={running.instanceKey} pluginId={pluginId} place="root">
+      {running.contributions.root}
+    </PluginBoundary>
+  );
 };
 
 /** Every plugin's `root`, inside the editor, each behind its own boundary. */
 export const PluginRoots = () =>
-  useRunningPlugins().map(({ manifest, instanceKey, contributions }) => (
-    <PluginBoundary key={instanceKey} pluginId={manifest.id} place="root">
-      {contributions.root}
-    </PluginBoundary>
+  usePluginStatuses().map(({ plugin: { manifest } }) => (
+    <PluginRoot key={manifest.id} pluginId={manifest.id} />
   ));

@@ -8,8 +8,8 @@
 import { globSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import ts from "@typescript/typescript6";
 import { withCompilerOptions } from "react-docgen-typescript";
-import ts from "typescript";
 
 import { docgenParserOptions } from "../docs/docgen-options";
 
@@ -20,6 +20,9 @@ const outFile = "docs/blocks/props-table/docgen-registry.gen.ts";
 const sourceFiles = [
   ...globSync("./src/components/*/*.tsx", {
     exclude: ["**/*.stories.tsx", "**/*.test.tsx"],
+  }),
+  ...globSync("./src/primitives/*/*.tsx", {
+    exclude: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.fixtures.tsx"],
   }),
   // Compound parts (Dialog.Body, Popover.Footer, …) are defined in src/util.
   ...globSync("./src/util/**/*.tsx", {

@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.lsp
- * @role Language-server client and transport for editing user code in the net
+ * @role Host-side language client and worker transport for editing user code in the net
  */
 
 export {
@@ -17,7 +17,9 @@ export {
 
 export {
   CompletionItemKind,
+  CompletionItemTag,
   DiagnosticSeverity,
+  DiagnosticTag,
   MarkupKind,
   Position,
   Range,
@@ -32,3 +34,5 @@ export type {
   SignatureHelp,
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
+
+export type { NetAnalysis } from "./worker/protocol";

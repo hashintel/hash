@@ -61,6 +61,22 @@ class ModelStreamIdleError extends Error {
   }
 }
 
+/**
+ * The model stopped at its output limit. The provider call succeeded and its
+ * finish reason stays `length`, but the response is incomplete, so the turn
+ * fails rather than settling as a completed reply.
+ */
+class ModelOutputLimitError extends Error {
+  public readonly code = "model_output_limit";
+
+  constructor() {
+    super(
+      "model_output_limit: the model reached its output limit before finishing its response. Send a message to continue.",
+    );
+    this.name = "ModelOutputLimitError";
+  }
+}
+
 class ModelStreamCancellationUnacknowledgedError extends Error {
   public readonly code = "model_stream_cancellation_unacknowledged";
 
@@ -105,6 +121,26 @@ export const claimModelStreamIdleRetry = (
   return true;
 };
 
+/** What admission knows when an idle timeout cancels a provider invocation. */
+export type ModelStreamIdleTimeout = {
+  readonly provider: string;
+  readonly model: string;
+  readonly phase: ModelStreamIdlePhase;
+  readonly idleMs: number;
+  readonly lastEventType: AssistantMessageEvent["type"] | undefined;
+  /** Whether the provider invocation stopped within the cancellation timeout. */
+  readonly acknowledged: boolean;
+  /** Whether this timeout claimed the single idle retry. */
+  readonly retryClaimed: boolean;
+};
+
+/** What admission knows when a response stops at the output limit. */
+export type ModelOutputLimit = {
+  readonly provider: string;
+  readonly model: string;
+  readonly outputTokens: number;
+};
+
 type StreamIdleRecovery = {
   /** Only these independent calls may share a browser/server proposal. */
   readonly mixedToolNames?: ReadonlySet<string>;
@@ -115,7 +151,13 @@ type StreamIdleRecovery = {
   readonly firstEventTimeoutMs: number;
   readonly idleTimeoutMs: number;
   readonly reasoningStartTimeoutMs: number;
+  /** Called once per idle timeout; it must not throw. */
+  readonly onIdleTimeout?: (timeout: ModelStreamIdleTimeout) => void;
+  /** Called once per response stopped at the output limit; it must not throw. */
+  readonly onOutputLimit?: (limit: ModelOutputLimit) => void;
 };
+
+type ModelIdentity = { readonly provider: string; readonly id: string };
 
 type BufferedEvent = {
   [Kind in AssistantMessageEvent["type"]]: Omit<
@@ -129,15 +171,18 @@ type BufferedEvent = {
 class AdmittedStream extends AssistantMessageEventStream {
   readonly #admitted;
   readonly #parentSignal;
+  readonly #model;
 
   constructor(
     start: (signal: AbortSignal) => AssistantMessageEventStream,
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
     idleRecovery: StreamIdleRecovery | undefined,
+    model: ModelIdentity,
   ) {
     super();
     this.#parentSignal = parentSignal;
+    this.#model = model;
     this.#admitted = this.#collect(
       start,
       parentSignal,
@@ -240,15 +285,26 @@ class AdmittedStream extends AssistantMessageEventStream {
             }),
           ]);
           if (cancellationTimer !== undefined) clearTimeout(cancellationTimer);
-          if (!acknowledged) {
-            throw new ModelStreamCancellationUnacknowledgedError();
-          }
           const toolCallCompleted = events.some(
             (event) => event.type === "toolcall_end",
           );
+          const retryClaimed =
+            acknowledged && !toolCallCompleted && idleRecovery.claimRetry();
+          idleRecovery.onIdleTimeout?.({
+            provider: this.#model.provider,
+            model: this.#model.id,
+            phase,
+            idleMs: idleTimeoutMs,
+            lastEventType,
+            acknowledged,
+            retryClaimed,
+          });
+          if (!acknowledged) {
+            throw new ModelStreamCancellationUnacknowledgedError();
+          }
           throw new ModelStreamIdleError(
             idleTimeoutMs,
-            !toolCallCompleted && idleRecovery.claimRetry(),
+            retryClaimed,
             phase,
             lastEventType,
           );
@@ -306,6 +362,20 @@ class AdmittedStream extends AssistantMessageEventStream {
       }
       const message = await Promise.race([upstream.result(), interrupted]);
       count(message);
+      // A length stop fails the turn, with or without tool calls. Without this,
+      // Flue counts it as a completed response, and pi-agent-core fails the
+      // calls of a truncated message and asks the model to re-issue them. A
+      // call cut off by the limit is likely cut off again, and each attempt
+      // reserves the full output budget. Completed calls are still buffered
+      // here, so none of them is admitted or runs.
+      if (message.stopReason === "length") {
+        idleRecovery?.onOutputLimit?.({
+          provider: this.#model.provider,
+          model: this.#model.id,
+          outputTokens: message.usage.output,
+        });
+        throw new ModelOutputLimitError();
+      }
       // Flue publishes toolcall_end inputs, then executes final-message calls.
       // Neither representation may smuggle a mixed proposal past admission.
       const finalCalls = message.content.flatMap((part) =>
@@ -426,6 +496,7 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
+          model,
         )
       : provider.stream(model, context, options);
   },
@@ -437,6 +508,7 @@ export const withBufferedToolAdmission = (
           options?.signal,
           browserToolNames,
           idleRecovery,
+          model,
         )
       : provider.streamSimple(model, context, options);
   },

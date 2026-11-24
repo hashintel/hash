@@ -26,7 +26,7 @@ export type PositionedNetNode = NetGraphNode & {
   layer: number;
 };
 
-export type LaidOutEdge = NetGraphEdge & {
+type LaidOutEdge = NetGraphEdge & {
   key: string;
   /**
    * True when the edge does not travel downwards through the layers; drawn
@@ -319,7 +319,7 @@ function orderLayers(
   return layers;
 }
 
-export interface LayoutOptions {
+interface LayoutOptions {
   /**
    * Re-layer around this node instead of by longest path: it takes the middle
    * row, its dependencies stack above and its dependents below.

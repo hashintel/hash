@@ -52,6 +52,7 @@ A test that only calls `try_parse_from` on a `#[derive(clap::Parser)]` type and 
 
 - Use `expect()` or `expect_err()` with clear messages instead of `unwrap()` or `unwrap_err()`
 - Prefer `assert_eq!` with custom messages over bare assertions when comparing values
+- Use `assert_matches!` to check a value against a pattern, not `assert!(matches!(..))`. It prints the value when the assertion fails. Import it from `core`: `use core::assert_matches;`
 - When testing errors, assert on specific error types or message contents, not just that an error occurred
 - Balance assertions to verify functionality without creating brittle tests
 

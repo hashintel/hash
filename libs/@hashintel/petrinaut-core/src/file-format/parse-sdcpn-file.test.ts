@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../document/equation-arity";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { parseSDCPNFile } from "./parse-sdcpn-file";
 
 const idOf = toPetrinautId;
@@ -10,7 +11,6 @@ const minimalPlace = {
   name: "Place 1",
   colorId: null,
   dynamicsEnabled: false,
-  differentialEquationId: null,
   x: 100,
   y: 200,
 };
@@ -122,7 +122,7 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.inputArcs[0]?.type).toBe("read");
     });
 
-    it("parses subnets and component instances", () => {
+    it("parses components and component instances", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -131,23 +131,22 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 500,
             y: 600,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Reusable subnet",
+            id: "component-1",
+            name: "Reusable component",
             places: [
               {
-                id: "subnet-place-1",
+                id: "component-place-1",
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -165,10 +164,12 @@ describe("parseSDCPNFile", () => {
       if (!result.ok) return;
       expect(result.sdcpn.componentInstances?.[0]).toMatchObject({
         id: idOf("instance-1"),
-        subnetId: toPetrinautId("subnet-1"),
+        component: { id: toPetrinautId("component-1") },
       });
-      expect(result.sdcpn.subnets?.[0]?.id).toBe(toPetrinautId("subnet-1"));
-      expect(result.sdcpn.subnets?.[0]?.places[0]?.isPort).toBe(true);
+      expect(result.sdcpn.components?.[0]?.id).toBe(
+        toPetrinautId("component-1"),
+      );
+      expect(result.sdcpn.components?.[0]?.places[0]?.isPort).toBe(true);
     });
 
     it("preserves component-port arc endpoints during import", () => {
@@ -184,7 +185,7 @@ describe("parseSDCPNFile", () => {
                 endpoint: {
                   kind: "componentPort",
                   componentInstanceId: "instance-1",
-                  portPlaceId: "subnet-place-1",
+                  portPlaceId: "component-place-1",
                 },
                 weight: 1,
               },
@@ -195,23 +196,22 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 500,
             y: 600,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Reusable subnet",
+            id: "component-1",
+            name: "Reusable component",
             places: [
               {
-                id: "subnet-place-1",
+                id: "component-place-1",
                 name: "Port",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 isPort: true,
                 x: 0,
                 y: 0,
@@ -231,7 +231,7 @@ describe("parseSDCPNFile", () => {
         endpoint: {
           kind: "componentPort",
           componentInstanceId: idOf("instance-1"),
-          portPlaceId: idOf("subnet-place-1"),
+          portPlaceId: idOf("component-place-1"),
         },
         weight: 1,
       });
@@ -293,7 +293,6 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.places[0]).toMatchObject({
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
       });
     });
 
@@ -322,7 +321,7 @@ describe("parseSDCPNFile", () => {
       });
     });
 
-    it("preserves explicit place colour, dynamics and arc weight values", () => {
+    it("preserves explicit place colour and arc weights, migrating a legacy equation reference", () => {
       const result = parseSDCPNFile({
         version: 1,
         meta: { generator: "Petrinaut" },
@@ -334,6 +333,7 @@ describe("parseSDCPNFile", () => {
             colorId: "c1",
             dynamicsEnabled: true,
             differentialEquationId: "de1",
+            dynamics: [{ differentialEquationId: "de2" }],
             x: 100,
             y: 200,
           },
@@ -348,6 +348,7 @@ describe("parseSDCPNFile", () => {
         types: [{ id: "c1", name: "Colour 1", elements: [] }],
         differentialEquations: [
           { id: "de1", name: "Equation 1", colorId: "c1", code: "" },
+          { id: "de2", name: "Pairwise", colorId: "c1", code: "", arity: 2 },
         ],
       });
 
@@ -356,8 +357,18 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.places[0]).toMatchObject({
         colorId: idOf("c1"),
         dynamicsEnabled: true,
-        differentialEquationId: idOf("de1"),
+        dynamics: [
+          { differentialEquationId: idOf("de1") },
+          { differentialEquationId: idOf("de2") },
+        ],
       });
+      expect(result.sdcpn.places[0]).not.toHaveProperty(
+        "differentialEquationId",
+      );
+      expect(result.sdcpn.differentialEquations).toMatchObject([
+        { id: idOf("de1"), arity: 1 },
+        { id: idOf("de2"), arity: 2 },
+      ]);
       expect(result.sdcpn.transitions[0]?.inputArcs[0]).toMatchObject({
         weight: 3,
         type: "read",
@@ -365,6 +376,24 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.outputArcs[0]).toMatchObject({
         weight: 3,
       });
+    });
+
+    it("rejects an equation that couples more tokens than the bound", () => {
+      const withArity = (arity: number) =>
+        parseSDCPNFile({
+          version: 1,
+          meta: { generator: "Petrinaut" },
+          ...minimalSDCPN,
+          types: [{ id: "c1", name: "Colour 1", elements: [] }],
+          differentialEquations: [
+            { id: "de1", name: "Equation 1", colorId: "c1", code: "", arity },
+          ],
+        });
+      expect(withArity(MAX_DIFFERENTIAL_EQUATION_ARITY).ok).toBe(true);
+      const result = withArity(MAX_DIFFERENTIAL_EQUATION_ARITY + 1);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain("arity");
     });
 
     it("strips version and meta from the returned sdcpn", () => {
@@ -413,17 +442,17 @@ describe("parseSDCPNFile", () => {
             name: "Instance1",
             description: "An instance",
             metadata: { origin: "imported" },
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: 0,
             y: 0,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Subnet 1",
-            description: "A subnet",
+            id: "component-1",
+            name: "Component 1",
+            description: "A component",
             metadata: { origin: "imported" },
             places: [],
             transitions: [],
@@ -452,8 +481,8 @@ describe("parseSDCPNFile", () => {
         description: "An instance",
         metadata: { origin: "imported" },
       });
-      expect(result.sdcpn.subnets?.[0]).toMatchObject({
-        description: "A subnet",
+      expect(result.sdcpn.components?.[0]).toMatchObject({
+        description: "A component",
         metadata: { origin: "imported" },
       });
     });
@@ -538,16 +567,16 @@ describe("parseSDCPNFile", () => {
           {
             id: "instance-1",
             name: "Reusable instance",
-            subnetId: "subnet-1",
+            component: { id: "component-1" },
             parameterValues: {},
             x: undefined,
             y: undefined,
           },
         ],
-        subnets: [
+        components: [
           {
-            id: "subnet-1",
-            name: "Reusable subnet",
+            id: "component-1",
+            name: "Reusable component",
             places: [],
             transitions: [],
             types: [],

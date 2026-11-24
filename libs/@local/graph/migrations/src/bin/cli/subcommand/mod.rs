@@ -2,10 +2,13 @@ mod completions;
 mod run;
 
 use core::{error::Error, pin::Pin};
+use std::path::PathBuf;
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
-use tokio_postgres::{Client, Config, Connection, NoTls, Socket, tls::NoTlsStream};
+use hash_graph_postgres_store::store::{self, DatabaseSslMode, DatabaseType};
+use tokio_postgres::{Client, Connection, Socket, tls::MakeTlsConnect};
+use tokio_postgres_rustls::MakeRustlsConnect;
 
 use self::{completions::CompletionsCommand, run::RunCommand};
 use crate::Command;
@@ -53,20 +56,104 @@ pub struct DatabaseConnectionInfo {
     /// The database name to use.
     #[clap(long, default_value = "graph", env = "HASH_GRAPH_PG_DATABASE")]
     database: String,
+
+    /// Whether to connect to the database over TLS.
+    #[clap(
+        long = "pg-ssl-mode",
+        default_value = "disable",
+        value_enum,
+        env = "HASH_GRAPH_PG_SSL_MODE"
+    )]
+    ssl_mode: DatabaseSslMode,
+
+    /// Path to the PEM-encoded root certificate the database server is verified against.
+    ///
+    /// Required unless `--pg-ssl-mode` is `disable`.
+    #[clap(
+        long = "pg-ssl-root-cert",
+        env = "HASH_GRAPH_PG_SSL_ROOT_CERT",
+        required_if_eq("ssl_mode", "verify-full")
+    )]
+    ssl_root_cert: Option<PathBuf>,
 }
 
+/// Connecting to the database failed.
+#[derive(Debug, derive_more::Display)]
+pub enum ConnectError {
+    #[display("the root certificate could not be loaded")]
+    RootCertificate,
+    #[display("could not connect to the database")]
+    Connect,
+}
+
+impl Error for ConnectError {}
+
+type TlsStream = <MakeRustlsConnect as MakeTlsConnect<Socket>>::Stream;
+
 impl DatabaseConnectionInfo {
+    /// Connects to the database, over TLS if `--pg-ssl-mode` enables it.
+    ///
+    /// # Errors
+    ///
+    /// - [`RootCertificate`] if the root certificate cannot be loaded
+    /// - [`Connect`] if the connection or handshake fails
+    ///
+    /// [`RootCertificate`]: ConnectError::RootCertificate
+    /// [`Connect`]: ConnectError::Connect
     pub async fn connect(
         self,
-    ) -> Result<(Client, Connection<Socket, NoTlsStream>), Report<tokio_postgres::Error>> {
-        Config::default()
-            .user(self.user)
-            .password(self.password.expose())
-            .host(self.host)
-            .port(self.port)
-            .dbname(self.database)
-            .connect(NoTls)
+    ) -> Result<(Client, Connection<Socket, TlsStream>), Report<ConnectError>> {
+        let info = store::DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            self.user,
+            self.password,
+            self.host,
+            self.port,
+            self.database,
+        )
+        .with_ssl(self.ssl_mode, self.ssl_root_cert);
+        let tls = info.tls().change_context(ConnectError::RootCertificate)?;
+
+        info.config()
+            .connect(tls)
             .await
-            .map_err(Report::new)
+            .change_context(ConnectError::Connect)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::{Parser, error::ErrorKind};
+
+    use super::DatabaseConnectionInfo;
+
+    #[derive(Debug, Parser)]
+    struct Cli {
+        #[command(flatten)]
+        info: DatabaseConnectionInfo,
+    }
+
+    #[test]
+    fn ssl_requires_root_cert() {
+        let error = Cli::try_parse_from(["migrations", "--pg-ssl-mode", "verify-full"])
+            .expect_err("verify-full without a root certificate should be rejected");
+
+        assert_eq!(
+            error.kind(),
+            ErrorKind::MissingRequiredArgument,
+            "`verify-full` should require `--pg-ssl-root-cert`"
+        );
+    }
+
+    #[test]
+    fn ssl_with_root_cert() {
+        Cli::try_parse_from([
+            "migrations",
+            "--pg-ssl-mode",
+            "verify-full",
+            "--pg-ssl-root-cert",
+            "/etc/ssl/rds.pem",
+        ])
+        .expect("a TLS mode with a root certificate should parse");
     }
 }

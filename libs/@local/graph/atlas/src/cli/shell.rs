@@ -6,13 +6,15 @@ use core::pin::Pin;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueHint};
+#[cfg(feature = "cli")]
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
 
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;
 use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs, S3Args};
 #[cfg(feature = "cli")]
-use crate::file::storage::{Storage, error::StorageError};
+use crate::file::storage::Storage;
 #[cfg(feature = "cli")]
 use crate::progress::Progress;
 
@@ -122,68 +124,47 @@ fn fit_source(
     }
 }
 
-/// One dashboard-hosted fit's failure, by step.
-///
-/// The restored terminal reports the step that failed.
+/// One shell-hosted fit's failure, by step.
 #[cfg(feature = "cli")]
 #[derive(Debug)]
-enum DashboardError {
-    /// Preparing, drawing, or restoring the terminal failed.
-    Terminal(std::io::Error),
+enum ShellFitError {
+    /// Setting up the temporary directory or the S3 backend failed.
+    Storage,
+    /// Preparing, drawing, or restoring the live dashboard's terminal failed.
+    Terminal,
+    /// Resolving the fit inputs failed.
+    Prepare,
     /// Dialing the store connection failed.
-    Connect(super::ConnectError),
+    Connect,
     /// The fit failed.
-    Fit(super::FitError),
-    /// The storage failed.
-    Storage(StorageError),
+    Fit,
 }
 
 #[cfg(feature = "cli")]
-impl core::fmt::Display for DashboardError {
+impl core::fmt::Display for ShellFitError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Terminal(_) => fmt.write_str("the live dashboard could not use the terminal"),
-            Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
-            // The fit's own chain is the diagnosis. This variant adds no
-            // step of its own.
-            Self::Fit(error) => core::fmt::Display::fmt(error, fmt),
-            Self::Storage(_) => fmt.write_str("the storage could not be accessed"),
+            Self::Storage => fmt.write_str("the fit storage could not be set up"),
+            Self::Terminal => fmt.write_str("the live dashboard could not use the terminal"),
+            Self::Prepare => fmt.write_str("the fit inputs could not be resolved"),
+            Self::Connect => fmt.write_str("the store connection could not be dialed"),
+            Self::Fit => fmt.write_str("the fit failed"),
         }
     }
 }
 
 #[cfg(feature = "cli")]
-impl core::error::Error for DashboardError {
-    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        match self {
-            Self::Terminal(error) => Some(error),
-            Self::Connect(error) => Some(error),
-            Self::Fit(error) => error.source(),
-            Self::Storage(error) => Some(error),
-        }
-    }
-}
+impl core::error::Error for ShellFitError {}
 
-#[cfg(feature = "cli")]
-impl From<StorageError> for DashboardError {
-    fn from(value: StorageError) -> Self {
-        Self::Storage(value)
-    }
-}
-
-/// Renders a command's failure chain to stderr and returns the failure exit code.
+/// Renders a command's failure report to stderr and returns the failure exit code.
 #[cfg(feature = "cli")]
 #[expect(
     clippy::print_stderr,
-    reason = "the rendered failure chain is the binary shell's product"
+    clippy::use_debug,
+    reason = "the report's `Debug` rendering is the binary shell's product"
 )]
-fn render_failure(error: impl core::error::Error) -> std::process::ExitCode {
-    eprintln!("error: {error}");
-    let mut source = error.source();
-    while let Some(cause) = source {
-        eprintln!("  caused by: {cause}");
-        source = cause.source();
-    }
+fn render_report<C>(report: &Report<C>) -> std::process::ExitCode {
+    eprintln!("error: {report:?}");
 
     std::process::ExitCode::FAILURE
 }
@@ -206,14 +187,16 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
 ///
 /// # Errors
 ///
-/// Returns [`super::S3ArgsError`] if the enabled backend's region or credentials cannot be
-/// resolved.
+/// Returns [`ShellFitError::Storage`] if the temporary directory cannot be created, or if the
+/// enabled backend's region or credentials cannot be resolved.
 #[cfg(feature = "cli")]
 #[expect(clippy::significant_drop_in_scrutinee, reason = "false positive")]
-async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
-    let mut storage = Storage::in_temp_dir().await?;
+async fn fit_storage(s3: S3Args) -> Result<Storage, Report<ShellFitError>> {
+    let mut storage = Storage::in_temp_dir()
+        .await
+        .change_context(ShellFitError::Storage)?;
 
-    if let Some(client) = s3.client().await? {
+    if let Some(client) = s3.client().await.change_context(ShellFitError::Storage)? {
         storage.set_s3(client);
     }
 
@@ -229,18 +212,23 @@ async fn fit_storage(s3: S3Args) -> Result<Storage, super::S3ArgsError> {
 async fn run_fit(
     command: super::FitCommand<impl Progress<Detached: UnwindSafe> + Sync>,
     source: FitSource,
-) -> Result<super::FitVerdict, DashboardError> {
-    match source {
+) -> Result<super::FitVerdict, Report<ShellFitError>> {
+    let verdict = match source {
         FitSource::Live { store, credential } => {
-            let mut client = store.connect().await.map_err(DashboardError::Connect)?;
+            let mut client = store
+                .connect()
+                .await
+                .change_context(ShellFitError::Connect)?;
             Box::pin(command.run(&mut client, credential))
                 .await
-                .map_err(DashboardError::Fit)
+                .change_context(ShellFitError::Fit)?
         }
         FitSource::Offline(dump) => Box::pin(command.run_offline(&dump))
             .await
-            .map_err(DashboardError::Fit),
-    }
+            .change_context(ShellFitError::Fit)?,
+    };
+
+    Ok(verdict)
 }
 
 /// Runs one fit on the live dashboard, restoring the terminal before rendering anything.
@@ -250,7 +238,7 @@ async fn run_fit(
 ///
 /// # Errors
 ///
-/// Returns [`DashboardError`] on failure. A run failure takes precedence over a
+/// Returns [`ShellFitError`] on failure. A run failure takes precedence over a
 /// terminal-restoration failure.
 ///
 /// # Panics
@@ -262,8 +250,8 @@ async fn fit_on_dashboard(
     source: FitSource,
     args: FitArgs,
     storage: Storage,
-) -> Result<super::FitVerdict, DashboardError> {
-    let dashboard = super::tui::Dashboard::start().map_err(DashboardError::Terminal)?;
+) -> Result<super::FitVerdict, Report<ShellFitError>> {
+    let dashboard = super::tui::Dashboard::start().change_context(ShellFitError::Terminal)?;
 
     // The dashboard owns the terminal from here. The records the run emits belong in its pane, not
     // on the screen it is drawing.
@@ -277,7 +265,8 @@ async fn fit_on_dashboard(
     let observer = dashboard.observer();
     let outcome = async {
         let command = super::FitCommand::new(root, args, storage)
-            .await?
+            .await
+            .change_context(ShellFitError::Prepare)?
             .with_progress(observer);
 
         run_fit(command, source).await
@@ -287,50 +276,34 @@ async fn fit_on_dashboard(
     // The terminal comes back before the process renders either result.
     let restored = dashboard.finish();
     let verdict = outcome?;
-    restored.map_err(DashboardError::Terminal)?;
+    restored.change_context(ShellFitError::Terminal)?;
 
     Ok(verdict)
 }
 
-/// Runs a fit without a dashboard and renders its verdict or failure chain.
+/// Runs one fit without a dashboard, its records logged to stderr.
+///
+/// # Errors
+///
+/// Returns [`ShellFitError`] on failure.
 #[cfg(feature = "cli")]
-#[expect(clippy::significant_drop_tightening, reason = "false positive")]
 async fn fit_logged(
     root: RootArgs,
     source: FitSource,
     args: FitArgs,
     storage: Storage,
-) -> std::process::ExitCode {
-    let command = match super::FitCommand::new(root, args, storage).await {
-        Ok(command) => command,
-        Err(error) => return render_failure(error),
-    };
+) -> Result<super::FitVerdict, Report<ShellFitError>> {
+    let command = super::FitCommand::new(root, args, storage)
+        .await
+        .change_context(ShellFitError::Prepare)?;
 
-    let result = match source {
-        FitSource::Live { store, credential } => {
-            let mut client = match store.connect().await {
-                Ok(client) => client,
-                Err(error) => return render_failure(error),
-            };
-
-            Box::pin(command.run(&mut client, credential)).await
-        }
-        FitSource::Offline(dump) => Box::pin(command.run_offline(&dump)).await,
-    };
-
-    match result {
-        Ok(verdict) => {
-            render_verdict(verdict);
-            std::process::ExitCode::SUCCESS
-        }
-        Err(error) => render_failure(error),
-    }
+    run_fit(command, source).await
 }
 
 /// Runs the standalone atlas binary.
 ///
 /// Parses the command line and installs the log renderer before dispatching the command. The
-/// returned exit code is the command's verdict: success, or failure with the error chain rendered
+/// returned exit code is the command's verdict: success, or failure with the error report rendered
 /// to stderr.
 ///
 /// # Panics
@@ -358,54 +331,31 @@ pub async fn main() -> std::process::ExitCode {
         Command::Fit {
             root,
             store,
+            s3,
             args,
             openai_api_key,
             offline,
-            tui: true,
-            s3,
+            tui,
         } => {
-            let storage = match fit_storage(s3).await {
-                Ok(storage) => storage,
-                Err(error) => return render_failure(error),
-            };
+            let result = async {
+                let storage = fit_storage(s3).await?;
+                let source = fit_source(store, openai_api_key, offline);
 
-            match fit_on_dashboard(
-                root,
-                fit_source(store, openai_api_key, offline),
-                *args,
-                storage,
-            )
-            .await
-            {
+                if tui {
+                    fit_on_dashboard(root, source, *args, storage).await
+                } else {
+                    fit_logged(root, source, *args, storage).await
+                }
+            }
+            .await;
+
+            match result {
                 Ok(verdict) => {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
                 }
-                Err(error) => render_failure(error),
+                Err(report) => render_report(&report),
             }
-        }
-
-        Command::Fit {
-            root,
-            store,
-            s3,
-            args,
-            openai_api_key,
-            offline,
-            tui: false,
-        } => {
-            let storage = match fit_storage(s3).await {
-                Ok(storage) => storage,
-                Err(error) => return render_failure(error),
-            };
-
-            fit_logged(
-                root,
-                fit_source(store, openai_api_key, offline),
-                *args,
-                storage,
-            )
-            .await
         }
 
         Command::Report { command } => match command.run().await {
@@ -416,13 +366,13 @@ pub async fn main() -> std::process::ExitCode {
                 render_verdict(verdict);
                 std::process::ExitCode::SUCCESS
             }
-            Err(error) => render_failure(error),
+            Err(report) => render_report(&report),
         },
 
         Command::Dump { store, args } => {
             let mut client = match store.connect().await {
                 Ok(client) => client,
-                Err(error) => return render_failure(error),
+                Err(report) => return render_report(&report),
             };
 
             match super::DumpCommand::new(args).run(&mut client).await {
@@ -430,7 +380,7 @@ pub async fn main() -> std::process::ExitCode {
                     render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
                 }
-                Err(error) => render_failure(error),
+                Err(report) => render_report(&report),
             }
         }
     }

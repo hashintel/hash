@@ -66,7 +66,7 @@ describe("Petrinaut oEmbed endpoint", () => {
     // is carried as `view`, and `section` is somebody else's spelling.
     source.searchParams.set("section", "metrics");
     source.searchParams.set("scenario", "scenario-1");
-    source.searchParams.set("subnet", "subnet-1");
+    source.searchParams.set("component", "component-1");
     source.searchParams.set("itemType", "transition");
     source.searchParams.set("itemId", "transition-1");
     source.searchParams.set("unrelated", "discard-me");
@@ -78,7 +78,7 @@ describe("Petrinaut oEmbed endpoint", () => {
 
     expect(response.status).toBe(200);
     expect(body.html).toBe(
-      '<iframe src="https://demo.petrinaut.org/embed/examples/gases-2-spn?itemId=transition-1&amp;itemType=transition&amp;mode=simulate&amp;scenario=scenario-1&amp;subnet=subnet-1" title="Gases 2 — Shared Tanker" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" allowfullscreen></iframe>',
+      '<iframe src="https://demo.petrinaut.org/embed/examples/gases-2-spn?component=component-1&amp;itemId=transition-1&amp;itemType=transition&amp;mode=simulate&amp;scenario=scenario-1" title="Gases 2 — Shared Tanker" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" allowfullscreen></iframe>',
     );
   });
 
@@ -110,7 +110,7 @@ describe("Petrinaut oEmbed endpoint", () => {
       "https://demo.petrinaut.org/examples/semiconductor-fab-drift",
     );
     source.searchParams.set("scenario", '"><script>alert("x")</script>&');
-    source.searchParams.set("subnet", "one&two");
+    source.searchParams.set("component", "one&two");
 
     const response = await fetch(endpointRequest(source.href));
     const body = await responseJson(response);
@@ -120,7 +120,7 @@ describe("Petrinaut oEmbed endpoint", () => {
     expect(html).toContain(
       "scenario=%22%3E%3Cscript%3Ealert%28%22x%22%29%3C%2Fscript%3E%26",
     );
-    expect(html).toContain("&amp;subnet=one%26two");
+    expect(html).toContain("?component=one%26two&amp;");
   });
 
   it.each([

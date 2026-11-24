@@ -6,8 +6,7 @@
       "outputs": ["dist/**"]
     },
     "test:unit": {
-      "dependsOn": ["^build"],
-      "env": ["TEST_COVERAGE"]
+      "dependsOn": ["^build"]
     }
   }
 }

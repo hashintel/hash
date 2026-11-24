@@ -46,17 +46,45 @@ const mono = css({
 });
 
 const NestedLayers = ({ palette }: { palette: PaletteName }) => (
-  <Box colorPalette={palette as "bg.min"}>
+  <Box css={{ colorPalette: palette as "bg.min" }}>
     <span className={sectionTitle}>
       Nested <code className={mono}>bg.subtle</code> layers
     </span>
-    <Box bg="colorPalette.bg.subtle" p="4" borderRadius="md" mt="2">
+    <Box
+      css={{
+        bg: "colorPalette.bg.subtle",
+        p: "4",
+        borderRadius: "md",
+        mt: "2",
+      }}
+    >
       <span className={caption}>Layer 1 — bg.subtle</span>
-      <Box bg="colorPalette.bg.subtle" p="4" borderRadius="md" mt="2">
+      <Box
+        css={{
+          bg: "colorPalette.bg.subtle",
+          p: "4",
+          borderRadius: "md",
+          mt: "2",
+        }}
+      >
         <span className={caption}>Layer 2 — bg.subtle</span>
-        <Box bg="colorPalette.bg.subtle" p="4" borderRadius="md" mt="2">
+        <Box
+          css={{
+            bg: "colorPalette.bg.subtle",
+            p: "4",
+            borderRadius: "md",
+            mt: "2",
+          }}
+        >
           <span className={caption}>Layer 3 — bg.subtle</span>
-          <Box bg="colorPalette.bg.subtle" p="4" borderRadius="md" mt="2">
+          <Box
+            css={{
+              bg: "colorPalette.bg.subtle",
+              p: "4",
+              borderRadius: "md",
+              mt: "2",
+            }}
+          >
             <span className={caption}>Layer 4 — bg.subtle</span>
           </Box>
         </Box>
@@ -66,17 +94,45 @@ const NestedLayers = ({ palette }: { palette: PaletteName }) => (
 );
 
 const NestedSurface = ({ palette }: { palette: PaletteName }) => (
-  <Box colorPalette={palette as "bg.min"}>
+  <Box css={{ colorPalette: palette as "bg.min" }}>
     <span className={sectionTitle}>
       Nested <code className={mono}>bg.surface</code> layers
     </span>
-    <Box bg="colorPalette.bg.surface" p="4" borderRadius="md" mt="2">
+    <Box
+      css={{
+        bg: "colorPalette.bg.surface",
+        p: "4",
+        borderRadius: "md",
+        mt: "2",
+      }}
+    >
       <span className={caption}>Layer 1 — bg.surface</span>
-      <Box bg="colorPalette.bg.surface" p="4" borderRadius="md" mt="2">
+      <Box
+        css={{
+          bg: "colorPalette.bg.surface",
+          p: "4",
+          borderRadius: "md",
+          mt: "2",
+        }}
+      >
         <span className={caption}>Layer 2 — bg.surface</span>
-        <Box bg="colorPalette.bg.surface" p="4" borderRadius="md" mt="2">
+        <Box
+          css={{
+            bg: "colorPalette.bg.surface",
+            p: "4",
+            borderRadius: "md",
+            mt: "2",
+          }}
+        >
           <span className={caption}>Layer 3 — bg.surface</span>
-          <Box bg="colorPalette.bg.surface" p="4" borderRadius="md" mt="2">
+          <Box
+            css={{
+              bg: "colorPalette.bg.surface",
+              p: "4",
+              borderRadius: "md",
+              mt: "2",
+            }}
+          >
             <span className={caption}>Layer 4 — bg.surface</span>
           </Box>
         </Box>
@@ -86,28 +142,31 @@ const NestedSurface = ({ palette }: { palette: PaletteName }) => (
 );
 
 const BordersOnBackgrounds = ({ palette }: { palette: PaletteName }) => (
-  <Box colorPalette={palette as "bg.min"}>
+  <Box css={{ colorPalette: palette as "bg.min" }}>
     <span className={sectionTitle}>Borders on backgrounds</span>
-    <VStack gap="3" mt="2" alignItems="stretch">
+    <VStack gap="3" css={{ mt: "2", alignItems: "stretch" }}>
       {BG_LEVELS.filter((bg) => bg !== "solid").map((bg) => (
         <Box
           key={bg}
-          bg={`colorPalette.bg.${bg}` as "colorPalette.bg.subtle"}
-          p="4"
-          borderRadius="md"
+          css={{
+            bg: `colorPalette.bg.${bg}` as "colorPalette.bg.subtle",
+            p: "4",
+            borderRadius: "md",
+          }}
         >
           <span className={caption}>bg.{bg}</span>
-          <HStack gap="2" mt="2" flexWrap="wrap">
+          <HStack gap="2" css={{ mt: "2", flexWrap: "wrap" }}>
             {BD_LEVELS.map((bd) => (
               <Box
                 key={bd}
-                px="3"
-                py="2"
-                borderRadius="sm"
-                border="[1px solid]"
-                borderColor={
-                  `colorPalette.bd.${bd}` as "colorPalette.bd.subtle"
-                }
+                css={{
+                  px: "3",
+                  py: "2",
+                  borderRadius: "sm",
+                  border: "[1px solid]",
+                  borderColor:
+                    `colorPalette.bd.${bd}` as "colorPalette.bd.subtle",
+                }}
               >
                 <span className={mono}>bd.{bd}</span>
               </Box>
@@ -120,35 +179,48 @@ const BordersOnBackgrounds = ({ palette }: { palette: PaletteName }) => (
 );
 
 const MixedLevels = ({ palette }: { palette: PaletteName }) => (
-  <Box colorPalette={palette as "bg.min"}>
+  <Box css={{ colorPalette: palette as "bg.min" }}>
     <span className={sectionTitle}>Progressive depth</span>
-    <Box bg="colorPalette.bg.surface" p="4" borderRadius="md" mt="2">
+    <Box
+      css={{
+        bg: "colorPalette.bg.surface",
+        p: "4",
+        borderRadius: "md",
+        mt: "2",
+      }}
+    >
       <span className={caption}>bg.surface</span>
       <Box
-        bg="colorPalette.bg.subtle"
-        p="4"
-        borderRadius="md"
-        mt="2"
-        border="[1px solid]"
-        borderColor="colorPalette.bd.subtle"
+        css={{
+          bg: "colorPalette.bg.subtle",
+          p: "4",
+          borderRadius: "md",
+          mt: "2",
+          border: "[1px solid]",
+          borderColor: "colorPalette.bd.subtle",
+        }}
       >
         <span className={caption}>bg.subtle + bd.subtle</span>
         <Box
-          bg="colorPalette.bg.shaded"
-          p="4"
-          borderRadius="md"
-          mt="2"
-          border="[1px solid]"
-          borderColor="colorPalette.bd.solid"
+          css={{
+            bg: "colorPalette.bg.shaded",
+            p: "4",
+            borderRadius: "md",
+            mt: "2",
+            border: "[1px solid]",
+            borderColor: "colorPalette.bd.solid",
+          }}
         >
           <span className={caption}>bg.shaded + bd.solid</span>
           <Box
-            bg="colorPalette.bg.solid"
-            p="3"
-            borderRadius="sm"
-            mt="2"
-            border="[1px solid]"
-            borderColor="colorPalette.bd.strong"
+            css={{
+              bg: "colorPalette.bg.solid",
+              p: "3",
+              borderRadius: "sm",
+              mt: "2",
+              border: "[1px solid]",
+              borderColor: "colorPalette.bd.strong",
+            }}
           >
             <span
               className={css({
@@ -170,8 +242,8 @@ export const ColorLayeringDemo = () => {
   const [palette, setPalette] = useState<PaletteName>("neutral");
 
   return (
-    <VStack gap="6" alignItems="flex-start" p="6">
-      <VStack gap="1" alignItems="flex-start">
+    <VStack gap="6" css={{ alignItems: "flex-start", p: "6" }}>
+      <VStack gap="1" css={{ alignItems: "flex-start" }}>
         <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
           Background &amp; Border Layering
         </h1>
@@ -192,7 +264,7 @@ export const ColorLayeringDemo = () => {
         </p>
       </VStack>
 
-      <HStack gap="2" alignItems="center">
+      <HStack gap="2" css={{ alignItems: "center" }}>
         <span className={css({ textStyle: "sm", fontWeight: "medium" })}>
           Palette:
         </span>
@@ -220,7 +292,7 @@ export const ColorLayeringDemo = () => {
         ))}
       </HStack>
 
-      <Grid columns={2} gap="8" width="[100%]">
+      <Grid columns={2} gap="8" css={{ width: "[100%]" }}>
         <NestedLayers palette={palette} />
         <NestedSurface palette={palette} />
         <BordersOnBackgrounds palette={palette} />

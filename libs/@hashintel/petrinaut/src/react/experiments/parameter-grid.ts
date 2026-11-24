@@ -12,7 +12,7 @@ import type {
  * An empty `value` falls back to the parameter's default (same as before
  * ranges existed).
  */
-export type ExperimentParameterFixedInput = {
+type ExperimentParameterFixedInput = {
   mode: "fixed";
   value: string;
 };
@@ -22,7 +22,7 @@ export type ExperimentParameterFixedInput = {
  * quantizes internally (`buildParameterAxis`); nothing about its resolution
  * is declared here.
  */
-export type ExperimentParameterRangeInput = {
+type ExperimentParameterRangeInput = {
   mode: "range";
   min: number;
   max: number;
@@ -72,6 +72,26 @@ export type SweepAxisSelection = { from: number; to: number };
  * parameter.
  */
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
+
+/**
+ * Canonical cache key for a selection: quantized positions in axis order, a
+ * point as `x=2` and a range as `x=0..2`.
+ */
+export const sweepSelectionKey = (
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): string =>
+  axes
+    .map((axis) => {
+      const range = selection[axis.identifier] ?? {
+        from: 0,
+        to: axis.stepCount,
+      };
+      return range.from === range.to
+        ? `${axis.identifier}=${range.from}`
+        : `${axis.identifier}=${range.from}..${range.to}`;
+    })
+    .join("|");
 
 /**
  * The midpoint of a selection's range on one axis, in position space. The
@@ -127,7 +147,7 @@ export function getNextRunTarget(
   return Math.min(target, maxRuns);
 }
 
-export type BuildAxisOutcome =
+type BuildAxisOutcome =
   | { ok: true; axis: ExperimentParameterAxis }
   | { ok: false; error: string };
 
@@ -190,7 +210,7 @@ export function buildParameterAxis(
   };
 }
 
-export type BuildAxesOutcome =
+type BuildAxesOutcome =
   | { ok: true; axes: ExperimentParameterAxis[] }
   | { ok: false; error: string };
 

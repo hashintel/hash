@@ -20,13 +20,15 @@ import { instrument, setProvider } from "@flue/runtime";
 import { Hono } from "hono";
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
-
+import { brunchEnv } from "../env.ts";
 import { STEP_A_MODEL_ID } from "../shared/chat-model.ts";
 
 vi.mock("./telemetry-bootstrap.ts", () => ({}));
 vi.mock("../agents/petrinaut/agent.ts", () => ({
   PetrinautAgent: { agentName: "brunch-chat-agent" },
+}));
+vi.mock("../agents/hash/agent.ts", () => ({
+  HashAgent: { agentName: "brunch-hash-agent" },
 }));
 vi.mock("@flue/runtime/routing", () => ({
   createAgentRouter: () => new Hono(),
@@ -38,7 +40,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
 }));
 
 /** A schema the former `{ type, properties, required }` collapse would truncate. */
-const placeSchema = {
+const placeJsonSchema = {
   type: "object",
   description: "Petri net places, by reference.",
   $defs: {
@@ -62,14 +64,14 @@ const placeSchema = {
 const construct: Tool = {
   name: "construct",
   description: "Construct places.",
-  parameters: placeSchema,
+  parameters: placeJsonSchema,
 };
 const constructRedefined: Tool = {
   name: "construct",
   description: "Construct places, with a label.",
   parameters: {
-    ...placeSchema,
-    properties: { ...placeSchema.properties, label: { type: "string" } },
+    ...placeJsonSchema,
+    properties: { ...placeJsonSchema.properties, label: { type: "string" } },
   },
 };
 const record: Tool = {

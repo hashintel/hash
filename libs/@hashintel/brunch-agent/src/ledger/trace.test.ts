@@ -94,6 +94,7 @@ const ledger: LedgerState = {
       turn: "turn-4",
     },
   ],
+  comments: [],
 };
 
 const addresses = (records: readonly { address: string }[]) =>

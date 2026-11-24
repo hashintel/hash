@@ -1,4 +1,4 @@
-/** Stable Flue instance id for one principal + panel conversation. */
+/** Stable Flue instance id for one actor key + panel conversation. */
 
 import { createHash, timingSafeEqual } from "node:crypto";
 

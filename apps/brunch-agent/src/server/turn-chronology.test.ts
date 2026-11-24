@@ -96,11 +96,16 @@ test("one delta then silence reports the silence as last-delta to terminal and n
       {
         turnId: "t1",
         purpose: "prompt",
+        provider: null,
+        requestedModel: null,
+        responseModel: null,
         startedAt: at(0),
+        retryOf: null,
         timeToFirstEventMs: 1_200,
         durationMs: 21_700,
         terminal: "turn",
         isError: false,
+        error: null,
         inputTokens: 100,
         cacheReadTokens: 90,
         outputTokens: 20,
@@ -129,11 +134,16 @@ test("one delta then silence reports the silence as last-delta to terminal and n
       {
         turnId: "t2",
         purpose: "prompt",
+        provider: null,
+        requestedModel: null,
+        responseModel: null,
         startedAt: at(22_000),
+        retryOf: null,
         timeToFirstEventMs: 100,
         durationMs: 30_100,
         terminal: "settlement",
         isError: null,
+        error: null,
         inputTokens: null,
         cacheReadTokens: null,
         outputTokens: null,
@@ -270,5 +280,107 @@ test("a turn with no model events is reported with a null time to first event", 
       isError: true,
       toolCalls: [],
     }),
+  ]);
+});
+
+const request = (requestedModel: string) => ({
+  providerId: "openai",
+  providerName: "OpenAI",
+  requestedModel,
+  api: "openai-responses",
+  input: { messages: [{ role: "user", content: SENTINEL }] },
+});
+
+test("each turn names its provider and models, classifies a failure without its message, and marks the turn that retries it", () => {
+  const lines: SubmissionChronology[] = [];
+  const observer = createTurnChronologyObserver("chat", (line) =>
+    lines.push(line),
+  );
+  for (const observed of [
+    event(0, { type: "turn_start", turnId: "t1", purpose: "agent" }),
+    event(5, {
+      type: "turn_request",
+      turnId: "t1",
+      purpose: "agent",
+      request: request("gpt-5.5"),
+    }),
+    event(60_000, {
+      type: "turn",
+      turnId: "t1",
+      purpose: "agent",
+      durationMs: 60_000,
+      isError: true,
+      request: {},
+      response: {
+        error: {
+          type: "_OTHER",
+          code: "model_stream_idle",
+          message: `model_stream_idle: ${SENTINEL}`,
+        },
+      },
+    }),
+    // Overflow recovery can compact between a failed turn and its retry.
+    event(61_000, { type: "turn_start", turnId: "c1", purpose: "compaction" }),
+    event(62_000, {
+      type: "turn",
+      turnId: "c1",
+      purpose: "compaction",
+      durationMs: 1_000,
+      isError: false,
+      request: {},
+      response: {},
+    }),
+    event(63_000, { type: "turn_start", turnId: "t2", purpose: "agent" }),
+    event(63_005, {
+      type: "turn_request",
+      turnId: "t2",
+      purpose: "agent",
+      request: request("gpt-5.5"),
+    }),
+    event(64_000, { type: "message_start", turnId: "t2" }),
+    event(65_000, {
+      type: "turn",
+      turnId: "t2",
+      purpose: "agent",
+      durationMs: 2_000,
+      isError: false,
+      request: {},
+      response: { responseModel: "gpt-5.5-2026-08-01" },
+    }),
+    event(66_000, { type: "turn_start", turnId: "t3", purpose: "agent" }),
+    event(67_000, {
+      type: "turn",
+      turnId: "t3",
+      purpose: "agent",
+      durationMs: 1_000,
+      isError: false,
+      request: {},
+      response: {},
+    }),
+    event(68_000, { type: "submission_settled", outcome: "completed" }),
+  ])
+    void observer.observe(observed, context);
+
+  expect(JSON.stringify(lines)).not.toContain(SENTINEL);
+  expect(lines[0]?.turns).toEqual([
+    expect.objectContaining({
+      turnId: "t1",
+      provider: "openai",
+      requestedModel: "gpt-5.5",
+      responseModel: null,
+      retryOf: null,
+      isError: true,
+      error: { type: "_OTHER", code: "model_stream_idle" },
+    }),
+    expect.objectContaining({ turnId: "c1", retryOf: null, error: null }),
+    expect.objectContaining({
+      turnId: "t2",
+      provider: "openai",
+      responseModel: "gpt-5.5-2026-08-01",
+      retryOf: "t1",
+      timeToFirstEventMs: 1_000,
+      error: null,
+    }),
+    expect.objectContaining({ turnId: "t3", retryOf: null }),
   ]);
 });

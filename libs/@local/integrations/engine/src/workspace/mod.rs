@@ -9,7 +9,7 @@ mod select;
 
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{error::Error, num::NonZeroUsize};
-use std::{path::PathBuf, thread};
+use std::path::PathBuf;
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{
@@ -25,7 +25,8 @@ pub use self::{
     rows::Rows,
 };
 use crate::{
-    ByteSize, PreparationError, PreparedLink, PreparedPipeline, TableAssertions,
+    ByteSize, CaptureError, PreparationError, PreparedLink, PreparedPipeline, SourceCapture,
+    TableAssertions,
     pipeline::{LinkRequest, PipelineRequest, StagingRequest},
     workspace::{
         connection::Connection,
@@ -76,6 +77,16 @@ impl Default for WorkspaceConfig {
 
 /// A request to the workspace thread, with the channel for its reply.
 enum Command {
+    LoadCapture {
+        capture: SourceCapture,
+        table: Box<str>,
+        reply: Reply<(), CaptureError>,
+    },
+    Capture {
+        sql: Box<str>,
+        target: PathBuf,
+        reply: Reply<SourceCapture, CaptureError>,
+    },
     Link {
         request: Box<LinkRequest>,
         reply: Reply<PreparedLink, PreparationError>,
@@ -124,7 +135,8 @@ enum Command {
 /// Dropping the workspace returns at once. The futures of its requests are dropped before it, so
 /// the thread skips or interrupts them, closes the database and releases the lock. The thread
 /// logs a failed checkpoint. [`close`](Self::close) waits for the requests already sent to run,
-/// and returns a failed checkpoint as an error.
+/// and returns a failed checkpoint as an error. The thread runs on the Tokio blocking pool, so
+/// the runtime waits for it when it shuts down.
 #[derive(Debug)]
 pub struct Workspace {
     commands: mpsc::Sender<(RequestId, Command)>,
@@ -132,6 +144,60 @@ pub struct Workspace {
 }
 
 impl Workspace {
+    /// Loads an immutable capture into `table`, preserving its schema even when it has no rows.
+    ///
+    /// The replacement is transactional. Queries retain their restrictions on external access.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureError::Read`] for invalid Parquet, [`CaptureError::Query`] for a failed
+    /// import, [`CaptureError::DiskUsage`] for a failed workspace disk-limit check, or
+    /// [`CaptureError::Stopped`] if the workspace thread stops.
+    pub async fn load_capture(
+        &self,
+        capture: SourceCapture,
+        table: Box<str>,
+    ) -> Result<(), Report<CaptureError>> {
+        self.request(
+            |reply| Command::LoadCapture {
+                capture,
+                table,
+                reply,
+            },
+            CaptureError::Stopped,
+        )
+        .await
+    }
+
+    /// Captures the rows of `sql` in a new immutable Parquet file at `target`.
+    ///
+    /// SQL has the same restrictions and named parameters as [`query`](Self::query). Rows are
+    /// streamed to a temporary file beside `target`, then synced and published without replacing
+    /// an existing file. Dropped requests can finish publication if cancellation races with it.
+    /// The caller records the path under its source and run identity and uses
+    /// [`SourceCapture::open`] to recover it on retry.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureError::Query`] for invalid SQL or failed query execution,
+    /// [`CaptureError::DiskUsage`] for a failed workspace disk-limit check,
+    /// [`CaptureError::WorkspaceFile`] if `target` names a workspace file,
+    /// [`CaptureError::Exists`] if `target` already exists, [`CaptureError::Write`] for a failed
+    /// write, or [`CaptureError::Stopped`] if the workspace thread stops.
+    /// [`CaptureError::SyncDirectory`] means the capture was published but syncing its directory
+    /// failed; [`SourceCapture::open`] can recover the published capture.
+    pub async fn capture(
+        &self,
+        sql: Box<str>,
+        target: PathBuf,
+    ) -> Result<SourceCapture, Report<CaptureError>> {
+        self.request(
+            |reply| Command::Capture { sql, target, reply },
+            CaptureError::Stopped,
+        )
+        .await
+    }
+
     /// Opens the database at `path` with `config`, creating it if it does not exist.
     ///
     /// # Errors
@@ -142,7 +208,7 @@ impl Workspace {
     /// - [`Open`] if DuckDB cannot open the database
     /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`]
     /// - [`DiskUsage`] if the workspace files cannot be checked against the disk limit
-    /// - [`Spawn`] if the workspace thread cannot be started
+    /// - [`Spawn`] if no Tokio runtime is running
     /// - [`Stopped`] if the workspace thread stopped before it opened the database
     ///
     /// [`Lock`]: OpenError::Lock
@@ -158,13 +224,12 @@ impl Workspace {
         let (ready, opened) = Reply::channel();
         let span = tracing::info_span!("workspace", path = %path.display());
 
-        thread::Builder::new()
-            .name("integrations-workspace".to_owned())
-            .spawn(move || {
+        tokio::runtime::Handle::try_current()
+            .change_context(OpenError::Spawn)?
+            .spawn_blocking(move || {
                 let _entered = span.entered();
                 Connection::serve(path, config, ready, &mut receiver);
-            })
-            .change_context(OpenError::Spawn)?;
+            });
 
         let interrupt = opened.await.change_context(OpenError::Stopped)??;
         Ok(Self {

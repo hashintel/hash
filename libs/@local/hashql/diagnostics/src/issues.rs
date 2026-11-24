@@ -354,6 +354,16 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
         self.diagnostics.is_empty()
     }
 
+    #[must_use]
+    pub fn contains(&self, diagnostic: &Diagnostic<C, S, K>) -> bool
+    where
+        C: PartialEq,
+        S: PartialEq,
+        K: PartialEq,
+    {
+        self.diagnostics.contains(diagnostic)
+    }
+
     /// Moves all diagnostics from another collection into this one.
     ///
     /// After this operation, the other collection will be empty and all its

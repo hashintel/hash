@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
-description: Missing field type
+description: Missing colon after a struct field name
 expression: "(name: String, age Int)"
 info:
   kind: Err

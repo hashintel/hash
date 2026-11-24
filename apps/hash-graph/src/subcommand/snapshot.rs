@@ -7,7 +7,6 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::pool::StorePool as _;
 use tokio::io;
-use tokio_postgres::NoTls;
 use tokio_util::codec::{FramedRead, FramedWrite};
 
 use crate::error::GraphError;
@@ -89,7 +88,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
         settings.validate_links = !args.skip_validation;
     }
 
-    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls, settings)
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, settings)
         .change_context(GraphError)
         .map_err(|report| {
             tracing::error!(error = ?report, "Failed to connect to database");

@@ -1,5 +1,5 @@
-import { Command, Path } from "@effect/platform";
-import { Effect } from "effect";
+import { Effect, Path } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 import type * as vitest from "vitest";
 
@@ -34,8 +34,9 @@ export const callEncode = Effect.fn("callEncode")(function* (
   const buffer = Buffer.from(encoded);
   const base64 = buffer.toString("base64");
 
-  const command = Command.make(binary, "encode", mode, base64);
-  const output = yield* Command.string(command);
+  const command = ChildProcess.make(binary, ["encode", mode, base64]);
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  const output = yield* spawner.string(command);
 
   const received = JSON.parse(output) as unknown;
 
@@ -50,8 +51,9 @@ export const callDecode = Effect.fn("callDecode")(function* (
 
   const json = JSON.stringify(payload);
 
-  const command = Command.make(binary, "decode", mode, json);
-  const output = yield* Command.string(command);
+  const command = ChildProcess.make(binary, ["decode", mode, json]);
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  const output = yield* spawner.string(command);
 
   // convert base64 to Uint8Array
   const buffer = Buffer.from(output, "base64");

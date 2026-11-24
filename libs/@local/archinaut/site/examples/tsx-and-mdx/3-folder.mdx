@@ -1,0 +1,22 @@
+---
+title: One folder holds both kinds
+notes: >-
+  The deck lists numbered files only. components has none, so it is not a
+  slide, and slides of both kinds import from it. deck.css styles the
+  histogram wherever it appears.
+---
+
+## One folder holds both kinds
+
+```text
+tsx-and-mdx/
+├── deck.json
+├── deck.css          histogram styles
+├── 0-title.mdx
+├── 1-ways.mdx        imports Histogram
+├── 2-rolls.tsx       imports Histogram
+├── 3-folder.mdx
+└── components/       no numbered files, no slides
+    ├── dice.ts
+    └── histogram.tsx
+```

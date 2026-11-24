@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { createLiveToolBroadcaster } from "./live-tool-broadcaster";
 
@@ -143,4 +143,114 @@ test("drops a slow subscriber instead of backpressuring publication", async () =
     value: undefined,
   });
   broadcaster.close();
+});
+
+test("expires an unattached subscription once its grace window passes and frees its slot", async () => {
+  vi.useFakeTimers();
+  try {
+    const broadcaster = createLiveToolBroadcaster();
+    const subscription = broadcaster.subscribe("instance-a", "submission-a");
+    const iterator = subscription.events[Symbol.asyncIterator]();
+
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(broadcaster.stats()).toEqual({ instances: 1, subscribers: 1 });
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(broadcaster.stats()).toEqual({ instances: 0, subscribers: 0 });
+    await expect(iterator.next()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+    await expect(subscription.closed).resolves.toBeUndefined();
+    broadcaster.close();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("keeps an activated submission alive past the unattached grace window until it finishes", async () => {
+  vi.useFakeTimers();
+  try {
+    const broadcaster = createLiveToolBroadcaster();
+    broadcaster.activate("instance-a", "submission-a");
+    const subscription = broadcaster.subscribe("instance-a", "submission-a");
+    const iterator = subscription.events[Symbol.asyncIterator]();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(broadcaster.stats()).toEqual({ instances: 1, subscribers: 1 });
+
+    broadcaster.publish({
+      instanceId: "instance-a",
+      kind: "submission-finished",
+      outcome: "completed",
+      submissionId: "submission-a",
+    });
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false,
+      value: { kind: "submission-finished", outcome: "completed" },
+    });
+    subscription.close();
+    broadcaster.close();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("expires an activated instance with no subscribers so missed settlements cannot pin slots", async () => {
+  vi.useFakeTimers();
+  try {
+    const broadcaster = createLiveToolBroadcaster({ maxInstances: 1 });
+    broadcaster.activate("instance-a", "submission-a");
+    expect(broadcaster.stats()).toEqual({ instances: 1, subscribers: 0 });
+
+    // A new active instance can evict an activated entry that has no subscribers.
+    broadcaster.activate("instance-b", "submission-b");
+    expect(broadcaster.stats()).toEqual({ instances: 1, subscribers: 0 });
+
+    // After retentionMs with no subscribers, expiration releases the entry too.
+    await vi.advanceTimersByTimeAsync(30_000);
+    const sub = broadcaster.subscribe("instance-c", "submission-c");
+    expect(broadcaster.stats()).toEqual({ instances: 1, subscribers: 1 });
+    sub.close();
+    broadcaster.close();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("evicts unattached subscriptions rather than refusing capacity or dropping active publications", async () => {
+  vi.useFakeTimers();
+  try {
+    const broadcaster = createLiveToolBroadcaster({ maxInstances: 2 });
+    const unattachedA = broadcaster.subscribe("idle-a", "missing-a");
+    await vi.advanceTimersByTimeAsync(10);
+    const unattachedB = broadcaster.subscribe("idle-b", "missing-b");
+
+    // Activating and subscribing for a real submission evicts the oldest unattached entry.
+    broadcaster.activate("active-1", "submission-1");
+    const active = broadcaster.subscribe("active-1", "submission-1");
+    await expect(unattachedA.closed).resolves.toBeUndefined();
+    expect(broadcaster.stats()).toEqual({ instances: 2, subscribers: 2 });
+
+    // Publishing to a second active instance evicts the remaining unattached entry.
+    broadcaster.publish(startEvent("active-2", "submission-2", "call-2"));
+    await expect(unattachedB.closed).resolves.toBeUndefined();
+    const active2 = broadcaster.subscribe("active-2", "submission-2");
+    const iterator2 = active2.events[Symbol.asyncIterator]();
+    await expect(iterator2.next()).resolves.toMatchObject({
+      done: false,
+      value: { kind: "tool-input-start", toolCallId: "call-2" },
+    });
+
+    // Once all slots hold attached/active subscribers, a new subscription fails capacity.
+    expect(() => broadcaster.subscribe("overflow", "submission-3")).toThrow(
+      "at subscriber capacity",
+    );
+
+    active.close();
+    active2.close();
+    broadcaster.close();
+  } finally {
+    vi.useRealTimers();
+  }
 });

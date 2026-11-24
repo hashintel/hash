@@ -6,7 +6,7 @@
  * renderer only turns its own hit testing and gestures into those calls.
  */
 
-import { createContext, use } from "react";
+import { requiredContext } from "../../shared/required-context";
 
 import type { CanvasViewport } from "../../../react/state/canvas-viewport-context";
 import type { CanvasPoint, CanvasScene } from "./canvas-scene";
@@ -18,7 +18,11 @@ export type { CanvasViewport };
 export type FrameSceneResult = "framed" | "empty" | "no-renderer" | "timed-out";
 
 export type CanvasController = {
-  getViewport: () => CanvasViewport;
+  /**
+   * Where the viewport will come to rest: the target of an eased move under
+   * way, or where it is now.
+   */
+  getRestViewport: () => CanvasViewport;
   /** `animate` eases the move when the renderer supports it. */
   setViewport: (
     viewport: CanvasViewport,
@@ -35,25 +39,13 @@ export type CanvasController = {
   frameSceneAfterRender: () => Promise<FrameSceneResult>;
   /** Client (viewport-relative screen) coordinates to scene coordinates. */
   screenToScene: (point: CanvasPoint) => CanvasPoint;
-  sceneToScreen: (point: CanvasPoint) => CanvasPoint;
 };
-
-export const CanvasControllerContext = createContext<CanvasController | null>(
-  null,
-);
 
 /** The controller of the renderer this component is rendered inside. */
-export const useCanvasController = (): CanvasController => {
-  const controller = use(CanvasControllerContext);
-  if (!controller) {
-    throw new Error(
-      "useCanvasController must be used inside a canvas renderer",
-    );
-  }
-  return controller;
-};
+export const [CanvasControllerContext, useCanvasController] =
+  requiredContext<CanvasController>("CanvasRenderer");
 
-export type CanvasRendererProps = {
+type CanvasRendererProps = {
   scene: CanvasScene;
   /** Settled size of the canvas container. */
   containerSize: Size;
@@ -62,7 +54,3 @@ export type CanvasRendererProps = {
 };
 
 export type CanvasRenderer = React.FC<CanvasRendererProps>;
-
-export const canvasRendererNames = ["react-flow"] as const;
-
-export type CanvasRendererName = (typeof canvasRendererNames)[number];

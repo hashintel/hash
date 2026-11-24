@@ -13,14 +13,17 @@ error-stack = { workspace = true, public = true, features = ["unstable"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+url  = { workspace = true, public = true, features = ["serde"] }
+uuid = { workspace = true, public = true, features = ["serde"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-derive_more    = { workspace = true, features = ["as_ref", "display", "error"] }
-serde          = { workspace = true, features = ["alloc", "derive"] }
-serde-saphyr   = { workspace = true }
-simple-mermaid = { workspace = true }
+derive_more      = { workspace = true, features = ["as_ref", "debug", "display", "error"] }
+percent-encoding = { workspace = true }
+serde            = { workspace = true, features = ["alloc", "derive"] }
+serde-saphyr     = { workspace = true }
+simple-mermaid   = { workspace = true }
 
 [dev-dependencies]
 insta           = { workspace = true, features = ["glob"] }

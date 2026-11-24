@@ -42,7 +42,6 @@ const render = (ui: ReactElement) =>
 
 afterEach(() => {
   cleanup();
-  vi.clearAllMocks();
   vi.useRealTimers();
 });
 
@@ -701,7 +700,6 @@ describe("ChatView", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -766,7 +764,6 @@ describe("ChatView", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -888,7 +885,6 @@ describe("ChatView", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -1122,7 +1118,6 @@ describe("ChatView", () => {
               name: "Buffer",
               colorId: null,
               dynamicsEnabled: false,
-              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -1317,7 +1312,6 @@ describe("ChatView tool rows", () => {
                 name: "Buffer",
                 colorId: null,
                 dynamicsEnabled: false,
-                differentialEquationId: null,
                 x: 0,
                 y: 0,
               },

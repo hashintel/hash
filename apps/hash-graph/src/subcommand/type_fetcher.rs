@@ -209,6 +209,8 @@ pub(crate) async fn healthcheck(
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
 
     use super::*;
@@ -256,9 +258,6 @@ mod tests {
         let report = wait_for_type_fetcher(&address, Duration::from_millis(100))
             .await
             .expect_err("dead port should not be reachable");
-        assert!(matches!(
-            report.current_context(),
-            HealthcheckError::Timeout
-        ));
+        assert_matches!(report.current_context(), HealthcheckError::Timeout);
     }
 }

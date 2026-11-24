@@ -37,7 +37,7 @@ import {
   type Declaration,
   type Identifier,
   type Node,
-} from "typescript-7/ast";
+} from "typescript/ast";
 
 import { scopeBindings, type ScopeBindings } from "./scope-bindings";
 

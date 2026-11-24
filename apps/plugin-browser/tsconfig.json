@@ -2,10 +2,14 @@
   "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
     "jsx": "react-jsx",
-    "lib": ["dom", "esnext"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "module": "ESNext",
+    "noEmit": false,
     "rootDir": "../..",
-    "target": "ES2021"
+    "target": "ES2021",
+    // Implicit returns remain in src/scripts/background.ts, flow-metadata-cell-contents.tsx and
+    // the @hashintel/design-system sources this program checks (TS7030).
+    "noImplicitReturns": false
   },
   "include": [
     "src",

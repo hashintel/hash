@@ -30,7 +30,6 @@ use hash_middleware::{
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
 use tokio::time::timeout;
-use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorId, UserId};
 
@@ -102,7 +101,6 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
         &DatabasePoolConfig {
             max_connections: nz!(1),
         },
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("an unconnected pool should construct without reaching a database");
@@ -236,8 +234,9 @@ async fn layers_actor_budget() {
         .iter()
         .map(|item| item.to_str().expect("the item should be ASCII"))
         .collect::<Vec<_>>();
-    assert!(
-        matches!(items.as_slice(), [actor, gate] if *actor == r#""actor";r=0"# && gate.starts_with(r#""gate";"#)),
+    assert_matches!(
+        items.as_slice(),
+        [actor, gate] if *actor == r#""actor";r=0"# && gate.starts_with(r#""gate";"#),
         "the problem should report the crossed budget ahead of the gate, got {items:?}"
     );
     let document = problem(response).await;

@@ -140,9 +140,20 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
   return {
     /** Every step, including those nested in for-each steps, in the order they appear in the definition. */
     entries: [...stepsById.values()],
+    getStep,
     getForEachArrayShape,
     getOutputShape,
     getResolvedKinds,
     getSubnetName,
   };
 };
+
+/** The distinct `runAfter` entries of a step: a plain line and a path from the same step are both kept. */
+export const getRunAfterEntries = (step: StepDefinition) => [
+  ...new Map(
+    (step.runAfter ?? []).map((entry) => [
+      JSON.stringify([entry.stepId, entry.outputName]),
+      entry,
+    ]),
+  ).values(),
+];

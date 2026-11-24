@@ -16,12 +16,28 @@ import {
   type UserConfig,
 } from "vite";
 
-import { brunchEnv, brunchRoutes } from "@hashintel/brunch-agent";
+import { brunchRoutes } from "@hashintel/brunch-agent";
 
+import { brunchEnv } from "./src/env.ts";
 import {
   defaultChatOrigin,
   petrinautLocalServer,
 } from "./src/server/http/local-origins.ts";
+
+/**
+ * The Brunch variables the panel launcher reads. `turbo.json` forwards exactly
+ * these to `petrinaut:dev`.
+ */
+export const petrinautPanelEnv = {
+  chatOrigin: "BRUNCH_CHAT_ORIGIN",
+  chatPort: brunchEnv.chatPort,
+  panelPort: brunchEnv.panelPort,
+  /**
+   * The website reads it as a literal `import.meta.env` access, so that Vite
+   * can replace it.
+   */
+  viteChatEndpoint: "VITE_BRUNCH_CHAT_ENDPOINT",
+} as const;
 
 interface PetrinautPanelConfigOptions {
   readonly chatOrigin: string;
@@ -45,7 +61,7 @@ export default defineConfig(async (environment) => {
     throw new Error("PETRINAUT_WEBSITE_ROOT is required.");
   }
   const root = resolve(websiteRoot);
-  process.env[brunchEnv.viteChatEndpoint] ??=
+  process.env[petrinautPanelEnv.viteChatEndpoint] ??=
     `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
   process.env.VITE_PETRINAUT_DEFAULT_ASSISTANT ??= "brunch";
   // Babel resolves the React compiler plugin from the launched project's cwd,
@@ -60,7 +76,8 @@ export default defineConfig(async (environment) => {
   if (!loaded)
     throw new Error(`Could not load Petrinaut's Vite config from ${root}.`);
 
-  const chatOrigin = process.env[brunchEnv.chatOrigin] ?? defaultChatOrigin;
+  const chatOrigin =
+    process.env[petrinautPanelEnv.chatOrigin] ?? defaultChatOrigin;
   return mergePetrinautPanelConfig({
     chatOrigin,
     loadedConfig: loaded.config,

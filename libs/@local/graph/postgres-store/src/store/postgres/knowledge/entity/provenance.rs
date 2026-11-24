@@ -17,9 +17,12 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::{
     Valid, Validator,
-    knowledge::entity::provenance::{
-        EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
-        ProvidedEntityEditionProvenance,
+    knowledge::entity::{
+        id::DraftId,
+        provenance::{
+            EntityDeletionProvenance, EntityEditionProvenance, EntityProvenance,
+            ProvidedEntityEditionProvenance,
+        },
     },
     principal::actor::ActorEntityUuid,
     provenance::validation::{ProvenanceValidator, ProvenanceViolations},
@@ -66,6 +69,8 @@ impl ToSql for SqlEntityProvenanceJson {
 pub(crate) struct SqlEntityEditionProvenanceJson {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub archived_by_id: Option<ActorEntityUuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_from_draft_id: Option<DraftId>,
     #[serde(flatten)]
     pub provided: ProvidedEntityEditionProvenance,
 }
@@ -97,11 +102,13 @@ impl From<SqlEntityEditionProvenance> for EntityEditionProvenance {
         } = stored;
         let SqlEntityEditionProvenanceJson {
             archived_by_id,
+            created_from_draft_id,
             provided,
         } = json.into_inner();
         Self {
             created_by_id,
             archived_by_id,
+            created_from_draft_id,
             provided,
         }
     }
@@ -114,12 +121,14 @@ impl TryFrom<EntityEditionProvenance> for SqlEntityEditionProvenance {
         let EntityEditionProvenance {
             created_by_id,
             archived_by_id,
+            created_from_draft_id,
             provided,
         } = provenance;
         Ok(Self {
             created_by_id,
             json: ProvenanceValidator.validate(SqlEntityEditionProvenanceJson {
                 archived_by_id,
+                created_from_draft_id,
                 provided,
             })?,
         })

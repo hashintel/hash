@@ -10,12 +10,12 @@
 use core::{error::Error, fmt, pin::Pin};
 
 use clap::Args;
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
-use hash_graph_embeddings::{EmbeddingError, OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
+use hash_graph_embeddings::{OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
 
 use crate::salt::embedding::external::{
-    EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
+    EmbeddingContract, ExternalEmbeddingProvider, RequestLimits,
 };
 
 /// The embedding endpoint the operator commands dial.
@@ -48,30 +48,21 @@ impl EmbedderArgs {
 #[derive(Debug)]
 pub enum EmbedderError {
     /// Constructing the embedding provider failed.
-    Construct(Report<EmbeddingError>),
+    Construct,
     /// The embedding provider failed its preflight request.
-    Preflight(ExternalEmbeddingError),
+    Preflight,
 }
 
 impl fmt::Display for EmbedderError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Construct(_) => fmt.write_str("the embedding provider could not be constructed"),
-            Self::Preflight(_) => {
-                fmt.write_str("the embedding provider failed its preflight request")
-            }
+            Self::Construct => fmt.write_str("the embedding provider could not be constructed"),
+            Self::Preflight => fmt.write_str("the embedding provider failed its preflight request"),
         }
     }
 }
 
-impl Error for EmbedderError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Construct(report) => Some(report.current_context()),
-            Self::Preflight(error) => Some(error),
-        }
-    }
-}
+impl Error for EmbedderError {}
 
 /// Constructs and preflights the OpenAI embedding provider, reporting to `progress`.
 ///
@@ -87,12 +78,12 @@ impl Error for EmbedderError {
 pub(crate) async fn openai<P>(
     api_key: Pin<Box<Secret<str>>>,
     progress: P,
-) -> Result<ExternalEmbeddingProvider<OpenAiEmbeddingClient, P>, EmbedderError> {
+) -> Result<ExternalEmbeddingProvider<OpenAiEmbeddingClient, P>, Report<EmbedderError>> {
     let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
         api_key: api_key.to_arc(),
         base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
     })
-    .map_err(EmbedderError::Construct)?;
+    .change_context(EmbedderError::Construct)?;
 
     let embedder = ExternalEmbeddingProvider::new(
         generator,
@@ -111,7 +102,7 @@ pub(crate) async fn openai<P>(
     embedder
         .preflight()
         .await
-        .map_err(EmbedderError::Preflight)?;
+        .change_context(EmbedderError::Preflight)?;
 
     Ok(embedder)
 }

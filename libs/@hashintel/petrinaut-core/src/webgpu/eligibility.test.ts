@@ -13,7 +13,6 @@ function place(id: string, overrides: Partial<Place> = {}): Place {
     name: id,
     colorId: null,
     dynamicsEnabled: false,
-    differentialEquationId: null,
     x: 0,
     y: 0,
     ...overrides,
@@ -279,6 +278,75 @@ describe("assessGpuEligibility", () => {
     expect(
       result.profile.places.some((entry) => entry.capacitySource === "derived"),
     ).toBe(true);
+  });
+
+  it("rejects composed and multi-token dynamics, which the shader does not integrate", () => {
+    const base = {
+      types: [
+        color("c", [{ elementId: "x", name: "x", type: "real" as const }]),
+      ],
+      differentialEquations: [
+        { id: "flow", name: "Flow", colorId: "c", code: "", arity: 1 },
+        { id: "pull", name: "Pull", colorId: "c", code: "", arity: 2 },
+      ],
+      transitions: [transition("t", [], [{ placeId: "p", weight: 1 }])],
+    };
+
+    const composed = assessGpuEligibility(
+      net({
+        ...base,
+        places: [
+          place("p", {
+            colorId: "c",
+            dynamicsEnabled: true,
+            dynamics: [
+              { differentialEquationId: "flow" },
+              { differentialEquationId: "flow" },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(composed.eligible).toBe(false);
+    if (composed.eligible) return;
+    expect(composed.reasons).toMatchObject([
+      { code: "composed-dynamics", itemId: "p" },
+    ]);
+    expect(formatGpuIneligibility(composed.reasons)).toMatch(/composes 2/);
+
+    const coupled = assessGpuEligibility(
+      net({
+        ...base,
+        places: [
+          place("p", {
+            colorId: "c",
+            dynamicsEnabled: true,
+            dynamics: [{ differentialEquationId: "pull" }],
+          }),
+        ],
+      }),
+    );
+    expect(coupled.eligible).toBe(false);
+    if (coupled.eligible) return;
+    expect(formatGpuIneligibility(coupled.reasons)).toMatch(/over 2 token/);
+
+    // A disabled place's terms do not count.
+    const disabled = assessGpuEligibility(
+      net({
+        ...base,
+        places: [
+          place("p", {
+            colorId: "c",
+            dynamicsEnabled: false,
+            dynamics: [
+              { differentialEquationId: "pull" },
+              { differentialEquationId: "flow" },
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(disabled.eligible).toBe(true);
   });
 
   it("reports every reason a net is ineligible, not just the first", () => {

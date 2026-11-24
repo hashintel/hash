@@ -1,0 +1,7 @@
+connector: demo
+sources:
+  items:
+    local: items.parquet
+    rest:
+      url: https://api.example.org
+    primaryKey: [id]

@@ -3,7 +3,6 @@ import { gql } from "graphql-tag";
 export const hashInstanceTypedef = gql`
   type EnabledIntegrations {
     googleSheets: Boolean!
-    linear: Boolean!
   }
 
   type HashInstanceSettings {

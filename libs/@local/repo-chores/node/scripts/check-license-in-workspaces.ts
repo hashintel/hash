@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import chalk from "chalk";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 
 import { getWorkspaceInfoLookup, monorepoRootDirPath } from "./shared/monorepo";
 
@@ -21,7 +21,7 @@ const script = async () => {
 
   const yarnWorkspaceInfoLookup = await getWorkspaceInfoLookup();
 
-  const cargoAndPyprojectFilePaths = await globby(cargoAndPyprojectGlobs, {
+  const cargoAndPyprojectFilePaths = await glob(cargoAndPyprojectGlobs, {
     absolute: true,
     cwd: monorepoRootDirPath,
     dot: true,
@@ -40,7 +40,7 @@ const script = async () => {
     ]),
   ].sort();
 
-  const licenseFilePaths = await globby("**/licen{c,s}e*", {
+  const licenseFilePaths = await glob("**/licen{c,s}e*", {
     absolute: true,
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,

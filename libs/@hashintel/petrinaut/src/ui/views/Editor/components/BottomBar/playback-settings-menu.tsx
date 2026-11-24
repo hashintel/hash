@@ -1,18 +1,27 @@
-import { use, useRef, useState } from "react";
+import { use, useRef, useState, type ReactNode } from "react";
 
-import { Button, Icon, NumberInput, Popover } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  NumberInput,
+  Popover,
+  type IconName,
+} from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-
+import { SettingsIcon } from "@hashintel/ds-icons";
 import {
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
-  PlaybackContext,
   type PlaybackSpeed,
-} from "../../../../../react/playback/context";
+} from "@hashintel/petrinaut-core";
+
+import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { SettingsIcon } from "../../../../experimental-icons";
-import { usePetrinautPresentation } from "../../../shared/presentation-context";
+import {
+  acceptsRunEnd,
+  runEndOf,
+} from "../../../../../react/simulation/run-end";
+import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
 import { ToolbarButton } from "./toolbar-button";
 
 const contentWidthStyle = css({
@@ -94,6 +103,8 @@ const checkIconStyle = css({
   color: "blue.s50",
 });
 
+const hiddenStyle = css({ visibility: "hidden" });
+
 const speedGridStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(4, 1fr)",
@@ -142,9 +153,38 @@ const maxTimeInputStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-export type PlaybackSettingsMenuProps = {
+type PlaybackSettingsMenuProps = {
   allowedSpeeds?: readonly PlaybackSpeed[];
 };
+
+/**
+ * What the speeds and the fixed end are called and bounded by, per clock. A
+ * timed run plays at a multiple of real time and ends at a time. An untimed
+ * run plays a number of steps per second and ends at a step.
+ */
+const CLOCK_SETTINGS = {
+  time: {
+    speedLabel: "Playback speed",
+    formatSpeed: formatPlaybackSpeed,
+    endLabel: "End at fixed time",
+    endUnit: "s",
+    endInputLabel: "Maximum simulation time in seconds",
+    endNeeded: "A Stochastic simulation needs an end time",
+    endMin: 0.1,
+    endStep: 0.1,
+  },
+  steps: {
+    speedLabel: "Steps per second",
+    formatSpeed: (speed: PlaybackSpeed) =>
+      speed === Number.POSITIVE_INFINITY ? "Max" : String(speed),
+    endLabel: "End at step",
+    endUnit: "",
+    endInputLabel: "Step the run ends at",
+    endNeeded: "A Stochastic simulation needs a step to end at",
+    endMin: 1,
+    endStep: 1,
+  },
+} as const;
 
 const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
   const rows: PlaybackSpeed[][] = [];
@@ -154,22 +194,65 @@ const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
   return rows;
 };
 
+/**
+ * One choice of the popover. A choice that cannot be made now says why in
+ * its tooltip. `children` replace the check mark of the selected choice.
+ */
+const SettingsRow = ({
+  iconName,
+  label,
+  selected,
+  disabledReason,
+  onSelect,
+  children,
+}: {
+  iconName: IconName;
+  label: string;
+  selected: boolean;
+  disabledReason?: string;
+  onSelect: () => void;
+  children?: ReactNode;
+}) => (
+  <Button
+    variant="ghost"
+    size="sm"
+    className={menuItemStyle({
+      selected,
+      disabled: disabledReason !== undefined,
+    })}
+    onClick={() => {
+      if (disabledReason === undefined) {
+        onSelect();
+      }
+    }}
+    aria-disabled={disabledReason !== undefined}
+    tooltip={disabledReason}
+  >
+    <Icon name={iconName} className={menuItemIconStyle} size="sm" />
+    <span className={menuItemTextStyle}>{label}</span>
+    {children ??
+      (selected && <Icon name="check" className={checkIconStyle} size="sm" />)}
+  </Button>
+);
+
 export const PlaybackSettingsMenu = ({
   allowedSpeeds = PLAYBACK_SPEEDS,
 }: PlaybackSettingsMenuProps) => {
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const { enableExperimentalIconPack } = use(UserSettingsContext);
   const playModesVisible = !presentation.compactControls;
   const stoppingConditionsVisible = !presentation.compactControls;
   const speedRows = toSpeedRows(allowedSpeeds);
 
   const {
     state: simulationState,
+    mode,
+    clock,
     maxTime,
     setMaxTime,
   } = use(SimulationContext);
+  const settings = CLOCK_SETTINGS[clock];
 
   const {
     playbackSpeed,
@@ -178,24 +261,20 @@ export const PlaybackSettingsMenu = ({
     isComputeAvailable,
     setPlaybackSpeed,
     setPlayMode,
-  } = use(PlaybackContext);
+  } = use(EventPlaybackContext);
 
-  const hasSimulation = simulationState !== "NotRun";
-
-  // Derive stopping condition from maxTime
-  const stoppingCondition: "indefinitely" | "fixed" =
-    maxTime === null ? "indefinitely" : "fixed";
-
-  const handleStoppingConditionChange = (
-    condition: "indefinitely" | "fixed",
-  ) => {
-    if (condition === "indefinitely") {
-      setMaxTime(null);
-    } else {
-      // Set default of 10 seconds when switching to fixed time
-      setMaxTime(10);
-    }
-  };
+  const viewOnlyUnavailable = isViewOnlyAvailable
+    ? undefined
+    : "Available when there are computed frames";
+  const computeUnavailable = isComputeAvailable
+    ? undefined
+    : "Not available when simulation is complete";
+  const endLocked =
+    simulationState === "NotRun"
+      ? undefined
+      : "Reset simulation to change stopping conditions";
+  // Many runs are compared at the same times, so they always have an end.
+  const endNeeded = mode === "stochastic" ? settings.endNeeded : undefined;
 
   return (
     <>
@@ -207,11 +286,7 @@ export const PlaybackSettingsMenu = ({
         ariaExpanded={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
-        {enableExperimentalIconPack ? (
-          <SettingsIcon open={open} duration={240} />
-        ) : (
-          <Icon name="gear" />
-        )}
+        <SettingsIcon open={open} duration={240} />
       </ToolbarButton>
       {open && (
         <Popover
@@ -221,6 +296,7 @@ export const PlaybackSettingsMenu = ({
         >
           <Popover.Container className={contentWidthStyle}>
             {[
+              // The container takes panels only, so an optional one is spread in.
               <Popover.Header key="header" title="Playback Controls" />,
               ...(playModesVisible
                 ? [
@@ -231,105 +307,27 @@ export const PlaybackSettingsMenu = ({
                       <div className={sectionLabelStyle}>
                         When pressing play
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={menuItemStyle({
-                          selected: playMode === "viewOnly",
-                          disabled: !isViewOnlyAvailable,
-                        })}
-                        onClick={() =>
-                          isViewOnlyAvailable && setPlayMode("viewOnly")
-                        }
-                        aria-disabled={!isViewOnlyAvailable}
-                        tooltip={
-                          !isViewOnlyAvailable
-                            ? "Available when there are computed frames"
-                            : undefined
-                        }
-                      >
-                        <Icon
-                          name="play"
-                          className={menuItemIconStyle}
-                          size="sm"
-                        />
-                        <span className={menuItemTextStyle}>
-                          Play computed steps only
-                        </span>
-                        {playMode === "viewOnly" && (
-                          <Icon
-                            name="check"
-                            className={checkIconStyle}
-                            size="sm"
-                          />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={menuItemStyle({
-                          selected: playMode === "computeBuffer",
-                          disabled: !isComputeAvailable,
-                        })}
-                        onClick={() =>
-                          isComputeAvailable && setPlayMode("computeBuffer")
-                        }
-                        aria-disabled={!isComputeAvailable}
-                        tooltip={
-                          !isComputeAvailable
-                            ? "Not available when simulation is complete"
-                            : undefined
-                        }
-                      >
-                        <Icon
-                          name="chartLine"
-                          className={menuItemIconStyle}
-                          size="sm"
-                        />
-                        <span className={menuItemTextStyle}>
-                          Play + compute buffer
-                        </span>
-                        {playMode === "computeBuffer" && (
-                          <Icon
-                            name="check"
-                            className={checkIconStyle}
-                            size="sm"
-                          />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={menuItemStyle({
-                          selected: playMode === "computeMax",
-                          disabled: !isComputeAvailable,
-                        })}
-                        onClick={() =>
-                          isComputeAvailable && setPlayMode("computeMax")
-                        }
-                        aria-disabled={!isComputeAvailable}
-                        tooltip={
-                          !isComputeAvailable
-                            ? "Not available when simulation is complete"
-                            : undefined
-                        }
-                      >
-                        <Icon
-                          name="rightToLine"
-                          className={menuItemIconStyle}
-                          size="sm"
-                        />
-                        <span className={menuItemTextStyle}>
-                          Play + compute max
-                        </span>
-                        {playMode === "computeMax" && (
-                          <Icon
-                            name="check"
-                            className={checkIconStyle}
-                            size="sm"
-                          />
-                        )}
-                      </Button>
+                      <SettingsRow
+                        iconName="play"
+                        label="Play computed steps only"
+                        selected={playMode === "viewOnly"}
+                        disabledReason={viewOnlyUnavailable}
+                        onSelect={() => setPlayMode("viewOnly")}
+                      />
+                      <SettingsRow
+                        iconName="chartLine"
+                        label="Play + compute buffer"
+                        selected={playMode === "computeBuffer"}
+                        disabledReason={computeUnavailable}
+                        onSelect={() => setPlayMode("computeBuffer")}
+                      />
+                      <SettingsRow
+                        iconName="rightToLine"
+                        label="Play + compute max"
+                        selected={playMode === "computeMax"}
+                        disabledReason={computeUnavailable}
+                        onSelect={() => setPlayMode("computeMax")}
+                      />
                       <div className={popoverDividerStyle} />
                     </Popover.Body>,
                   ]
@@ -340,7 +338,7 @@ export const PlaybackSettingsMenu = ({
                 withPadding={false}
                 className={sectionInnerStyle}
               >
-                <div className={sectionLabelStyle}>Playback speed</div>
+                <div className={sectionLabelStyle}>{settings.speedLabel}</div>
                 {speedRows.map((row) => (
                   <div key={row[0]} className={speedGridStyle}>
                     {row.map((speed) => (
@@ -353,7 +351,7 @@ export const PlaybackSettingsMenu = ({
                         })}
                         onClick={() => setPlaybackSpeed(speed)}
                       >
-                        {formatPlaybackSpeed(speed)}
+                        {settings.formatSpeed(speed)}
                       </Button>
                     ))}
                   </div>
@@ -373,84 +371,49 @@ export const PlaybackSettingsMenu = ({
                       <div className={sectionLabelStyle}>
                         Stopping conditions
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={menuItemStyle({
-                          selected: stoppingCondition === "indefinitely",
-                          disabled: hasSimulation,
-                        })}
-                        onClick={() =>
-                          !hasSimulation &&
-                          handleStoppingConditionChange("indefinitely")
-                        }
-                        aria-disabled={hasSimulation}
-                        tooltip={
-                          hasSimulation
-                            ? "Reset simulation to change stopping conditions"
-                            : undefined
-                        }
+                      <SettingsRow
+                        iconName="infinity"
+                        label="Run indefinitely"
+                        selected={maxTime === null}
+                        disabledReason={endLocked ?? endNeeded}
+                        onSelect={() => setMaxTime(null)}
+                      />
+                      <SettingsRow
+                        iconName="clock"
+                        label={settings.endLabel}
+                        selected={maxTime !== null}
+                        disabledReason={endLocked}
+                        // Ten seconds, or ten steps, when switching to a fixed end.
+                        onSelect={() => setMaxTime(10)}
                       >
-                        <Icon
-                          name="infinity"
-                          className={menuItemIconStyle}
-                          size="sm"
-                        />
-                        <span className={menuItemTextStyle}>
-                          Run indefinitely
-                        </span>
-                        {stoppingCondition === "indefinitely" && (
+                        {maxTime === null ? (
+                          // Keeps the row as wide as the one above it.
                           <Icon
                             name="check"
-                            className={checkIconStyle}
+                            className={cx(checkIconStyle, hiddenStyle)}
                             size="sm"
                           />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={menuItemStyle({
-                          selected: stoppingCondition === "fixed",
-                          disabled: hasSimulation,
-                        })}
-                        onClick={() =>
-                          !hasSimulation &&
-                          handleStoppingConditionChange("fixed")
-                        }
-                        aria-disabled={hasSimulation}
-                        tooltip={
-                          hasSimulation
-                            ? "Reset simulation to change stopping conditions"
-                            : undefined
-                        }
-                      >
-                        <Icon
-                          name="clock"
-                          className={menuItemIconStyle}
-                          size="sm"
-                        />
-                        <span className={menuItemTextStyle}>
-                          End at fixed time
-                        </span>
-                        {stoppingCondition === "fixed" && (
+                        ) : (
                           <>
                             <NumberInput
                               size="sm"
-                              min={0.1}
-                              step={0.1}
-                              value={maxTime ?? 10}
+                              min={settings.endMin}
+                              step={settings.endStep}
+                              value={runEndOf(clock, maxTime)}
                               align="right"
                               hideStepper
-                              disabled={hasSimulation}
+                              disabled={endLocked !== undefined}
                               onChange={(nextMaxTime) => {
-                                if (nextMaxTime !== null && nextMaxTime > 0) {
+                                if (
+                                  nextMaxTime !== null &&
+                                  acceptsRunEnd(clock, nextMaxTime)
+                                ) {
                                   setMaxTime(nextMaxTime);
                                 }
                               }}
                               onClick={(event) => event.stopPropagation()}
                               className={maxTimeInputStyle}
-                              aria-label="Maximum simulation time in seconds"
+                              aria-label={settings.endInputLabel}
                             />
                             <span
                               style={{
@@ -458,21 +421,11 @@ export const PlaybackSettingsMenu = ({
                                 color: "var(--colors-neutral-s100)",
                               }}
                             >
-                              s
+                              {settings.endUnit}
                             </span>
                           </>
                         )}
-                        {stoppingCondition !== "fixed" && (
-                          <Icon
-                            name="check"
-                            className={cx(
-                              checkIconStyle,
-                              css({ visibility: "hidden" }),
-                            )}
-                            size="sm"
-                          />
-                        )}
-                      </Button>
+                      </SettingsRow>
                       <div className={popoverDividerStyle} />
                     </Popover.Body>,
                   ]

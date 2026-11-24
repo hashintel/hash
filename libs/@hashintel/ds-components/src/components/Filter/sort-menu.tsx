@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { SelectableListSearch } from "../../util/SelectableList/selectable-list-search";
-import { searchEmpty } from "../../util/SelectableList/selectable-list-search.recipe";
+import { SelectableListSearch } from "../../primitives/SelectableList/selectable-list-search";
+import { searchEmpty } from "../../primitives/SelectableList/selectable-list-search.recipe";
+import { hasCommandModifier } from "../../util/keyboard";
 import { Button, type ButtonElementProps } from "../Button/button";
 import { iconSizeMap as buttonIconSizeMap } from "../Button/button-util";
 import { Icon } from "../Icon/icon";
@@ -12,6 +13,7 @@ import {
   readSavedSort,
   type SortDirection,
   writeSavedSort,
+  defaultDirectionOf,
   directionsOf,
   directionIcon,
   flipped,
@@ -130,7 +132,7 @@ export const SortMenu = <SortKey extends string = string>({
   const shownDirection = (sorter: Sorter<SortKey>): SortDirection =>
     value && value.sortKey === sorter.sortKey
       ? value.direction
-      : (directionsOf(sorter)[0] ?? "ASCENDING");
+      : defaultDirectionOf(sorter);
 
   const flipDirection = (sorter: Sorter<SortKey>) => {
     commit(sorter.sortKey, flipped(shownDirection(sorter)));
@@ -158,6 +160,7 @@ export const SortMenu = <SortKey extends string = string>({
   ) => {
     if (
       (event.key !== "ArrowLeft" && event.key !== "ArrowRight") ||
+      hasCommandModifier(event) ||
       highlightedValue === null
     ) {
       return;

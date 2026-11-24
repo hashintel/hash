@@ -114,6 +114,50 @@ test("projects each assistant response from its agent metadata and outcome", () 
   ]);
 });
 
+test("keeps an empty assistant response only when its submission was aborted", () => {
+  const emptyMessage = (
+    id: string,
+    role: "assistant" | "user",
+    submissionId: string,
+  ) => ({
+    id,
+    role,
+    purpose: role,
+    display: "visible" as const,
+    submissionId,
+    parts: [],
+  });
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      emptyMessage("empty-user", "user", "stopped-turn"),
+      emptyMessage("stopped-before-reply", "assistant", "stopped-turn"),
+      emptyMessage("completed-empty", "assistant", "completed-turn"),
+      emptyMessage("failed-empty", "assistant", "failed-turn"),
+      emptyMessage("running-empty", "assistant", "running-turn"),
+    ],
+    settlements: [
+      { submissionId: "stopped-turn", outcome: "aborted" },
+      { submissionId: "completed-turn", outcome: "completed" },
+      { submissionId: "failed-turn", outcome: "failed" },
+    ],
+  };
+
+  expect(
+    snapshotToUiMessages(snapshot, {
+      ...projectionOptions,
+      projectMetadata: ({ outcome }) => ({ outcome }),
+    }),
+  ).toEqual([
+    {
+      id: "stopped-before-reply",
+      role: "assistant",
+      parts: [],
+      metadata: { outcome: "aborted" },
+    },
+  ]);
+});
+
 test("rehydrates host-defined client tools as dynamic", () => {
   expect(
     snapshotToUiMessages(snapshotWithPendingClientTool, {
@@ -170,6 +214,40 @@ test("keeps Flue data parts on the AI SDK message", () => {
         { type: "text", text: "Here is the order.", state: "done" },
         { type: "data-orderCard", data: { orderId: "42", status: "loaded" } },
       ],
+    },
+  ]);
+});
+
+test("shows the user's signals of host-named tags as their turns, and hides other signals", () => {
+  const signal = (id: string, tagName: string) => ({
+    id,
+    role: "system" as const,
+    purpose: "dispatch" as const,
+    display: "diagnostic" as const,
+    signal: { tagName },
+    parts: [
+      { type: "text" as const, text: `body of ${id}`, state: "done" as const },
+    ],
+  });
+  const snapshot: FlueConversationSnapshot = {
+    v: 1,
+    conversationId: "conversation-1",
+    offset: "0",
+    messages: [signal("note-1", "host.note"), signal("stale-1", "host.stale")],
+    settlements: [],
+  };
+
+  expect(
+    snapshotToUiMessages(snapshot, {
+      ...projectionOptions,
+      userSignalTags: new Set(["host.note"]),
+    }),
+  ).toEqual([
+    {
+      id: "note-1",
+      role: "user",
+      parts: [{ type: "text", text: "body of note-1", state: "done" }],
+      metadata: undefined,
     },
   ]);
 });

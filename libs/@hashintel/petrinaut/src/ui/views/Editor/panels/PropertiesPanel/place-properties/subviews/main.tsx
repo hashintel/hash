@@ -1,5 +1,4 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use } from "react";
 
 import {
   Button,
@@ -8,30 +7,26 @@ import {
   HelpTooltip,
   NumberInput,
   Select,
-  Toggle,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
-import { usePetrinautMutations } from "../../../../../../../react";
-import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { PropertyValue } from "../../../../../../components/property-value";
-import { Section, SectionList } from "../../../../../../components/section";
-import { PlaceIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
+import { useEditorActions } from "../../../../../../../react/state/editor-context";
+import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
+import { Section, SectionList } from "../../../../../../shared/section";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
+import { DeleteItemButton } from "../../delete-item-button";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
+import { PropertyValue } from "../../property-value";
+import { fieldsSectionStyle } from "../../styles";
 import { usePlacePropertiesContext } from "../context";
-
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
+import { placeTypeChange } from "./place-dynamics/compose-dynamics";
+import { PortDirectionField } from "./port-direction-field";
 
 const relatedActionsStyle = css({
   display: "flex",
@@ -59,15 +54,10 @@ const capacityContentStyle = css({
   },
 });
 
-const capacityFieldStyle = css({
+const indentedFieldStyle = css({
   paddingTop: "2",
   paddingLeft: "6",
   "& label": { fontWeight: "normal" },
-});
-
-const hintTextStyle = css({
-  fontSize: "[12px]",
-  color: "neutral.s95",
 });
 
 const typeColorDotStyle = css({
@@ -77,35 +67,25 @@ const typeColorDotStyle = css({
   flexShrink: 0,
 });
 
-const arcStyle = css({
+const typeOptionStyle = css({
   display: "flex",
   gap: "2",
   alignItems: "center",
 });
 
-/**
- * Main content section for the Place properties panel.
- * Rendered as a headerless SubView at the top of the proportional layout.
- */
-const PlaceMainContent: React.FC = () => {
-  const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
-  const { selectItem } = use(EditorContext);
-  const { showAnimations } = use(UserSettingsContext);
+export const PlaceMainContent: React.FC = () => {
+  const { place, types } = usePlacePropertiesContext();
+  const { updatePlace } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
+  const { selectItem } = useEditorActions();
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const capacityEnabled =
     place.capacity !== undefined && place.capacity !== null;
 
-  const { extensions } = use(SDCPNContext);
-  const {
-    activeNet: { differentialEquations, types: availableTypes },
-  } = use(ActiveNetContext);
+  const extensions = useSDCPNState((document) => document.extensions);
 
   const placeTypeName =
     types.find((candidate) => candidate.id === place.colorId)?.name ?? "None";
-
-  // Filter differential equations by place type
-  const availableDiffEqs = place.colorId
-    ? differentialEquations.filter((eq) => eq.colorId === place.colorId)
-    : [];
 
   return (
     <SectionList>
@@ -118,8 +98,6 @@ const PlaceMainContent: React.FC = () => {
           onCommit={(name) =>
             updatePlace({ placeId: place.id, update: { name } })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
         <DescriptionField
           sourceId={place.id}
@@ -127,8 +105,6 @@ const PlaceMainContent: React.FC = () => {
           onCommit={(description) =>
             updatePlace({ placeId: place.id, update: { description } })
           }
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </Form.Section>
 
@@ -136,10 +112,10 @@ const PlaceMainContent: React.FC = () => {
         <Section
           title="Accepted token type"
           tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
-            availableTypes.length === 0
+            types.length === 0
               ? " You must create a data type in the left-hand sidebar first."
               : ""
-          } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+          } Tokens in places don't have to carry data, but they need one for dynamics (token data changing over time when in a place); changing the type clears the place's equations.`}
         >
           <PropertyValue text={placeTypeName}>
             <Tooltip
@@ -152,17 +128,13 @@ const PlaceMainContent: React.FC = () => {
                 size="sm"
                 value={place.colorId ?? ""}
                 onChange={(colorId) => {
-                  const nextColorId = colorId === "" ? null : colorId;
-                  updatePlace({
-                    placeId: place.id,
-                    update: {
-                      colorId: nextColorId,
-                      dynamicsEnabled:
-                        nextColorId === null && place.dynamicsEnabled
-                          ? false
-                          : place.dynamicsEnabled,
-                    },
-                  });
+                  const update = placeTypeChange(
+                    place,
+                    colorId === "" ? null : colorId,
+                  );
+                  if (update) {
+                    updatePlace({ placeId: place.id, update });
+                  }
                 }}
                 items={[
                   { value: "", text: "None" },
@@ -174,7 +146,7 @@ const PlaceMainContent: React.FC = () => {
                 renderItem={(value) => {
                   const type = types.find((tp) => tp.id === value);
                   return (
-                    <div className={arcStyle}>
+                    <div className={typeOptionStyle}>
                       {type?.displayColor && (
                         <div
                           className={typeColorDotStyle}
@@ -185,7 +157,6 @@ const PlaceMainContent: React.FC = () => {
                     </div>
                   );
                 }}
-                disabled={isReadOnly}
               />
             </Tooltip>
           </PropertyValue>
@@ -211,125 +182,6 @@ const PlaceMainContent: React.FC = () => {
         </Section>
       )}
 
-      {extensions.colors && extensions.dynamics && (
-        <Section
-          title="Dynamics"
-          tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation."
-          renderHeaderAction={() => {
-            const dynamicsTooltip = isReadOnly
-              ? UI_MESSAGES.READ_ONLY_MODE
-              : place.colorId === null
-                ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
-                : availableDiffEqs.length === 0
-                  ? "Create a differential equation for this type first"
-                  : undefined;
-
-            return (
-              <Tooltip
-                content={dynamicsTooltip}
-                disableTooltip={!dynamicsTooltip}
-              >
-                <Toggle
-                  aria-label="Dynamics"
-                  size="sm"
-                  tone="success"
-                  value={!!place.colorId && place.dynamicsEnabled}
-                  disabled={
-                    isReadOnly ||
-                    place.colorId === null ||
-                    availableDiffEqs.length === 0
-                  }
-                  onChange={(checked) => {
-                    const update: {
-                      dynamicsEnabled: boolean;
-                      differentialEquationId?: string | null;
-                    } = { dynamicsEnabled: checked };
-
-                    if (checked) {
-                      // Auto-select first available diff eq if none selected or previous no longer exists
-                      const currentIsValid = availableDiffEqs.some(
-                        (eq) => eq.id === place.differentialEquationId,
-                      );
-                      if (!currentIsValid && availableDiffEqs.length > 0) {
-                        update.differentialEquationId = availableDiffEqs[0]!.id;
-                      }
-                    }
-
-                    updatePlace({
-                      placeId: place.id,
-                      update,
-                    });
-                  }}
-                />
-              </Tooltip>
-            );
-          }}
-        >
-          {place.colorId === null ? (
-            <div className={hintTextStyle}>
-              {availableTypes.length === 0
-                ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
-                : "Select a type to enable dynamics"}
-            </div>
-          ) : availableDiffEqs.length === 0 ? (
-            <div className={hintTextStyle}>
-              Create a differential equation for the selected type in the
-              left-hand sidebar first
-            </div>
-          ) : (
-            place.dynamicsEnabled && (
-              <>
-                <Tooltip
-                  content={UI_MESSAGES.READ_ONLY_MODE}
-                  disableTooltip={!isReadOnly}
-                >
-                  <Select
-                    aria-label="Differential equation"
-                    required
-                    value={place.differentialEquationId ?? ""}
-                    size="sm"
-                    onChange={(differentialEquationId) => {
-                      if (differentialEquationId) {
-                        updatePlace({
-                          placeId: place.id,
-                          update: { differentialEquationId },
-                        });
-                      }
-                    }}
-                    items={availableDiffEqs.map((eq) => ({
-                      value: eq.id,
-                      text: eq.name,
-                    }))}
-                    disabled={isReadOnly}
-                  />
-                </Tooltip>
-
-                {place.differentialEquationId && (
-                  <div className={relatedActionsStyle}>
-                    <Button
-                      variant="ghost"
-                      tone="neutral"
-                      size="xs"
-                      onClick={() => {
-                        if (place.differentialEquationId) {
-                          selectItem({
-                            type: "differentialEquation",
-                            id: place.differentialEquationId,
-                          });
-                        }
-                      }}
-                      iconName="arrowRight"
-                      iconPosition="right"
-                    >
-                      View equation
-                    </Button>
-                  </div>
-                )}
-              </>
-            )
-          )}
-        </Section>
-      )}
       <Section title="Options">
         <div className={optionRowStyle}>
           <Checkbox
@@ -341,8 +193,18 @@ const PlaceMainContent: React.FC = () => {
               updatePlace({ placeId: place.id, update: { isPort: checked } })
             }
           />
-          <HelpTooltip content="Expose this place as an arc endpoint when its subnet is used as a component." />
+          <HelpTooltip content="Expose this place as a port on the instances of its component: fuse it with a place of the net that holds the instance, or connect it to a transition there." />
         </div>
+        {place.isPort && (
+          <PortDirectionField
+            place={place}
+            disabled={isReadOnly}
+            className={indentedFieldStyle}
+            onChange={(portDirection) =>
+              updatePlace({ placeId: place.id, update: { portDirection } })
+            }
+          />
+        )}
         <Collapsible.Root open={capacityEnabled} lazyMount unmountOnExit>
           <div className={optionRowStyle}>
             <Checkbox
@@ -369,7 +231,7 @@ const PlaceMainContent: React.FC = () => {
               size="xs"
               layout="inline"
               inputAlign="end"
-              className={capacityFieldStyle}
+              className={indentedFieldStyle}
               disabled={isReadOnly}
             >
               <NumberInput
@@ -415,31 +277,14 @@ const PlaceMainContent: React.FC = () => {
   );
 };
 
-const DeletePlaceAction: React.FC = () => {
-  const { place, isReadOnly } = usePlacePropertiesContext();
+export const DeletePlaceAction: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
   const { removePlace } = usePetrinautMutations();
 
   return (
-    <Button
-      aria-label="Delete place"
-      size="sm"
-      variant="ghost"
-      tone="error"
-      iconName="trash"
-      onClick={() => removePlace({ placeId: place.id })}
-      disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete place"}
+    <DeleteItemButton
+      label="Delete place"
+      onDelete={() => removePlace({ placeId: place.id })}
     />
   );
-};
-
-export const placeMainContentSubView: SubView = {
-  id: "place-main-content",
-  title: "Place",
-  icon: PlaceIcon,
-  main: true,
-  component: PlaceMainContent,
-  renderHeaderAction: () => <DeletePlaceAction />,
-  headerActionMutates: true,
-  alwaysShowHeaderAction: true,
 };

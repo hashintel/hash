@@ -253,10 +253,9 @@ const parseCondition = (filter: Filter): ParsedCondition => {
   };
 };
 
-const buildEntityTypeCondition = (entityTypeBaseUrl: string): Filter =>
-  ({
-    equal: [{ path: ["type", "baseUrl"] }, { parameter: entityTypeBaseUrl }],
-  }) as unknown as Filter;
+const buildEntityTypeCondition = (entityTypeBaseUrl: string): Filter => ({
+  equal: [{ path: ["type", "baseUrl"] }, { parameter: entityTypeBaseUrl }],
+});
 
 const buildPropertyCondition = ({
   propertyBaseUrl,
@@ -272,13 +271,13 @@ const buildPropertyCondition = ({
   const path = ["properties", propertyBaseUrl];
   switch (operator) {
     case "hasAnyValue":
-      return { exists: { path } } as unknown as Filter;
+      return { exists: { path } };
     case "isEmpty":
-      return { not: { exists: { path } } } as unknown as Filter;
+      return { not: { exists: { path } } };
     case "isTrue":
-      return { equal: [{ path }, { parameter: true }] } as unknown as Filter;
+      return { equal: [{ path }, { parameter: true }] };
     case "isFalse":
-      return { equal: [{ path }, { parameter: false }] } as unknown as Filter;
+      return { equal: [{ path }, { parameter: false }] };
     default: {
       let parameter: unknown = value;
       if (kind === "number") {
@@ -286,7 +285,7 @@ const buildPropertyCondition = ({
         parameter =
           value.trim() !== "" && !Number.isNaN(numeric) ? numeric : value;
       }
-      return { [operator]: [{ path }, { parameter }] } as unknown as Filter;
+      return { [operator]: [{ path }, { parameter }] };
     }
   }
 };
@@ -342,7 +341,7 @@ const useBuilderOptions = (): BuilderOptions => {
             !isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink,
         )
         .map((entityType) => ({
-          value: entityType.metadata.recordId.baseUrl as string,
+          value: entityType.metadata.recordId.baseUrl,
           text: entityType.schema.title,
         }))
         .sort((a, b) => a.text.localeCompare(b.text)),
@@ -543,7 +542,7 @@ const ExpressionEditor = ({ expression, onChange }: ExpressionEditorProps) => {
           onChange={(newValue) =>
             onChange({
               parameter: parseParameterInput(newValue),
-            } as FilterExpression)
+            })
           }
         />
       )}
@@ -602,14 +601,14 @@ const AdvancedConditionEditor = ({
       const { path } = (filter as { exists: { path: unknown[] } }).exists;
       onChange({
         [newOperator]: [{ path }, { parameter: "" }],
-      } as unknown as Filter);
+      });
       return;
     }
 
     const operands = (filter as unknown as Record<string, FilterExpression[]>)[
       operator
     ];
-    onChange({ [newOperator]: operands } as unknown as Filter);
+    onChange({ [newOperator]: operands });
   };
 
   const operatorSelect = (
@@ -655,7 +654,7 @@ const AdvancedConditionEditor = ({
   const updateOperand = (index: 0 | 1, expression: FilterExpression) => {
     const newOperands: FilterExpression[] = [...operands];
     newOperands[index] = expression;
-    onChange({ [operator]: newOperands } as unknown as Filter);
+    onChange({ [operator]: newOperands });
   };
 
   return (
@@ -957,20 +956,20 @@ const FilterNodeEditor = ({
         groupKind === "not"
           ? []
           : (filter as unknown as Record<"all" | "any", Filter[]>)[groupKind];
-      onChange({ not: children[0] ?? defaultCondition } as Filter);
+      onChange({ not: children[0] ?? defaultCondition });
       return;
     }
     if (groupKind === "not") {
       onChange({
         [newKind]: [(filter as { not: Filter }).not],
-      } as unknown as Filter);
+      });
       return;
     }
     onChange({
       [newKind]: (filter as unknown as Record<"all" | "any", Filter[]>)[
         groupKind
       ],
-    } as unknown as Filter);
+    });
   };
 
   const header = (
@@ -1012,7 +1011,7 @@ const FilterNodeEditor = ({
             filter={child}
             depth={depth + 1}
             options={options}
-            onChange={(newChild) => onChange({ not: newChild } as Filter)}
+            onChange={(newChild) => onChange({ not: newChild })}
           />
         </Stack>
       </Box>
@@ -1026,7 +1025,7 @@ const FilterNodeEditor = ({
   const updateChild = (index: number, child: Filter) => {
     const newChildren = [...children];
     newChildren[index] = child;
-    onChange({ [groupKind]: newChildren } as unknown as Filter);
+    onChange({ [groupKind]: newChildren });
   };
 
   return (
@@ -1046,7 +1045,7 @@ const FilterNodeEditor = ({
                 [groupKind]: children.filter(
                   (_, childIndex) => childIndex !== index,
                 ),
-              } as unknown as Filter)
+              })
             }
           />
         ))}
@@ -1059,7 +1058,7 @@ const FilterNodeEditor = ({
             onClick={() =>
               onChange({
                 [groupKind]: [...children, defaultCondition],
-              } as unknown as Filter)
+              })
             }
           >
             Condition
@@ -1072,7 +1071,7 @@ const FilterNodeEditor = ({
             onClick={() =>
               onChange({
                 [groupKind]: [...children, { all: [defaultCondition] }],
-              } as unknown as Filter)
+              })
             }
           >
             Group
@@ -1279,8 +1278,7 @@ const useRelationshipOptions = (
             {
               direction: "incoming",
               linkTypeBaseUrl,
-              entityTypeBaseUrl: candidateType.metadata.recordId
-                .baseUrl as string,
+              entityTypeBaseUrl: candidateType.metadata.recordId.baseUrl,
             },
           );
         }

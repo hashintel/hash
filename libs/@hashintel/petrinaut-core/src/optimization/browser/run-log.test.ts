@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createAbortController } from "../../environment";
+import { createAbortController } from "../../environment/environment";
 import { createOptimizationRunLog } from "./run-log";
 
 import type { PetrinautOptimizationEvent } from "../index";

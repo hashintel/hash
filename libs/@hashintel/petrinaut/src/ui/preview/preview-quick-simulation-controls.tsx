@@ -1,15 +1,15 @@
 import { use, useRef, useState } from "react";
 
 import { Button, Icon, Popover } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
 import { SimulationContext } from "../../react/simulation/context";
-import { ActiveNetContext } from "../../react/state/active-net-context";
-import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { SimulationControls } from "../views/Editor/components/BottomBar/simulation-controls";
-import { SimulationTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content";
-import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
+import { useUserSettings } from "../../react/state/user-settings-context";
+import { EventSimulationControls } from "../views/Editor/components/BottomBar/event-simulation-controls";
+import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline";
+import { floatingBarStyle } from "./floating-bar-style";
+import { SimulationScenarioControls } from "./simulation-scenario-controls";
 
 import type { PetrinautPreviewQuickSimulation } from "./quick-simulation";
 
@@ -23,26 +23,12 @@ const configurationBodyStyle = css({
   padding: "3",
 });
 
-const playbackPositionStyle = css({
-  position: "absolute",
-  left: "[50%]",
-  bottom: "2",
-  zIndex: "[calc(var(--z-index-sticky) + 1)]",
-  transform: "translateX(-50%)",
+const playbackSizeStyle = css({
   // Hug the controls while collapsed; only an expanded timeline needs width.
   width: "[max-content]",
   maxWidth: "[calc(100% - 16px)]",
   // Lets supporting browsers animate the max-content <-> full-width switch.
   interpolateSize: "[allow-keywords]",
-  padding: "0.5",
-  overflow: "hidden",
-  // An opaque bordered box with no shadow, like the editor's panels, but
-  // rounded: it floats over the canvas rather than framing the embed, and
-  // `lg` is the `md` of the controls it wraps plus the padding around them.
-  borderWidth: "thin",
-  borderColor: "neutral.s40",
-  borderRadius: "lg",
-  backgroundColor: "neutral.s00",
   "&[data-expanded='true']": {
     width: "[calc(100% - 16px)]",
     maxWidth: "[720px]",
@@ -144,10 +130,7 @@ export const PreviewSimulationConfiguration = ({
           <Popover.Container className={configurationPopoverStyle}>
             <Popover.Header title="Quick Simulation" />
             <Popover.Body className={configurationBodyStyle}>
-              <SimulationScenarioControls
-                allowNoScenario={false}
-                parameterBounds={parameterBounds}
-              />
+              <SimulationScenarioControls parameterBounds={parameterBounds} />
             </Popover.Body>
           </Popover.Container>
         </Popover>
@@ -159,28 +142,26 @@ export const PreviewSimulationConfiguration = ({
 export const PreviewSimulationPlaybackControls = ({
   allowedPlaybackSpeeds,
 }: Pick<PetrinautPreviewQuickSimulation, "allowedPlaybackSpeeds">) => {
-  const { activeSubnetId } = use(ActiveNetContext);
   const { scenarioCompilationErrors } = use(SimulationContext);
   const { totalFrames } = use(ExecutionFrameSourceContext);
-  const { showAnimations } = use(UserSettingsContext);
+  const showAnimations = useUserSettings((settings) => settings.showAnimations);
   const expanded = totalFrames > 0;
 
   return (
     <section
       aria-label="Simulation playback"
-      className={playbackPositionStyle}
+      className={cx(floatingBarStyle, playbackSizeStyle)}
       data-animated={showAnimations}
       data-expanded={expanded}
       data-state={expanded ? "expanded" : "collapsed"}
     >
       <div className={playbackControlsScrollStyle}>
         <div className={playbackControlsRowStyle}>
-          <SimulationControls
+          <EventSimulationControls
             allowedPlaybackSpeeds={
               allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
             }
             disabled={scenarioCompilationErrors !== null}
-            inSubnet={activeSubnetId !== null}
           />
         </div>
       </div>
@@ -193,7 +174,7 @@ export const PreviewSimulationPlaybackControls = ({
       >
         <div className={timelineClipStyle}>
           <div className={timelineStyle}>
-            <SimulationTimeline showLegend={false} />
+            <EventTimeline showLegend={false} />
           </div>
         </div>
       </div>

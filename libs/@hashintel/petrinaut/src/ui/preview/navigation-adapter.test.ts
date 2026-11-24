@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { defaultPetrinautNavigationState } from "../../react/navigation";
+import { defaultPetrinautNavigationState } from "../../react/navigation/navigation";
 import {
   createPreviewNavigationAdapter,
   toPreviewNavigationState,
   type PetrinautPreviewNavigationState,
 } from "./navigation-adapter";
 
-import type { PetrinautNavigationController } from "../../react/navigation";
+import type { PetrinautNavigationController } from "../../react/navigation/navigation";
 
 describe("Preview navigation adapter", () => {
   test("pins editor-only state while preserving Preview state", () => {
@@ -15,18 +15,18 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: "scenario-a",
-          subnetId: "subnet-a",
+          componentId: "component-a",
           selection: [{ type: "place", id: "place-a" }],
         },
         onNavigate: vi.fn(),
       };
 
-    expect(createPreviewNavigationAdapter(controller).state).toEqual({
+    expect(createPreviewNavigationAdapter(controller, "edit").state).toEqual({
       ...defaultPetrinautNavigationState,
       mode: "edit",
       simulateView: "scenarios",
       scenarioId: "scenario-a",
-      subnetId: "subnet-a",
+      componentId: "component-a",
       selection: [{ type: "place", id: "place-a" }],
     });
   });
@@ -36,7 +36,7 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: undefined,
-          subnetId: null,
+          componentId: null,
           selection: [],
         },
         onNavigate: vi.fn(),
@@ -56,7 +56,7 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: undefined,
-          subnetId: null,
+          componentId: null,
           selection: [],
         },
         onNavigate: vi.fn(),
@@ -78,12 +78,12 @@ describe("Preview navigation adapter", () => {
       {
         state: {
           scenarioId: undefined,
-          subnetId: null,
+          componentId: null,
           selection: [],
         },
         onNavigate,
       };
-    const adapter = createPreviewNavigationAdapter(controller);
+    const adapter = createPreviewNavigationAdapter(controller, "edit");
     const options = {
       history: "replace" as const,
       intent: { cause: "user", action: "selection" } as const,
@@ -95,7 +95,7 @@ describe("Preview navigation adapter", () => {
         mode: "actual",
         simulateResource: { type: "metric", id: "metric-a" },
         scenarioId: "scenario-b",
-        subnetId: "subnet-b",
+        componentId: "component-b",
         selection: [{ type: "transition", id: "transition-b" }],
       }),
       options,
@@ -105,7 +105,7 @@ describe("Preview navigation adapter", () => {
     const [update, receivedOptions] = onNavigate.mock.calls[0]!;
     expect(update(controller.state)).toEqual({
       scenarioId: "scenario-b",
-      subnetId: "subnet-b",
+      componentId: "component-b",
       selection: [{ type: "transition", id: "transition-b" }],
     });
     expect(receivedOptions).toEqual(options);
@@ -122,7 +122,7 @@ describe("Preview navigation adapter", () => {
       }),
     ).toEqual({
       scenarioId: undefined,
-      subnetId: null,
+      componentId: null,
       selection: [],
     });
   });

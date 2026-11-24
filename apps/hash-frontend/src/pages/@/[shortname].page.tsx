@@ -16,7 +16,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 import {
@@ -27,6 +26,7 @@ import {
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { useUserOrOrg } from "../../shared/use-user-or-org";
+import { useDataTypesContext } from "../shared/data-types-context";
 import { NotFound } from "../shared/not-found";
 import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
@@ -35,8 +35,6 @@ import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
 import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
 
 import type {
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
   QueryEntityTypesQuery,
@@ -159,38 +157,12 @@ const ProfilePage: NextPageWithLayout = () => {
     skip: !profileWebId,
   });
 
-  const { data: dataTypesData, loading: dataTypesLoading } = useQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
-    fetchPolicy: "cache-and-network",
-    variables: {
-      request: {
-        filter: {
-          all: [
-            {
-              equal: [
-                {
-                  path: ["version"],
-                },
-                { parameter: "latest" },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: ["webId"],
-                },
-                { parameter: profileWebId! },
-              ],
-            },
-          ],
-        },
-        temporalAxes: fullTransactionTimeAxis,
-      },
-    },
-    skip: !profileWebId,
-  });
+  const {
+    latestDataTypes,
+    loading: dataTypesLoading,
+    error: dataTypesError,
+  } = useDataTypesContext();
+  const initialDataTypesLoading = dataTypesLoading && latestDataTypes === null;
 
   const webTypes = useMemo(() => {
     const types: (
@@ -207,12 +179,17 @@ const ProfilePage: NextPageWithLayout = () => {
       types.push(...entityTypesData.queryEntityTypes.entityTypes);
     }
 
-    if (dataTypesData) {
-      types.push(...dataTypesData.queryDataTypes.dataTypes);
+    if (latestDataTypes && profileWebId) {
+      types.push(
+        ...Object.values(latestDataTypes).filter(
+          ({ metadata }) =>
+            "webId" in metadata && metadata.webId === profileWebId,
+        ),
+      );
     }
 
     return types;
-  }, [propertyTypesData, entityTypesData, dataTypesData]);
+  }, [propertyTypesData, entityTypesData, latestDataTypes, profileWebId]);
 
   const profileNotFound = !profile && !loading;
 
@@ -428,8 +405,9 @@ const ProfilePage: NextPageWithLayout = () => {
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}
         webTypes={webTypes}
+        webTypesError={latestDataTypes === null ? dataTypesError : null}
         webTypesLoading={
-          entityTypesLoading || propertyTypesLoading || dataTypesLoading
+          entityTypesLoading || propertyTypesLoading || initialDataTypesLoading
         }
       />
       {profile && profile.kind === "user" ? (

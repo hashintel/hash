@@ -2,12 +2,12 @@ import {
   defaultPetrinautNavigationState,
   type PetrinautNavigationController,
   type PetrinautNavigationState,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
 
 /** The app-location subset supported by the compact Preview. */
 export type PetrinautPreviewNavigationState = Pick<
   PetrinautNavigationState,
-  "scenarioId" | "subnetId" | "selection"
+  "scenarioId" | "componentId" | "selection"
 >;
 
 type PreviewMode = PetrinautNavigationState["mode"];
@@ -20,7 +20,7 @@ const toFullNavigationState = (
   mode,
   simulateView: "scenarios",
   scenarioId: state.scenarioId,
-  subnetId: state.subnetId,
+  componentId: state.componentId,
   selection: state.selection,
 });
 
@@ -28,14 +28,14 @@ export const toPreviewNavigationState = (
   state: Readonly<PetrinautNavigationState>,
 ): PetrinautPreviewNavigationState => ({
   scenarioId: state.scenarioId,
-  subnetId: state.subnetId,
+  componentId: state.componentId,
   selection: state.selection,
 });
 
 /** Adapts Preview's deliberately smaller URL contract to the shared providers. */
 export const createPreviewNavigationAdapter = (
   controller: PetrinautNavigationController<PetrinautPreviewNavigationState>,
-  mode: PreviewMode = "edit",
+  mode: PreviewMode,
 ): PetrinautNavigationController => ({
   state: toFullNavigationState(controller.state, mode),
   historyPolicy: controller.historyPolicy,

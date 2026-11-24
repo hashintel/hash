@@ -1,0 +1,87 @@
+---
+title: The editor shell
+description: The editor shell arranges the panels, toolbars and dialogs around the canvas.
+sidebar_order: 10
+---
+
+The editor shell arranges the panels, toolbars and dialogs around the canvas, and decides which region is mounted and which is visible.
+It owns no document state and no geometry: the [editor state](layer:react.state) says what is open, and motion values of the Motion library say where each panel sits.
+
+![Editor state decides which regions mount, and Motion values place the panels without a render](./editor-shell.d2)
+
+## Entry point
+
+`EditorView` in `ui/views/Editor/editor-view.tsx` wraps `EditorViewContent` in the code navigation provider and the icon provider. `EditorViewContent` reads `globalMode` and `editViewMode`, then composes, in this order:
+
+1. Leaves outside the layout. `EditorCommands`, `AssistantCommands` and `SelectionCleanup` render nothing. `PluginRoots` renders the `root` contribution of each running plugin, and `UserSettings` renders `UserSettingsDialog` while that overlay is open.
+2. `TopBar`.
+3. `SimulationWorkspace` with the workspace of the mode: `SimulateViewTabs` and `SimulateView`, or `EditViewSelector`, the canvas workspace and `NotebookView`.
+4. `BottomBar` and `SimulationCreationDrawer`.
+5. `EditorAssistantPanel`, when a [plugin](layer:ui.plugins) contributes an assistant.
+
+## What mounts when
+
+| Region                             | Mounted                                                                       | Visible                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
+| `TopBar`                           | Always                                                                        | Always                                     |
+| `SimulateViewTabs`, `SimulateView` | `globalMode` is `simulate`                                                    | While mounted                              |
+| Canvas workspace                   | `globalMode` is `edit` or `actual`                                            | `actual`, or `editViewMode` is `canvas`    |
+| `NotebookView`                     | `globalMode` is `edit` or `actual`, once the net's Definitions view has shown | `edit` and `editViewMode` is `definitions` |
+| `BottomBar`                        | Always                                                                        | `actual`, or `edit` on the canvas          |
+| The panel of `LeftSideBar`         | `isLeftSidebarOpen` or `isSearchOpen`, and until it has slid out              | While mounted                              |
+| The panel of `PropertiesPanel`     | `usePanelTarget` returns a kind other than `none`, and until it has slid out  | While mounted                              |
+| The panel of `BottomPanel`         | `isBottomPanelOpen`, and until it has slid out                                | While mounted                              |
+
+A region that is mounted and not visible sits in a hidden `Activity`: React keeps its state and removes its effects.
+
+`NotebookView` renders a cell for every entity of the net, so it mounts when the Definitions view first shows. From then on it stays in its hidden `Activity`, with its scroll offset, its open cells and its search. The test "mounts the Definitions view when it first shows, and keeps it from then on" in `editor-view.test.tsx` holds this.
+
+The three panels are children of the canvas workspace, so they follow its row first. `EditorResizers`, a layer over the editor's row, holds the separators that resize them and the docked assistant: see [Panel geometry outside React state](doc:react.state/panel-sizes).
+
+## A closed panel
+
+`LeftSideBar`, `PropertiesPanel` and `BottomPanel` each render one `DockedPanel`, in `ui/views/Editor/shared/docked-panel.tsx`. The entry component is always rendered with the canvas workspace. It reads whether the panel is open and builds the panel's content as elements. `DockedPanel` mounts the panel in the render that opens it, and unmounts it when it is closed and its presence value has reached 0.
+
+What stays of a closed panel is its dock: an empty element with `display: contents`, in the panel's place among the children of the canvas workspace.
+
+Opening a panel is measured by `benchmarks/monaco-performance/panel-mount.mjs`. Its header says what it reports.
+
+## Data flow
+
+A user runs the command that toggles the bottom panel:
+
+1. `useEditorCommands` registered the command with `useCommand`. The [command registry](layer:core.command-registry) runs it, and it calls `toggleBottomPanel` from `useEditorActions`.
+2. The editor state sets `isBottomPanelOpen`, and `PanelPresenceProvider` animates the presence value of the panel, a motion value that says how far the panel is in view, from 0 to 1.
+3. `BottomPanel` and `BottomBar` read the field with `useEditorFields("isBottomPanelOpen")` and render. A region that does not read that field does not render.
+4. On each frame, `styleRef` writes the `transform` of the panel from the presence value. The canvas insets, the minimap and the bottom bar follow the same value. See [Panel geometry outside React state](doc:react.state/panel-sizes).
+
+## Rules
+
+**A subscription to state that changes often lives in a leaf of its own.** `EditorCommands` subscribes to undo and redo, which change on every document mutation, and `SelectionCleanup` to the selection. Each leaf renders alone for its subscription.
+
+**Panel size and position never enter React state.** `panel-presence-provider.test.tsx` covers the presence values. Step 4 and the linked page give the reason.
+
+**A command's `shortcut` string is display text.** The command registry binds no key. `useEditorCommands`, `UserSettings` and `useKeyboardShortcuts` each bind theirs in a `keydown` handler.
+
+**A panel mounts inside its dock, never straight beside the canvas.** The browser works out again the style of the element after an inserted element, and of the element after a removed one, with everything inside it: the design system has rules of the form `x + *`, which can match whatever follows any element. A panel inserted before the canvas costs a style recalculation of every node and arc, and its removal costs as much again. Inside the dock the panel has no element after it. [Editor performance on a large net](doc:editor-performance) has the numbers. The tests in `docked-panel.test.tsx` hold that a panel mounts inside the element that was there.
+
+**An overlay mounts inside the overlay host, never straight in the editor's root.** The same rules make a removal cost the style of everything in the parent. A menu, a tooltip, a select, a dialog and a toast each mount in the portal container, and one that closes while a later one is open would restyle the whole editor from the root. `OverlayHost`, in `ui/shared/overlay-host.tsx`, is the portal container of `Petrinaut` and of `PetrinautPreview`: the last child of the root, with `display: contents`, so the overlays are laid out as before and a removal restyles the overlays alone. The drag announcements of a reorderable table go there too. The tests in `reorderable-rows.test.tsx` hold that.
+
+**A split is a `ResizeGroup`, never the library's `Group`.** [Panel geometry outside React state](doc:react.state/panel-sizes) gives the reason, and names the tests and the lint rule that hold it.
+
+**A box around the canvas clips with `overflow: clip`, never `overflow: hidden`.** A box that hides its overflow is still a scroll container, and the browser scrolls it to bring a focused element into view. A docked panel slides in from beyond the edge, so focus moving into it while it was out there scrolled the workspace sideways, canvas and panels with it, until the slide ended. `clip` forbids all scrolling of the box. The root in `ui/petrinaut.tsx` and the two boxes of `SimulationWorkspace` clip; the test in `simulation-workspace.test.tsx` holds the workspace.
+
+**What a panel must remember while it is closed lives above its `DockedPanel`.** Closing a panel unmounts its content, and state held inside is gone when it opens again. `LeftSideBar` and `BottomPanel` each put a `KeptState`, from `ui/shared/kept-state.tsx`, around their `DockedPanel`. Below it, `useKeptState` from `ui/shared/use-kept-state.ts` is a `useState` whose value is there again when the component mounts again, and `useKeptScroll` does the same for the scroll offset of an element. They hold the collapsed groups of the entities tree, the collapsed entities of the Diagnostics tab, the zoom of the Timeline with the metric it compiled, and the scroll offset of every section and of the bottom panel's tab. The text searched for is read by two components, so `LeftSideBar` holds it in `SearchQueryProvider`. A section's collapsed state and height are in the user settings, and the bottom panel's tab is in the editor state. `PropertiesPanel` has no `KeptState`: its content belongs to the selection. While it slides out it shows what was selected last, inert, read with `useLastPanelTarget`, so it does not slide out empty; once out of view it unmounts like the others. The tests in `kept-state.test.tsx` and in `LeftSideBar/panel.test.tsx` hold this.
+
+**What a tab of the bottom panel keeps, it keeps while it is the tab.** A tab unmounts when another is picked and starts afresh when it is picked again, and a tab that goes with a run, as the Timeline does, is gone when the run is. `BottomPanel` gives its `KeptState` the tab as `scope`, and a `KeptState` drops what it holds when its scope changes. The form of the Simulation Settings tab keeps nothing of its own: its values are in the simulation's state, and its undo history starts again with each mount.
+
+**A long list in a panel mounts in two steps.** `EntityList` renders every group header and the entities a sidebar can show, and reads `useDeferredValue` to render the others one render later, in a render React interrupts for each frame. A list whose section mounts at a kept scroll offset shows entities from further down, so it reads `MountsScrolledContext` and mounts in one step. The entities of a collapsed group are out of sight, so they wait for the second step and what is below the group mounts in the first. The rows of a large net would otherwise hold back the frame in which the sidebar opens. `entity-groups.test.ts` holds where the list is cut, and the tests under "entity list mounting" in `entity-list.test.tsx` hold the two steps.
+
+**A list row mounts its menu on demand.** A menu reads editor state and code navigation, so one menu per row renders every row for a toggle. `EntityList`, the entities tree of the left sidebar, mounts the menu of the row last pointed at and the row last focused. The test "mounts no menu until a row is pointed at or focused" in `entity-list.test.tsx` holds this.
+
+## Pitfalls
+
+- Content that a panel shows with a delay must not wait in a deferred render while the panel slides. A component that renders on every frame of a slide, as an open visualizer window does, restarts the deferred render each frame, and the content arrives only when the slide is over. Defer what is out of sight, as the entities tree does.
+- A component rendered inside a hidden `Activity` runs no effect. Code that must run in every mode belongs in a leaf at the top of `EditorViewContent`.
+- `useKeyboardShortcuts` runs in `BottomBar`, whose `Activity` is hidden in Simulate mode and in the Definitions view. Its keys do nothing there.
+- `PetrinautIconProvider` sits above the view because it gives every icon a new context value each time it renders.

@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+assertion_line: 438
+description: Rooted field type without separator whitespace
+expression: "(field:::Root)"
+info:
+  kind: Ok
+---
+Type#4294967040@6
+  TypeKind (Struct)
+    StructType#4294967040@6
+      StructField#4294967040@5 (name: field)
+        Type#4294967040@4
+          TypeKind (Path)
+            Path#4294967040@4 (rooted: true)
+              PathSegment#4294967040@3 (name: Root)

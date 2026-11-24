@@ -33,7 +33,6 @@ import { RemoteBlock } from "../remote-block/remote-block";
 import { fetchEmbedCode } from "./fetch-embed-code";
 
 import type {
-  ArchiveEntityMessageCallback,
   CreateEntityMessageCallback,
   UpdateEntityMessageCallback,
   UploadFileRequestCallback,
@@ -452,9 +451,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       deleteEntity: async (
         ...args: Parameters<GraphEmbedderMessageCallbacks["deleteEntity"]>
       ) => {
-        const res = await deleteEntity(
-          args[0] as Parameters<ArchiveEntityMessageCallback>[0],
-        );
+        const res = await deleteEntity(args[0]);
 
         await refetchSubgraph();
 

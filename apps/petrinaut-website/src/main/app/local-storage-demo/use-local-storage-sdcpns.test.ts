@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   canonicalizePetrinautIds,
@@ -58,7 +58,6 @@ const drawnNet: SDCPN = {
       name: "Susceptible",
       colorId: null,
       dynamicsEnabled: false,
-      differentialEquationId: null,
       x: 0,
       y: 0,
     },
@@ -184,6 +183,50 @@ describe("startEmptyNetInStorage", () => {
     expect(nets["net-foreign"]).toStrictEqual(foreignEntry);
   });
 
+  test("keeps an entry whose net this version cannot read, without listing it", () => {
+    // A place another version of the editor wrote, with a dynamics term that
+    // names no equation: canonicalizing its ids throws on the missing field.
+    const foreignVersionNet = {
+      ...drawnNet,
+      places: [
+        {
+          id: "p-foreign",
+          name: "Foreign",
+          colorId: null,
+          dynamicsEnabled: false,
+          dynamics: [{}],
+          x: 0,
+          y: 0,
+        },
+      ],
+    } as unknown as SDCPN;
+    const foreignVersionEntry = {
+      id: "net-foreign-version",
+      title: "From another version",
+      lastUpdated: "2030-01-01T00:00:00.000Z",
+      sdcpn: foreignVersionNet,
+    };
+    const storage = createStorage(
+      JSON.stringify({
+        ...Object.fromEntries([storedNet(drawnNetId, drawnNet)]),
+        "net-foreign-version": foreignVersionEntry,
+      }),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Latest by date, yet never opened: the drawn net is what `/` opens.
+    expect(latestOrNewNetInStorage(storage).id).toBe(drawnNetId);
+    const net = startEmptyNetInStorage(storage);
+
+    const nets = readNets(storage);
+    expect(Object.keys(nets).sort()).toStrictEqual(
+      [drawnNetId, "net-foreign-version", net.id].sort(),
+    );
+    expect(nets["net-foreign-version"]).toStrictEqual(foreignVersionEntry);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
   test("replaces content it cannot parse", () => {
     const storage = createStorage("not json");
 
@@ -297,14 +340,14 @@ describe("useLocalStorageSDCPNs", () => {
 describe("legacy net ids", () => {
   afterEach(() => localStorage.clear());
 
-  const subnetNet: SDCPN = {
+  const componentNet: SDCPN = {
     ...emptySDCPN,
-    subnets: [{ ...emptySDCPN, id: "subnet__a", name: "Subnet" }],
+    components: [{ ...emptySDCPN, id: "component__a", name: "Component" }],
     componentInstances: [
       {
         id: "instance-1",
         name: "Instance",
-        subnetId: "subnet__a",
+        component: { id: "component__a" },
         parameterValues: {},
         x: 0,
         y: 0,
@@ -312,10 +355,10 @@ describe("legacy net ids", () => {
     ],
   };
 
-  test("moves a legacy record to its net id together with its subnet ids", () => {
+  test("moves a legacy record to its net id together with its component ids", () => {
     localStorage.setItem(
       rootLocalStorageKey,
-      JSON.stringify(Object.fromEntries([storedNet("net-1", subnetNet)])),
+      JSON.stringify(Object.fromEntries([storedNet("net-1", componentNet)])),
     );
 
     const { result } = renderHook(() => useLocalStorageSDCPNs());
@@ -324,10 +367,38 @@ describe("legacy net ids", () => {
     const written = readNets(localStorage);
     expect(Object.keys(written)).toStrictEqual([netId]);
     expect(written[netId]?.id).toBe(netId);
-    expect(written[netId]?.sdcpn.subnets?.[0]?.id).toBe(
-      toPetrinautId("subnet__a"),
+    expect(written[netId]?.sdcpn.components?.[0]?.id).toBe(
+      toPetrinautId("component__a"),
     );
     expect(result.current.storedSDCPNs).toStrictEqual(written);
+  });
+
+  test("rewrites a record stored with `subnets` and `subnetId` as components", () => {
+    const { components, componentInstances, ...net } = componentNet;
+    const storedBefore = {
+      ...net,
+      subnets: components,
+      componentInstances: componentInstances?.map(
+        ({ component, ...instance }) => ({
+          ...instance,
+          subnetId: component.id,
+        }),
+      ),
+    } as unknown as SDCPN;
+    localStorage.setItem(
+      rootLocalStorageKey,
+      JSON.stringify(Object.fromEntries([storedNet("net-1", storedBefore)])),
+    );
+
+    renderHook(() => useLocalStorageSDCPNs());
+
+    const written = readNets(localStorage)[toPetrinautId("net-1")]?.sdcpn;
+    expect(written).not.toHaveProperty("subnets");
+    expect(written?.components?.[0]?.id).toBe(toPetrinautId("component__a"));
+    expect(written?.componentInstances?.[0]).toMatchObject({
+      component: { id: toPetrinautId("component__a") },
+    });
+    expect(written?.componentInstances?.[0]).not.toHaveProperty("subnetId");
   });
 
   test("keeps the later record when a legacy and a canonical id name one net", () => {

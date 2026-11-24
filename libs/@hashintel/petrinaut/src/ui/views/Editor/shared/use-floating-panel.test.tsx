@@ -1,12 +1,14 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { motionValue } from "motion";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
-import {
-  useFloatingPanel,
-  type FloatingResizeDirection,
-} from "./use-floating-panel";
+import { useReading } from "../../../shared/readings";
+import { nextFrame } from "../../../shared/readings.test-helpers";
+import { useFloatingPanel } from "./use-floating-panel";
+
+import type { FloatingResizeDirection } from "../../shared/floating-resize-handles";
 
 afterEach(() => {
   cleanup();
@@ -18,26 +20,23 @@ const ResizeHarness = ({
 }: {
   direction: FloatingResizeDirection;
 }) => {
-  const [width, setWidth] = useState(600);
-  const { panelRef, getResizeHandleProps, style } = useFloatingPanel({
-    width,
-    onWidthChange: setWidth,
-  });
+  const [width] = useState(() => motionValue(600));
+  const { bindPanel, getResizeHandleProps } = useFloatingPanel({ width });
+  const shownWidth = useReading(width);
   return (
     <div data-testid="editor">
-      <aside
-        ref={panelRef}
-        data-height={style["--floating-panel-height"]}
-        aria-label="AI assistant"
-      >
+      <aside ref={bindPanel()} aria-label="AI assistant">
         <button type="button" {...getResizeHandleProps(direction)}>
           Resize
         </button>
-        <output>{width}</output>
+        <output>{shownWidth}</output>
       </aside>
     </div>
   );
 };
+
+const heightOf = (panel: HTMLElement) =>
+  panel.style.getPropertyValue("--floating-panel-height");
 
 const startResize = (
   direction: FloatingResizeDirection,
@@ -68,45 +67,49 @@ const startResize = (
 
 test.each(["top", "bottom", "top-left", "bottom-right"] as const)(
   "preserves the saved width during a vertical %s drag in a narrow editor",
-  (direction) => {
+  async (direction) => {
     const { move } = startResize(
       direction,
       new DOMRect(12, 100, 296, 500),
       new DOMRect(0, 0, 320, 800),
     );
     move(0, 40);
+    await nextFrame();
     expect(screen.getByRole("status").textContent).toBe("600");
   },
 );
 
 test.each(["left", "right"] as const)(
   "preserves the saved height during a horizontal %s drag in a short editor",
-  (direction) => {
+  async (direction) => {
     const { panel, move } = startResize(
       direction,
       new DOMRect(100, 12, 600, 276),
       new DOMRect(0, 0, 1000, 300),
     );
-    const savedHeight = panel.getAttribute("data-height");
+    const savedHeight = heightOf(panel);
     move(40, 0);
+    await nextFrame();
     expect(screen.getByRole("status").textContent).toBe(
       direction === "left" ? "560" : "640",
     );
-    expect(panel.getAttribute("data-height")).toBe(savedHeight);
+    expect(heightOf(panel)).toBe(savedHeight);
   },
 );
 
-test("restores the saved size when a corner drag returns to its starting point", () => {
+test("restores the saved size when a corner drag returns to its starting point", async () => {
   const { panel, move } = startResize(
     "bottom-right",
     new DOMRect(12, 12, 396, 376),
     new DOMRect(0, 0, 420, 400),
   );
-  const savedHeight = panel.getAttribute("data-height");
+  const savedHeight = heightOf(panel);
   move(-40, -40);
+  await nextFrame();
   expect(screen.getByRole("status").textContent).toBe("356");
-  expect(panel.getAttribute("data-height")).not.toBe(savedHeight);
+  expect(heightOf(panel)).not.toBe(savedHeight);
   move(0, 0);
+  await nextFrame();
   expect(screen.getByRole("status").textContent).toBe("600");
-  expect(panel.getAttribute("data-height")).toBe(savedHeight);
+  expect(heightOf(panel)).toBe(savedHeight);
 });

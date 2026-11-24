@@ -1,0 +1,10 @@
+{
+  "title": "Guides",
+  "pagesIndex": "../index",
+  "pages": [
+    "../using-draft",
+    "../writing-a-query",
+    "../cheatsheet",
+    "../troubleshooting"
+  ]
+}

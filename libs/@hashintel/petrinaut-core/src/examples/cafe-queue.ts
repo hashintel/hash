@@ -1,4 +1,4 @@
-import { GRID_SIZE } from "../grid-size";
+import { GRID_SIZE } from "../document/grid-size";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -38,7 +38,6 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
           "Customers queued for service. Arrive feeds it and BeginService drains it, so it grows whenever arrivals outpace the staff.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         showAsInitialState: true,
         x: -20 * GRID_SIZE,
         y: 8 * GRID_SIZE,
@@ -50,7 +49,6 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
           "Staff members free to take the next customer. FreeStaff plus Serving is the fixed staff pool.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         showAsInitialState: true,
         x: -12 * GRID_SIZE,
         y: 20 * GRID_SIZE,
@@ -62,7 +60,6 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
           "Customer and staff pairs at the counter mid-service; each completes at the service rate.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 4 * GRID_SIZE,
         y: 8 * GRID_SIZE,
       },
@@ -73,7 +70,6 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
           "Customers who have been served and left: a cumulative count of throughput.",
         colorId: null,
         dynamicsEnabled: false,
-        differentialEquationId: null,
         x: 26 * GRID_SIZE,
         y: 8 * GRID_SIZE,
       },
@@ -94,14 +90,14 @@ export const cafeQueue: { title: string; petriNetDefinition: SDCPN } = {
         lambdaType: "stochastic",
         lambdaCode: `// Customers walk in at the configured arrival rate. The transition has no
 // input arcs, so it is a source: it is always enabled and feeds Waiting.
-export default Lambda((tokens, parameters) => parameters.arrival_rate)`,
+
+return parameters.arrival_rate;`,
         transitionKernelCode: `// Add one customer to the queue. Places are untyped, so tokens carry no
 // attributes.
-export default TransitionKernel(() => {
-  return {
-    Waiting: [{}],
-  };
-});`,
+
+return {
+  Waiting: [{}],
+};`,
         x: -28 * GRID_SIZE,
         y: 8 * GRID_SIZE,
       },
@@ -131,14 +127,14 @@ export default TransitionKernel(() => {
         lambdaType: "stochastic",
         lambdaCode: `// Service begins at the configured rate whenever a Waiting customer and a
 // FreeStaff member are both present (the two standard input arcs).
-export default Lambda((tokens, parameters) => parameters.begin_rate)`,
+
+return parameters.begin_rate;`,
         transitionKernelCode: `// Consumes 1 Waiting + 1 FreeStaff and produces 1 Serving: the customer and
 // the staff member are now occupied together at the counter.
-export default TransitionKernel(() => {
-  return {
-    Serving: [{}],
-  };
-});`,
+
+return {
+  Serving: [{}],
+};`,
         x: -6 * GRID_SIZE,
         y: 14 * GRID_SIZE,
       },
@@ -166,15 +162,15 @@ export default TransitionKernel(() => {
         ],
         lambdaType: "stochastic",
         lambdaCode: `// Each service in progress completes at the configured service rate.
-export default Lambda((tokens, parameters) => parameters.service_rate)`,
+
+return parameters.service_rate;`,
         transitionKernelCode: `// The customer leaves with their coffee (Served) and the staff member
 // returns to the pool (FreeStaff), keeping FreeStaff + Serving constant.
-export default TransitionKernel(() => {
-  return {
-    Served: [{}],
-    FreeStaff: [{}],
-  };
-});`,
+
+return {
+  Served: [{}],
+  FreeStaff: [{}],
+};`,
         x: 14 * GRID_SIZE,
         y: 14 * GRID_SIZE,
       },

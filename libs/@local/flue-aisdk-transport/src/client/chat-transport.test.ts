@@ -9,12 +9,16 @@ import { expect, test, vi } from "vitest";
 import { useUiChunkRecorder } from "../../test/ai-sdk-oracle";
 import { useRaisedErrors } from "../../test/raised-errors";
 import {
+  admissionOutcome,
   createFlueChatTransport,
   FlueChatDisconnectError,
 } from "./chat-transport";
 import { serializeErrorText } from "./error-text";
 
-import type { FlueChatTransportOptions } from "./chat-transport";
+import type {
+  FlueChatAdmissionFailure,
+  FlueChatTransportOptions,
+} from "./chat-transport";
 import type {
   AgentSendResult,
   ConversationStreamChunk,
@@ -190,7 +194,7 @@ test("admits the host-derived user turn under its own message identity", async (
     clientToolNames: new Set(),
     submittedUserMessage: (messages) => ({
       messageId: messages.at(0)?.id ?? "missing",
-      body: `framed:${messages.length}`,
+      message: { kind: "user", body: `framed:${messages.length}` },
     }),
     onAdmission,
   });
@@ -212,6 +216,45 @@ test("admits the host-derived user turn under its own message identity", async (
   expect(onAdmission).toHaveBeenCalledWith(
     expect.objectContaining({ messageId: "user-1" }),
   );
+});
+
+test("delivers a host-derived signal as the turn and streams its response", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const onAdmission =
+    vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
+  const signal = {
+    kind: "signal",
+    type: "host.note",
+    tagName: "host.note",
+    body: '{"note":"a"}',
+  } as const;
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+    submittedUserMessage: (messages) => ({
+      messageId: messages.at(-1)?.id ?? "missing",
+      message: signal,
+    }),
+    onAdmission,
+  });
+
+  const chunks = await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        { id: "note-1", role: "user", parts: [{ type: "text", text: "a" }] },
+      ]),
+    ),
+  );
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:signal:note-1",
+    message: signal,
+    signal: undefined,
+  });
+  expect(onAdmission).toHaveBeenCalledWith(
+    expect.objectContaining({ kind: "signal", messageId: "note-1" }),
+  );
+  expect(chunks.map((chunk) => chunk.type)).toContain("text-delta");
 });
 
 test.each<[string, UIMessage[]]>([
@@ -946,6 +989,32 @@ test("classifies documented rejection and ambiguous admission without retrying",
   expect(ambiguousSend).toHaveBeenCalledOnce();
 });
 
+test.each([413, 429])(
+  "classifies a host limit's %i as rejected before admission",
+  async (status) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(status, "");
+    });
+    const transport = createFlueChatTransport({
+      client: { send } as Pick<FlueClient, "send"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+
+    await expect(
+      transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-limited",
+            role: "user",
+            parts: [{ type: "text", text: "Over the limit." }],
+          },
+        ]),
+      ),
+    ).rejects.toMatchObject({ failure: { kind: "rejected", status } });
+    expect(send).toHaveBeenCalledOnce();
+  },
+);
+
 test.each([
   ["server failure", new FlueApiError(500, "")],
   ["unknown response", new FlueApiError(418, "")],
@@ -998,10 +1067,53 @@ test("classifies an explicit local admission abort without retrying", async () =
       ]),
     ),
   ).rejects.toMatchObject({
-    failure: { kind: "aborted" },
+    failure: { kind: "aborted", requestSent: true },
     name: "FlueChatAdmissionError",
   });
   expect(send).toHaveBeenCalledOnce();
+});
+
+test("refuses a submission whose signal is already aborted without sending it", async () => {
+  const send = vi.fn<FlueClient["send"]>();
+  const transport = createFlueChatTransport({
+    client: { send } as Pick<FlueClient, "send"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+  const controller = new AbortController();
+  controller.abort();
+
+  await expect(
+    transport.sendMessages({
+      ...sendOptions([
+        {
+          id: "user-aborted-early",
+          role: "user",
+          parts: [{ type: "text", text: "Never sent." }],
+        },
+      ]),
+      abortSignal: controller.signal,
+    }),
+  ).rejects.toMatchObject({
+    failure: { kind: "aborted", requestSent: false },
+    name: "FlueChatAdmissionError",
+  });
+  expect(send).not.toHaveBeenCalled();
+});
+
+test.each([
+  [{ kind: "rejected", status: 403 }, "not-admitted"],
+  [{ kind: "aborted", requestSent: false }, "not-admitted"],
+  [{ kind: "aborted", requestSent: true }, "maybe-admitted"],
+  [{ kind: "ambiguous" }, "maybe-admitted"],
+  [
+    { kind: "submission-conflict", status: 409, submissionId: "existing" },
+    "admitted",
+  ],
+] as const satisfies readonly (readonly [
+  FlueChatAdmissionFailure,
+  ReturnType<typeof admissionOutcome>,
+])[])("an admission failure %o is %s", (failure, outcome) => {
+  expect(admissionOutcome(failure)).toBe(outcome);
 });
 
 test("reports one admission and its correlated response message completion", async () => {

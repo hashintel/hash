@@ -1,244 +1,184 @@
-import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
-import { formatDistanceToNowStrict } from "date-fns";
-import { memo, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import { Chip, InfinityLightIcon } from "@hashintel/design-system";
+import { LoadingSpinner, TextInput } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
-import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import {
+  generateFlowDefinitionPath,
+  generateFlowEditorPath,
+} from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useGetOwnerForEntity } from "../components/hooks/use-get-owner-for-entity";
 import { getLayoutWithSidebar } from "../shared/layout";
-import { Link } from "../shared/ui/link";
-import { WorkersHeader } from "../shared/workers-header";
+import { useActors } from "../shared/use-actors";
+import { FlowsEmptyState } from "./flows.page/flows-empty-state";
+import { FlowsTable } from "./flows.page/flows-table";
+import { NewFlowButton } from "./flows.page/new-flow-button";
+import { useCreateFlow } from "./flows.page/use-create-flow";
+import { DsComponentsScope } from "./shared/ds-components-scope";
 import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
 import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context-provider";
-import { useFlowRunsContext } from "./shared/flow-runs-context";
-import { FlowRunsContextProvider } from "./shared/flow-runs-context-provider";
-import {
-  flowTableCellSx,
-  flowTableRowHeight,
-  FlowTableWebChip,
-} from "./shared/flow-tables";
-import { VirtualizedTable } from "./shared/virtualized-table";
-import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 
 import type { NextPageWithLayout } from "../shared/layout";
-import type {
-  CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
-  VirtualizedTableRow,
-} from "./shared/virtualized-table";
-import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
-import type { EntityId } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
+import type { FlowRow } from "./flows.page/flows-table";
 
-type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
-
-const columns: VirtualizedTableColumn<FieldId>[] = [
-  {
-    id: "web",
-    label: "Web",
-    sortable: true,
-    width: 120,
-  },
-  {
-    id: "name",
-    label: "Name",
-    sortable: true,
-    width: "40%",
-  },
-  {
-    id: "description",
-    label: "Description",
-    sortable: true,
-    width: "60%",
-  },
-  {
-    id: "lastRunStartedAt",
-    label: "Last run",
-    sortable: true,
-    width: 150,
-  },
-];
-
-type FlowSummary = Subtype<
-  Record<FieldId, unknown>,
-  {
-    web: {
-      avatarUrl?: string;
-      name: string;
-      shortname: string;
-      isOrg: boolean;
-    };
-    name: string;
-    flowDefinitionEntityId: EntityId;
-    description: string;
-    /** False for a flow saved before it was finished, which can't run yet. */
-    isValid: boolean;
-    lastRunStartedAt: string | null;
-  }
->;
-
-const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
-  const {
-    web,
-    name,
-    flowDefinitionEntityId,
-    description,
-    isValid,
-    lastRunStartedAt,
-  } = flowSummary;
-
-  return (
-    <>
-      <TableCell sx={{ ...flowTableCellSx, fontSize: 13 }}>
-        <FlowTableWebChip {...web} />
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <Link
-            href={generateFlowDefinitionPath({
-              shortname: web.shortname,
-              flowDefinitionEntityId,
-            })}
-            sx={{
-              display: "block",
-              fontSize: 14,
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            {name}
-          </Link>
-          {!isValid && <Chip label="Not valid" size="xs" color="red" />}
-        </Stack>
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
-        <Typography
-          sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
-        >
-          {description}
-        </Typography>
-      </TableCell>
-      <TableCell sx={flowTableCellSx}>
-        <Typography
-          sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
-        >
-          {lastRunStartedAt
-            ? `${formatDistanceToNowStrict(new Date(lastRunStartedAt))} ago`
-            : "Never"}
-        </Typography>
-      </TableCell>
-    </>
-  );
+const content = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "8",
+  p: "12",
 });
-
-const createRowContent: CreateVirtualizedRowContentFn<FlowSummary> = (
-  _index,
-  row,
-) => <TableRow flowSummary={row.data} />;
+const header = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "4",
+});
+const titles = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
+  flex: "1",
+});
+const title = css({
+  /* The design system's page title, between its 2xl and 3xl text styles. */
+  fontSize: "[28px]",
+  lineHeight: "[32px]",
+  fontWeight: "semibold",
+  color: "fg.heading",
+});
+const subtitle = css({ textStyle: "sm", color: "fg.muted" });
+const actions = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  mt: "1",
+});
+const searchInput = css({ width: "[240px]" });
+const loading = css({ display: "flex", justifyContent: "center", py: "24" });
 
 const FlowsPageContent = () => {
-  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    fieldId: "name",
-    direction: "asc",
-  });
+  const [searchText, setSearchText] = useState("");
 
-  const { flowDefinitions: allFlowDefinitions } = useFlowDefinitionsContext();
-
-  const { flowRuns } = useFlowRunsContext();
+  const { flowDefinitions, loading: flowsLoading } =
+    useFlowDefinitionsContext();
 
   const getOwner = useGetOwnerForEntity();
 
-  const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
-    const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
+  const createFlow = useCreateFlow();
+
+  const editorAccountIds = useMemo(
+    () => flowDefinitions.map(({ lastEditedById }) => lastEditedById),
+    [flowDefinitions],
+  );
+
+  const { actors } = useActors({ accountIds: editorAccountIds });
+
+  const flows = useMemo<FlowRow[]>(() => {
+    const editorNames = new Map(
+      actors?.map(({ accountId, displayName }) => [accountId, displayName]),
+    );
+
+    return flowDefinitions
       .filter(
         ({ flowDefinitionEntityId }) =>
           !isGoalFlowDefinitionEntityId(flowDefinitionEntityId),
       )
-      .map(({ flowDefinitionEntityId, name, description, flowDefinition }) => {
-        let lastRunStartedAt = null;
-        for (const flowRun of flowRuns) {
-          if (
-            flowRun.flowDefinitionEntityId === flowDefinitionEntityId &&
-            (!lastRunStartedAt || flowRun.startedAt > lastRunStartedAt)
-          ) {
-            lastRunStartedAt = flowRun.startedAt;
-          }
-        }
+      .map(
+        ({
+          flowDefinitionEntityId,
+          name,
+          userCanUpdate,
+          lastEditedAt,
+          lastEditedById,
+        }) => {
+          const { shortname } = getOwner({
+            entityId: flowDefinitionEntityId,
+          });
+          const pathParams = { shortname, flowDefinitionEntityId };
 
-        return {
-          id: flowDefinitionEntityId,
-          data: {
-            web: {
-              avatarUrl: "/hash-logo-black.png",
-              name: "HASH",
-              shortname: getOwner({ entityId: flowDefinitionEntityId })
-                .shortname,
-              isOrg: true,
-            },
-            name,
+          return {
             flowDefinitionEntityId,
-            description,
-            isValid: flowDefinition !== null,
-            lastRunStartedAt,
-          },
-        };
-      });
+            name,
+            /* The editor can't open a flow the user can't edit, so that opens on its own page. */
+            path: userCanUpdate
+              ? generateFlowEditorPath(pathParams)
+              : generateFlowDefinitionPath(pathParams),
+            editable: userCanUpdate,
+            lastEditedAt,
+            lastEditedBy: editorNames.get(lastEditedById) ?? null,
+          };
+        },
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [flowDefinitions, getOwner, actors]);
 
-    return rowData.sort((a, b) => {
-      const field = sort.fieldId;
-      const direction = sort.direction === "asc" ? 1 : -1;
+  const search = searchText.trim();
 
-      if (field === "web") {
-        return a.data[field].name.localeCompare(b.data[field].name) * direction;
-      }
-
-      return (
-        (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
-      );
-    });
-  }, [allFlowDefinitions, flowRuns, getOwner, sort]);
-
-  const tableHeight = Math.min(
-    600,
-    virtualizedTableHeaderHeight +
-      flowTableRowHeight * flowDefinitionRows.length +
-      2, // account for borders
+  const matchingFlows = useMemo(
+    () =>
+      flows.filter(({ name }) =>
+        name.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [flows, search],
   );
 
   return (
-    <Box>
-      <WorkersHeader
-        crumbs={[
-          {
-            icon: null,
-            id: "flows",
-            title: "Flows",
-          },
-        ]}
-        title={{ text: "Flows", Icon: InfinityLightIcon }}
-        subtitle="Processes that workers can monitor and manage"
-      />
-      <Container sx={{ my: 4, px: 4, height: tableHeight }}>
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          rows={flowDefinitionRows}
-          sort={sort}
-          setSort={setSort}
-        />
-      </Container>
-    </Box>
+    <DsComponentsScope>
+      <main className={content}>
+        <div className={header}>
+          <div className={titles}>
+            <h1 className={title}>Flows</h1>
+            <p className={subtitle}>
+              Processes that workers can monitor and manage
+            </p>
+          </div>
+          {flows.length > 0 && (
+            <div className={actions}>
+              <div className={searchInput}>
+                <TextInput
+                  size="sm"
+                  value={searchText}
+                  onChange={setSearchText}
+                  placeholder="Search flows"
+                  aria-label="Search flows"
+                  prefix={{ iconName: "search", variant: "subtle" }}
+                  clearable
+                />
+              </div>
+              <NewFlowButton {...createFlow} />
+            </div>
+          )}
+        </div>
+        {flows.length === 0 ? (
+          flowsLoading ? (
+            <div className={loading}>
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : (
+            <FlowsEmptyState
+              title="No flows yet"
+              description="A flow runs the same steps each time: by hand, on a schedule, or when data changes."
+            >
+              <NewFlowButton {...createFlow} />
+            </FlowsEmptyState>
+          )
+        ) : matchingFlows.length === 0 ? (
+          <FlowsEmptyState
+            title="No flow matches"
+            description={`Nothing is called “${search}”.`}
+          />
+        ) : (
+          <FlowsTable flows={matchingFlows} />
+        )}
+      </main>
+    </DsComponentsScope>
   );
 };
 
 const FlowsPage: NextPageWithLayout = () => {
   return (
     <FlowDefinitionsContextProvider selectedFlowDefinitionEntityId={null}>
-      <FlowRunsContextProvider selectedFlowRunEntityId={null}>
-        <FlowsPageContent />
-      </FlowRunsContextProvider>
+      <FlowsPageContent />
     </FlowDefinitionsContextProvider>
   );
 };

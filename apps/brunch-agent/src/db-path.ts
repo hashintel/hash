@@ -14,7 +14,7 @@
 
 import { fileURLToPath } from "node:url";
 
-import { brunchEnv } from "@hashintel/brunch-agent";
+import { brunchEnv } from "./env.ts";
 
 export function conversationDbPath(): string {
   // Truthiness, not nullish, on purpose: a set-but-empty override would pass

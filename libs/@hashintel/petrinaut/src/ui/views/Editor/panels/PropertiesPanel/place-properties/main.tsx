@@ -1,61 +1,28 @@
-import { use } from "react";
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
+import { usePetrinautPresentation } from "../../../../../presentation/presentation-context";
+import { VerticalSubViewsContainer } from "../../../../../sub-view/vertical-sub-views-container";
+import { PlacePropertiesContext } from "./context";
+import {
+  placeDynamicsSubView,
+  placeInitialStateSubView,
+  placeMainSubView,
+  placeVisualizerSubView,
+} from "./sub-views";
 
-import { css } from "@hashintel/ds-helpers/css";
-
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import { usePetrinautPresentation } from "../../../../shared/presentation-context";
-import { PlacePropertiesProvider } from "./context";
-import { placeMainContentSubView } from "./subviews/main";
-import { placeInitialStateSubView } from "./subviews/place-initial-state/subview";
-
-import type { PetrinautMutations } from "../../../../../../react";
-import type { SubView } from "../../../../../components/sub-view/types";
+import type { SubView } from "../../../../../sub-view/types";
 import type { Color, Place } from "@hashintel/petrinaut-core";
-
-const containerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  height: "[100%]",
-  minHeight: "[0]",
-});
-
-const placeVisualizerSubView = createDeferredSubView({
-  id: "place-visualizer",
-  canMaximize: true,
-  headerActionMutates: true,
-  title: "Visualizer",
-  tooltip:
-    "Custom visualization of tokens in this place, defined by visualizer code.",
-  defaultCollapsed: true,
-  alwaysShowHeaderAction: true,
-  hasHeaderAction: true,
-  resizable: {
-    minHeight: 200,
-    maxHeight: 1200,
-    defaultHeight: 300,
-  },
-  load: async () =>
-    (await import("./subviews/place-visualizer/subview"))
-      .placeVisualizerSubView,
-});
 
 interface PlacePropertiesProps {
   place: Place;
   types: Color[];
-  updatePlace: PetrinautMutations["updatePlace"];
 }
 
 export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   place,
   types,
-  updatePlace,
 }) => {
-  const isReadOnly = useIsReadOnly();
   const presentation = usePetrinautPresentation();
-  const { extensions } = use(SDCPNContext);
+  const extensions = useSDCPNState((document) => document.extensions);
 
   const placeType =
     extensions.colors && place.colorId
@@ -63,9 +30,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       : null;
   const baseSubViews: SubView[] = [
     {
-      ...placeMainContentSubView,
-      title: `${placeMainContentSubView.title} ${place.name}`,
+      ...placeMainSubView,
+      title: `${placeMainSubView.title} ${place.name}`,
     },
+    ...(extensions.colors && extensions.dynamics ? [placeDynamicsSubView] : []),
     placeInitialStateSubView,
   ];
   const subViews =
@@ -74,20 +42,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       : baseSubViews;
 
   return (
-    <div className={containerStyle}>
-      <PlacePropertiesProvider
-        place={place}
-        placeType={placeType}
-        types={types}
-        isReadOnly={isReadOnly}
-        updatePlace={updatePlace}
-      >
-        <VerticalSubViewsContainer
-          key={place.id}
-          name="place-properties"
-          subViews={subViews}
-        />
-      </PlacePropertiesProvider>
-    </div>
+    <PlacePropertiesContext value={{ place, placeType, types }}>
+      <VerticalSubViewsContainer
+        key={place.id}
+        name="place-properties"
+        subViews={subViews}
+      />
+    </PlacePropertiesContext>
   );
 };

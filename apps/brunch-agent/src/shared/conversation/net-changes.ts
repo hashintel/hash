@@ -1,12 +1,14 @@
 import {
   type ArcElement,
+  type CanonicalPetrinautCall,
   type NetElementAddress,
-  browserNetToolNames,
   browserToolEnvelopeOf,
+  browserToolFacts,
   generatedArcId,
   namesId,
   parseClientToolResultMetadata,
-  petrinautToolTargets,
+  readRecordedCall,
+  recordedCanonicalCallsOf,
   type NetStructure,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
@@ -31,17 +33,22 @@ export interface NetCall {
   readonly partIndex: number;
 }
 
-/** One chronological projection of the browser's settled results, without replay. */
+/**
+ * One chronological projection of the browser's settled results, without
+ * replay. Each call is under the tool of today that takes it, and in that
+ * tool's keys: a conversation may have recorded it under older ones.
+ */
 export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
   snapshot.messages.flatMap((message, messageIndex) =>
     message.role === "assistant" && message.purpose === "assistant"
       ? message.parts.flatMap((part, partIndex) => {
-          if (
-            part.type !== "dynamic-tool" ||
-            !browserNetToolNames.has(part.toolName) ||
-            part.state !== "output-available"
-          )
+          if (part.type !== "dynamic-tool" || part.state !== "output-available")
             return [];
+          const { toolName, input } = readRecordedCall(
+            part.toolName,
+            part.input,
+          );
+          if (!browserToolFacts(toolName).runsOnNet) return [];
           const envelope = browserToolEnvelopeOf(part.output);
           if (!envelope) return [];
           const recordedMetadata = envelope.metadata;
@@ -49,8 +56,8 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
           return [
             {
               toolCallId: part.toolCallId,
-              toolName: part.toolName,
-              input: part.input,
+              toolName,
+              input,
               output: envelope.output,
               revisionBefore: metadata?.documentRevision.before,
               revisionAfter: metadata?.documentRevision.after,
@@ -86,12 +93,18 @@ const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
   );
 };
 
-/** Arcs have no standalone ID: the arc actions identify their transition, direction and endpoint, and a batch deletion uses the generated arc ID. */
-const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
-  if (call.toolName === "deleteItemsByIds")
-    return hasId(call.input, generatedArcId(arc));
-  if (!petrinautToolTargets(call.toolName).includes("arc")) return false;
-  const input = call.input;
+/**
+ * Arcs have no standalone ID: the arc actions identify their transition,
+ * direction and endpoint, and a batch deletion uses the generated arc ID.
+ * Judged on each canonical call a call makes, so a merged arc update counts as
+ * the calls it runs.
+ */
+const canonicalCallMatchesArc = (
+  { toolName, input }: CanonicalPetrinautCall,
+  arc: ArcElement,
+): boolean => {
+  if (toolName === "deleteItemsByIds") return hasId(input, generatedArcId(arc));
+  if (!browserToolFacts(toolName).targets.includes("arc")) return false;
   if (typeof input !== "object" || input === null) return false;
   if (
     !("transitionId" in input) ||
@@ -100,7 +113,7 @@ const matchesArc = (call: NetCall, arc: ArcElement): boolean => {
     return false;
   const direction = "arcDirection" in input ? input.arcDirection : "input";
   if (direction !== arc.arcDirection) return false;
-  if (call.toolName === "updateArcPlace")
+  if (toolName === "updateArcPlace")
     return (
       ("newPlaceId" in input && namesId(input.newPlaceId, arc.placeId)) ||
       ("newEndpoint" in input && hasId(input.newEndpoint, arc.placeId))
@@ -115,14 +128,25 @@ export const callsForElement = (
   snapshot: FlueConversationSnapshot,
   element: NetElement,
 ): NetCall[] =>
-  netCalls(snapshot).filter(
-    (call) =>
-      isAppliedChange(call) &&
-      (element.arc
-        ? matchesArc(call, element.arc)
-        : petrinautToolTargets(call.toolName).includes(element.kind) &&
-          (hasId(call.input, element.id) || hasId(call.output, element.id))),
-  );
+  netCalls(snapshot).filter((call) => {
+    if (!isAppliedChange(call)) return false;
+    // A recorded call that no tool of today takes yields no canonical call,
+    // and so is credited to no element.
+    const canonicalCalls = recordedCanonicalCallsOf(call.toolName, call.input);
+    const { arc } = element;
+    return arc
+      ? canonicalCalls.some((canonical) =>
+          canonicalCallMatchesArc(canonical, arc),
+        )
+      : canonicalCalls.some(
+          (canonical) =>
+            browserToolFacts(canonical.toolName).targets.includes(
+              element.kind,
+            ) &&
+            (hasId(canonical.input, element.id) ||
+              hasId(call.output, element.id)),
+        );
+  });
 
 /** Where an assistant tool call sits in the conversation, by message and part index. */
 const toolCallPosition = (

@@ -366,9 +366,7 @@ mod tests {
 
     pub(crate) fn check_constraints(schema: &ValueConstraints, value: JsonValue) {
         let value = serde_json::from_value(value).expect("should be a valid value");
-        schema
-            .validate_value(&value)
-            .expect("schema should be valid");
+        assert!(schema.is_valid(&value), "value should be valid");
         schema
             .validate_value(&value)
             .expect("Failed to validate value");
@@ -544,6 +542,78 @@ mod tests {
                 "type": "string",
                 "maxLength": 5,
             })],
+        );
+    }
+
+    #[test]
+    fn intersect_typed_any_of_array_length() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "array",
+                    "maxItems": 4,
+                }),
+                json!({
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "minItems": 6,
+                        },
+                        {
+                            "type": "array",
+                            "minItems": 2,
+                        },
+                    ]
+                }),
+            ],
+            [json!({
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_typed_any_of_array_length_empty() {
+        check_schema_intersection_error(
+            [
+                json!({
+                    "type": "array",
+                    "maxItems": 4,
+                }),
+                json!({
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "minItems": 6,
+                        },
+                        {
+                            "type": "array",
+                            "minItems": 5,
+                        },
+                    ]
+                }),
+            ],
+            [
+                ResolveClosedDataTypeError::EmptyAnyOf,
+                ResolveClosedDataTypeError::UnsatisfiableConstraint(
+                    serde_json::from_value(json!({
+                        "type": "array",
+                        "minItems": 6,
+                        "maxItems": 4,
+                    }))
+                    .expect("should be a valid array schema"),
+                ),
+                ResolveClosedDataTypeError::UnsatisfiableConstraint(
+                    serde_json::from_value(json!({
+                        "type": "array",
+                        "minItems": 5,
+                        "maxItems": 4,
+                    }))
+                    .expect("should be a valid array schema"),
+                ),
+            ],
         );
     }
 }

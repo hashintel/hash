@@ -28,11 +28,11 @@ yarn brunch:persona --case inventory-purchasing --agent claude
 
 The launcher creates a fresh local database, starts its own Brunch and Petrinaut services, opens a headed Chrome window, and starts a coding agent (Claude Code, Codex, Cursor Agent, Pi or any custom command) to play the persona through a browser bridge. Brunch itself chooses and executes the ordinary product tools. Run output stays under `apps/brunch-agent/.data-wipe-me/persona-runs/` and is not committed.
 
-Use unused `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` values rather than interrupting another session’s services. Start recording before confirming the launcher’s readiness prompt. Ctrl-C stops launcher-owned resources.
+The launcher takes free ports unless `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` are set, so it runs beside other sessions' services. Start recording before confirming the launcher’s readiness prompt. Ctrl-C stops launcher-owned resources.
 
 Live-provider runs incur cost and require an explicit model and spend authorization. Synthetic tests do not. Keep credentials, private situation packs, browser profiles, and run output out of tracked artifacts.
 
-The detailed operator guide is [`persona/README.md`](./persona/README.md).
+The detailed operator guide is [`../persona/README.md`](../persona/README.md).
 
 ## One-turn probe
 
@@ -53,9 +53,10 @@ Every persona run and probe ends by writing `evidence/packet.json` and `evidence
 - model steps, each split into time before first output (hidden reasoning), tool-argument streaming and reply text, and tool phases;
 - each step's shape (its tool categories, in order);
 - the tool mix, skill activations, Ledger commit sizes, net growth, tokens and cost;
+- each model request's provider and model, and which requests failed and which were retries, including failed requests that left no step;
 - what it could not account for: exchanges that never settled (left out of the time sums), steps cut off mid-message or mid-tools, and stored records it could not read.
 
-[`run-packet.ts`](./run-packet.ts) reads `conversation.db` and, when present, the server log's `flue.submission chronology` lines, `run.json` and the evidence files. Without the server log, which the probe does not keep, argument-streaming times are unknown. To write or refresh packets for retained runs, which spends no model turns:
+[`run-packet.ts`](./run-packet.ts) reads `conversation.db` and, when present, the server log's `flue.submission chronology` lines, `run.json` and the evidence files. Without the server log, which the probe does not keep, argument-streaming times and model requests are unknown. An exchange whose chronology line is missing has them unknown too; the packet counts such exchanges and leaves them out of those totals. To write or refresh packets for retained runs, which spends no model turns:
 
 ```sh
 yarn workspace @apps/brunch-agent packet:run .data-wipe-me/persona-runs/run-XXXXXX [...]

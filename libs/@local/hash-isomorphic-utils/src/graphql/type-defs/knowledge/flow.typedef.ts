@@ -132,6 +132,10 @@ export const flowTypedef = gql`
     """
     closedAt: String
     """
+    When the run's entity last changed. getFlowRuns pages through runs from the most recently changed.
+    """
+    updatedAt: String!
+    """
     The values given to the flow's inputs
     """
     flowInputs: FlowInputValues!
@@ -176,6 +180,10 @@ export const flowTypedef = gql`
     When the run stopped
     """
     closedAt: String
+    """
+    When the run's entity last changed.
+    """
+    updatedAt: String!
     """
     The values given to the flow's inputs
     """

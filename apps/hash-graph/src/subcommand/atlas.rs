@@ -16,7 +16,6 @@ use hash_telemetry::Telemetry;
 use opentelemetry::metrics::Meter;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -158,7 +157,6 @@ async fn run_atlas(
         PostgresStorePool::new(
             &args.db_info,
             &args.db_pool_config,
-            NoTls,
             PostgresStoreSettings {
                 filter_protection,
                 ..PostgresStoreSettings::default()
@@ -250,7 +248,7 @@ pub async fn atlas_fit(args: AtlasFitArgs) -> Result<(), Report<GraphError>> {
         storage.set_s3(s3);
     }
 
-    let mut client = cli::connect(args.db_info.config())
+    let mut client = cli::connect(&args.db_info)
         .await
         .change_context(GraphError)?;
 

@@ -17,7 +17,6 @@ use hash_graph_postgres_store::store::{
 };
 use hashql_core::id::Id as _;
 use tokio::{sync::mpsc, time::Instant};
-use tokio_postgres::NoTls;
 use type_system::{
     knowledge::entity::EntityId,
     principal::actor::{ActorId, ActorType},
@@ -86,7 +85,6 @@ fn task() -> DeltaPlacementTask {
         &DatabasePoolConfig {
             max_connections: nz!(1),
         },
-        NoTls,
         PostgresStoreSettings::default(),
     )
     .expect("should construct an unconnected pool");

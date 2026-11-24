@@ -111,6 +111,7 @@ export const typescript = (config: readonly ESConfig[]): readonly ESConfig[] =>
             caughtErrors: "all",
             caughtErrorsIgnorePattern: "^_",
             destructuredArrayIgnorePattern: "^_",
+            enableAutofixRemoval: { imports: true },
             // eslint-disable-next-line unicorn/prevent-abbreviations
             varsIgnorePattern: "^_",
             ignoreRestSiblings: true,

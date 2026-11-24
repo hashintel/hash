@@ -79,7 +79,7 @@ const assertContentRevision = (revision: string | undefined) => {
 /** Canonical construction and compiler diagnostics, written to browser storage and Flue history. */
 const canonicalConstruction = async () => {
   const dirtyCode = "return definitelyNotDefined;";
-  const repairedCode = "return tokens.map(({ level }) => ({ level: -level }));";
+  const repairedCode = "return { level: -token.level };";
   const page = await fixture.openAssistant();
   const order = [
     "read-before",
@@ -101,7 +101,7 @@ const canonicalConstruction = async () => {
         iconSlug: "circle",
         displayColor: "#1E90FF",
         elements: [{ elementId: "level", name: "level", type: "real" }],
-        targetSubnetId: null,
+        targetComponentId: null,
       },
       "type-1",
     ),
@@ -112,7 +112,8 @@ const canonicalConstruction = async () => {
         name: "Decay",
         colorId: "item",
         code: dirtyCode,
-        targetSubnetId: null,
+        arity: 1,
+        targetComponentId: null,
       },
       "equation-dirty",
     ),
@@ -123,10 +124,10 @@ const canonicalConstruction = async () => {
         name: "Store",
         colorId: "item",
         dynamicsEnabled: true,
-        differentialEquationId: "decay",
+        dynamics: [{ differentialEquationId: "decay" }],
         x: 0,
         y: 0,
-        targetSubnetId: null,
+        targetComponentId: null,
       },
       "place-1",
     ),
@@ -136,7 +137,7 @@ const canonicalConstruction = async () => {
       {
         equationId: "decay",
         update: { code: repairedCode },
-        targetSubnetId: null,
+        targetComponentId: null,
       },
       "equation-repair",
     ),
@@ -357,10 +358,9 @@ const callsAfterStreamLoss = async () => {
           name: "Queue",
           colorId: null,
           dynamicsEnabled: false,
-          differentialEquationId: null,
           x: 0,
           y: 0,
-          targetSubnetId: null,
+          targetComponentId: null,
         },
         "place-after-cut",
       );

@@ -1,0 +1,95 @@
+/**
+ * Semantic operations used by the representative default declarations.
+ *
+ * Named identities use their absolute HashQL paths. Generic signatures inspect the semantic argument tuple supplied by the expression or type constructor, without widening it to a common element type. `Prelude` re-exports these types.
+ *
+ * @since 0.1.0
+ * @module
+ */
+import type * as Type from "../Type.js";
+
+/**
+ * The UUID type, an opaque string named by its HashQL path.
+ *
+ * @category Identifiers
+ * @since 0.1.0
+ */
+export type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
+/**
+ * The entity identifier type, an opaque wrapper around {@link Uuid}.
+ *
+ * @category Identifiers
+ * @since 0.1.0
+ */
+export type EntityUuid = Type.Opaque<
+  "::graph::types::knowledge::entity::EntityUuid",
+  Uuid
+>;
+
+/**
+ * The operation of the built-in `List`, which maps one element type to a list type.
+ *
+ * @category Signatures
+ * @since 0.1.0
+ */
+export interface List extends Type.TypeConstructor {
+  readonly arity: 1;
+  readonly type: this["Target"] extends readonly [infer T extends Type.Any]
+    ? Type.List<T>
+    : never;
+}
+
+/**
+ * The operation of the built-in `Dict`, which maps a key type and a value type to a dictionary type.
+ *
+ * @category Signatures
+ * @since 0.1.0
+ */
+export interface Dict extends Type.TypeConstructor {
+  readonly arity: 2;
+  readonly type: this["Target"] extends readonly [
+    infer K extends Type.Any,
+    infer V extends Type.Any,
+  ]
+    ? Type.Dict<K, V>
+    : never;
+}
+
+/**
+ * The signature of the built-in `eq`, which compares two operands and returns Boolean.
+ *
+ * The operand types need not match. A call with any other number of arguments selects parameters that no argument satisfies.
+ *
+ * @category Signatures
+ * @since 0.1.0
+ */
+export interface Comparison extends Type.FunctionSignature {
+  readonly type: this["Target"] extends readonly [
+    infer L extends Type.Any,
+    infer R extends Type.Any,
+  ]
+    ? Type.Function<readonly [L, R], Type.PrimitiveBoolean>
+    : Type.Function<readonly [Type.Never, Type.Never], Type.PrimitiveBoolean>;
+}
+
+/**
+ * The signature of the built-in `add`.
+ *
+ * Each operand must be an Integer or a Number. The result is Integer when both operands are Integer and Number otherwise, because Integer is a subtype of Number. Other operands select parameters that no argument satisfies, with a Never result.
+ *
+ * @category Signatures
+ * @since 0.1.0
+ */
+export interface Arithmetic extends Type.FunctionSignature {
+  readonly type: this["Target"] extends readonly [
+    infer L extends Type.PrimitiveInteger | Type.PrimitiveNumber,
+    infer R extends Type.PrimitiveInteger | Type.PrimitiveNumber,
+  ]
+    ? Type.Function<
+        readonly [L, R],
+        [L, R] extends [Type.PrimitiveInteger, Type.PrimitiveInteger]
+          ? Type.PrimitiveInteger
+          : Type.PrimitiveNumber
+      >
+    : Type.Function<readonly [Type.Never, Type.Never], Type.Never>;
+}

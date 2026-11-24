@@ -1,6 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 
-import { parseDocumentUri } from "./lib/document-uris";
+import { parseDocumentUri } from "./document-uris";
 import {
   createWorkerLspTransport,
   type LspTransport,
@@ -11,13 +11,13 @@ import type {
   ConstraintSource,
   LowerConstraintContext,
   LowerConstraintResult,
-} from "../constraint/lower";
-import type { PetrinautExtensionSettings } from "../extensions";
+} from "../constraints/lower";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
 import type { HirVisualizerContext } from "../hir/surface-context";
-import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+import type { AdHocSynthesisContext } from "../scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
 import type { VisualizerHir } from "../view-hir";
@@ -28,6 +28,7 @@ import type {
   MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
+  NetAnalysis,
 } from "./worker/protocol";
 import type {
   CompletionList,
@@ -54,12 +55,14 @@ export type DiagnosticsSnapshot = {
 /**
  * `this: void` on every method makes the methods safe to pass as references
  * (e.g. `<X onChange={client.notifyDocumentChanged} />`) without `this`-loss
- * concerns. See [06-react-bindings.md §6.3]. Same applies to {@link import("../instance").Petrinaut}
+ * concerns. See [06-react-bindings.md §6.3]. Same applies to {@link import("../instance/instance").Petrinaut}
  * and the simulation handle (planned cleanup).
  */
 export interface LanguageClient {
   /** Per-URI diagnostics pushed from the server, plus a total count. */
   readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
+  /** What the server learned about the net beyond diagnostics, pushed with them. */
+  readonly netAnalysis: ReadableStore<NetAnalysis>;
 
   // --- Notifications (fire-and-forget) ---
   initialize(
@@ -187,6 +190,19 @@ export type CreateLanguageClientConfig =
   | { createWorker: LspWorkerFactory; transport?: never }
   | { transport: LspTransport; createWorker?: never };
 
+const EMPTY_NET_ANALYSIS: NetAnalysis = { metricShapes: {}, netClass: null };
+
+const sameNetAnalysis = (left: NetAnalysis, right: NetAnalysis): boolean => {
+  const leftIds = Object.keys(left.metricShapes);
+  return (
+    left.netClass?.time === right.netClass?.time &&
+    left.netClass?.coloring === right.netClass?.coloring &&
+    left.netClass?.chance === right.netClass?.chance &&
+    leftIds.length === Object.keys(right.metricShapes).length &&
+    leftIds.every((id) => left.metricShapes[id] === right.metricShapes[id])
+  );
+};
+
 const EMPTY_DIAGNOSTICS: DiagnosticsSnapshot = {
   byUri: new Map(),
   total: 0,
@@ -311,6 +327,7 @@ export function createLanguageClient(
 
   const diagnostics =
     createReadableStore<DiagnosticsSnapshot>(EMPTY_DIAGNOSTICS);
+  const netAnalysis = createReadableStore<NetAnalysis>(EMPTY_NET_ANALYSIS);
 
   transport.onMessage((msg) => {
     if ("id" in msg) {
@@ -323,6 +340,10 @@ export function createLanguageClient(
         entry.reject(new Error(msg.error.message));
       } else {
         entry.resolve(msg.result as never);
+      }
+    } else if (msg.method === "sdcpn/netAnalysis") {
+      if (!sameNetAnalysis(netAnalysis.get(), msg.params)) {
+        netAnalysis.set(msg.params);
       }
     } else if ("method" in msg) {
       const previous = diagnostics.get();
@@ -364,6 +385,7 @@ export function createLanguageClient(
 
   return {
     diagnostics,
+    netAnalysis,
 
     initialize(sdcpn, extensions) {
       sendNotification({

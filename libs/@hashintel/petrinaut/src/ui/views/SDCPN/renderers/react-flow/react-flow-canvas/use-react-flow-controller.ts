@@ -1,69 +1,72 @@
-import { useReactFlow, type ReactFlowInstance } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
+import { useLatest } from "../../../../../../react/shared/use-latest";
+import { fitSceneViewport } from "../../../canvas-viewport";
 import {
-  ZOOM_PADDING,
-  getMinZoomForBounds,
-  type Rect,
-  type Size,
-} from "@hashintel/petrinaut-core";
-
-import { useLatest } from "../../../../../../react/hooks/use-latest";
-import { fitViewportToBounds, MAX_FIT_ZOOM } from "../../../canvas-viewport";
+  createViewportAnimator,
+  type ViewportAnimator,
+  type ViewportAnimatorOptions,
+} from "../../../viewport-animator";
 
 import type {
   CanvasController,
   FrameSceneResult,
 } from "../../../canvas-renderer";
 import type { CanvasViewportInsets } from "../../../canvas-viewport";
-import type { ArcEdgeType, NodeType } from "./react-flow-types";
+import type { CanvasEdgeType, NodeType } from "./react-flow-types";
+import type { Rect, Size } from "@hashintel/petrinaut-core";
 
-const viewportAnimationMs = 200;
 const frameRequestTimeoutMs = 1_500;
 
-const fitScene = async ({
-  bounds,
-  containerSize,
-  insets,
-  reactFlow,
-}: {
+type FrameState = {
   bounds: Rect | null;
   containerSize: Size;
-  insets: CanvasViewportInsets;
-  reactFlow: ReactFlowInstance<NodeType, ArcEdgeType>;
-}): Promise<FrameSceneResult> => {
-  if (!bounds || bounds.width === 0 || bounds.height === 0) {
+  /** Called when the camera frames the scene, so a panel drag renders nothing here. */
+  insets: () => CanvasViewportInsets;
+};
+
+const fitScene = async (
+  { bounds, containerSize, insets }: FrameState,
+  camera: ViewportAnimator,
+): Promise<FrameSceneResult> => {
+  const viewport = fitSceneViewport(bounds, containerSize, insets());
+  if (!viewport) {
     return "empty";
   }
-  const viewport = fitViewportToBounds(
-    bounds,
-    containerSize,
-    getMinZoomForBounds(bounds, containerSize),
-    MAX_FIT_ZOOM,
-    ZOOM_PADDING,
-    insets,
-  );
-  await reactFlow.setViewport(viewport, { duration: 250 });
+  await camera.animateTo(viewport);
   return "framed";
 };
 
-/** The canvas controller over React Flow's own viewport API. */
+/** One camera for the life of the component, stopped when it unmounts. */
+const useCamera = (options: ViewportAnimatorOptions): ViewportAnimator => {
+  const [camera] = useState(() => createViewportAnimator(options));
+  useEffect(() => () => camera.cancel(), [camera]);
+  return camera;
+};
+
+/**
+ * The canvas controller over React Flow's viewport. Every programmatic move
+ * goes through one spring camera, so moves that overlap retarget each other
+ * instead of fighting, and a user gesture stops it via `camera.cancel`.
+ */
 export const useReactFlowController = ({
   bounds,
   containerSize,
   insets,
-}: {
-  bounds: Rect | null;
-  containerSize: Size;
-  insets: CanvasViewportInsets;
-}): CanvasController => {
-  const reactFlow = useReactFlow<NodeType, ArcEdgeType>();
+  animated,
+}: FrameState & {
+  /** Whether programmatic moves ease; off, they jump. */
+  animated: boolean;
+}): { controller: CanvasController; camera: ViewportAnimator } => {
+  const reactFlow = useReactFlow<NodeType, CanvasEdgeType>();
   const [frameRequestGeneration, setFrameRequestGeneration] = useState(0);
   const frameStateRef = useLatest({
     bounds,
     containerSize,
     insets,
     reactFlow,
+    animated,
   });
   const pendingFrameRequestsRef = useRef<
     {
@@ -72,19 +75,29 @@ export const useReactFlowController = ({
     }[]
   >([]);
 
+  const camera = useCamera({
+    read: () => frameStateRef.current.reactFlow.getViewport(),
+    write: (viewport) => {
+      void frameStateRef.current.reactFlow.setViewport(viewport);
+    },
+    animated: () =>
+      frameStateRef.current.animated &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  });
+
   useEffect(() => {
     if (pendingFrameRequestsRef.current.length === 0) {
       return;
     }
     const requests = pendingFrameRequestsRef.current;
     pendingFrameRequestsRef.current = [];
-    void fitScene(frameStateRef.current).then((result) => {
+    void fitScene(frameStateRef.current, camera).then((result) => {
       for (const request of requests) {
         clearTimeout(request.timeout);
         request.resolve(result);
       }
     });
-  }, [frameRequestGeneration, frameStateRef]);
+  }, [frameRequestGeneration, frameStateRef, camera]);
 
   useEffect(
     () => () => {
@@ -98,20 +111,25 @@ export const useReactFlowController = ({
   );
 
   const [controller] = useState<CanvasController>(() => ({
-    getViewport: () => frameStateRef.current.reactFlow.getViewport(),
+    getRestViewport: () =>
+      camera.target() ?? frameStateRef.current.reactFlow.getViewport(),
     setViewport: (viewport, options) => {
-      void frameStateRef.current.reactFlow.setViewport(
-        viewport,
-        options?.animate ? { duration: viewportAnimationMs } : undefined,
-      );
+      if (options?.animate) {
+        void camera.animateTo(viewport);
+        return;
+      }
+      camera.cancel();
+      void frameStateRef.current.reactFlow.setViewport(viewport);
     },
     zoomIn: () => {
+      camera.cancel();
       void frameStateRef.current.reactFlow.zoomIn();
     },
     zoomOut: () => {
+      camera.cancel();
       void frameStateRef.current.reactFlow.zoomOut();
     },
-    fitView: () => fitScene(frameStateRef.current),
+    fitView: () => fitScene(frameStateRef.current, camera),
     frameSceneAfterRender: () =>
       new Promise<FrameSceneResult>((resolve) => {
         const request = {
@@ -129,9 +147,7 @@ export const useReactFlowController = ({
       }),
     screenToScene: (point) =>
       frameStateRef.current.reactFlow.screenToFlowPosition(point),
-    sceneToScreen: (point) =>
-      frameStateRef.current.reactFlow.flowToScreenPosition(point),
   }));
 
-  return controller;
+  return { controller, camera };
 };

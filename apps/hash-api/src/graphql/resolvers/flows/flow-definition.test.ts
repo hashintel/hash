@@ -117,7 +117,6 @@ const update = (definition: unknown, expectedEditionId = "edition-1") =>
   );
 
 beforeEach(() => {
-  vi.clearAllMocks();
   mocks.getFlowDefinitionEntityById.mockResolvedValue(savedEntity("edition-1"));
   mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([]);
   mocks.updateFlowDefinition.mockResolvedValue(savedEntity("edition-2"));

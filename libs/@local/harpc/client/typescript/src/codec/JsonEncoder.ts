@@ -12,8 +12,8 @@ const encoder = (options: Options) =>
 
     const textEncoder = new TextEncoder();
 
-    const schemaJson = Schema.parseJson(schema);
-    const encodeJson = Schema.encode(schemaJson);
+    const schemaJson = Schema.fromJsonString(schema);
+    const encodeJson = Schema.encodeEffect(schemaJson);
 
     return pipe(
       input,
@@ -28,7 +28,7 @@ const encoder = (options: Options) =>
           const array = textEncoder.encode(text);
 
           // assertion is necessary because dom libraries don't support `TextEncoder<ArrayBuffer>` yet.
-          return array.buffer as unknown as ArrayBuffer;
+          return array.buffer;
         }),
       ),
     );

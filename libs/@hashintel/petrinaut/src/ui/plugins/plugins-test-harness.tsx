@@ -4,29 +4,18 @@ import {
   createJsonDocHandle,
   createPetrinaut,
   type Petrinaut,
+  type PetrinautRules,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautProvider } from "../../react/petrinaut-provider";
+import "../../testing/worker-stub";
 import { PetrinautPluginsProvider } from "./plugins-provider";
 
-import type { PetrinautNavigationController } from "../../react/navigation";
-import type { NetManagement } from "../../react/net-management-context";
+import type { NetManagement } from "../../react/host/net-management-context";
+import type { PetrinautNavigationController } from "../../react/navigation/navigation";
 import type { PetrinautPlugin } from "./define-petrinaut-plugin";
 import type { ComponentType, ReactNode } from "react";
-
-class WorkerStub extends EventTarget {
-  onerror = null;
-  onmessage = null;
-  onmessageerror = null;
-
-  postMessage() {}
-  terminate() {}
-}
-
-// Not `vi.stubGlobal`, which a test's `unstubAllGlobals` would undo: the
-// language server starts its worker after an async import, past the test.
-globalThis.Worker = WorkerStub as unknown as typeof Worker;
 
 const emptyNet: SDCPN = {
   places: [],
@@ -40,9 +29,10 @@ const Passthrough = ({ children }: { children: ReactNode }) => children;
 
 /**
  * Renders `view` as the editor view beside `plugins`, under the editor's
- * providers over a new document, read-only with `readonly`; `Around` wraps the
- * plugins provider inside them, and `navigation` makes the host own
- * navigation. `rerender` keeps the core instance unless given another.
+ * providers over a new document, read-only with `readonly` and held to the
+ * host's `rules`; `Around` wraps the plugins provider inside them, and
+ * `navigation` makes the host own navigation. `rerender` keeps the core
+ * instance unless given another.
  */
 export const renderPlugins = (
   plugins: readonly PetrinautPlugin[],
@@ -51,18 +41,21 @@ export const renderPlugins = (
     netManagement,
     navigation,
     readonly = false,
+    rules,
     Around = Passthrough,
     ...options
   }: RenderOptions & {
     netManagement?: Partial<NetManagement>;
     navigation?: PetrinautNavigationController;
     readonly?: boolean;
+    rules?: PetrinautRules;
     Around?: ComponentType<{ children: ReactNode }>;
   } = {},
 ) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({ initial: emptyNet }),
     readonly,
+    rules,
   });
   const tree = (
     nextPlugins: readonly PetrinautPlugin[],

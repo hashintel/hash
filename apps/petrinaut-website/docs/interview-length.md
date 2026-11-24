@@ -1,6 +1,6 @@
 # Interview length
 
-On the Petrinaut website, open **User settings → Labs**, select **Use Brunch**, and enable **Interview length**. This experiment starts disabled: no length control or estimate appears, and Brunch uses its ordinary interview behaviour. Turning it off preserves your saved level for next time.
+On the Petrinaut website, choose **Brunch** in **User settings → General → AI assistant**, open **Labs**, and enable **Interview length**. This experiment starts disabled: no length control or estimate appears, and Brunch uses its ordinary interview behaviour. Turning it off preserves your saved level for next time.
 
 ## Choose a length
 

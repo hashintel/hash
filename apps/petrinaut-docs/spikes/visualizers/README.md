@@ -12,6 +12,11 @@ as a workspace, install the packages, and point `HASH_REPO` at a checkout that
 has run `yarn install` (the scripts read TypeScript, `@types/react` and the
 example nets from it).
 
+The numbers on the page were taken at revision `8bb19ca803`. Check that
+revision out to reproduce them: the scripts read the example visualizers in
+their `Visualization(...)` form and `@babel/standalone` from the editor
+package, and both have changed since.
+
 ```sh
 cp -r apps/petrinaut-docs/spikes/visualizers /tmp/visualizer-spikes
 cd /tmp/visualizer-spikes

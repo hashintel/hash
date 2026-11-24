@@ -9,8 +9,7 @@
  */
 import { createUserKeyedRecord } from "../../../validation/record-keys";
 
-import type { EventStream } from "../../../instance";
-import type { ReadableStore } from "../../../store";
+import type { EventStream, ReadableStore } from "../../../store";
 import type { MonteCarloUserDefinedMetricFrame } from "../metrics";
 
 export type WritableStore<T> = ReadableStore<T> & { set(next: T): void };

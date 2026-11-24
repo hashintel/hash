@@ -24,8 +24,6 @@ import { getImageUrlFromEntityProperties } from "../../../../pages/shared/get-fi
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { Button, MenuItem } from "../../../ui";
 
-import type { WebId } from "@blockprotocol/type-system";
-
 export const WorkspaceSwitcher = () => {
   const popupState = usePopupState({
     variant: "popover",
@@ -77,7 +75,7 @@ export const WorkspaceSwitcher = () => {
   const workspaceList = useMemo(() => {
     return [
       {
-        webId: authenticatedUser.accountId as WebId,
+        webId: authenticatedUser.accountId,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.displayName ?? "U",

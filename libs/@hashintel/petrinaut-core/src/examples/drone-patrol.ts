@@ -1,4 +1,4 @@
-import { GRID_SIZE } from "../grid-size";
+import { GRID_SIZE } from "../document/grid-size";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -35,7 +35,6 @@ export const dronePatrol: {
           "Drones on the ground ready to launch, each carrying its battery level; landing resets it to a full charge. Holds up to 16 drones.",
         colorId: "type__drone",
         dynamicsEnabled: false,
-        differentialEquationId: null,
         capacity: 16,
         x: 1 * GRID_SIZE,
         y: 6 * GRID_SIZE,
@@ -47,7 +46,7 @@ export const dronePatrol: {
           "Drones on patrol. The Flight Battery Drain dynamics lower each drone's battery at drain_rate while its cruise altitude holds. Holds up to 16 drones.",
         colorId: "type__drone",
         dynamicsEnabled: true,
-        differentialEquationId: "de__flight_battery_drain",
+        dynamics: [{ differentialEquationId: "de__flight_battery_drain" }],
         capacity: 16,
         x: 21 * GRID_SIZE,
         y: 6 * GRID_SIZE,
@@ -75,23 +74,21 @@ export const dronePatrol: {
         lambdaType: "stochastic",
         lambdaCode: `// A drone lifts off at a rate proportional to its charge: a full battery
 // launches at \`launch_rate\`, a drained one not at all.
-export default Lambda((tokens, parameters) => {
-  return parameters.launch_rate * (tokens.Hangar[0].battery / 100);
-});`,
+
+return parameters.launch_rate * (input.Hangar[0].battery / 100);`,
         transitionKernelCode: `// The battery carries over; the cruise altitude is drawn around 100 units
 // with a hard floor of 50.
-export default TransitionKernel((tokens) => {
-  return {
-    Airborne: [
-      {
-        battery: tokens.Hangar[0].battery,
-        altitude: Distribution.Gaussian(100, 20).map((cruise) =>
-          Math.max(50, cruise),
-        ),
-      },
-    ],
-  };
-});`,
+
+return {
+  Airborne: [
+    {
+      battery: input.Hangar[0].battery,
+      altitude: Distribution.Gaussian(100, 20).map((cruise) =>
+        Math.max(50, cruise),
+      ),
+    },
+  ],
+};`,
         x: 11 * GRID_SIZE,
         y: 1 * GRID_SIZE,
       },
@@ -116,15 +113,13 @@ export default TransitionKernel((tokens) => {
         lambdaType: "stochastic",
         lambdaCode: `// The pull back to base rises as the battery drains: a full drone returns
 // at \`return_rate\`, a fully drained one at five times that.
-export default Lambda((tokens, parameters) => {
-  return parameters.return_rate * (1 + (100 - tokens.Airborne[0].battery) / 25);
-});`,
+
+return parameters.return_rate * (1 + (100 - input.Airborne[0].battery) / 25);`,
         transitionKernelCode: `// Landing recharges the drone and puts it on the hangar floor.
-export default TransitionKernel(() => {
-  return {
-    Hangar: [{ battery: 100, altitude: 0 }],
-  };
-});`,
+
+return {
+  Hangar: [{ battery: 100, altitude: 0 }],
+};`,
         x: 11 * GRID_SIZE,
         y: 11 * GRID_SIZE,
       },
@@ -156,13 +151,12 @@ export default TransitionKernel(() => {
         id: "de__flight_battery_drain",
         colorId: "type__drone",
         name: "Flight Battery Drain",
+        arity: 1,
         code: `// Airborne drones drain charge at a constant rate; cruise altitude holds.
-export default Dynamics((tokens, parameters) => {
-  return tokens.map((drone) => ({
-    battery: -parameters.drain_rate,
-    altitude: 0,
-  }));
-});`,
+return {
+  battery: -parameters.drain_rate,
+  altitude: 0,
+};`,
       },
     ],
     parameters: [

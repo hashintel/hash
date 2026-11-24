@@ -393,12 +393,8 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             validator_provider,
         )
         .await?;
-        let was_draft = previous_entity
-            .metadata
-            .record_id
-            .entity_id
-            .draft_id
-            .is_some();
+        let previous_draft_id = previous_entity.metadata.record_id.entity_id.draft_id;
+        let was_draft = previous_draft_id.is_some();
         let draft = draft.unwrap_or(was_draft);
         let archived = archived.unwrap_or(previous_entity.metadata.archived);
         let properties = self
@@ -440,6 +436,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         entity.metadata.provenance.edition = EntityEditionProvenance {
             created_by_id: ActorEntityUuid::from(actor_id),
             archived_by_id: None,
+            created_from_draft_id: previous_draft_id.filter(|_| !draft),
             provided: provenance,
         };
         Ok(EntityPatchPreparation::Changed(Box::new(

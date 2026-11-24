@@ -1,0 +1,250 @@
+import * as v from "valibot";
+
+import {
+  agentOwnershipHeaders,
+  brunchRoutes,
+  canonicalContent,
+} from "@hashintel/brunch-agent";
+
+import { browserToolResultSchema } from "../../client-tools/browser-tool-result";
+import {
+  browserExecutedTools,
+  browserToolFacts,
+} from "../../petrinaut/browser-executed-tools";
+
+import type { BrunchConnection, BrunchFetch } from "../brunch-flue-client";
+import type { FlueClient } from "@flue/sdk";
+import type {
+  BrowserCallClaim,
+  BrowserCallFailureBody,
+  BrowserCallFailureDisposition,
+  BrowserCallLeaseBody,
+  BrowserCallResultBody,
+  BrowserContext,
+  ClientToolResultMetadata,
+} from "@hashintel/brunch-agent";
+
+/** A call the model made that the server issued to this browser. */
+type IssuedCall = {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: unknown;
+  readonly signal: AbortSignal;
+};
+
+/**
+ * Decides, after the claim and before `prepareInput`, whether a call may
+ * start. A refused call settles with the given output and never starts.
+ */
+export type InBandBrowserCallAdmission = (
+  call: IssuedCall,
+) => Promise<
+  | { readonly admitted: true }
+  | { readonly admitted: false; readonly output: unknown }
+>;
+
+export const BROWSER_CALL_STALE_MESSAGE =
+  "The document changed by other means after the agent's last view of the net; the call was not started.";
+
+/**
+ * The page's side of Brunch's in-band browser calls. A browser tool's call
+ * stays open on the server while the page claims it, runs it and posts its
+ * result to the agent's `browser-calls` routes, so the result reaches the
+ * same model turn that asked for it instead of arriving later as a new
+ * message or signal. The waiting call lives in the memory of the Brunch task
+ * that issued it, so a result that reaches another task, as can happen while
+ * a deploy overlaps old and new tasks, finds no call (FE-2149).
+ */
+export const createInBandBrowserCalls = (
+  input: Pick<BrunchConnection, "actorKey" | "legacyActorHeader" | "fetch"> & {
+    readonly client: Promise<FlueClient>;
+    readonly binding: BrowserContext["binding"];
+    readonly metadataFor: (
+      toolCallId: string,
+      output: unknown,
+    ) => ClientToolResultMetadata | undefined;
+    readonly prepareInput: (call: {
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }) => void;
+    readonly admit: InBandBrowserCallAdmission;
+    /** Whether a change issued against `expected` may still run on the bound document. */
+    readonly acceptsRevision: (expected: string) => boolean;
+  },
+) => {
+  const request: BrunchFetch = input.fetch ?? ((url, init) => fetch(url, init));
+  const claim = async (call: IssuedCall) => {
+    const client = await input.client;
+    const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
+    const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
+    const headers = agentOwnershipHeaders(
+      {
+        actorKey: input.actorKey,
+        conversationId: input.binding.conversationId,
+      },
+      input,
+    );
+    const claimSignal = AbortSignal.any([
+      call.signal,
+      AbortSignal.timeout(6_000),
+    ]);
+    let issued: BrowserCallClaim | undefined;
+    while (!claimSignal.aborted) {
+      const response = await request(boundClaimUrl, {
+        headers,
+        signal: claimSignal,
+      });
+      if (response.ok) {
+        issued = (await response.json()) as BrowserCallClaim;
+        break;
+      }
+      if (response.status !== 404)
+        throw new Error(`Browser call claim refused (${response.status}).`);
+      await new Promise<void>((resolve, reject) => {
+        let onAbort = () => {};
+        const timeout = setTimeout(() => {
+          claimSignal.removeEventListener("abort", onAbort);
+          resolve();
+        }, 75);
+        onAbort = () => {
+          clearTimeout(timeout);
+          reject(claimSignal.reason);
+        };
+        claimSignal.addEventListener("abort", onAbort, { once: true });
+      });
+    }
+    const inputParser = browserExecutedTools.get(call.toolName)?.inputParser;
+    if (
+      !issued ||
+      issued.toolName !== call.toolName ||
+      issued.binding !== canonicalContent(input.binding) ||
+      !inputParser
+    )
+      throw new Error("Browser call was not issued for this document.");
+    // Both sides parse, so ids compare converted whether or not the server
+    // that issued the call converts them.
+    if (
+      canonicalContent(inputParser.parse(call.input)) !==
+      canonicalContent(inputParser.parse(issued.input))
+    )
+      throw new Error("Issued browser input does not match the admitted call.");
+    const claimed = issued;
+    const lease = setInterval(() => {
+      if (call.signal.aborted) return;
+      void request(`${url}/lease`, {
+        method: "POST",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({
+          capability: claimed.capability,
+          binding: claimed.binding,
+        } satisfies BrowserCallLeaseBody),
+        signal: call.signal,
+      }).catch(() => {});
+    }, 5_000);
+    call.signal.addEventListener("abort", () => clearInterval(lease), {
+      once: true,
+    });
+    let stale = false;
+    return {
+      input: claimed.input,
+      prepare: () => {
+        // Checked at the start of this call's document-lane turn, after the
+        // same proposal's earlier changes have settled.
+        if (
+          claimed.expectedRevision !== undefined &&
+          !input.acceptsRevision(claimed.expectedRevision)
+        ) {
+          stale = true;
+          throw new Error(BROWSER_CALL_STALE_MESSAGE);
+        }
+        input.prepareInput({
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          input: claimed.input,
+        });
+      },
+      release: () => clearInterval(lease),
+      fail: async (
+        disposition: Exclude<BrowserCallFailureDisposition, "stale"> = "failed",
+      ) => {
+        clearInterval(lease);
+        if (call.signal.aborted) return;
+        const response = await request(`${url}/fail`, {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({
+            capability: claimed.capability,
+            binding: claimed.binding,
+            toolName: call.toolName,
+            canonicalInput: claimed.input,
+            disposition: stale ? "stale" : disposition,
+          } satisfies BrowserCallFailureBody),
+          signal: call.signal,
+        });
+        if (!response.ok)
+          throw new Error(
+            `Browser call failure was not accepted (${response.status}).`,
+          );
+      },
+      submit: async (output: unknown) => {
+        clearInterval(lease);
+        if (call.signal.aborted) return;
+        const metadata = input.metadataFor(call.toolCallId, output);
+        const result = v.parse(browserToolResultSchema, {
+          output,
+          ...(metadata === undefined ? {} : { metadata }),
+        });
+        const response = await request(url, {
+          method: "POST",
+          headers: { ...headers, "content-type": "application/json" },
+          body: JSON.stringify({
+            capability: claimed.capability,
+            binding: claimed.binding,
+            toolName: call.toolName,
+            canonicalInput: claimed.input,
+            ...result,
+          } satisfies BrowserCallResultBody),
+          signal: call.signal,
+        });
+        if (!response.ok)
+          throw new Error(
+            `Browser call result was not accepted (${response.status}); effect may be unknown.`,
+          );
+      },
+    };
+  };
+  return {
+    // A tool an interactive card runs, such as the draft, is claimed there.
+    has: (toolName: string) => browserToolFacts(toolName).automatic,
+    claim,
+    /**
+     * Claim at this call's turn, run it under a renewed lease, then settle it.
+     * A call is unstarted until `execute` is entered; after Stop nothing is reported.
+     */
+    run: async (
+      call: IssuedCall,
+      execute: (issuedInput: unknown) => Promise<unknown>,
+    ) => {
+      const issued = await claim(call);
+      let started = false;
+      try {
+        if (call.signal.aborted) return;
+        const admission = await input.admit(call);
+        if (!admission.admitted) {
+          await issued.submit(admission.output);
+          return;
+        }
+        issued.prepare();
+        started = true;
+        await issued.submit(await execute(issued.input));
+      } catch (error) {
+        if (!call.signal.aborted)
+          await issued.fail(started ? "failed" : "unstarted").catch(() => {});
+        throw error;
+      } finally {
+        issued.release();
+      }
+    },
+  };
+};

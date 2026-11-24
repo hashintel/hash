@@ -36,7 +36,7 @@ import {
   type Statement,
   type TypeParameterDeclaration,
   type VariableDeclarationList,
-} from "typescript-7/ast";
+} from "typescript/ast";
 
 export interface ScopeBindings {
   values: Set<string>;

@@ -10,7 +10,8 @@ use core::{
     error::Error,
     fmt::{self, Display},
 };
-use std::io;
+
+use error_stack::{Report, ResultExt as _};
 
 use self::{
     classifier::{ClassifierArgs, ClassifierVerdict},
@@ -19,20 +20,11 @@ use self::{
     ladder::{LadderArgs, LadderVerdict},
     probe::ProbeArgs,
     quality::{QualityArgs, QualityVerdict},
-    realization::{RealizationArgs, RealizationError},
+    realization::RealizationArgs,
 };
-use crate::{
-    identity::NodeRowId,
-    salt::{
-        knn::{
-            descent::NnDescentError,
-            report::{AuditError, backend, descent},
-        },
-        quality::report::{
-            calibration::{Calibration, CalibrationError},
-            live::AssessError,
-        },
-    },
+use crate::salt::{
+    knn::report::{backend, descent},
+    quality::report::calibration::Calibration,
 };
 
 mod classifier;
@@ -73,64 +65,43 @@ impl Display for ReportVerdict {
     }
 }
 
-/// One report invocation's failure.
+/// One report invocation's failure, by step.
 #[derive(Debug)]
 pub(crate) enum ReportError {
     /// Writing the report bundle failed.
-    Io(io::Error),
+    Write,
     /// Serializing the report failed.
-    Serialize(serde_json::Error),
+    Serialize,
     /// Dialing the store connection failed.
-    Connect(super::ConnectError),
+    Connect,
     /// The live assessment failed.
-    Assess(AssessError),
+    Assess,
     /// The clump calibration could not read its table.
-    Clumps(CalibrationError),
+    Clumps,
     /// The backend sweep failed.
-    KnnBackend(backend::SweepError),
+    KnnBackend,
     /// The NN-Descent audit failed.
-    KnnDescent(AuditError<NodeRowId, NnDescentError>),
+    KnnDescent,
     /// The realization report refused.
-    Realization(RealizationError),
+    Realization,
 }
 
 impl Display for ReportError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(_) => fmt.write_str("the report bundle could not be written"),
-            Self::Serialize(_) => fmt.write_str("report serialization failed"),
-            Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
-            // Each analysis's own chain names the step that failed. This level adds no step of its
-            // own.
-            Self::Assess(error) => Display::fmt(error, fmt),
-            Self::Clumps(error) => Display::fmt(error, fmt),
-            Self::KnnBackend(error) => Display::fmt(error, fmt),
-            Self::KnnDescent(error) => Display::fmt(error, fmt),
-            Self::Realization(error) => Display::fmt(error, fmt),
+            Self::Write => fmt.write_str("the report bundle could not be written"),
+            Self::Serialize => fmt.write_str("report serialization failed"),
+            Self::Connect => fmt.write_str("the store connection could not be dialed"),
+            Self::Assess => fmt.write_str("the live assessment failed"),
+            Self::Clumps => fmt.write_str("the clump calibration failed"),
+            Self::KnnBackend => fmt.write_str("the backend sweep failed"),
+            Self::KnnDescent => fmt.write_str("the NN-Descent audit failed"),
+            Self::Realization => fmt.write_str("the realization report refused"),
         }
     }
 }
 
-impl Error for ReportError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Io(error) => Some(error),
-            Self::Serialize(error) => Some(error),
-            Self::Connect(error) => Some(error),
-            Self::Assess(error) => error.source(),
-            Self::Clumps(error) => error.source(),
-            Self::KnnBackend(error) => error.source(),
-            Self::KnnDescent(error) => error.source(),
-            Self::Realization(error) => error.source(),
-        }
-    }
-}
-
-impl From<serde_json::Error> for ReportError {
-    fn from(error: serde_json::Error) -> Self {
-        Self::Serialize(error)
-    }
-}
+impl Error for ReportError {}
 
 /// The report subcommands, one per analysis.
 #[derive(Debug, clap::Subcommand)]
@@ -180,31 +151,29 @@ impl ReportCommand {
     /// # Errors
     ///
     /// Returns a [`ReportError`] when the analysis fails or the process cannot write its record.
-    pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, ReportError> {
-        match self {
-            Self::Classifier(args) => args.run().await.map(ReportVerdict::Classifier).map(Some),
-            Self::Clumps(args) => args
-                .run()
-                .map(ReportVerdict::Clumps)
-                .map(Some)
-                .map_err(ReportError::Clumps),
-            Self::KnnBackend(args) => args
-                .run()
-                .map(ReportVerdict::KnnBackend)
-                .map(Some)
-                .map_err(ReportError::KnnBackend),
-            Self::KnnDescent(args) => args
-                .run()
-                .map(ReportVerdict::KnnDescent)
-                .map(Some)
-                .map_err(ReportError::KnnDescent),
-            Self::Ladder(args) => args.run().map(ReportVerdict::Ladder).map(Some),
+    pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, Report<ReportError>> {
+        let verdict = match self {
+            Self::Classifier(args) => ReportVerdict::Classifier(args.run().await?),
+            Self::Clumps(args) => {
+                ReportVerdict::Clumps(args.run().change_context(ReportError::Clumps)?)
+            }
+            Self::KnnBackend(args) => {
+                ReportVerdict::KnnBackend(args.run().change_context(ReportError::KnnBackend)?)
+            }
+            Self::KnnDescent(args) => {
+                ReportVerdict::KnnDescent(args.run().change_context(ReportError::KnnDescent)?)
+            }
+            Self::Ladder(args) => ReportVerdict::Ladder(args.run()?),
             Self::Probe(args) => {
                 args.run().await;
-                Ok(None)
+                return Ok(None);
             }
-            Self::Quality(args) => args.run().await.map(ReportVerdict::Quality).map(Some),
-            Self::Realization(args) => Err(args.run()),
-        }
+            Self::Quality(args) => ReportVerdict::Quality(args.run().await?),
+            Self::Realization(args) => {
+                return Err(Report::new(args.run()).change_context(ReportError::Realization));
+            }
+        };
+
+        Ok(Some(verdict))
     }
 }

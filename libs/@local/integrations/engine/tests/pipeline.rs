@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::{future::poll_fn, task::Poll, time::Duration};
+use core::{assert_matches, future::poll_fn, task::Poll, time::Duration};
 
 use duckdb::types::Value;
 use hash_integrations_definition::{Definition, EntityPipeline, PrimaryKey};
@@ -125,15 +125,13 @@ async fn staging_assertion_failures() {
     let PreparationError::Assertions { failures } = report.current_context() else {
         panic!("the error should report assertions: {report:?}");
     };
-    assert!(
-        matches!(
-            failures.as_slice(),
-            [
-                AssertionFailure::RowCount { actual: 3, .. },
-                AssertionFailure::NotNull { rows: 2, .. },
-                AssertionFailure::Unique { groups: 1, .. }
-            ]
-        ),
+    assert_matches!(
+        failures.as_slice(),
+        [
+            AssertionFailure::RowCount { actual: 3, .. },
+            AssertionFailure::NotNull { rows: 2, .. },
+            AssertionFailure::Unique { groups: 1, .. }
+        ],
         "all failed constraints should be retained: {failures:?}"
     );
     assert_eq!(
@@ -193,8 +191,9 @@ async fn staging_invalid_columns() {
         )
         .await
         .expect_err("metadata collisions should be refused");
-    assert!(
-        matches!(report.current_context(), PreparationError::ReservedColumn { column } if column.as_ref() == "_KeY"),
+    assert_matches!(
+        report.current_context(),
+        PreparationError::ReservedColumn { column } if column.as_ref() == "_KeY",
         "metadata collisions should be case insensitive: {report:?}"
     );
     let report = workspace
@@ -206,8 +205,9 @@ async fn staging_invalid_columns() {
         )
         .await
         .expect_err("missing key columns should be refused");
-    assert!(
-        matches!(report.current_context(), PreparationError::MissingColumn { column } if column.as_ref() == "ID"),
+    assert_matches!(
+        report.current_context(),
+        PreparationError::MissingColumn { column } if column.as_ref() == "ID",
         "the missing key should be named: {report:?}"
     );
 }
@@ -271,8 +271,9 @@ async fn pipeline_metadata_loss() {
         )
         .await
         .expect_err("steps should preserve metadata");
-    assert!(
-        matches!(report.current_context(), PreparationError::Step { step } if step.as_ref() == "lose-metadata"),
+    assert_matches!(
+        report.current_context(),
+        PreparationError::Step { step } if step.as_ref() == "lose-metadata",
         "the failing step should be named: {report:?}"
     );
     assert!(
@@ -350,11 +351,9 @@ async fn pipeline_named_inputs() {
         .prepare_pipeline(pipeline.clone(), "source".into(), BTreeMap::new())
         .await
         .expect_err("a missing input should be reported");
-    assert!(
-        matches!(
-            report.current_context(),
-            PreparationError::MissingCheckpoint { .. }
-        ),
+    assert_matches!(
+        report.current_context(),
+        PreparationError::MissingCheckpoint { .. },
         "the missing checkpoint should be reported: {report:?}"
     );
     let checkpoints = BTreeMap::from([(
@@ -399,8 +398,9 @@ async fn pipeline_sql_sandbox() {
         )
         .await
         .expect_err("pipeline SQL should obey the workspace sandbox");
-    assert!(
-        matches!(report.downcast_ref::<hash_integrations_engine::StatementError>(), Some(hash_integrations_engine::StatementError::TableFunction { name }) if name.as_ref() == "read_csv"),
+    assert_matches!(
+        report.downcast_ref::<hash_integrations_engine::StatementError>(),
+        Some(hash_integrations_engine::StatementError::TableFunction { name }) if name.as_ref() == "read_csv",
         "the forbidden table function should be reported: {report:?}"
     );
     let prepared = workspace
@@ -529,6 +529,11 @@ async fn definition_aviation_tables() {
                 .get(checkpoint)
                 .cloned()
                 .expect("the checkpoint source should exist"),
+            hash_integrations_definition::SourceKind::Local { .. }
+            | hash_integrations_definition::SourceKind::Postgres { .. }
+            | hash_integrations_definition::SourceKind::Rest { .. } => {
+                panic!("the aviation fixture should use SQL and checkpoint sources")
+            }
         };
         let prepared = workspace
             .prepare_pipeline(pipeline.clone(), table, checkpoints.clone())

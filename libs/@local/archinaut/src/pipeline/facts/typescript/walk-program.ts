@@ -17,8 +17,8 @@ import {
   type Declaration,
   type Expression,
   type Node,
-} from "typescript-7/ast";
-import { SymbolFlags, type Symbol as ApiSymbol } from "typescript-7/sync";
+} from "typescript/ast";
+import { SymbolFlags, type Symbol as ApiSymbol } from "typescript/sync";
 
 import { moduleSymbol } from "../shared/symbols";
 import { createIdentifierFilter } from "./walk-program/identifier-filter";

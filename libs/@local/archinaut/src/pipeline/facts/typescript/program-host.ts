@@ -16,11 +16,11 @@ import {
   type Program,
   type RawCompilerOptions,
   type Snapshot,
-} from "typescript-7/sync";
+} from "typescript/sync";
 
 import { toPosix } from "../../../shared/paths";
 
-import type { SourceFile } from "typescript-7/ast";
+import type { SourceFile } from "typescript/ast";
 
 export interface ProgramHost {
   program: () => Program;

@@ -13,6 +13,8 @@ The editor is organized around a central canvas where you build your net:
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
 
+Drag the inner edge of the left sidebar, the properties panel, the bottom panel or the docked AI assistant to resize it. Where two of these edges meet, drag the corner to resize both panels at once.
+
 The bottom toolbar sits centered on the canvas and steps aside rather than
 slide under anything: open a panel wide enough to reach it and it shifts to the
 free side, keeping clear of the left sidebar, the properties panel and the
@@ -51,7 +53,7 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or with imports inlined when the net imports a library, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
 - The host application, or its plugins, may add buttons or items before the title.
 - **Net title** -- inline title for the current net. The host application decides whether the title is editable or read-only, and may hide it entirely.
 
@@ -124,39 +126,33 @@ New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename th
 
 ## Connecting with arcs
 
-Drag from a node's handle to connect it:
+Hover over a place or transition to reveal its outgoing handle, then drag the handle onto the node you want to connect:
 
 - **Place to Transition** creates an **input arc** (standard input arcs consume tokens from the place).
 - **Transition to Place** creates an **output arc** (the transition produces tokens in the place).
+
+A blue outline marks a valid target. Release on empty space or press **Escape** to cancel. You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.
+
+Arcs attach to the node outlines and follow them when you move either node. Two arcs in opposite directions between the same nodes use separate curves.
 
 Petri nets are bipartite: you cannot connect a place to another place or a transition to another transition. New arcs default to weight 1. Input arcs default to **Standard**, and can be changed to **Read** or **Inhibitor** in the arc properties panel.
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
-### Automatic arc connections
-
-Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections) to connect nodes directly through their outlines:
-
-1. Hover over a place or transition to reveal its outgoing handle.
-2. Drag the handle onto the target node. A blue outline shows a valid target.
-3. Release to create the arc. Its endpoints follow the node outlines when you move either node.
-
-Drag from the source: place to transition creates an input arc; transition to place creates an output arc. Release on empty space or press **Escape** to cancel. Dropping onto a subnet does not create an arc in this mode.
-
-You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.
-
 ## Component ports
 
-Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **User settings → Labs → Net Components** first.
+Components can expose selected places as ports. If you don't see the component controls, enable **User settings → Labs → Net Components** first.
 
-Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
+Open the component, select a boundary place, and enable **Component port** in the place properties panel.
 
-When you instantiate that subnet as a component, each port appears as a handle on the component instance:
+When you place an instance of that component, each port appears as a handle on the component instance:
 
-- Drag from a transition to a component port to create an output arc into that port.
-- Drag from a component port to a transition to create an input arc from that port.
+- Drag a transition's outgoing handle onto a component port to create an output arc into that port.
+- Drag from a component port onto a transition to create an input arc from that port.
 
-Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
+A port arc meets the component at its port rather than at its outline. Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
+
+Ports can also be **fused** with a place of the net, or with each other, so the fused places are one place: see [Composition](composition.md#fusing-places).
 
 ## Arc weight
 
@@ -193,6 +189,8 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 
 The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
 
+When a panel opens or resizes, the canvas glides just far enough to keep the selection in view. Selecting a single item elsewhere, such as in the Entities tree, Search or Diagnostics, brings it into view the same way. Panning or zooming yourself stops the glide.
+
 Hold **Shift** and drag to draw a selection box in either mode. Hold **Cmd** (Ctrl on Windows/Linux) and click a node to add it to the selection, or click a selected node to remove it. A selection box drawn with Cmd held adds the nodes inside it to the selection instead of replacing it. Both work with Shift held as well, whichever key you press first.
 
 With a selection, you can:
@@ -220,7 +218,7 @@ The arcs joining them are cased in the same colours, keeping their own colour in
 
 Each highlighted node and arc also carries a white band between its own edge and the colour, lifting it off the canvas. A place keeps its own outline visible throughout the fade, including places without a token type. The [minimap](visual-settings.md) rings and fades its shapes to match, so you can see where the neighbourhood sits in a net larger than the screen.
 
-Nodes and arcs further away fade back smoothly, keeping their shape and position so the net still reads as a whole. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. Dragging a node starts its highlight immediately and keeps it highlighted until you drop it, even while the pointer is moving. These fades respect the **Animations** setting and your system's reduced-motion preference.
+Nodes further away dim and arcs further away fade back, keeping their shape and position so the net still reads as a whole. The highlight follows the pointer once it comes to rest, not on the way past, so moving across a crowded net does not make it flicker. The rings and the arcs fade in and out. The nodes outside the highlight dim and return in one step, and so do read and inhibitor arcs. Dragging a node starts its highlight immediately and keeps it highlighted until you drop it, even while the pointer is moving. Panning highlights nothing that passes under the pointer: what is under it when you let go is highlighted once the pointer rests. The same holds while the view slides to bring a selection into sight: what is under the pointer when the view stops is highlighted. These fades respect the **Animations** setting and your system's reduced-motion preference.
 
 A selected node stays ringed while you point at something else. If you would rather the pointer left the net alone, turn off **Highlight on hover** in [visual settings](visual-settings.md); selecting a node still highlights it.
 
@@ -235,7 +233,7 @@ The left sidebar holds **Entities**, one tree of everything in the net, in these
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
 
-A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with subnets gets a **Subnets** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with components gets a **Components** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
 
 Toggle the sidebar with the button in the top-left corner.
 
@@ -252,7 +250,7 @@ ArrowDown moves from the search input into the results; arrows then walk the res
 On hosts with app navigation enabled, Browser **Back** and **Forward** move
 through the app locations you visited. This includes switching global
 modes or Simulate sections, opening an existing scenario, metric or
-experiment, opening or closing their creation drawers, changing subnet,
+experiment, opening or closing their creation drawers, switching nets,
 committing a selection, and opening or closing Viewport Settings. Creation
 drawers opened from Simulation Settings or the timeline are included too. A
 drag-selection gesture creates one location after you finish drawing the
@@ -302,6 +300,7 @@ From the top-bar menu (hamburger icon), under **Export**:
 - **YAML** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. This is the default format, and the one other Petrinaut instances re-import faithfully. It is easier to read and hand-edit than JSON: multi-line code fields (transition kernels, metrics) appear as indented blocks rather than escaped one-line strings.
 - **YAML without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
 - **JSON** / **JSON without visual info** -- the same two payloads encoded as JSON, for tools that expect it.
+- **YAML with imports inlined** / **JSON with imports inlined** -- offered when the net imports a library. Each component the net takes from a library is written into the file as a component of its own, so the file reads without the libraries. See [Composition](composition.md).
 - **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, read/inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
 
 **Import**: loads a net from a `.yaml`, `.yml`, or `.json` file -- the format is detected from the content, so files exported by any Petrinaut version load the same way. If node positions are missing, an automatic layout is applied on load.

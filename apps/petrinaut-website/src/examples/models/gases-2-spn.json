@@ -1798,7 +1798,7 @@
       "code": "return (state.places.SteadyNitrogenLineStopped.count > 0 && state.places.SteadyNitrogenOrderPlaced.count === 0 ? 1 : 0) + (state.places.SlowNitrogenLineStopped.count > 0 && state.places.SlowNitrogenOrderPlaced.count === 0 ? 1 : 0);"
     }
   ],
-  "subnets": [],
+  "components": [],
   "componentInstances": [],
   "version": 1,
   "meta": {

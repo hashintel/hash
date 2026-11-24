@@ -1,52 +1,53 @@
 import { use, useEffect, useEffectEvent } from "react";
 
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { UndoRedoContext } from "../../../../../react/document/undo-redo-context";
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
+import { useDocumentId } from "../../../../../react/document/use-document";
+import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
+import { useMutationRefusal } from "../../../../../react/editing/use-mutation-refusal";
+import { usePetrinautCommands } from "../../../../../react/editing/use-petrinaut-commands";
+import { usePetrinautMutations } from "../../../../../react/editing/use-petrinaut-mutations";
+import { useReadOnlyFeedback } from "../../../../../react/editing/use-read-only-feedback";
+import { useReadOnlyReason } from "../../../../../react/editing/use-read-only-reason";
 import {
-  usePetrinautMutations,
-  usePetrinautCommands,
-} from "../../../../../react";
-import { useReadOnlyFeedback } from "../../../../../react/hooks/use-read-only-feedback";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { useReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
+  useEditorActions,
+  useEditorFields,
+} from "../../../../../react/state/editor-context";
 import {
   copySelectionToClipboard,
   pasteFromClipboard,
-} from "../../../../clipboard/clipboard";
+} from "../../shared/clipboard";
 
-import type {
-  CursorMode,
-  EditorState,
-} from "../../../../../react/state/editor-context";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
-type EditorMode = EditorState["globalMode"];
-type EditorEditionMode = EditorState["editionMode"];
-
-export function useKeyboardShortcuts(
-  mode: EditorMode,
-  onEditionModeChange: (mode: EditorEditionMode) => void,
-  onCursorModeChange: (mode: CursorMode) => void,
-) {
+export const useKeyboardShortcuts = () => {
   const undoRedo = use(UndoRedoContext);
+  const { globalMode, selection, hasSelection, isSearchOpen, searchInputRef } =
+    useEditorFields(
+      "globalMode",
+      "selection",
+      "hasSelection",
+      "isSearchOpen",
+      "searchInputRef",
+    );
   const {
-    selection,
-    hasSelection,
     clearSelection,
     setSelection,
-    isSearchOpen,
     setSearchOpen,
-    searchInputRef,
-  } = use(EditorContext);
+    setEditionMode,
+    setCursorMode,
+  } = useEditorActions();
   const { activeNet } = use(ActiveNetContext);
-  const { petriNetId } = use(SDCPNContext);
+  const petriNetId = useDocumentId();
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
+  const mutationRefusal = useMutationRefusal();
   const isReadonly = useIsReadOnly();
-  // Undo stays available in Simulate mode, as the palette's Undo is: only a
-  // read-only document has nothing to undo.
+  const composesOnly = useComposesOnly();
+  // Only a document the host made read-only has nothing to undo: Actual mode
+  // and an active simulation keep it. Simulate mode hides the bar, and this
+  // binding with it.
   const undoBlocked = useReadOnlyReason()?.kind === "host-readonly";
   const notifyReadOnly = useReadOnlyFeedback();
 
@@ -85,6 +86,8 @@ export function useKeyboardShortcuts(
     if (
       !isInputFocused &&
       (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
       event.key.toLowerCase() === "f"
     ) {
       event.preventDefault();
@@ -109,7 +112,6 @@ export function useKeyboardShortcuts(
       return;
     }
 
-    // Handle copy/paste/select-all shortcuts (Cmd/Ctrl + C/V/A)
     if (!isInputFocused && (event.metaKey || event.ctrlKey)) {
       const key = event.key.toLowerCase();
 
@@ -164,57 +166,57 @@ export function useKeyboardShortcuts(
       return;
     }
 
-    // Delete selected items with Backspace or Delete
     if ((event.key === "Delete" || event.key === "Backspace") && hasSelection) {
       event.preventDefault();
       if (isReadonly) {
         notifyReadOnly();
         return;
       }
-      deleteItemsByIds({ items: Array.from(selection.values()) });
-      clearSelection();
+      const input = { items: Array.from(selection.values()) };
+      // What the host's rules refuse stays in the document, and selected.
+      const refused = mutationRefusal("deleteItemsByIds", input) !== null;
+      deleteItemsByIds(input);
+      if (!refused) {
+        clearSelection();
+      }
       return;
     }
 
-    // Check that no modifier keys are pressed
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
       return;
     }
 
-    // Switch modes based on key
     switch (event.key.toLowerCase()) {
       // If escape is pressed, switch to cursor mode (keep current cursor)
       case "escape":
         event.preventDefault();
         clearSelection();
-        onEditionModeChange("cursor");
+        setEditionMode("cursor");
         break;
       case "v":
         event.preventDefault();
-        onCursorModeChange("select");
-        onEditionModeChange("cursor");
+        setCursorMode("select");
+        setEditionMode("cursor");
         break;
       case "h":
         event.preventDefault();
-        onCursorModeChange("pan");
-        onEditionModeChange("cursor");
+        setCursorMode("pan");
+        setEditionMode("cursor");
         break;
       case "n":
-        if (isReadonly) {
-          event.preventDefault();
-          notifyReadOnly();
-        } else if (mode === "edit") {
-          event.preventDefault();
-          onEditionModeChange("add-place");
-        }
-        break;
       case "t":
+        // An editor that only composes has no place or transition to add.
+        if (composesOnly) {
+          break;
+        }
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();
-        } else if (mode === "edit") {
+        } else if (globalMode === "edit") {
           event.preventDefault();
-          onEditionModeChange("add-transition");
+          setEditionMode(
+            event.key.toLowerCase() === "n" ? "add-place" : "add-transition",
+          );
         }
         break;
     }
@@ -226,4 +228,4 @@ export function useKeyboardShortcuts(
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-}
+};

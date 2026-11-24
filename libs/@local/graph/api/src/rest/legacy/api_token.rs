@@ -367,7 +367,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::time::Duration;
+    use core::{assert_matches, time::Duration};
 
     use axum::response::IntoResponse as _;
     use hash_graph_store::api_token::{
@@ -417,11 +417,9 @@ mod tests {
 
     #[test]
     fn token_owner_machine() {
-        assert!(
-            matches!(
-                token_owner(ActorId::Machine(MachineId::new(Uuid::nil()))),
-                Err(ApiTokenRequestError::NotAUser)
-            ),
+        assert_matches!(
+            token_owner(ActorId::Machine(MachineId::new(Uuid::nil()))),
+            Err(ApiTokenRequestError::NotAUser),
             "a machine should not manage API tokens"
         );
     }
@@ -433,8 +431,9 @@ mod tests {
             None,
             "a token without lifetime should not expire"
         );
-        assert!(
-            matches!(lifetime(Some(0)), Err(ApiTokenRequestError::Lifetime)),
+        assert_matches!(
+            lifetime(Some(0)),
+            Err(ApiTokenRequestError::Lifetime),
             "a lifetime of zero days should be refused"
         );
         assert_eq!(
@@ -447,8 +446,9 @@ mod tests {
             Some(Duration::from_hours(366 * 24)),
             "the lifetime should count whole days"
         );
-        assert!(
-            matches!(lifetime(Some(367)), Err(ApiTokenRequestError::Lifetime)),
+        assert_matches!(
+            lifetime(Some(367)),
+            Err(ApiTokenRequestError::Lifetime),
             "a lifetime of 367 days should be refused"
         );
     }

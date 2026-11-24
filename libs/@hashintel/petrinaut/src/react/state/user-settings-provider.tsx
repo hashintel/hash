@@ -1,20 +1,17 @@
 import { use, useEffect, useState } from "react";
 
+import { usePublished } from "../shared/select-from-context";
 import {
+  createPlainSettingSetters,
   defaultUserSettings,
   defaultUserSettingsContextValue,
   UserSettingsContext,
+  UserSettingsPublishedContext,
 } from "./user-settings-context";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
 
 import type { CanvasViewport } from "./canvas-viewport-context";
 import type {
-  BottomPanelTab,
-  CursorMode,
-  TimelineChartType,
-} from "./editor-context";
-import type {
-  ArcRendering,
   SubViewSectionSettings,
   UserSettings,
 } from "./user-settings-context";
@@ -47,6 +44,26 @@ type PersistedUserSettings = Partial<UserSettings> & {
   brunchDemoMode?: boolean;
   /** Opened the built-in welcome guide on init. Dropped on the next write. */
   showWalkthroughOnInit?: boolean;
+  /**
+   * Gated arcs drawn through node outlines while they were experimental.
+   * They are the only arcs, so the key is dropped on the next write.
+   */
+  enableAutomaticArcConnections?: boolean;
+  /**
+   * Chose the curve of arcs between fixed handles, which went with them.
+   * Dropped on the next write.
+   */
+  arcRendering?: "smoothstep" | "bezier" | "custom";
+  /**
+   * Kept the closed panels mounted. A closed panel always unmounts, so the
+   * key is dropped on the next write.
+   */
+  keepPanelsMounted?: boolean;
+  /**
+   * Switched the editor's icons to the default set of the design system. The
+   * editor always draws its own set, so the key is dropped on the next write.
+   */
+  enableExperimentalIconPack?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -66,6 +83,10 @@ const loadSettings = (): UserSettings => {
         enableNotebookView: _enableNotebookView,
         brunchDemoMode: _brunchDemoMode,
         showWalkthroughOnInit: _showWalkthroughOnInit,
+        enableAutomaticArcConnections: _enableAutomaticArcConnections,
+        arcRendering: _arcRendering,
+        keepPanelsMounted: _keepPanelsMounted,
+        enableExperimentalIconPack: _enableExperimentalIconPack,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -92,54 +113,15 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
     }
   }, [state]);
 
+  const [plainSetters] = useState(() =>
+    createPlainSettingSetters((key, value) =>
+      setState((prev) => ({ ...prev, [key]: value })),
+    ),
+  );
+
   const contextValue = {
     ...state,
-    setShowAnimations: (value: boolean) =>
-      setState((prev) => ({ ...prev, showAnimations: value })),
-    setKeepPanelsMounted: (value: boolean) =>
-      setState((prev) => ({ ...prev, keepPanelsMounted: value })),
-    setCompactNodes: (value: boolean) =>
-      setState((prev) => ({ ...prev, compactNodes: value })),
-    setEnableExperimentalIconPack: (value: boolean) =>
-      setState((settings) => ({
-        ...settings,
-        enableExperimentalIconPack: value,
-      })),
-    setEnableAutomaticArcConnections: (value: boolean) =>
-      setState((settings) => ({
-        ...settings,
-        enableAutomaticArcConnections: value,
-      })),
-    setArcRendering: (value: ArcRendering) =>
-      setState((prev) => ({ ...prev, arcRendering: value })),
-    setCursorMode: (value: CursorMode) =>
-      setState((prev) => ({ ...prev, cursorMode: value })),
-    setIsLeftSidebarOpen: (value: boolean) =>
-      setState((prev) => ({ ...prev, isLeftSidebarOpen: value })),
-    setLeftSidebarWidth: (value: number) =>
-      setState((prev) => ({ ...prev, leftSidebarWidth: value })),
-    setPropertiesPanelWidth: (value: number) =>
-      setState((prev) => ({ ...prev, propertiesPanelWidth: value })),
-    setIsBottomPanelOpen: (value: boolean) =>
-      setState((prev) => ({ ...prev, isBottomPanelOpen: value })),
-    setBottomPanelHeight: (value: number) =>
-      setState((prev) => ({ ...prev, bottomPanelHeight: value })),
-    setActiveBottomPanelTab: (value: BottomPanelTab) =>
-      setState((prev) => ({ ...prev, activeBottomPanelTab: value })),
-    setTimelineChartType: (value: TimelineChartType) =>
-      setState((prev) => ({ ...prev, timelineChartType: value })),
-    setShowMinimap: (value: boolean) =>
-      setState((prev) => ({ ...prev, showMinimap: value })),
-    setSnapToGrid: (value: boolean) =>
-      setState((prev) => ({ ...prev, snapToGrid: value })),
-    setHighlightOnHover: (value: boolean) =>
-      setState((prev) => ({ ...prev, highlightOnHover: value })),
-    setPartialSelection: (value: boolean) =>
-      setState((prev) => ({ ...prev, partialSelection: value })),
-    setEnableNetComponents: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableNetComponents: value })),
-    setShowCompilationOutput: (value: boolean) =>
-      setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    ...plainSetters,
     setPluginEnabled: (pluginId: string, enabled: boolean) =>
       setState((prev) => ({
         ...prev,
@@ -148,6 +130,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
           ...(enabled ? [] : [pluginId]),
         ],
       })),
+    setAssistantPluginId: (pluginId: string) =>
+      setState((prev) => ({ ...prev, assistantPluginId: pluginId })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
       // Stamped out here: an updater runs more than once and has to be pure.
       const savedAt = Date.now();
@@ -185,8 +169,12 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       }),
   };
 
+  const published = usePublished(contextValue);
+
   return (
-    <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+    <UserSettingsPublishedContext value={published}>
+      <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+    </UserSettingsPublishedContext>
   );
 };
 

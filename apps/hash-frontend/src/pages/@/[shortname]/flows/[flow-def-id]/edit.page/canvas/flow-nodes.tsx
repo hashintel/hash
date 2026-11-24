@@ -1,0 +1,511 @@
+import { Handle, Position } from "@xyflow/react";
+
+import { Icon, Tooltip } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
+
+import { CollapseButton } from "../shared/collapse-button";
+import { StatusBar, StepStateText } from "../shared/run-marks";
+import {
+  getStepDisplay,
+  startDisplay,
+  stepNoun,
+  triggerDisplays,
+} from "../shared/step-display";
+import { StepIconTile } from "../shared/step-icon-tile";
+import { getShownState } from "../shared/step-states";
+import { useCanvasActions } from "./canvas-actions";
+import {
+  forEachBoxPadding,
+  getStepCardSize,
+  pathRows,
+  stepCardSize,
+} from "./sizes";
+
+import type { StepTone } from "../shared/step-display";
+import type {
+  ActionStepNode,
+  CardPath,
+  CardRun,
+  ForEachStepNode,
+  StartNode as StartNodeType,
+  TriggerNode as TriggerNodeType,
+} from "./flow-graph";
+import type { IconName } from "@hashintel/ds-components";
+import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
+import type { NodeProps } from "@xyflow/react";
+import type { ReactNode } from "react";
+
+const ports = css({
+  "& .react-flow__handle": {
+    width: "[7px]",
+    height: "[7px]",
+    minWidth: "0",
+    minHeight: "0",
+    bg: "neutral.s00",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "bd.strong",
+  },
+  "& .react-flow__handle.connectingto.valid": {
+    borderColor: "blue.bd.strong",
+  },
+  "& .react-flow__handle[data-connected='true']": { bg: "bd.strong" },
+  "& .react-flow__handle:hover .port-add": { opacity: "1" },
+});
+
+const outline = css({ borderWidth: "1px" });
+const solidOutline = css({ borderStyle: "solid" });
+const dashedOutline = css({ borderStyle: "dashed" });
+const unselectedOutline = css({ borderColor: "bd.subtle" });
+const selectedOutline = css({
+  borderColor: "neutral.s110",
+  boxShadow: "[inset 0 0 0 0.5px {colors.neutral.s110}]",
+});
+
+const getOutline = (selected: boolean, dashed = false) =>
+  cx(
+    outline,
+    dashed ? dashedOutline : solidOutline,
+    selected ? selectedOutline : unselectedOutline,
+  );
+
+/** Something that can start the flow rather than a step of it: dashed, and fainter while off. */
+const ghost = css({ cursor: "pointer", _hover: { opacity: "[0.8]" } });
+const onGhost = css({ opacity: "[0.5]" });
+const offGhost = css({ opacity: "[0.25]" });
+
+const portAdd = css({
+  position: "absolute",
+  left: "[50%]",
+  top: "[50%]",
+  transform: "translate(-50%, -50%)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "5",
+  height: "5",
+  padding: "0",
+  cursor: "pointer",
+  opacity: "0",
+});
+
+/** Shown on port hover. It sits inside the handle, so dragging from it still draws a connection. */
+const PortAdd = ({
+  stepId,
+  outputName,
+}: {
+  stepId: string | null;
+  outputName?: string;
+}) => {
+  const { editing } = useCanvasActions();
+
+  if (!editing) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      className={cx(portAdd, "port-add nodrag nopan")}
+      aria-label={`Add a ${stepNoun.singular} after this`}
+      onClick={(event) => {
+        event.stopPropagation();
+        editing.openAddMenuAfter(stepId, outputName);
+      }}
+      /* Inline, as the design system's reset of buttons in its scope outranks classes. */
+      style={{
+        borderRadius: 10,
+        border: "1px solid var(--colors-neutral-bd-solid)",
+        background: "var(--colors-neutral-s00)",
+        color: "var(--colors-neutral-fg-body)",
+      }}
+    >
+      <Icon name="plus" size="xs" />
+    </button>
+  );
+};
+
+const problemsList = css({ m: "0", pl: "4" });
+const problemsMarker = css({ display: "flex" });
+const errorsMarker = css({ color: "red.fg.muted" });
+const warningsMarker = css({ color: "orange.fg.muted" });
+
+const ProblemsMarker = ({
+  problems,
+}: {
+  problems: FlowDefinitionDiagnosticWithStepId[];
+}) => {
+  if (problems.length === 0) {
+    return null;
+  }
+
+  const hasErrors = problems.some(({ severity }) => severity === "error");
+
+  return (
+    <Tooltip
+      position="top"
+      content={
+        <ul className={problemsList}>
+          {problems.map((problem, index) => (
+            // eslint-disable-next-line react/no-array-index-key -- two problems may have the same message
+            <li key={index}>{problem.message}</li>
+          ))}
+        </ul>
+      }
+    >
+      <span
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable so the problems can be read from the keyboard
+        tabIndex={0}
+        className={cx(
+          problemsMarker,
+          hasErrors ? errorsMarker : warningsMarker,
+        )}
+      >
+        <Icon
+          name="warning"
+          size="xs"
+          alt={`${problems.length} ${problems.length === 1 ? "problem" : "problems"}`}
+        />
+      </span>
+    </Tooltip>
+  );
+};
+
+const card = css({
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  boxSizing: "border-box",
+  borderRadius: "lg",
+  bg: "neutral.s00",
+});
+const cardHeader = css({
+  display: "flex",
+  gap: "2",
+  alignItems: "flex-start",
+  boxSizing: "border-box",
+  padding: "3",
+});
+const pathList = css({
+  m: "0",
+  p: "0",
+  listStyle: "none",
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "bd.subtle",
+});
+const pathRow = css({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  px: "3",
+  fontSize: "xs",
+  color: "fg.subtle",
+});
+const pathName = css({ truncate: true });
+const cardText = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
+  minWidth: "0",
+  flex: "1",
+});
+const cardTitleRow = css({ display: "flex", alignItems: "center", gap: "1" });
+const cardTitle = css({
+  truncate: true,
+  flex: "1",
+  fontSize: "[13px]",
+  fontWeight: "medium",
+  color: "fg.heading",
+});
+const cardDescription = css({
+  truncate: true,
+  fontSize: "xs",
+  color: "fg.subtle",
+});
+const featuredStar = css({ display: "flex", color: "fg.muted" });
+
+/**
+ * What a card's title row ends with. Editing, the step's problems; in a run, a star if it has a featured output, then
+ * its state as text for screen readers, which the card's status bar shows to everyone else.
+ */
+const TitleMarks = ({
+  problems,
+  run,
+}: {
+  problems: FlowDefinitionDiagnosticWithStepId[];
+  run: CardRun | undefined;
+}) =>
+  run ? (
+    <>
+      {run.featured && (
+        <span className={featuredStar}>
+          <Icon name="starFilled" size="xs" alt="Shown in run results" />
+        </span>
+      )}
+      <StepStateText state={getShownState(run.mark.state, run.live)} />
+    </>
+  ) : (
+    <ProblemsMarker problems={problems} />
+  );
+
+const Card = ({
+  title,
+  description,
+  icon,
+  tone,
+  selected,
+  problems,
+  run,
+  paths,
+  size = stepCardSize,
+  ghostOn,
+  children,
+}: {
+  title: string;
+  description: string;
+  icon: IconName;
+  tone: StepTone;
+  selected: boolean;
+  problems: FlowDefinitionDiagnosticWithStepId[];
+  run: CardRun | undefined;
+  paths?: ReactNode;
+  size?: { width: number; height: number };
+  /** For a card in the ghost look, whether what it shows is on. */
+  ghostOn?: boolean;
+  children: ReactNode;
+}) => (
+  <div
+    className={cx(
+      ports,
+      card,
+      getOutline(selected, ghostOn !== undefined),
+      ghostOn !== undefined && ghost,
+      ghostOn === true && onGhost,
+      ghostOn === false && offGhost,
+    )}
+    style={size}
+  >
+    {/* The card's height less its borders, so the header is the same on every card. */}
+    <div className={cardHeader} style={{ height: stepCardSize.height - 2 }}>
+      <StepIconTile icon={icon} tone={tone} size="large" />
+      <div className={cardText}>
+        <div className={cardTitleRow}>
+          <span className={cardTitle}>{title}</span>
+          <TitleMarks problems={problems} run={run} />
+        </div>
+        <span className={cardDescription}>
+          {description || (run ? "" : "Add a description…")}
+        </span>
+      </div>
+    </div>
+    {paths}
+    {children}
+    {run && <StatusBar mark={run.mark} />}
+  </div>
+);
+
+export const TriggerNode = ({
+  data: { kind, line, on, run },
+  selected,
+}: NodeProps<TriggerNodeType>) => (
+  <Card
+    {...triggerDisplays[kind]}
+    icon={
+      run && kind === "schedule" ? "calendarClock" : triggerDisplays[kind].icon
+    }
+    description={line}
+    tone="neutral"
+    selected={selected}
+    problems={[]}
+    run={run}
+    /* Selected, or in a run, it's drawn in full, as a step is. */
+    ghostOn={selected || run ? undefined : on}
+  >
+    <Handle type="source" position={Position.Right} isConnectable={false} />
+  </Card>
+);
+
+export const StartNode = ({
+  data: { run },
+  selected,
+}: NodeProps<StartNodeType>) => {
+  const { editing } = useCanvasActions();
+
+  return (
+    <Card {...startDisplay} selected={selected} problems={[]} run={run}>
+      <Handle type="target" position={Position.Left} isConnectable={false} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={editing !== null}
+      >
+        <PortAdd stepId={null} />
+      </Handle>
+    </Card>
+  );
+};
+
+/** A row and an output port per path, its dot filled when a line leaves it. */
+const PathRows = ({
+  stepId,
+  paths,
+  connectable,
+  showAdd,
+}: {
+  stepId: string;
+  paths: CardPath[];
+  connectable: boolean;
+  showAdd: boolean;
+}) => (
+  <ul
+    className={pathList}
+    style={{ paddingBlock: pathRows.paddingY }}
+    aria-label="Paths"
+  >
+    {paths.map(({ outputName, name, connected }) => (
+      <li
+        key={outputName}
+        className={pathRow}
+        style={{ height: pathRows.rowHeight }}
+      >
+        <span className={pathName}>{name}</span>
+        <Handle
+          id={outputName}
+          type="source"
+          position={Position.Right}
+          isConnectable={connectable}
+          data-connected={connected}
+        >
+          {showAdd && <PortAdd stepId={stepId} outputName={outputName} />}
+        </Handle>
+      </li>
+    ))}
+  </ul>
+);
+
+export const StepNode = ({
+  data: { step, paths, lineFromStep, problems, inner, run },
+  selected,
+}: NodeProps<ActionStepNode>) => {
+  const { editing } = useCanvasActions();
+  const connectable = !inner && editing !== null;
+  const showAdd = selected && !inner;
+
+  return (
+    <Card
+      {...getStepDisplay(step)}
+      size={getStepCardSize(paths.length)}
+      selected={selected}
+      problems={problems}
+      run={run}
+      paths={
+        paths.length > 0 && (
+          <>
+            {/* First, as React Flow draws a line that names no port from a node's first. */}
+            {lineFromStep && (
+              <Handle
+                type="source"
+                position={Position.Right}
+                isConnectable={false}
+                data-connected
+                style={{ top: stepCardSize.height / 2 }}
+              />
+            )}
+            <PathRows
+              stepId={step.stepId}
+              paths={paths}
+              connectable={connectable}
+              showAdd={showAdd}
+            />
+          </>
+        )
+      }
+    >
+      {/* Level with the header, on a card with paths too. */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={connectable}
+        style={{ top: stepCardSize.height / 2 }}
+      />
+      {paths.length === 0 && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          isConnectable={connectable}
+        >
+          {showAdd && <PortAdd stepId={step.stepId} />}
+        </Handle>
+      )}
+    </Card>
+  );
+};
+
+const forEachBox = css({
+  position: "relative",
+  boxSizing: "border-box",
+  width: "full",
+  height: "full",
+  borderRadius: "xl",
+  bg: "bgSolid.surface",
+});
+const forEachHeader = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  px: "2",
+});
+const forEachChevron = css({ display: "flex" });
+const forEachTitle = css({
+  truncate: true,
+  flex: "1",
+  fontSize: "[13px]",
+  fontWeight: "medium",
+  color: "fg.body",
+});
+
+/** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
+export const ForEachNode = ({
+  data: { step, problems, inner, collapsed, itemName, run },
+  selected,
+}: NodeProps<ForEachStepNode>) => {
+  const { editing, toggleCollapsed } = useCanvasActions();
+  const connectable = !inner && editing !== null;
+
+  return (
+    <div className={cx(ports, forEachBox, getOutline(selected))}>
+      <div
+        className={forEachHeader}
+        style={{ height: collapsed ? "100%" : forEachBoxPadding.header }}
+      >
+        {!inner && (
+          <div className={cx(forEachChevron, "nodrag")}>
+            <CollapseButton
+              collapsed={collapsed}
+              onToggle={() => toggleCollapsed(step.stepId)}
+            />
+          </div>
+        )}
+        <span className={forEachTitle}>
+          {step.description || `For each ${itemName}`}
+        </span>
+        <TitleMarks problems={problems} run={run} />
+      </div>
+      <Handle
+        type="target"
+        position={Position.Left}
+        isConnectable={connectable}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        isConnectable={connectable}
+      >
+        {selected && !inner && <PortAdd stepId={step.stepId} />}
+      </Handle>
+      {run && <StatusBar mark={run.mark} />}
+    </div>
+  );
+};

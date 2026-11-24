@@ -1,5 +1,5 @@
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { Box, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,7 +10,9 @@ import {
   isExternalOntologyElementMetadata,
   type PropertyTypeWithMetadata,
   type VersionedUrl,
+  type WebId,
 } from "@blockprotocol/type-system";
+import { faListTree, FontAwesomeIcon } from "@hashintel/design-system";
 import { SortMenu } from "@hashintel/ds-components";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
@@ -20,6 +22,8 @@ import {
   gridHorizontalScrollbarHeight,
   type GridSort,
 } from "../../components/grid/grid";
+import { getCellSearchableText } from "../../components/grid/utils";
+import { useGridTooltip } from "../../components/grid/utils/use-grid-tooltip";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
 import { extractWebId } from "../../lib/user-and-org";
@@ -30,6 +34,7 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "../../shared/table-header/export-to-csv-button";
 import { generateCsvFile as buildCsvFile } from "../../shared/table-header/generate-csv-file";
+import { Button } from "../../shared/ui/button";
 import {
   isAiMachineActor,
   type MinimalActor,
@@ -53,12 +58,26 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import { DataTypeLabelTooltip } from "./types-table/data-type-label-tooltip";
+import {
+  buildDataTypeTree,
+  type DataTypeTreePosition,
+} from "./types-table/data-type-tree";
+import {
+  renderDataTypeTreeCell,
+  type DataTypeTreeCell,
+} from "./types-table/data-type-tree-cell";
 import { TypesFilterRibbon } from "./types-table/filter-ribbon";
+import {
+  getDataTypeLabelPreview,
+  type DataTypeLabelPart,
+} from "./types-table/shared/data-type-label-preview";
 import {
   createTypeFilterPredicate,
   getTypeKind,
   pruneTypeFiltersForKind,
 } from "./types-table/shared/type-filters";
+import { TypesEmptyState } from "./types-table/types-empty-state";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
@@ -72,12 +91,15 @@ import type {
 } from "./types-table/shared/type-filters";
 import type { VisualizerView } from "./visualizer-views";
 import type {
+  DataEditorRef,
   Item,
   SizedGridColumn,
   TextCell,
 } from "@glideapps/glide-data-grid";
 import type { Sorter } from "@hashintel/ds-components";
 import type { FunctionComponent } from "react";
+
+export type { TypesTableTypeKind } from "./types-table/shared/type-filters";
 
 export type TypesTableColumnId =
   | "title"
@@ -98,7 +120,10 @@ export type TypesTableRow = {
   lastEditedBy?: MinimalActor;
   icon?: string;
   typeId: VersionedUrl;
+  parentIds: VersionedUrl[];
+  hierarchy?: DataTypeTreePosition;
   title: string;
+  labelPreview?: DataTypeLabelPart[];
   external: boolean;
   webShortname?: string;
   archived: boolean;
@@ -119,7 +144,47 @@ const typesTablesToTitle: Record<TypesTableKind, string> = {
   "data-type": "Data Types",
 };
 
-const firstColumnLeftPadding = 16;
+const typeKindLabels: Record<TypesTableTypeKind, string> = {
+  "entity-type": "Entity Type",
+  "link-type": "Link Type",
+  "property-type": "Property Type",
+  "data-type": "Data Type",
+};
+
+const firstColumnLeftPadding = 4;
+
+const createEntityTypeHref = "/new/types/entity-type";
+
+type TypesTableType =
+  | EntityTypeWithMetadata
+  | PropertyTypeWithMetadata
+  | DataTypeWithMetadata;
+
+const getInternalWebId = (
+  type: TypesTableType,
+  internalWebIds: WebId[],
+): WebId | undefined =>
+  !isExternalOntologyElementMetadata(type.metadata) &&
+  internalWebIds.includes(type.metadata.webId)
+    ? type.metadata.webId
+    : undefined;
+
+const isInWebFilter = (
+  type: TypesTableType,
+  webFilter: WebFilterState,
+  internalWebIds: WebId[],
+) => {
+  const internalWebId = getInternalWebId(type, internalWebIds);
+
+  return internalWebId
+    ? webFilter.selectedInternalWebIds.has(internalWebId)
+    : webFilter.includeOtherWebs;
+};
+
+const getDefaultWebFilter = (internalWebIds: WebId[]): WebFilterState => ({
+  selectedInternalWebIds: new Set(internalWebIds),
+  includeOtherWebs: false,
+});
 
 const defaultTypesTableSort: GridSort<TypesTableColumnId> = {
   columnKey: "title",
@@ -151,19 +216,53 @@ const sortTypesTableRows = (
     return comparison;
   });
 
-export const TypesTable: FunctionComponent<{
-  loading?: boolean;
-  onlyOneWeb?: boolean;
-  types?: (
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-    | DataTypeWithMetadata
-  )[];
-  kind: TypesTableKind;
-}> = ({ types, kind, onlyOneWeb, loading = false }) => {
+export const TypesTable: FunctionComponent<
+  {
+    loading?: boolean;
+    types?: TypesTableType[];
+    kind: TypesTableKind;
+    initialKindFilter?: TypesTableTypeKind;
+  } & (
+    | { onlyOneWeb: true; allTypes?: never }
+    | {
+        onlyOneWeb?: false;
+        /**
+         * The types of every kind, whichever kind the table shows, to tell
+         * whether the user's webs have any types at all. `undefined` while
+         * they load, and `null` if some of them could not be loaded.
+         */
+        allTypes: TypesTableType[] | null | undefined;
+      }
+  )
+> = ({
+  types,
+  allTypes,
+  kind,
+  onlyOneWeb,
+  loading = false,
+  initialKindFilter,
+}) => {
   const router = useRouter();
+  const gridRef = useRef<DataEditorRef>(null);
+  const { tooltipElement, showTooltip } = useGridTooltip(gridRef);
 
   const [view, _setView] = useState<VisualizerView>("Table");
+
+  const [dataTypeLayout, setDataTypeLayout] = useState<"Nested" | "Flat">(
+    "Nested",
+  );
+  const hierarchical = kind === "data-type" && dataTypeLayout === "Nested";
+  const [searchValue, setSearchValue] = useState("");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [collapsedSearchRows, setCollapsedSearchRows] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const onSearchValueChange = useCallback((value: string) => {
+    setSearchValue(value);
+    setCollapsedSearchRows(new Set());
+  }, []);
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [showGraphSearch, setShowGraphSearch] = useState<boolean>(false);
@@ -172,18 +271,29 @@ export const TypesTable: FunctionComponent<{
     _setView(newView);
     setShowSearch(false);
     setShowGraphSearch(false);
+    setSearchValue("");
   }, []);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
 
   const internalWebs = useInternalWebs();
 
-  const [webFilter, setWebFilter] = useState<WebFilterState>(() => ({
-    selectedInternalWebIds: new Set(internalWebs.map(({ webId }) => webId)),
-    includeOtherWebs: false,
-  }));
+  const [webFilter, setWebFilter] = useState<WebFilterState>(() =>
+    getDefaultWebFilter(internalWebs.map(({ webId }) => webId)),
+  );
 
-  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>([]);
+  const [typeFilters, setTypeFilters] = useState<TypeFilter[]>(() =>
+    initialKindFilter
+      ? [
+          {
+            id: "initial-kind",
+            field: "kind",
+            operator: "anyOf",
+            values: [initialKindFilter],
+          },
+        ]
+      : [],
+  );
 
   const { entityTypes, isSpecialEntityTypeLookup } =
     useEntityTypesContextRequired();
@@ -234,7 +344,7 @@ export const TypesTable: FunctionComponent<{
       {
         id: "title",
         title: "Title",
-        width: 252,
+        width: kind === "data-type" ? 480 : 252,
         grow: 2,
       },
       ...(kind === "all"
@@ -305,11 +415,7 @@ export const TypesTable: FunctionComponent<{
   );
 
   const filteredTypes = useMemo(() => {
-    const filtered: ((
-      | EntityTypeWithMetadata
-      | PropertyTypeWithMetadata
-      | DataTypeWithMetadata
-    ) & {
+    const filtered: (TypesTableType & {
       isExternal: boolean;
       webShortname?: string;
       archived: boolean;
@@ -317,9 +423,7 @@ export const TypesTable: FunctionComponent<{
     })[] = [];
 
     for (const type of types ?? []) {
-      const isExternal = isExternalOntologyElementMetadata(type.metadata)
-        ? true
-        : !internalWebIds.includes(type.metadata.webId);
+      const isExternal = !getInternalWebId(type, internalWebIds);
 
       const namespaceWebId = isExternalOntologyElementMetadata(type.metadata)
         ? undefined
@@ -333,9 +437,7 @@ export const TypesTable: FunctionComponent<{
 
       const webAllowed = onlyOneWeb
         ? true
-        : !isExternal && namespaceWebId !== undefined
-          ? webFilter.selectedInternalWebIds.has(namespaceWebId)
-          : webFilter.includeOtherWebs;
+        : isInWebFilter(type, webFilter, internalWebIds);
 
       if (
         webAllowed &&
@@ -364,6 +466,69 @@ export const TypesTable: FunctionComponent<{
     isSpecialEntityTypeLookup,
   ]);
 
+  const emptyState = useMemo(() => {
+    if (
+      onlyOneWeb ||
+      !types ||
+      allTypes === undefined ||
+      filteredTypes.length > 0
+    ) {
+      return undefined;
+    }
+
+    const hasNoOwnTypes =
+      allTypes !== null &&
+      !allTypes.some(
+        (type) =>
+          getInternalWebId(type, internalWebIds) !== undefined &&
+          !isTypeArchived(type),
+      );
+
+    const filtersNarrowResults =
+      typeFilters.length > 0 ||
+      internalWebIds.some(
+        (webId) => !webFilter.selectedInternalWebIds.has(webId),
+      );
+
+    const defaultWebFilter = getDefaultWebFilter(internalWebIds);
+
+    const clearingFiltersShowsTypes =
+      filtersNarrowResults &&
+      types.some(
+        (type) =>
+          isInWebFilter(type, defaultWebFilter, internalWebIds) &&
+          !isTypeArchived(type),
+      );
+
+    const widenedWebFilter = { ...webFilter, includeOtherWebs: true };
+
+    const includingPublicTypesShowsTypes =
+      !webFilter.includeOtherWebs &&
+      types.some(
+        (type) =>
+          isInWebFilter(type, widenedWebFilter, internalWebIds) &&
+          (includeArchived || !isTypeArchived(type)) &&
+          typeFilterPredicate(type),
+      );
+
+    return {
+      hasNoOwnTypes,
+      filtersNarrowResults,
+      clearingFiltersShowsTypes,
+      includingPublicTypesShowsTypes,
+    };
+  }, [
+    onlyOneWeb,
+    types,
+    allTypes,
+    filteredTypes,
+    internalWebIds,
+    typeFilters,
+    webFilter,
+    includeArchived,
+    typeFilterPredicate,
+  ]);
+
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
       filteredTypes.map((type) => {
@@ -383,6 +548,14 @@ export const TypesTable: FunctionComponent<{
           rowId: type.schema.$id,
           typeId: type.schema.$id,
           title: type.schema.title,
+          labelPreview:
+            kind === "data-type" && type.schema.kind === "dataType"
+              ? getDataTypeLabelPreview(type.schema, dataTypes ?? {})
+              : undefined,
+          parentIds:
+            type.schema.kind === "dataType"
+              ? (type.schema.allOf ?? []).map(({ $ref }) => $ref)
+              : [],
           icon: "icon" in type.schema ? type.schema.icon : undefined,
           lastEdited,
           lastEditedBy,
@@ -392,7 +565,7 @@ export const TypesTable: FunctionComponent<{
           archived: type.archived,
         } as const;
       }),
-    [actors, filteredTypes],
+    [actors, filteredTypes, kind, dataTypes],
   );
 
   const [sort, setSort] = useState<GridSort<TypesTableColumnId>>(
@@ -425,13 +598,36 @@ export const TypesTable: FunctionComponent<{
     [filteredRows, activeSort],
   );
 
+  const treeSearchValue = kind === "data-type" && showSearch ? searchValue : "";
+  const toggleRow = useCallback(
+    (rowId: string) => {
+      const setRows = treeSearchValue
+        ? setCollapsedSearchRows
+        : setExpandedRows;
+      setRows((previous) => {
+        const next = new Set(previous);
+        if (next.has(rowId)) {
+          next.delete(rowId);
+        } else {
+          next.add(rowId);
+        }
+        return next;
+      });
+    },
+    [treeSearchValue],
+  );
+
   const { pushToSlideStack } = useSlideStack();
 
   const theme = useTheme();
 
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
-      ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
+      ([colIndex, rowIndex]: Item):
+        | TextCell
+        | TextIconCell
+        | ChipCell
+        | DataTypeTreeCell => {
         const row = rows[rowIndex];
 
         if (!row) {
@@ -444,8 +640,67 @@ export const TypesTable: FunctionComponent<{
           throw new Error("column not found");
         }
 
+        const themeOverride =
+          row.hierarchy?.matchesSearch === false
+            ? {
+                textDark: theme.palette.gray[70],
+                textHeader: theme.palette.gray[70],
+              }
+            : undefined;
+
         switch (column.id) {
           case "title": {
+            const copyData = [
+              row.title,
+              row.labelPreview?.map(({ text }) => text).join(""),
+            ]
+              .filter(Boolean)
+              .join(" ");
+            if (kind === "data-type") {
+              return {
+                kind: GridCellKind.Custom,
+                themeOverride,
+                readonly: true,
+                allowOverlay: false,
+                copyData,
+                cursor: "pointer",
+                data: {
+                  kind: "data-type-tree-cell",
+                  hierarchical,
+                  leftPadding: firstColumnLeftPadding,
+                  title: row.title,
+                  labelPreview: row.labelPreview,
+                  showLabelExample: (tooltip) => {
+                    const schema = dataTypes?.[row.typeId]?.schema;
+                    if (schema) {
+                      showTooltip({
+                        ...tooltip,
+                        colIndex,
+                        rowIndex,
+                        content: (
+                          <DataTypeLabelTooltip
+                            schema={schema}
+                            dataTypes={dataTypes}
+                          />
+                        ),
+                      });
+                    }
+                  },
+                  icon: row.icon,
+                  ...(row.hierarchy ?? {
+                    depth: 0,
+                    continuationDepths: [],
+                    hasNextSibling: false,
+                    expanded: false,
+                    hasChildren: false,
+                  }),
+                  muted: row.hierarchy?.matchesSearch === false,
+                  onToggle: () => toggleRow(row.rowId),
+                  onOpen: () =>
+                    pushToSlideStack({ kind: "dataType", itemId: row.typeId }),
+                },
+              };
+            }
             const isClickable =
               row.kind === "entity-type" ||
               row.kind === "link-type" ||
@@ -453,9 +708,10 @@ export const TypesTable: FunctionComponent<{
 
             return {
               kind: GridCellKind.Custom,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
-              copyData: row.title,
+              copyData,
               cursor: isClickable ? "pointer" : "default",
               data: {
                 kind: "chip-cell",
@@ -490,10 +746,11 @@ export const TypesTable: FunctionComponent<{
           case "kind":
             return {
               kind: GridCellKind.Text,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
-              displayData: String(row.kind),
-              data: row.kind,
+              displayData: typeKindLabels[row.kind],
+              data: typeKindLabels[row.kind],
             };
           case "webShortname": {
             const value = row.webShortname
@@ -504,6 +761,7 @@ export const TypesTable: FunctionComponent<{
 
             return {
               kind: GridCellKind.Custom,
+              themeOverride,
               allowOverlay: false,
               readonly: true,
               cursor: isClickable ? "pointer" : "default",
@@ -524,6 +782,7 @@ export const TypesTable: FunctionComponent<{
             const value = row.archived ? "Yes" : "No";
             return {
               kind: GridCellKind.Text,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               displayData: String(value),
@@ -533,6 +792,7 @@ export const TypesTable: FunctionComponent<{
           case "lastEdited": {
             return {
               kind: GridCellKind.Text,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               displayData: String(row.lastEdited),
@@ -554,6 +814,7 @@ export const TypesTable: FunctionComponent<{
 
             return {
               kind: GridCellKind.Custom,
+              themeOverride,
               readonly: true,
               allowOverlay: false,
               copyData: String(actorName),
@@ -576,7 +837,56 @@ export const TypesTable: FunctionComponent<{
           }
         }
       },
-    [typesTableColumns, pushToSlideStack, router, theme],
+    [
+      typesTableColumns,
+      pushToSlideStack,
+      router,
+      theme,
+      toggleRow,
+      kind,
+      dataTypes,
+      showTooltip,
+      hierarchical,
+    ],
+  );
+
+  const matchingIds = useMemo(() => {
+    if (!treeSearchValue) {
+      return undefined;
+    }
+    const rows = sortedRows ?? [];
+    const getCellContent = createGetCellContent(rows);
+    const query = treeSearchValue.toLowerCase();
+    return new Set(
+      rows
+        .filter((_row, rowIndex) =>
+          typesTableColumns.some((_column, colIndex) =>
+            getCellSearchableText(getCellContent([colIndex, rowIndex]))
+              ?.toLowerCase()
+              .includes(query),
+          ),
+        )
+        .map(({ typeId }) => typeId),
+    );
+  }, [treeSearchValue, sortedRows, createGetCellContent, typesTableColumns]);
+
+  const tree = useMemo(
+    () =>
+      hierarchical
+        ? buildDataTypeTree({
+            rows: sortedRows ?? [],
+            expandedRows,
+            matchingIds,
+            collapsedSearchRows,
+          })
+        : undefined,
+    [hierarchical, sortedRows, expandedRows, matchingIds, collapsedSearchRows],
+  );
+  const visibleRows = useMemo(
+    () =>
+      tree?.rows ??
+      sortedRows?.filter((row) => !matchingIds || matchingIds.has(row.typeId)),
+    [tree, sortedRows, matchingIds],
   );
 
   const contentTopRef = useRef<HTMLDivElement>(null);
@@ -609,7 +919,52 @@ export const TypesTable: FunctionComponent<{
         }px + ${theme.spacing(2)} + ${theme.spacing(5)})`
   })`;
 
-  const displayedRowCount = Math.max(filteredRows?.length ?? 1, 1);
+  const emptyStateRowCount = emptyState
+    ? emptyState.hasNoOwnTypes
+      ? 5
+      : 3
+    : 1;
+
+  const displayedRowCount =
+    visibleRows && visibleRows.length > 0
+      ? visibleRows.length
+      : emptyStateRowCount;
+
+  const includePublicTypes =
+    emptyState?.includingPublicTypesShowsTypes === true
+      ? () =>
+          setWebFilter((prev) => ({
+            ...prev,
+            includeOtherWebs: true,
+          }))
+      : undefined;
+
+  const emptyStateContent =
+    !emptyState ? undefined : emptyState.hasNoOwnTypes ? (
+      <TypesEmptyState
+        title="No types yet"
+        description="Create an entity type to describe the things you want to store, such as people or projects."
+        createEntityTypeHref={createEntityTypeHref}
+        onIncludePublicTypes={includePublicTypes}
+      />
+    ) : (
+      <TypesEmptyState
+        title={
+          emptyState.filtersNarrowResults || webFilter.includeOtherWebs
+            ? "No types match your filters"
+            : `No ${typesTablesToTitle[kind].toLowerCase()} in your webs`
+        }
+        onClearFilters={
+          emptyState.clearingFiltersShowsTypes
+            ? () => {
+                setTypeFilters([]);
+                setWebFilter(getDefaultWebFilter(internalWebIds));
+              }
+            : undefined
+        }
+        onIncludePublicTypes={includePublicTypes}
+      />
+    );
 
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
@@ -624,21 +979,71 @@ export const TypesTable: FunctionComponent<{
   );
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
-    const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+    const rowsToExport =
+      kind === "data-type"
+        ? sortedRows?.filter(
+            (row) => !matchingIds || matchingIds.has(row.typeId),
+          )
+        : currentlyDisplayedRowsRef.current;
     const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
-    if (!currentlyDisplayedRows || !currentlyDisplayedColumns) {
+    if (!rowsToExport || !currentlyDisplayedColumns) {
       return null;
     }
     return buildCsvFile({
       columns: currentlyDisplayedColumns,
-      rows: currentlyDisplayedRows,
+      rows: rowsToExport,
       title: typesTablesToTitle[kind],
+      resolveCell: (key, row) =>
+        key === "kind" ? typeKindLabels[row.kind] : undefined,
     });
-  }, [kind]);
+  }, [sortedRows, matchingIds, kind]);
 
   const selectedTypes = types?.filter((type) =>
     selectedRows.some(({ typeId }) => type.schema.$id === typeId),
   );
+
+  const onSelectedRowsChange = useCallback(
+    (updatedRows: TypesTableRow[]) => {
+      if (kind !== "data-type") {
+        setSelectedRows(updatedRows);
+        return;
+      }
+      const visibleIds = new Set(visibleRows?.map(({ typeId }) => typeId));
+      const filteredTypeIds = new Set(sortedRows?.map(({ typeId }) => typeId));
+      setSelectedRows((previous) => {
+        const selectedIds = new Set(previous.map(({ typeId }) => typeId));
+        const updatedRowIds = new Set(updatedRows.map(({ rowId }) => rowId));
+        const deselectedTypeIds = new Set(
+          visibleRows
+            ?.filter(
+              ({ rowId, typeId }) =>
+                selectedIds.has(typeId) && !updatedRowIds.has(rowId),
+            )
+            .map(({ typeId }) => typeId),
+        );
+        return [
+          ...previous.filter(
+            ({ typeId }) =>
+              !visibleIds.has(typeId) && filteredTypeIds.has(typeId),
+          ),
+          ...new Map(
+            updatedRows
+              .filter(({ typeId }) => !deselectedTypeIds.has(typeId))
+              .map((row) => [row.typeId, row]),
+          ).values(),
+        ];
+      });
+    },
+    [kind, visibleRows, sortedRows],
+  );
+
+  const selectedVisibleRows = useMemo(() => {
+    if (kind !== "data-type") {
+      return selectedRows;
+    }
+    const selectedIds = new Set(selectedRows.map(({ typeId }) => typeId));
+    return visibleRows?.filter(({ typeId }) => selectedIds.has(typeId));
+  }, [kind, selectedRows, visibleRows]);
 
   // Stable identity: a fresh object would re-render the memoized graph on
   // every table render.
@@ -655,7 +1060,7 @@ export const TypesTable: FunctionComponent<{
       <VisualizerHeader
         topLeft={
           <QueryCount
-            count={filteredRows?.length}
+            count={matchingIds?.size ?? filteredRows?.length}
             loading={!types || loading}
             noun={{ singular: "type", plural: "types" }}
           />
@@ -668,25 +1073,69 @@ export const TypesTable: FunctionComponent<{
                 sx={{ px: 1.5, borderRadius: "4px" }}
               />
             ) : null}
-            <TableHeaderToggle
-              value={view}
-              setValue={setView}
-              options={(
-                ["Table", "Graph"] as const satisfies VisualizerView[]
-              ).map((optionValue) => ({
-                icon: visualizerViewIcons[optionValue],
-                label: `${optionValue} view`,
-                value: optionValue,
-              }))}
-            />
+            {kind === "data-type" ? (
+              <TableHeaderToggle
+                value={view === "Graph" ? "Graph" : dataTypeLayout}
+                setValue={(mode: "Nested" | "Flat" | "Graph") => {
+                  if (mode === "Graph") {
+                    setView("Graph");
+                  } else {
+                    setDataTypeLayout(mode);
+                    if (view !== "Table") {
+                      setView("Table");
+                    }
+                  }
+                }}
+                options={[
+                  {
+                    icon: <FontAwesomeIcon icon={{ icon: faListTree }} />,
+                    label: "Nested List",
+                    value: "Nested",
+                  },
+                  {
+                    icon: visualizerViewIcons.Table,
+                    label: "Flat List",
+                    value: "Flat",
+                  },
+                  {
+                    icon: visualizerViewIcons.Graph,
+                    label: "Graph view",
+                    value: "Graph",
+                  },
+                ]}
+              />
+            ) : (
+              <TableHeaderToggle
+                value={view}
+                setValue={setView}
+                options={(
+                  ["Table", "Graph"] as const satisfies VisualizerView[]
+                ).map((optionValue) => ({
+                  icon: visualizerViewIcons[optionValue],
+                  label: `${optionValue} view`,
+                  value: optionValue,
+                }))}
+              />
+            )}
           </>
         }
         bottomLeft={
           selectedTypes && selectedTypes.length > 0 ? (
-            <BulkActionsDropdown
-              selectedItems={selectedTypes}
-              onBulkActionCompleted={() => setSelectedRows([])}
-            />
+            <Stack direction="row" alignItems="center" gap={1}>
+              <BulkActionsDropdown
+                selectedItems={selectedTypes}
+                onBulkActionCompleted={() => setSelectedRows([])}
+              />
+              {kind === "data-type" ? (
+                <Button
+                  size="small"
+                  variant="tertiary_quiet"
+                  onClick={() => setSelectedRows([])}
+                >
+                  Clear selection
+                </Button>
+              ) : null}
+            </Stack>
           ) : (
             <TypesFilterRibbon
               leadingControls={
@@ -694,12 +1143,15 @@ export const TypesTable: FunctionComponent<{
                   <SearchPill
                     title={
                       view === "Table"
-                        ? "Search for text in visible rows"
+                        ? hierarchical
+                          ? "Search all data types, including collapsed groups"
+                          : "Search for text in visible rows"
                         : "Search for a type in the graph"
                     }
                     onClick={() => {
                       if (view === "Table") {
                         setShowSearch(!showSearch);
+                        onSearchValueChange("");
                       } else {
                         setShowGraphSearch(!showGraphSearch);
                       }
@@ -748,6 +1200,12 @@ export const TypesTable: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
+      {view === "Table" && tree?.isFlat ? (
+        <Typography variant="smallTextParagraphs" sx={{ px: 2, py: 1 }}>
+          Showing each matching type once because this hierarchy has too many
+          branches to expand.
+        </Typography>
+      ) : null}
       {view === "Table" ? (
         <Box
           sx={[
@@ -773,17 +1231,29 @@ export const TypesTable: FunctionComponent<{
           ]}
         >
           <Grid
+            gridRef={gridRef}
             columns={typesTableColumns}
             createGetCellContent={createGetCellContent}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
             customRenderers={[
               createRenderTextIconCell({ firstColumnLeftPadding }),
               createRenderChipCell({ firstColumnLeftPadding }),
+              renderDataTypeTreeCell,
             ]}
-            dataLoading={!types || loading}
+            dataLoading={
+              !types ||
+              loading ||
+              (!onlyOneWeb &&
+                allTypes === undefined &&
+                filteredTypes.length === 0)
+            }
             enableCheckboxSelection
+            rowMarkerWidth={28}
+            drawFocusRing={hierarchical}
+            preserveCurrentCell={hierarchical}
             firstColumnLeftPadding={firstColumnLeftPadding}
             freezeColumns={1}
+            noResultsContent={emptyStateContent}
             height={`min(
                 ${maxTableHeight},
                 calc(
@@ -793,11 +1263,34 @@ export const TypesTable: FunctionComponent<{
                 )
               )`}
             onSearchClose={() => setShowSearch(false)}
-            onSelectedRowsChange={(updatedSelectedRows) =>
-              setSelectedRows(updatedSelectedRows)
-            }
-            rows={sortedRows}
-            selectedRows={selectedRows}
+            onSelectedRowsChange={onSelectedRowsChange}
+            rows={visibleRows}
+            searchValue={searchValue}
+            onSearchValueChange={onSearchValueChange}
+            onKeyDown={(event) => {
+              const [column, index] = event.location ?? [-1, -1];
+              const row = visibleRows?.[index];
+              // Glide includes the checkbox column in keyboard event locations.
+              if (
+                column !== 1 ||
+                !row?.hierarchy ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.altKey
+              ) {
+                return;
+              }
+              if (event.key === " " && row.hierarchy.hasChildren) {
+                event.cancel();
+                event.preventDefault();
+                toggleRow(row.rowId);
+              } else if (event.key === "Enter") {
+                event.cancel();
+                event.preventDefault();
+                pushToSlideStack({ kind: "dataType", itemId: row.typeId });
+              }
+            }}
+            selectedRows={selectedVisibleRows}
             setSort={setSort}
             showSearch={showSearch}
             sort={activeSort}
@@ -810,6 +1303,7 @@ export const TypesTable: FunctionComponent<{
               "lastEditedBy",
             ]}
           />
+          {tooltipElement}
         </Box>
       ) : (
         <Box height={maxTableHeight} sx={tableContentSx}>

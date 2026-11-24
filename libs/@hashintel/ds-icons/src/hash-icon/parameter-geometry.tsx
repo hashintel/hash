@@ -1,6 +1,8 @@
-import { useId } from "react";
+import { use, useId } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
+
+import { IconFillContext } from "./filled-shape";
 
 const scrubStyle = css({
   "--parameter-scrub-direction": "1",
@@ -18,29 +20,32 @@ const ParameterKnobs = ({
   duration: number;
   animated: boolean;
   masked?: boolean;
-}) => (
-  <>
-    {(["top", "bottom"] as const).map((slider) => (
-      <g
-        key={slider}
-        className={scrubStyle}
-        data-icon-detail={animated ? "slider" : undefined}
-        data-slider={slider}
-        style={{ animationDuration: `${duration}ms` }}
-      >
-        <circle
-          pathLength="1"
-          data-icon-draw={masked ? undefined : `knob-${slider}`}
-          cx={slider === "top" ? 10 : 14}
-          cy={slider === "top" ? 7 : 17}
-          r="3"
-          fill={masked ? "black" : "none"}
-          stroke={masked ? "none" : undefined}
-        />
-      </g>
-    ))}
-  </>
-);
+}) => {
+  const filled = use(IconFillContext);
+  return (
+    <>
+      {(["top", "bottom"] as const).map((slider) => (
+        <g
+          key={slider}
+          className={scrubStyle}
+          data-icon-detail={animated ? "slider" : undefined}
+          data-slider={slider}
+          style={{ animationDuration: `${duration}ms` }}
+        >
+          <circle
+            pathLength="1"
+            data-icon-draw={masked ? undefined : `knob-${slider}`}
+            cx={slider === "top" ? 10 : 14}
+            cy={slider === "top" ? 7 : 17}
+            r="3"
+            fill={masked ? "black" : filled ? "currentColor" : "none"}
+            stroke={masked ? "none" : undefined}
+          />
+        </g>
+      ))}
+    </>
+  );
+};
 
 export const ParameterGeometry = ({
   duration,

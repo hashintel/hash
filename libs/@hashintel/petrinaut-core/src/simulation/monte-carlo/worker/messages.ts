@@ -1,4 +1,4 @@
-import type { PetrinautExtensionSettings } from "../../../extensions";
+import type { PetrinautExtensionSettings } from "../../../extensions/extensions";
 import type { HirArtifacts } from "../../../hir-runtime";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { InitialMarking } from "../../api";
@@ -6,6 +6,7 @@ import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
 } from "../metrics";
+import type { MonteCarloSimulatorSelection } from "../run-driver";
 import type { MonteCarloAdvanceResult, MonteCarloRunConfig } from "../types";
 
 export type MonteCarloInitMessage = {
@@ -38,6 +39,11 @@ export type MonteCarloInitMessage = {
    * configures the run at global index `runIndexOffset`.
    */
   runs?: readonly MonteCarloRunConfig[];
+  /**
+   * The simulator that advances each run between samples, when it is not
+   * the fixed-step engine. `dt` is then the sample period alone.
+   */
+  simulator?: MonteCarloSimulatorSelection;
 };
 
 export type MonteCarloStartMessage = {

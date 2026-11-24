@@ -4,7 +4,8 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use core::{
-    future::poll_fn, num::NonZeroUsize, pin::Pin, str::FromStr as _, task::Poll, time::Duration,
+    assert_matches, future::poll_fn, num::NonZeroUsize, pin::Pin, str::FromStr as _, task::Poll,
+    time::Duration,
 };
 use std::{
     fs,
@@ -144,13 +145,11 @@ async fn query_failure_keeps_workspace_open() {
         .await
         .expect_err("a query of a missing table should fail");
 
-    assert!(
-        matches!(
-            report.current_context(),
-            StatementError::InvalidQuery {
-                error_type: QueryErrorType::Catalog
-            }
-        ),
+    assert_matches!(
+        report.current_context(),
+        StatementError::InvalidQuery {
+            error_type: QueryErrorType::Catalog
+        },
         "the missing table should be reported, not {report:?}"
     );
     assert!(
@@ -176,13 +175,11 @@ async fn query_reports_invalid_data() {
         .await
         .expect_err("a cast of text that is not a number should fail");
 
-    assert!(
-        matches!(
-            report.current_context(),
-            StatementError::InvalidData {
-                error_type: DataErrorType::Conversion
-            }
-        ),
+    assert_matches!(
+        report.current_context(),
+        StatementError::InvalidData {
+            error_type: DataErrorType::Conversion
+        },
         "the value should be reported, not {report:?}"
     );
 }
@@ -202,11 +199,9 @@ async fn query_refuses_other_statements() {
             .query(sql.into())
             .await
             .expect_err("only a `SELECT` should run");
-        assert!(
-            matches!(
-                report.current_context(),
-                StatementError::NotSelect { reason } if !reason.is_empty()
-            ),
+        assert_matches!(
+            report.current_context(),
+            StatementError::NotSelect { reason } if !reason.is_empty(),
             "`{sql}` should be refused with DuckDB's reason, not by {report:?}"
         );
     }
@@ -222,11 +217,9 @@ async fn create_table_refuses_other_statement_counts() {
             .create_table("flights".into(), sql.into())
             .await
             .expect_err("SQL that is not one statement should be refused");
-        assert!(
-            matches!(
-                report.current_context(),
-                StatementError::StatementCount { count: found } if *found == count
-            ),
+        assert_matches!(
+            report.current_context(),
+            StatementError::StatementCount { count: found } if *found == count,
             "`{sql}` should be refused as {count} statements, not by {report:?}"
         );
     }
@@ -259,11 +252,9 @@ async fn query_refuses_disallowed_table_functions() {
             .query(sql.into())
             .await
             .expect_err("the table function should be refused");
-        assert!(
-            matches!(
-                report.current_context(),
-                StatementError::TableFunction { name: found } if &**found == name
-            ),
+        assert_matches!(
+            report.current_context(),
+            StatementError::TableFunction { name: found } if &**found == name,
             "`{sql}` should be refused for calling `{name}`, not by {report:?}"
         );
     }
@@ -349,11 +340,9 @@ async fn query_refuses_unsupported_types() {
             .query(sql.into())
             .await
             .expect_err("the column type should be refused");
-        assert!(
-            matches!(
-                report.current_context(),
-                StatementError::UnsupportedType { column, .. } if &**column == "departs"
-            ),
+        assert_matches!(
+            report.current_context(),
+            StatementError::UnsupportedType { column, .. } if &**column == "departs",
             "`{sql}` should be refused for its column type, not by {report:?}"
         );
     }
@@ -374,8 +363,9 @@ async fn open_refuses_second_workspace() {
     let report = Workspace::open(database_path(&directory), WorkspaceConfig::default())
         .await
         .expect_err("a second workspace should not open the database");
-    assert!(
-        matches!(report.current_context(), OpenError::Locked { .. }),
+    assert_matches!(
+        report.current_context(),
+        OpenError::Locked { .. },
         "the lock should be reported, not {report:?}"
     );
 
@@ -519,11 +509,9 @@ async fn snapshot_refuses_invalid_targets() {
             .snapshot(target.clone())
             .await
             .expect_err("a relative target or one with `..` should be refused");
-        assert!(
-            matches!(
-                report.current_context(),
-                SnapshotError::InvalidTarget { .. }
-            ),
+        assert_matches!(
+            report.current_context(),
+            SnapshotError::InvalidTarget { .. },
             "`{}` should be refused, not by {report:?}",
             target.display()
         );
@@ -545,11 +533,9 @@ async fn snapshot_refuses_workspace_files() {
             .snapshot(target.clone())
             .await
             .expect_err("a workspace file should not be a snapshot target");
-        assert!(
-            matches!(
-                report.current_context(),
-                SnapshotError::WorkspaceFile { .. }
-            ),
+        assert_matches!(
+            report.current_context(),
+            SnapshotError::WorkspaceFile { .. },
             "`{}` should be refused, not by {report:?}",
             target.display()
         );
@@ -568,8 +554,9 @@ async fn snapshot_failure_removes_partial_copy() {
         .await
         .expect_err("a directory should not be replaced by the snapshot");
 
-    assert!(
-        matches!(report.current_context(), SnapshotError::Write { .. }),
+    assert_matches!(
+        report.current_context(),
+        SnapshotError::Write { .. },
         "the failed write should be reported, not {report:?}"
     );
     assert!(
@@ -668,12 +655,10 @@ async fn open_refuses_files_over_disk_limit() {
     .await
     .expect_err("files over the disk limit should not open");
 
-    assert!(
-        matches!(
-            report.current_context(),
-            OpenError::DiskLimit { used, limit }
-                if *limit == ByteSize::from_bytes(1) && used > limit
-        ),
+    assert_matches!(
+        report.current_context(),
+        OpenError::DiskLimit { used, limit }
+            if *limit == ByteSize::from_bytes(1) && used > limit,
         "the size and the limit should be reported, not {report:?}"
     );
 }
@@ -698,11 +683,9 @@ async fn create_table_over_disk_limit_keeps_table() {
         .await
         .expect_err("a table that takes the files over the limit should be reported");
 
-    assert!(
-        matches!(
-            report.current_context(),
-            StatementError::DiskLimit { used, limit } if used > limit
-        ),
+    assert_matches!(
+        report.current_context(),
+        StatementError::DiskLimit { used, limit } if used > limit,
         "the disk limit should be reported, not {report:?}"
     );
     workspace.close().await.expect("the workspace should close");
@@ -734,8 +717,9 @@ async fn disk_limit_counts_temp_directory() {
         .await
         .expect_err("a file in the temporary directory should count towards the limit");
 
-    assert!(
-        matches!(report.current_context(), StatementError::DiskLimit { .. }),
+    assert_matches!(
+        report.current_context(),
+        StatementError::DiskLimit { .. },
         "the disk limit should be reported, not {report:?}"
     );
 }
@@ -841,11 +825,9 @@ async fn query_refuses_unknown_parameter() {
             .query(sql.into())
             .await
             .expect_err("a parameter without a value should be refused");
-        assert!(
-            matches!(
-                report.current_context(),
-                StatementError::UnknownParameter { name: found } if &**found == name
-            ),
+        assert_matches!(
+            report.current_context(),
+            StatementError::UnknownParameter { name: found } if &**found == name,
             "`{sql}` should be refused for parameter `{name}`, not by {report:?}"
         );
     }

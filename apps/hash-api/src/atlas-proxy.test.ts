@@ -1,6 +1,5 @@
 import { createServer } from "node:http";
 
-import bodyParser from "body-parser";
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -115,7 +114,7 @@ const startApi = async ({
   parserAboveProxy = false,
 }: { parserAboveProxy?: boolean } = {}) => {
   const app = express();
-  const jsonParser = bodyParser.json();
+  const jsonParser = express.json();
   if (parserAboveProxy) {
     app.use(jsonParser);
   }
