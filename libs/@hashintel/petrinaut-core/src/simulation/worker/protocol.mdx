@@ -37,7 +37,7 @@ and the experiment worker on
 | `complete`         | `"deadlock"` or `"maxTime"`, frame number | Status becomes Complete, emitted on the event stream.            |
 | `error`            | message, offending item id if known       | Status becomes Error; rejects creation if still initialising.    |
 
-Errors carry the SDCPN item id where known, which is what lets the editor
+Errors carry the SDCPN item id where known, which is what lets a host
 highlight the transition whose lambda threw rather than showing a bare message.
 
 ## One run, end to end
@@ -73,7 +73,7 @@ highlight the transition whose lambda threw rather than showing a bare message.
     {
       direction: "right",
       label: "`ack(n)`",
-      note: "The play mode decides when",
+      note: "The host decides when",
     },
     {
       direction: "left",
@@ -121,14 +121,20 @@ the ordering:
   last frames. A host that stores frames on `frames` and tears down on `complete`
   will drop that final batch unless it drains after completing.
 
-The per-mode profiles the core exposes:
+`getPlayModeBackpressure` in `../../playback/playback.ts` gives the settings
+for each compute play mode. A host passes them in `init` or with
+`setBackpressure`, and decides itself when to ack:
 
-| Play mode       | `maxFramesAhead` | `batchSize` | Behaviour                                                                                 |
-| --------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| view only       | none             | none        | No profile: the React layer pauses the worker and never acks, so nothing new is computed. |
-| compute buffer  | 40               | 10          | Acks when playback is within ~0.5 s of the last computed frame.                           |
-| compute max     | 10000            | 500         | Acks on every arrival, to compute as fast as possible.                                    |
-| worker defaults | 1000             | 1000        | Used when `init` omits the settings.                                                      |
+| Play mode       | `maxFramesAhead` | `batchSize` | What a host does with it                                                                     |
+| --------------- | ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| view only       | none             | none        | The mode has no settings. A host pauses the worker and sends no ack, so nothing is computed. |
+| compute buffer  | 40               | 10          | A host acks the frame it shows, so the worker stays a short buffer ahead of playback.        |
+| compute max     | 10000            | 500         | A host acks each frame as it arrives, so the worker computes as fast as it can.              |
+| worker defaults | 1000             | 1000        | Used when `init` omits the settings.                                                         |
+
+No part of the editor sends `ack` or `setBackpressure`: it starts no run
+through `createSimulation`, and nothing in it calls
+`getPlayModeBackpressure`. A host of this runtime writes the loop that acks.
 
 ## Lifecycle
 
@@ -145,8 +151,9 @@ in which complete and error are terminal.
 
 A sharp edge: `reset()` returns the main-thread status to Ready, but the worker
 has discarded its simulation, so a subsequent `run()` sends `start` to a worker
-with nothing to run. What actually happens in the UI flow is a full re-init.
-Treat reset as "throw this away", not "rewind".
+with nothing to run, and the worker answers `error`. The handle has no call
+that sends `init` again, so a host that wants the run again creates a new
+simulation. Treat reset as "throw this away", not "rewind".
 
 ## Main-thread responsibilities
 
