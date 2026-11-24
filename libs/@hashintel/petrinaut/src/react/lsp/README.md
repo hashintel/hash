@@ -38,17 +38,23 @@ a new client.
 document yet, such as a metric in a drawer. `useLspSession` takes the three
 calls of one kind of session, the content and a content key:
 
-| When                       | The hook calls                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| The component mounts       | `initialize`, with the content and a session id it generates, or the one given. |
-| The content key changes    | `update`, with the latest content.                                              |
-| A given session id changes | `kill` for the old id, then `initialize` for the new one.                       |
-| The component unmounts     | `kill`.                                                                         |
+| When                             | The hook calls                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| The component mounts             | `initialize`, with the content and a session id it generates, or the one given. |
+| The content key changes          | `update`, with the latest content.                                              |
+| The client lands after the mount | `update`, which the worker treats as opening the session.                       |
+| A given session id changes       | `kill` for the old id, then `initialize` for the new one.                       |
+| The component unmounts           | `kill`.                                                                         |
 
-The content is sent when the key changes and at no other time. A caller that
-builds an equal content object on every render would otherwise update the
-worker on every render, and each publish of the worker's diagnostics renders
-that caller again.
+A component that mounts before the client exists calls the `initialize` of
+the default context, which does nothing. When the provider publishes the
+client the three calls change, the hook runs again and calls `update`, and
+that is the first message the worker receives for the session.
+
+The content is sent when the key, the session id or the client changes, and
+not when the content object does. A caller that builds an equal content
+object on every render would otherwise update the worker on every render,
+and each publish of the worker's diagnostics renders that caller again.
 
 [Language worker protocol](doc:core.lsp.worker/protocol) states the messages
 behind these calls.
