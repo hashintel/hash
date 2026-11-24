@@ -88,6 +88,7 @@
 /libs/@local/eslint/ @hashintel/infra
 /libs/@local/oxlint/ @hashintel/infra
 /libs/@local/repo-chores/ @hashintel/infra
+/libs/@local/repo-chores/rust/ @hashintel/infra @hashintel/rust
 /libs/@local/tsconfig/ @hashintel/infra
 
 # Test suites
