@@ -72,6 +72,7 @@ export const createEntityResolver: ResolverFn<
   _,
   {
     webId,
+    entityUuid: requestedEntityUuid,
     properties,
     entityTypeIds,
     linkedEntities,
@@ -86,7 +87,7 @@ export const createEntityResolver: ResolverFn<
 
   let entity: Entity;
 
-  const entityUuid = generateUuid() as EntityUuid;
+  const entityUuid = requestedEntityUuid ?? (generateUuid() as EntityUuid);
   const policies: CreateEntityParameters["policies"] = makePublic
     ? [
         {

@@ -38,6 +38,7 @@ import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
+import { ensureConversationClassificationPreserved } from "./entity/ensure-conversation-classification-preserved";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 import type {
@@ -482,6 +483,13 @@ const prepareEntityUpdate: ImpureGraphFunction<
   true
 > = async (context, authentication, params) => {
   const { entity, entityTypeIds, propertyPatches } = params;
+
+  await ensureConversationClassificationPreserved({
+    context,
+    authentication,
+    previousEntityTypeIds: entity.metadata.entityTypeIds,
+    nextEntityTypeIds: entityTypeIds,
+  });
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (entity.metadata.entityTypeIds.includes(beforeUpdateHook.entityTypeId)) {

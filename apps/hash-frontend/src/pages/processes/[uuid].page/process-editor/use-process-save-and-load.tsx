@@ -4,9 +4,14 @@ import {
   type SetStateAction,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
@@ -23,7 +28,7 @@ import {
   type PersistedNet,
   usePersistedNets,
 } from "../../../processes.page/use-persisted-nets";
-import { useActiveWorkspace } from "../../../shared/workspace-context";
+import { NetExistsError } from "./shared/net-exists-error";
 
 import type {
   CreateEntityMutation,
@@ -53,6 +58,16 @@ export type PersistResult = {
   userEditable: boolean;
 };
 
+/**
+ * The net a save writes to. A draft is named before it exists, so its first
+ * save creates the entity under that id, in the web the id names.
+ */
+export type PersistTarget = {
+  entityId: EntityId;
+  /** Whether the entity exists; a draft's doesn't until its first save. */
+  exists: boolean;
+};
+
 type UseProcessSaveAndLoadParams = {
   setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
   refetchRevisions: () => Promise<unknown>;
@@ -71,17 +86,21 @@ export const useProcessSaveAndLoad = ({
   persistedNets: PersistedNet[];
   persistedNetsLoading: boolean;
   /**
-   * Persist the supplied SDCPN + title to the graph: to `entityId`, or to a
-   * new net when it is `null`. On success resolves with the persisted entity
-   * id, the new decision-time, and whether the resulting entity is editable
-   * by the current user. It changes no selection: the caller decides
-   * whether the result still applies to what is open, and is responsible
-   * for any URL navigation following a create.
+   * Persist the supplied SDCPN + title to the graph: to the target's entity,
+   * creating it under the target's id when it doesn't exist yet. A target
+   * this hook created already is updated, whatever it says. On success
+   * resolves with the persisted entity id, the new decision-time, and
+   * whether the resulting entity is editable by the current user. A
+   * refused create rejects with {@link NetExistsError} when the net exists
+   * and the user can see it, and otherwise preserves the original error.
+   * It changes no selection: the caller decides whether the result still
+   * applies to what is open, and is responsible for any URL navigation
+   * following a create.
    */
   persistDefinition: (
     petriNet: SDCPN,
     title: string,
-    entityId: EntityId | null,
+    target: PersistTarget,
   ) => Promise<PersistResult>;
   setUserEditable: Dispatch<SetStateAction<boolean>>;
   userEditable: boolean;
@@ -92,9 +111,14 @@ export const useProcessSaveAndLoad = ({
     refetch,
   } = usePersistedNets();
 
-  const { activeWorkspaceWebId } = useActiveWorkspace();
-
   const [userEditable, setUserEditable] = useState(true);
+
+  /**
+   * The nets this page created, kept from the moment the graph confirmed
+   * each create, whatever the reads after it did: saving one again updates
+   * it, even while its draft still names it as not existing.
+   */
+  const createdEntityIdsRef = useRef(new Set<EntityId>());
 
   const [createEntity] = useMutation<
     CreateEntityMutation,
@@ -166,19 +190,53 @@ export const useProcessSaveAndLoad = ({
     [refetch, refetchRevisions],
   );
 
+  /**
+   * Recover a refused create only if we can find the exact saved process.
+   * A missing result does not tell us why the create failed.
+   */
+  const createRefusal = useCallback(
+    async (entityId: EntityId, cause: unknown): Promise<Error> => {
+      const unknownFailure =
+        cause instanceof Error ? cause : new Error(String(cause));
+      let nets: PersistedNet[];
+      try {
+        const { data } = await refetch();
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- `refetch()` can resolve without `data`
+        if (!data) {
+          return unknownFailure;
+        }
+        nets = getPersistedNetsFromSubgraph(data);
+      } catch {
+        return unknownFailure;
+      }
+      const existing = nets.find((net) => net.entityId === entityId);
+      if (!existing) {
+        return unknownFailure;
+      }
+      return new NetExistsError({
+        entityId,
+        savedSnapshot: {
+          definition: existing.definition,
+          title: existing.title,
+          decisionTime: existing.lastUpdated,
+        },
+        userEditable: existing.userEditable,
+      });
+    },
+    [refetch],
+  );
+
   const persistDefinition = useCallback(
     async (
       petriNet: SDCPN,
       title: string,
-      entityId: EntityId | null,
+      target: PersistTarget,
     ): Promise<PersistResult> => {
-      if (!activeWorkspaceWebId) {
-        throw new Error("No active workspace; cannot persist Petri net.");
-      }
+      const { entityId } = target;
+      const exists = target.exists || createdEntityIdsRef.current.has(entityId);
+      let persistedEntityId: EntityId | null = exists ? entityId : null;
 
-      let persistedEntityId = entityId;
-
-      if (entityId) {
+      if (exists) {
         await updateEntity({
           variables: {
             entityUpdate: {
@@ -214,7 +272,8 @@ export const useProcessSaveAndLoad = ({
         const createdEntityData = await createEntity({
           variables: {
             entityTypeIds: [systemEntityTypes.petriNet.entityTypeId],
-            webId: activeWorkspaceWebId,
+            webId: extractWebIdFromEntityId(entityId),
+            entityUuid: extractEntityUuidFromEntityId(entityId),
             properties: {
               value: {
                 "https://hash.ai/@h/types/property-type/definition-object/": {
@@ -232,6 +291,8 @@ export const useProcessSaveAndLoad = ({
               },
             } satisfies PetriNetPropertiesWithMetadata as PropertyObjectWithMetadata,
           },
+        }).catch(async (error: unknown) => {
+          throw await createRefusal(entityId, error);
         });
 
         if (!createdEntityData.data?.createEntity) {
@@ -243,6 +304,7 @@ export const useProcessSaveAndLoad = ({
         );
 
         persistedEntityId = createdEntity.entityId;
+        createdEntityIdsRef.current.add(entityId);
       }
 
       if (!persistedEntityId) {
@@ -265,7 +327,7 @@ export const useProcessSaveAndLoad = ({
         userEditable: refetched.userEditable,
       };
     },
-    [activeWorkspaceWebId, createEntity, refetchPersistedNets, updateEntity],
+    [createEntity, createRefusal, refetchPersistedNets, updateEntity],
   );
 
   return useMemo(

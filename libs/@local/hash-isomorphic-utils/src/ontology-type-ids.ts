@@ -10,6 +10,11 @@ export const systemEntityTypes = {
     entityTypeId: "https://hash.ai/@h/types/entity-type/actor/v/2",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/actor/" as BaseUrl,
   },
+  agentConversation: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/agent-conversation/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/agent-conversation/" as BaseUrl,
+  },
   aircraft: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/aircraft/v/1",
     entityTypeBaseUrl:
@@ -490,6 +495,12 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/has/" as BaseUrl,
   },
+  hasAgentConversationFocus: {
+    linkEntityTypeId:
+      "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/" as BaseUrl,
+  },
   hasAvatar: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/has-avatar/v/1",
     linkEntityTypeBaseUrl:
@@ -840,6 +851,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/actual-study-start-date/" as BaseUrl,
   },
+  agentId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/agent-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/agent-id/" as BaseUrl,
+  },
   alternativeBom: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/alternative-bom/v/1",
@@ -972,6 +988,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/connection-source-name/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/connection-source-name/" as BaseUrl,
+  },
+  conversationId: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/conversation-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/conversation-id/" as BaseUrl,
   },
   country: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/country/v/1",

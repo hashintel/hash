@@ -622,6 +622,8 @@ export const createBrunchMutationApprovalWidget = (
 /**
  * The card for an agent's save: Allow or Deny, never Always allow, since the
  * person decides each time when their work becomes the version others see.
+ * A net that was never saved doesn't exist for anyone else yet, so its card
+ * says the save makes its first version.
  */
 export const createBrunchSaveApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
@@ -631,13 +633,25 @@ export const createBrunchSaveApprovalWidget = (
     const { title, lastSavedTime } = readSaveState(
       saveInputParser.parse(input).documentId,
     );
+    const creates = lastSavedTime === null;
     return (
       <section className={containerStyle} aria-label="Approve saving the net">
-        <strong>Save ‘{title}’ as a new version?</strong>
+        <strong>
+          {creates ? `Save ‘${title}’?` : `Save ‘${title}’ as a new version?`}
+        </strong>
         <p className={css({ fontSize: "sm" })}>
-          It saves every unsaved edit in the editor, yours and the
-          assistant&apos;s. Others who can see this net will see it as the
-          latest version.
+          {creates ? (
+            <>
+              This net hasn&apos;t been saved yet. Saving it keeps everything in
+              the editor, yours and the assistant&apos;s, as its first version.
+            </>
+          ) : (
+            <>
+              It saves every unsaved edit in the editor, yours and the
+              assistant&apos;s. Others who can see this net will see it as the
+              latest version.
+            </>
+          )}
         </p>
         {lastSavedTime !== null && (
           <p className={css({ fontSize: "xs", color: "neutral.s90" })}>

@@ -125,6 +125,13 @@ const handle = createJsonDocHandle({
 
 const savedEntityId = "web~net" as EntityId;
 
+/** Stable, as the editor's is while the open conversation is unchanged. */
+const conversationPointer = {
+  conversationId: null,
+  start: () => {},
+  replace: () => {},
+};
+
 const captureException = vi.fn<ErrorTracker["captureException"]>();
 
 let identityResponse: () => Promise<Response>;
@@ -154,19 +161,21 @@ const hostSave: BrunchUi.BrunchHostSave = {
 };
 
 const renderEditor = (props: {
-  savedEntityId: EntityId | null;
+  savedEntityId: EntityId;
   readonly: boolean;
 }) => {
-  const element = (next: typeof props) => (
+  const element = ({ savedEntityId: entityId, readonly }: typeof props) => (
     <ErrorTrackerContext value={{ captureException }}>
       <ProcessPetrinaut
         handle={handle}
+        entityId={entityId}
+        conversationPointer={conversationPointer}
         readTitle={() => "Net"}
         hostSave={hostSave}
         versionLoad={undefined}
+        readonly={readonly}
         setTitle={() => {}}
         title="Net"
-        {...next}
       />
     </ErrorTrackerContext>
   );
@@ -302,12 +311,4 @@ test("a net the user may not edit gets no Brunch, and gaining or losing permissi
 
   expect(observed.petrinautMounts).toBe(1);
   expect(fetchMock).toHaveBeenCalledTimes(1);
-});
-
-test("an unsaved draft gets no Brunch", async () => {
-  renderEditor({ savedEntityId: null, readonly: false });
-  await settleIdentity();
-
-  expect(observed.brunchInputs).toHaveLength(0);
-  expect(lastPlugins()).toEqual([topBarPluginMarker]);
 });
