@@ -14,14 +14,28 @@
       ]
     },
     "codegen": {
+      "dependsOn": [
+        "@local/hashql#build"
+      ],
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
+    "codegen:dev": {
       "dependsOn": []
     },
     "dev": {
-      "dependsOn": [],
+      "dependsOn": [
+        "codegen",
+        "codegen:dev"
+      ],
       "cache": false,
       "persistent": true,
       "env": [
         "PORT"
+      ],
+      "affectedBy": [
+        "@local/hashql"
       ]
     },
     "dev:reference": {
@@ -38,12 +52,18 @@
       "dependsOn": [
         "@local/oxlint#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@local/hashql"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@local/oxlint#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@local/hashql"
       ]
     },
     "test:integration": {
