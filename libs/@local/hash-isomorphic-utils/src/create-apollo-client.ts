@@ -27,8 +27,8 @@ import type {
 export type RetryContext = {
   /**
    * How long each retry of a failed attempt waits, in order: one retry per
-   * entry. An attempt is retried on transient failures (network errors, 5xx /
-   * 429 HTTP responses, or GraphQL answers whose errors are all transient).
+   * entry. An attempt is retried on retryable failures (network errors, 5xx /
+   * 429 HTTP responses, or GraphQL answers whose errors are all retryable).
    */
   retryDelaysMs?: readonly number[];
 };
@@ -36,7 +36,7 @@ export type RetryContext = {
 const retryDelaysOf = (operation: Operation) =>
   (operation.getContext() as RetryContext).retryDelaysMs;
 
-/** An answer with transient errors, failed so that the retry link retries it. */
+/** An answer with retryable errors, failed so that the retry link retries it. */
 class ResultWithErrors extends Error {
   constructor(readonly result: FetchResult) {
     super(
@@ -48,30 +48,53 @@ class ResultWithErrors extends Error {
 }
 
 /**
- * GraphQL error codes that represent transient failures worth retrying.
+ * GraphQL error codes eligible for retry.
  * Permanent errors (e.g. `FORBIDDEN`, `UNAUTHENTICATED`, `BAD_USER_INPUT`,
  * `BAD_REQUEST`, `GRAPHQL_VALIDATION_FAILED`, `NOT_FOUND`) are not retried.
  */
-const transientGraphQLErrorCodes = new Set([
+const retryableGraphQLErrorCodes = new Set([
   "INTERNAL_SERVER_ERROR",
   "SERVICE_UNAVAILABLE",
   "RATE_LIMITED",
 ]);
 
-const isTransientGraphQLResult = (result: FetchResult): boolean => {
+const isRetryableGraphQLResult = (result: FetchResult): boolean => {
   const errors = result.errors;
   if (!errors?.length) {
     return false;
   }
   return errors.every(({ extensions }) => {
     const code = extensions.code;
-    return typeof code === "string" && transientGraphQLErrorCodes.has(code);
+    return typeof code === "string" && retryableGraphQLErrorCodes.has(code);
   });
 };
 
-const isTransientError = (error: unknown): boolean => {
+const getRetryAfterMs = (error: unknown): number | undefined => {
+  if (
+    typeof error !== "object" ||
+    error === null ||
+    !("response" in error) ||
+    !(error.response instanceof Response)
+  ) {
+    return undefined;
+  }
+  const header = error.response.headers.get("Retry-After")?.trim();
+  if (!header) {
+    return undefined;
+  }
+  if (/^\d+$/.test(header)) {
+    return Number(header) * 1_000;
+  }
+  const dateMs = Date.parse(header);
+  if (!Number.isNaN(dateMs)) {
+    return Math.max(0, dateMs - Date.now());
+  }
+  return undefined;
+};
+
+const shouldRetryError = (error: unknown): boolean => {
   if (error instanceof ResultWithErrors) {
-    return isTransientGraphQLResult(error.result);
+    return isRetryableGraphQLResult(error.result);
   }
   if (
     typeof error === "object" &&
@@ -87,11 +110,11 @@ const isTransientError = (error: unknown): boolean => {
 
 /**
  * Retries the operations that opt in through {@link RetryContext}, after
- * each of their delays in turn, when the failure is transient. When retries
- * are exhausted, GraphQL error results are restored as normal
- * {@link FetchResult}s so Apollo preserves `graphQLErrors`, partial `data`,
- * and `errorPolicy` instead of surfacing them as network errors. Every other
- * operation passes through untouched.
+ * each of their delays in turn (honoring HTTP `Retry-After` when present),
+ * when the failure is retryable. When retries are exhausted, GraphQL error
+ * results are restored as normal {@link FetchResult}s so Apollo preserves
+ * `graphQLErrors`, partial `data`, and `errorPolicy` instead of surfacing them
+ * as network errors. Every other operation passes through untouched.
  */
 const retryLink = ApolloLink.split(
   (operation) => retryDelaysOf(operation) !== undefined,
@@ -114,14 +137,15 @@ const retryLink = ApolloLink.split(
         ),
     ),
     new RetryLink({
-      delay: (count, operation) => retryDelaysOf(operation)?.[count - 1] ?? 0,
+      delay: (count, operation, error) =>
+        getRetryAfterMs(error) ?? retryDelaysOf(operation)?.[count - 1] ?? 0,
       attempts: (count, operation, error) =>
         count <= (retryDelaysOf(operation)?.length ?? 0) &&
-        isTransientError(error),
+        shouldRetryError(error),
     }),
     new ApolloLink((operation, forward) =>
       forward(operation).map((result) => {
-        if (isTransientGraphQLResult(result)) {
+        if (isRetryableGraphQLResult(result)) {
           throw new ResultWithErrors(result);
         }
         return result;

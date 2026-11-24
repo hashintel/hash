@@ -147,7 +147,7 @@ test("an operation that opts in does not retry permanent GraphQL or 4xx HTTP err
   expect(sent).toEqual([0]);
 });
 
-test("an operation that opts in retries 5xx and 429 HTTP errors", async () => {
+test("an operation that opts in retries 5xx and 429 HTTP errors and honors Retry-After", async () => {
   respond = () =>
     Promise.resolve(
       new Response(JSON.stringify({ message: "Service unavailable" }), {
@@ -167,6 +167,32 @@ test("an operation that opts in retries 5xx and 429 HTTP errors", async () => {
     );
   expect(await run({ retryDelaysMs: [500] })).toBeInstanceOf(Error);
   expect(sent).toEqual([0, 500]);
+
+  sent.length = 0;
+  start = Date.now();
+  respond = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ message: "Too many requests" }), {
+        status: 429,
+        headers: { "Retry-After": "3" },
+      }),
+    );
+  expect(await run({ retryDelaysMs: [500] })).toBeInstanceOf(Error);
+  expect(sent).toEqual([0, 3_000]);
+
+  sent.length = 0;
+  vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+  start = Date.now();
+  const retryAt = new Date(start + 2_000).toUTCString();
+  respond = () =>
+    Promise.resolve(
+      new Response(JSON.stringify({ message: "Too many requests" }), {
+        status: 429,
+        headers: { "Retry-After": retryAt },
+      }),
+    );
+  expect(await run({ retryDelaysMs: [500] })).toBeInstanceOf(Error);
+  expect(sent).toEqual([0, 2_000]);
 });
 
 test("an operation that opts in preserves partial data with errorPolicy: 'all' after retries exhaust", async () => {
