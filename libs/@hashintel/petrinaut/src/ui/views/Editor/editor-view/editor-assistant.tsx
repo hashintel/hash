@@ -9,7 +9,7 @@ import {
   usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
 import { PluginBoundary } from "../../../plugins/plugin-boundary";
-import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
+import { PluginAssistantPanel } from "./editor-assistant/assistant-panel-shell";
 
 /**
  * The assistant panel beside the editor, around the content of the plugin

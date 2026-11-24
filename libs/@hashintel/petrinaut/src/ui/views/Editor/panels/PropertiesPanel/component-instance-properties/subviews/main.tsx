@@ -26,7 +26,7 @@ import { usePetrinautMutations } from "../../../../../../../react/editing/use-pe
 import { Section, SectionList } from "../../../../../../shared/section";
 import { hintTextStyle } from "../../../../shared/hint-text";
 import { UI_MESSAGES } from "../../../../shared/ui-messages";
-import { implementationItems } from "../../../implementation-items";
+import { implementationItems } from "../../../shared/implementation-items";
 import { DeleteItemButton } from "../../delete-item-button";
 import { DescriptionField } from "../../description-field";
 import { DraftFieldInput } from "../../draft-field-input";

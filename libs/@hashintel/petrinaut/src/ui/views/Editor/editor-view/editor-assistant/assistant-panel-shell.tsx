@@ -7,21 +7,21 @@ import { HashIcon, useHashIconMotionAllowed } from "@hashintel/ds-icons";
 import {
   useEditorActions,
   useEditorState,
-} from "../../../../react/state/editor-context";
-import { usePanelPresence } from "../../../../react/state/panel-presence-context";
-import { usePanelSizes } from "../../../../react/state/panel-sizes-context";
-import { useUserSettings } from "../../../../react/state/user-settings-context";
+} from "../../../../../react/state/editor-context";
+import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
 import {
   type AssistantPanel,
   AssistantPanelContext,
   AssistantTitleBarContext,
   useAssistantChoice,
-} from "../../../plugins/plugin-assistant";
-import { styleRef, useReading } from "../../../shared/readings";
-import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
-import { AiAssistantIcon } from "../shared/ai-assistant-icon";
-import { slideFromEdge } from "../shared/slide-from-edge";
-import { useFloatingPanel } from "../shared/use-floating-panel";
+} from "../../../../plugins/plugin-assistant";
+import { styleRef, useReading } from "../../../../shared/readings";
+import { FloatingResizeHandles } from "../../../shared/floating-resize-handles";
+import { AiAssistantIcon } from "../../shared/ai-assistant-icon";
+import { slideFromEdge } from "../../shared/slide-from-edge";
+import { useFloatingPanel } from "../../shared/use-floating-panel";
 
 // The room the docked panel takes beside the editor. Its width is bound to
 // `aiAssistantHasRoom`, which changes in one step: a width that eases makes

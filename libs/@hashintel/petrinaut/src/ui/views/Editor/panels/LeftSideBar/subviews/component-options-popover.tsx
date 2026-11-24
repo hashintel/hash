@@ -24,7 +24,7 @@ import { OptionalColorSelect } from "../../../../../shared/color-select";
 import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { pickSvgIcon } from "../../../shared/file-io/pick-svg-icon";
 import { hintTextStyle } from "../../../shared/hint-text";
-import { implementationItems } from "../../implementation-items";
+import { implementationItems } from "../../shared/implementation-items";
 
 import type { Component } from "@hashintel/petrinaut-core";
 
