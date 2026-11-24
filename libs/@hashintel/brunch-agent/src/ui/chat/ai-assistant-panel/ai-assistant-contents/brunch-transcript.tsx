@@ -2,7 +2,7 @@ import { memo, useEffect, useState } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { HashIcon } from "@hashintel/ds-icons";
+import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 
 import { useAiAssistantEditorApi } from "../editor-api";
 import {
@@ -411,7 +411,9 @@ const BrunchMessage = memo(
               variant="ghost"
               aria-label={copied ? "Answer copied" : "Copy answer"}
               tooltip={copied ? "Copied" : "Copy"}
-              prefix={<HashIcon name={copied ? "check" : "copy"} size={14} />}
+              prefix={
+                <ExperimentalIcon name={copied ? "check" : "copy"} size={14} />
+              }
               onClick={() => {
                 void (async () => {
                   try {
@@ -433,7 +435,7 @@ const BrunchMessage = memo(
                 variant="ghost"
                 aria-label="Retry answer"
                 tooltip="Retry as a new turn"
-                prefix={<HashIcon name="rotate" size={14} />}
+                prefix={<ExperimentalIcon name="rotate" size={14} />}
                 onClick={() => handlersRef.current.onRetryMessage(message.id)}
               />
             )}

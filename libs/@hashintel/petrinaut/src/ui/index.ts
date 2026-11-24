@@ -10,6 +10,14 @@
  */
 
 export { KeyboardShortcut } from "./shared/keyboard-shortcut";
+
+// The three icons the Brunch assistant imports from here. Every other icon is
+// imported from `@hashintel/ds-icons`.
+export {
+  HashIcon as ExperimentalIcon,
+  MicrophoneIcon,
+  VoiceIcon,
+} from "@hashintel/ds-icons";
 export { Petrinaut } from "./petrinaut";
 
 // The user guide's pages, so an assistant's tools can answer with them.
