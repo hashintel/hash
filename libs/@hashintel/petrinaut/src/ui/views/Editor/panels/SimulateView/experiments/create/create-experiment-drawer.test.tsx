@@ -25,26 +25,26 @@ import {
 } from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
-import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
-import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
-import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
-import { OptimizationsContext } from "../../../../../../react/optimizations/context";
-import { SimulatorsContext } from "../../../../../../react/simulators/context";
-import { CreateExperimentDrawer } from "./create-experiment-drawer";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
+import { ExperimentsActionsContext } from "../../../../../../../react/experiments/context";
+import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { PetrinautOptimizationContext } from "../../../../../../../react/optimizations/connected-optimizer-context";
+import { OptimizationsContext } from "../../../../../../../react/optimizations/context";
+import { SimulatorsContext } from "../../../../../../../react/simulators/context";
 import {
   makeExperiment,
   sirSdcpnContextValue,
-} from "./experiments-story-fixtures";
+} from "../experiments-story-fixtures";
+import { CreateExperimentDrawer } from "./create-experiment-drawer";
 
-import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
+import type { SDCPNContextValue } from "../../../../../../../react/document/sdcpn-context";
 import type {
   CreateExperimentInput,
   ExperimentRecord,
-} from "../../../../../../react/experiments/context";
-import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
-import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
-import type { SimulatorsContextValue } from "../../../../../../react/simulators/context";
+} from "../../../../../../../react/experiments/context";
+import type { LanguageClientContextValue } from "../../../../../../../react/lsp/context";
+import type { OptimizationsContextValue } from "../../../../../../../react/optimizations/context";
+import type { SimulatorsContextValue } from "../../../../../../../react/simulators/context";
 import type {
   ConstraintSource,
   LowerConstraintResult,
@@ -54,7 +54,7 @@ import type {
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
 
-vi.mock("../../../../../monaco/code-editor", () => ({
+vi.mock("../../../../../../monaco/code-editor", () => ({
   CodeEditor: ({
     onChange,
     value,
@@ -129,7 +129,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
         ))}
     </select>
   );
-  const { SegmentedControl } = await import("../shared/ds-control-stubs");
+  const { SegmentedControl } = await import("../../shared/ds-control-stubs");
 
   return { ...actual, Select, SegmentedControl };
 });

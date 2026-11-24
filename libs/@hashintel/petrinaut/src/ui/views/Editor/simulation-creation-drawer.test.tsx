@@ -14,13 +14,16 @@ import type {
   SimulateDrawerState,
 } from "../../../react/state/editor-context";
 
-vi.mock("./panels/SimulateView/experiments/create-experiment-drawer", () => ({
-  CreateExperimentDrawer: ({ onClose }: { onClose: () => void }) => (
-    <button type="button" onClick={onClose}>
-      experiment
-    </button>
-  ),
-}));
+vi.mock(
+  "./panels/SimulateView/experiments/create/create-experiment-drawer",
+  () => ({
+    CreateExperimentDrawer: ({ onClose }: { onClose: () => void }) => (
+      <button type="button" onClick={onClose}>
+        experiment
+      </button>
+    ),
+  }),
+);
 vi.mock("./panels/SimulateView/metrics/metric-drawer", () => ({
   MetricDrawer: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>

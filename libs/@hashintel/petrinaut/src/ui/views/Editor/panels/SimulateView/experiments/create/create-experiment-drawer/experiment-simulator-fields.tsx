@@ -6,12 +6,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   findSimulator,
   SimulatorsContext,
-} from "../../../../../../../react/simulators/context";
+} from "../../../../../../../../react/simulators/context";
 import {
   SimulatorParameterInput,
   SimulatorParameterLabel,
-} from "../../../../shared/simulator-parameter-input";
-import { visibleSimulatorParameters } from "../../../../shared/simulator-parameters";
+} from "../../../../../shared/simulator-parameter-input";
+import { visibleSimulatorParameters } from "../../../../../shared/simulator-parameters";
 import {
   withSimulatorParameter,
   type ExperimentSimulatorDraft,

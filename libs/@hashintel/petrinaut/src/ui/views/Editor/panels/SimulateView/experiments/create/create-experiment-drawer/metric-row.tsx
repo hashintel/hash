@@ -11,16 +11,16 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { getMetricDocumentUri } from "@hashintel/petrinaut-core";
 
-import { LanguageClientContext } from "../../../../../../../react/lsp/context";
-import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
-import { CodeEditor } from "../../../../../../monaco/code-editor";
-import { summarizeMetricLspErrors } from "../../metrics/metric-lsp";
+import { LanguageClientContext } from "../../../../../../../../react/lsp/context";
+import { useUserSettings } from "../../../../../../../../react/state/user-settings-context";
+import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { summarizeMetricLspErrors } from "../../../metrics/metric-lsp";
 import {
   getMetricKindIcon,
   MODEL_METRIC_VALUE_PREFIX,
   type MetricKindGroup,
-} from "../../metrics/metric-picker-options";
-import { useMetricLspSession } from "../../metrics/use-metric-lsp-session";
+} from "../../../metrics/metric-picker-options";
+import { useMetricLspSession } from "../../../metrics/use-metric-lsp-session";
 import { fieldStyle, labelStyle } from "./form-field-styles";
 import {
   getMetricLabel,

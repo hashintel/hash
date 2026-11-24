@@ -17,7 +17,7 @@ import {
   type SimulatorRefusals,
 } from "./experiment-simulator-draft";
 
-import type { SimulatorsContextValue } from "../../../../../../../react/simulators/context";
+import type { SimulatorsContextValue } from "../../../../../../../../react/simulators/context";
 
 const neverStarted = () => {
   throw new Error("Nothing starts here");

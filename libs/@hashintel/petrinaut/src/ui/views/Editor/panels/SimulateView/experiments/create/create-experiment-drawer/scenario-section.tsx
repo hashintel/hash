@@ -2,14 +2,14 @@ import { Icon, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
-import { AdHocScenarioForm } from "../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { Section } from "../../../../../../shared/section";
-import { FocusControls } from "../../../../../../worksheet/focus-controls";
+import { AdHocScenarioForm } from "../../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { Section } from "../../../../../../../shared/section";
+import { FocusControls } from "../../../../../../../worksheet/focus-controls";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import { fieldStyle } from "./form-field-styles";
 import { NO_SCENARIO_VALUE } from "./scenario-selection";
 
-import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
+import type { ExperimentParameterInput } from "../../../../../../../../react/experiments/parameter-grid";
 import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type { SweepSummary } from "./sweep-summary";
 import type {

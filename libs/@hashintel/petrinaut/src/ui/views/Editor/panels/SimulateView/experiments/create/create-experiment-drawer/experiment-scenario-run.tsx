@@ -12,24 +12,24 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useScenarioHir } from "../../../../../../../react/simulation/use-scenario-hir";
+import { useScenarioHir } from "../../../../../../../../react/simulation/use-scenario-hir";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
   FormSectionHeader,
-} from "../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { OverlayScrollArea } from "../../../../../../shared/overlay-scroll-area";
-import { Section } from "../../../../../../shared/section";
-import { StackedSections } from "../../../../../../shared/stacked-sections";
-import { scenarioExpressions } from "../../../../../shared/scenario-expressions";
-import { useScenarioRun } from "../../shared/use-scenario-run";
+} from "../../../../../../../ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { OverlayScrollArea } from "../../../../../../../shared/overlay-scroll-area";
+import { Section } from "../../../../../../../shared/section";
+import { StackedSections } from "../../../../../../../shared/stacked-sections";
+import { scenarioExpressions } from "../../../../../../shared/scenario-expressions";
+import { useScenarioRun } from "../../../shared/use-scenario-run";
 import {
   scenarioRunInputs,
   seedRunVariables,
 } from "./experiment-scenario-inputs";
 import { computedStatePreview } from "./experiment-scenario-run/computed-state-preview";
 
-import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
+import type { ExperimentParameterInput } from "../../../../../../../../react/experiments/parameter-grid";
 import type { ScenarioRunInput } from "./experiment-scenario-inputs";
 import type {
   AdHocScenarioState,

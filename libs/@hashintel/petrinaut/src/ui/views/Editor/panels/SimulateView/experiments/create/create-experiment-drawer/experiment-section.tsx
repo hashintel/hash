@@ -1,7 +1,7 @@
 import { NumberInput, TextInput } from "@hashintel/ds-components";
 
-import { Section } from "../../../../../../shared/section";
-import { FocusControls } from "../../../../../../worksheet/focus-controls";
+import { Section } from "../../../../../../../shared/section";
+import { FocusControls } from "../../../../../../../worksheet/focus-controls";
 import { fieldStyle, gridStyle, labelStyle } from "./form-field-styles";
 
 import type { RunClock } from "@hashintel/petrinaut-core";

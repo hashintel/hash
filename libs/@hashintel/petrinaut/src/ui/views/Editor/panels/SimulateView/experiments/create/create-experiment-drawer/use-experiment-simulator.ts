@@ -5,12 +5,12 @@ import {
   WEBGPU_FIXED_STEP_SIMULATOR_ID,
 } from "@hashintel/petrinaut-core";
 
-import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
-import { useExecutableDefinition } from "../../../../../../../react/document/use-executable-definition";
+import { useSDCPNState } from "../../../../../../../../react/document/sdcpn-context";
+import { useExecutableDefinition } from "../../../../../../../../react/document/use-executable-definition";
 import {
   findSimulator,
   SimulatorsContext,
-} from "../../../../../../../react/simulators/context";
+} from "../../../../../../../../react/simulators/context";
 import {
   type ExperimentSimulatorDraft,
   resolveExperimentSimulator,
@@ -18,7 +18,7 @@ import {
 } from "./experiment-simulator-draft";
 import { useGpuAvailability } from "./use-gpu-availability";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
+import type { ExperimentMetricSpecInput } from "../../../../../../../../react/experiments/context";
 
 /**
  * The simulator the form's experiment would run on, and why each of the

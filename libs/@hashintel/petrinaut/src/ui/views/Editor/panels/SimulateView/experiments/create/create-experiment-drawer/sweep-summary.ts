@@ -11,7 +11,7 @@ import {
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
-} from "../../../../../../../react/experiments/parameter-grid";
+} from "../../../../../../../../react/experiments/parameter-grid";
 import { hasAdHocIntervalToggle } from "./ad-hoc-interval-toggles";
 
 export type SweepSummary = {

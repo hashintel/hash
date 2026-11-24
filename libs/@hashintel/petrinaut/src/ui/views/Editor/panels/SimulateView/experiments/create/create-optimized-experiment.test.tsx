@@ -6,22 +6,22 @@ import { describe, expect, it, vi } from "vitest";
 
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
-import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
-import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
-import { OptimizationsContext } from "../../../../../../react/optimizations/context";
-import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
+import { SDCPNContext } from "../../../../../../../react/document/sdcpn-context";
+import { ExperimentsActionsContext } from "../../../../../../../react/experiments/context";
+import { OptimizationsContext } from "../../../../../../../react/optimizations/context";
 import {
   makeExperiment,
   sirSdcpnContextValue,
   sweepFixtureScenario,
-} from "./experiments-story-fixtures";
+} from "../experiments-story-fixtures";
+import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 
 import type {
   CreateExperimentInput,
   ExperimentRecord,
   ExperimentsActionsValue,
-} from "../../../../../../react/experiments/context";
-import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
+} from "../../../../../../../react/experiments/context";
+import type { OptimizationsContextValue } from "../../../../../../../react/optimizations/context";
 import type { ReactNode } from "react";
 
 /** A sweep over the fixture scenario's two parameters with one metric to read. */

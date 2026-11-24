@@ -14,13 +14,13 @@ import {
 import {
   findSimulator,
   simulatorRefusal,
-} from "../../../../../../../react/simulators/context";
-import { acceptsSimulatorParameter } from "../../../../shared/simulator-parameters";
+} from "../../../../../../../../react/simulators/context";
+import { acceptsSimulatorParameter } from "../../../../../shared/simulator-parameters";
 
 import type {
   SimulatorSelection,
   SimulatorsContextValue,
-} from "../../../../../../../react/simulators/context";
+} from "../../../../../../../../react/simulators/context";
 import type { GpuAvailability } from "./use-gpu-availability";
 
 export type ExperimentSimulatorDraft = {

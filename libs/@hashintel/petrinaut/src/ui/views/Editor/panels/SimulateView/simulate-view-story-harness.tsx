@@ -35,7 +35,7 @@ import { UserSettingsProvider } from "../../../../../react/state/user-settings-p
 import { MonacoProvider } from "../../../../monaco/provider";
 import { SimulationWorkspace } from "../../shared/simulation-workspace";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
-import { useCreateOptimizedExperiment } from "./experiments/create-optimized-experiment";
+import { useCreateOptimizedExperiment } from "./experiments/create/create-optimized-experiment";
 import { FakeEditorProvider } from "./experiments/experiments-story-providers";
 import { SimulateView, SimulateViewTabs } from "./simulate-view";
 

@@ -5,8 +5,8 @@ import { PETRINAUT_OPTIMIZATION_MAX_TRIALS } from "@hashintel/petrinaut-core/opt
 import {
   describeSweepObjective,
   SWEEP_OPTIMIZATION_DEFAULT_STEPS,
-} from "../shared/sweep-objective";
-import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "../sweep-optimizer";
+} from "../../shared/sweep-objective";
+import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "../../sweep-optimizer";
 import { labelStyle } from "./form-field-styles";
 
 import type { PetrinautOptimizationDirection } from "@hashintel/petrinaut-core/optimization";

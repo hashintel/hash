@@ -1,22 +1,36 @@
+/**
+ * @layerRoot ui.views.editor.simulate.experiments.create
+ * @role The form that creates an experiment: its scenario, simulator, metrics and constraints, and the one submit
+ *
+ * Other blocks import this file only. `create-optimized-experiment.ts` holds
+ * the submit: create the experiment, start its study, select it.
+ */
 import { use, useRef, useState } from "react";
 
 import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { runClockOf } from "@hashintel/petrinaut-core";
 
-import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
-import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { PetrinautOptimizationContext } from "../../../../../../react/optimizations/connected-optimizer-context";
-import { OverlayScrollArea } from "../../../../../shared/overlay-scroll-area";
-import { SectionList } from "../../../../../shared/section";
-import { FocusControls } from "../../../../../worksheet/focus-controls";
-import { FocusRoot, FocusStack } from "../../../../../worksheet/focus-stack";
-import { scenarioFormContext } from "../scenarios/use-ad-hoc-scenario-authoring";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
+import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { PetrinautOptimizationContext } from "../../../../../../../react/optimizations/connected-optimizer-context";
+import { OverlayScrollArea } from "../../../../../../shared/overlay-scroll-area";
+import { SectionList } from "../../../../../../shared/section";
+import { FocusControls } from "../../../../../../worksheet/focus-controls";
+import { FocusRoot, FocusStack } from "../../../../../../worksheet/focus-stack";
+import { scenarioFormContext } from "../../scenarios/use-ad-hoc-scenario-authoring";
 import {
   overlayScrollDrawerBodyStyle,
   overlayScrollDrawerViewportStyle,
-} from "../shared/overlay-scroll-drawer-styles";
-import { SimulationPanel } from "../shared/simulation-panel";
+} from "../../shared/overlay-scroll-drawer-styles";
+import { SimulationPanel } from "../../shared/simulation-panel";
+import {
+  EMPTY_SWEEP_OBJECTIVE,
+  resolveObjectiveMetricId,
+  sweepObjectiveError,
+  sweepObjectiveFor,
+} from "../shared/sweep-objective";
+import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "../sweep-optimizer";
 import {
   type ConstraintDraftsState,
   EMPTY_CONSTRAINT_DRAFTS,
@@ -45,16 +59,9 @@ import { resolveScenarioSelection } from "./create-experiment-drawer/scenario-se
 import { describeSweep } from "./create-experiment-drawer/sweep-summary";
 import { useExperimentSimulator } from "./create-experiment-drawer/use-experiment-simulator";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
-import {
-  EMPTY_SWEEP_OBJECTIVE,
-  resolveObjectiveMetricId,
-  sweepObjectiveError,
-  sweepObjectiveFor,
-} from "./shared/sweep-objective";
-import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
-import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
+import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
+import type { ExperimentParameterInput } from "../../../../../../../react/experiments/parameter-grid";
 import type { ScenarioRunInput } from "./create-experiment-drawer/experiment-scenario-inputs";
 import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 

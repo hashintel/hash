@@ -4,8 +4,8 @@ import {
   createUserKeyedRecord,
 } from "@hashintel/petrinaut-core";
 
-import type { ExperimentParameterInput } from "../../../../../../../../react/experiments/parameter-grid";
-import type { ScenarioHirState } from "../../../../../../../../react/simulation/use-scenario-hir";
+import type { ExperimentParameterInput } from "../../../../../../../../../react/experiments/parameter-grid";
+import type { ScenarioHirState } from "../../../../../../../../../react/simulation/use-scenario-hir";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,

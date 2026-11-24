@@ -2,7 +2,7 @@ import {
   useEditorActions,
   useEditorState,
 } from "../../../react/state/editor-context";
-import { CreateExperimentDrawer } from "./panels/SimulateView/experiments/create-experiment-drawer";
+import { CreateExperimentDrawer } from "./panels/SimulateView/experiments/create/create-experiment-drawer";
 import { MetricDrawer } from "./panels/SimulateView/metrics/metric-drawer";
 import { CreateScenarioDrawer } from "./panels/SimulateView/scenarios/create-scenario-drawer";
 import { SimulationPanelPresence } from "./panels/SimulateView/shared/simulation-panel";

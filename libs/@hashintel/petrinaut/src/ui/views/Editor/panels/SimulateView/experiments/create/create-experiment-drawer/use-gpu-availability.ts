@@ -6,11 +6,11 @@ import {
   summarizeGpuUnavailability,
 } from "@hashintel/petrinaut-core/webgpu";
 
-import { experimentSdcpnWithMetrics } from "../../../../../../../react/experiments/experiment-sdcpn-with-metrics";
-import { LanguageClientContext } from "../../../../../../../react/lsp/context";
+import { experimentSdcpnWithMetrics } from "../../../../../../../../react/experiments/experiment-sdcpn-with-metrics";
+import { LanguageClientContext } from "../../../../../../../../react/lsp/context";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../../react/experiments/context";
-import type { LanguageClientContextValue } from "../../../../../../../react/lsp/context";
+import type { ExperimentMetricSpecInput } from "../../../../../../../../react/experiments/context";
+import type { LanguageClientContextValue } from "../../../../../../../../react/lsp/context";
 import type {
   HirArtifacts,
   MonteCarloMetricSpec,
