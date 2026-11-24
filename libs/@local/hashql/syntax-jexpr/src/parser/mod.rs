@@ -22,7 +22,7 @@ pub(crate) mod expr;
 pub(crate) mod json;
 pub(crate) mod object;
 pub(crate) mod recovery;
-mod value;
+pub(crate) mod value;
 
 pub(crate) use self::document::Document;
 

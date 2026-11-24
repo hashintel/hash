@@ -153,4 +153,30 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
     ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
         self.parse_expr_with_pointers_in(source, alloc).0
     }
+
+    pub fn parse_value_with_pointers_in<A: Allocator>(
+        &mut self,
+        source: &str,
+        alloc: A,
+    ) -> (
+        Status<Value<'heap>, JExprDiagnosticCategory, SpanId>,
+        JsonPointers,
+    ) {
+        let parse = parser::Parser::<parser::value::ValueGrammar, _>::parse_cst_in(
+            source,
+            self.options,
+            &alloc,
+        );
+        let status = lower::lower_value_in(self.heap, self.spans, self.options, &parse, &alloc);
+        (status, JsonPointers::from_green(parse.into_green()))
+    }
+
+    pub fn parse_value_in<A: Allocator>(
+        &mut self,
+        source: &str,
+        alloc: A,
+    ) -> Status<Value<'heap>, JExprDiagnosticCategory, SpanId> {
+        parser::Parser::<parser::value::ValueGrammar, _>::parse_cst_in(source, self.options, &alloc)
+            .map(|value| lower::lower_value_in(self.heap, self.spans, self.options, &value, &alloc))
+    }
 }

@@ -440,3 +440,24 @@ pub(crate) fn lower_expr_in<'heap, A: Allocator>(
         expr.expect("valid CST with no critical diagnostics must lower to an expression")
     })
 }
+
+pub(crate) fn lower_value_in<'heap, A: Allocator>(
+    heap: &'heap Heap,
+    spans: &mut SpanTable<Span>,
+    options: ParserOptions,
+    parse: &Document<cst::ValueRoot, A>,
+    alloc: A,
+) -> Status<Value<'heap>, JExprDiagnosticCategory, SpanId> {
+    let mut lowerer = Lowerer::new_in(heap, spans, options, alloc);
+
+    for error in parse.errors() {
+        let diagnostic = error
+            .to_diagnostic_in(lowerer.heap, lowerer.spans)
+            .generalize();
+        lowerer.diagnostics.push(diagnostic);
+    }
+
+    let root = parse.tree();
+    let value = lowerer.lower_value(root);
+    lowerer.diagnostics.into_status_with(|| value)
+}
