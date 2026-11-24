@@ -1,8 +1,3 @@
-/**
- * @layerRoot react.lsp
- * @role Exposes the core language client to the editor as React context
- */
-
 import { use, useEffect, useRef, useState } from "react";
 
 import {
