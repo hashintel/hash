@@ -1,0 +1,224 @@
+---
+title: Language worker protocol
+description: The JSON-RPC messages between the language client and the language server worker, how the net, a document and a temporary session are kept in step, and how a request finds its response.
+sidebar_order: 10
+---
+
+import { Sequence } from "@diagrams/sequence";
+
+The language server worker checks the code of a net and answers the code
+editor. `protocol.ts` in this folder defines every message,
+`language-server.worker.ts` is the worker's end, and `createLanguageClient` in
+`../language-client.ts` is the host's end. The checks themselves are in
+[the language service](layer:core.lsp.service).
+
+Every message is JSON-RPC 2.0 over `postMessage`, with the types of
+`vscode-languageserver-types` for diagnostics, completions, hovers and
+signature help. A message with an `id` is a request or its response. A message
+without one is a notification, which gets no answer.
+
+## Messages
+
+**Client to worker: notifications**, part of the type `ClientMessage`:
+
+| Method                                                                            | Params                                    | Effect                                                                                                       |
+| --------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `initialize`                                                                      | `sdcpn`, `extensions`                     | Creates the language services, loads the net into them, adds the sessions that arrived first, and publishes. |
+| `sdcpn/didChange`                                                                 | `sdcpn`, `extensions`                     | Loads the changed net, rebuilds the files of every session against it, and publishes.                        |
+| `textDocument/didChange`                                                          | `textDocument`, `text`                    | Replaces the text of one document and publishes.                                                             |
+| `temp/scenario/initialize`, `temp/scenario/didChange`, `temp/scenario/kill`       | `ScenarioSessionParams`, or `sessionId`   | Opens, updates or ends a session over a scenario's expressions.                                              |
+| `temp/adhoc/initialize`, `temp/adhoc/didChange`, `temp/adhoc/kill`                | `AdHocSessionParams`, or `sessionId`      | The same for the values of an ad-hoc scenario form.                                                          |
+| `temp/metric/initialize`, `temp/metric/didChange`, `temp/metric/kill`             | `MetricSessionParams`, or `sessionId`     | The same for the code of one metric.                                                                         |
+| `temp/constraint/initialize`, `temp/constraint/didChange`, `temp/constraint/kill` | `ConstraintSessionParams`, or `sessionId` | The same for one constraint, checked in the space it ranges over.                                            |
+
+**Client to worker: requests**, each with an `id`:
+
+| Method                       | Params                           | Result                                                                         |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
+| `textDocument/completion`    | `textDocument`, `position`       | A `CompletionList`, empty for a document the worker does not hold.             |
+| `textDocument/hover`         | `textDocument`, `position`       | A `Hover` or `null`.                                                           |
+| `textDocument/signatureHelp` | `textDocument`, `position`       | A `SignatureHelp` or `null`.                                                   |
+| `sdcpn/diagnostics`          | `sdcpn`, `extensions`            | The diagnostics of the net given, checked apart from the net the worker holds. |
+| `sdcpn/compileHirArtifacts`  | `sdcpn`, `extensions`, `options` | The net's code compiled to the HIR artifacts a run starts from.                |
+| `sdcpn/lowerScenario`        | `scenario`, `adHocContext`       | The scenario lowered to HIR, for `compileScenario`.                            |
+| `sdcpn/formatExpression`     | `code`                           | The expression printed in canonical form, or `null` when it does not lower.    |
+| `sdcpn/lowerConstraint`      | `source`, `context`              | The constraint lowered to HIR and checked to give a boolean.                   |
+| `sdcpn/lowerVisualizer`      | `code`, `context`                | The visualizer lowered to a view tree and checked against the place's colour.  |
+
+**Worker to client**, the type `ServerMessage`:
+
+| Message                           | Params                                              | What the client does with it                                                                                |
+| --------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| A response                        | `id`, and `result` or `error`                       | Resolves or rejects the promise of the request with that `id`.                                              |
+| `textDocument/publishDiagnostics` | A list with one `{ uri, diagnostics }` per document | Builds the next `DiagnosticsSnapshot` and sets the `diagnostics` store when it differs from the one before. |
+| `sdcpn/netAnalysis`               | `metricShapes`, `netClass`                          | Sets the `netAnalysis` store when it differs.                                                               |
+
+The lowering requests exist because, in a browser, the worker alone loads the
+TypeScript compiler: [the HIR README](layer:core.hir) says which entry
+carries it.
+
+## Keeping the net and its documents in step
+
+The worker holds one net, the one of the last `initialize` or
+`sdcpn/didChange`. The client sends the whole net each time, and
+`syncLanguageServers` brings the virtual files of the two language services,
+one for TypeScript and one for visualizer JSX, in step with it.
+
+A document is the code of one item, named by a URI that `../document-uris.ts`
+builds and parses. The lambda of a transition is
+`inmemory://sdcpn/transitions/<id>/lambda.ts`, and the documents of a session
+are under `inmemory://sdcpn/_temp/`. The code editor uses the same URI for its
+model, so a diagnostic for a URI lands on the right editor.
+
+`textDocument/didChange` carries the text of one document ahead of the edit
+that writes it into the net. The code editor sends it before each request for
+a completion, a hover or signature help, with the text of its model. The
+worker reads messages in order, so it answers for the text on screen even
+when the `sdcpn/didChange` of that edit has not arrived.
+
+Every one of these notifications ends in one publish: a
+`textDocument/publishDiagnostics` with the diagnostics of every document of
+the net and of every open session, then a `sdcpn/netAnalysis`. The worker
+keeps the net's own diagnostics until the net or one of its documents
+changes, so a keystroke in a session checks that session's files and reuses
+the rest.
+
+The client keeps the array of a document whose diagnostics did not change,
+and leaves the store alone when no document changed. The tests "notifies
+subscribers only when a publish changed a diagnostic" and "keeps the array of
+a document whose diagnostics did not change" in `../language-client.test.ts`
+hold both.
+
+## Temporary sessions
+
+A session checks code that is in no document yet: a scenario being written,
+the values of an ad-hoc scenario form, a metric or a constraint in a drawer.
+The client picks the `sessionId`. The worker writes the session's content as
+virtual files beside the net's and checks them against the net.
+
+| Message      | The worker                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------- |
+| `initialize` | Stores the session, writes its files and publishes.                                                       |
+| `didChange`  | Replaces the session's content, rewrites its files and publishes. An unknown `sessionId` opens a session. |
+| `kill`       | Removes the session and its files and publishes, so its diagnostics leave the snapshot.                   |
+
+A session message that arrives before the net's `initialize` is kept and
+applied when the net arrives. A React child runs its effect before its parent
+does, so a form can open its session before the provider has sent the net.
+
+A session that is never killed stays in every publish. In the editor,
+`useLspSession` of [the React language client](layer:react.lsp) ties the three
+messages to the life of a component.
+
+## Request correlation
+
+The client numbers its requests from 0 and keeps one pending promise per `id`.
+A response settles the promise with its `id` and no other, so a publish that
+arrives between a request and its response does not answer it.
+
+| What happens                                   | The promise                                            |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| The worker answers with `result`               | Resolves with it.                                      |
+| The handler throws                             | Rejects with the message, sent as error code `-32603`. |
+| The client is disposed while the request waits | Rejects with "Worker terminated".                      |
+| A request is made after disposal               | Rejects with "LanguageClient disposed".                |
+| The worker never answers                       | Stays pending: a request has no timeout.               |
+
+A notification whose handler throws is dropped without a message: only a
+request has an `id` to answer.
+
+[Snapshot diagnostics](doc:core.lsp/snapshot-diagnostics) covers
+`sdcpn/diagnostics`, the one request that checks a net other than the one the
+worker holds.
+
+## One exchange, end to end
+
+<Sequence
+  title="Language client and worker, in order"
+  actors={["Language client", "Language worker"]}
+  rows={[
+    {
+      direction: "right",
+      label: "`initialize`",
+      note: "The net and the extension settings",
+    },
+    {
+      direction: "left",
+      label: "`textDocument/publishDiagnostics`",
+      note: "Every document of the net",
+    },
+    {
+      direction: "left",
+      label: "`sdcpn/netAnalysis`",
+      note: "The class of the net and the shape of each metric",
+    },
+    {
+      direction: "right",
+      label: "`textDocument/didChange`",
+      note: "The text of a lambda, as the editor holds it",
+    },
+    {
+      direction: "left",
+      label: "the two pushes",
+      note: "After every notification that changes what is checked",
+    },
+    {
+      direction: "right",
+      label: "`textDocument/completion`, `id` 0",
+      note: "Sent right after, for the cursor in that text",
+    },
+    {
+      direction: "left",
+      label: "response, `id` 0",
+      note: "Resolves that request",
+    },
+    {
+      direction: "right",
+      label: "`sdcpn/didChange`",
+      note: "The edit reached the document",
+    },
+    {
+      direction: "left",
+      label: "the two pushes",
+      note: "Open sessions are checked against the new net",
+    },
+    {
+      direction: "right",
+      label: "`temp/metric/initialize`",
+      note: "A metric drawer opens",
+    },
+    {
+      direction: "left",
+      label: "the two pushes",
+      note: "Now with the documents of the session",
+    },
+    {
+      direction: "right",
+      label: "`temp/metric/kill`",
+      note: "The drawer closes",
+    },
+    {
+      direction: "left",
+      label: "the two pushes",
+      note: "Without them",
+    },
+  ]}
+/>
+
+## Lifecycle
+
+`createLanguageClient` takes a worker factory or a transport.
+`createWorkerLspTransport` in `../transport.ts` queues the messages sent
+before the worker has booted, so a client is usable as soon as it is created.
+
+The worker checks nothing before `initialize`. Until then it answers a
+completion with an empty list and a hover or signature help with `null`, and
+it keeps the session messages. A second `initialize` creates the language
+services anew.
+
+`dispose()` rejects every pending request and terminates the transport. It is
+safe to call twice. A notification sent after it is dropped.
+
+The worker is created by `createLanguageServerWorker` in
+`create-language-server-worker.ts`, which the package publishes as
+`@hashintel/petrinaut-core/workers/lsp`.

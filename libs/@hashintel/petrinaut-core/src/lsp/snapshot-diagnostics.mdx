@@ -13,7 +13,9 @@ when the diagnostics match the previous check.
 The [language worker](layer:core.lsp.worker) checks the snapshot separately
 from temporary editor sessions. Its response carries the request ID, so an
 editor diagnostic update cannot complete another caller's check. Worker
-errors and language-client disposal reject pending requests.
+errors and language-client disposal reject pending requests. The
+[language worker protocol](doc:core.lsp.worker/protocol) lists this request
+among the others and says how each finds its response.
 
 The [React language provider](layer:react.lsp) exposes this method to the AI's
 `getNetCompilationErrors` tool. The tool captures the current net and formats
