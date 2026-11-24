@@ -1,6 +1,6 @@
 ---
 title: Memory model
-description: Where simulation state actually lives, and the binary frame format it lives in.
+description: The binary format of a frame, how a frame is read, and where the frames of a run live.
 sidebar_order: 10
 ---
 
@@ -8,95 +8,18 @@ import { ByteMap } from "@diagrams/byte-map";
 import { Lanes } from "@diagrams/lanes";
 import { TokenEncodingPlayground } from "@diagrams/token-encoding-playground";
 
+A frame is the state of a net at one point of a run: the token count of each
+place, the timer and the firing count of each transition, and the tokens.
 Everything the simulation computes is stored in raw `ArrayBuffer`s read through
 typed-array views. There is no object graph of tokens: tokens are packed structs,
 decoded to JavaScript objects only at the read boundary.
-
-Knowing which buffer lives on which thread is the thing that makes the rest of
-the simulation layers make sense.
-
-The lanes and the table below show the frame runtime, `createSimulation`,
-and a Monte Carlo experiment. The editor's Quick Simulation runs on the
-[event trace](layer:core.simulation.event-trace): its worker advances a run
-in the two buffers of a Monte Carlo run, and each event it records carries
-the state in the frame format of this page.
-
-## Where each piece lives
-
-<Lanes
-  title="Who owns which buffer"
-  lanes={[
-    {
-      title: "Main thread, the host",
-      accent: "ui",
-      boxes: [
-        {
-          label: "Run configuration",
-          note: "Marking, parameters, seed, `dt`, `maxTime`",
-        },
-        {
-          label: "Frame store",
-          note: "Retains every payload so playback can scrub",
-        },
-        {
-          label: "Frame readers",
-          note: "Zero-copy views over a stored buffer",
-        },
-      ],
-    },
-    {
-      title: "Simulation worker",
-      accent: "core",
-      boxes: [
-        {
-          label: "Engine instance",
-          note: "Frame history, the compute source of truth",
-        },
-        { label: "EngineFrame", note: "One immutable ArrayBuffer per step" },
-      ],
-    },
-    {
-      title: "Monte Carlo worker",
-      accent: "worker",
-      boxes: [
-        {
-          label: "2 buffers per run",
-          note: "Current and next, swapped each step",
-        },
-        {
-          label: "Metric aggregates",
-          note: "The only thing that crosses back",
-        },
-      ],
-    },
-  ]}
-  legend={[
-    { label: "Host", accent: "ui" },
-    { label: "Simulation worker", accent: "core" },
-    { label: "Monte Carlo worker", accent: "worker" },
-  ]}
-/>
-
-| Memory              | Structure                                                         | Thread        | Lifetime                                                                                   |
-| ------------------- | ----------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
-| SDCPN document      | Plain JS objects (editor state)                                   | Main          | Structured-cloned into the worker at init. Later edits do not affect a running simulation. |
-| Initial marking     | JSON: a count or `TokenRecord[]` per place                        | Main          | Packed into frame 0 by `buildSimulation`.                                                  |
-| `EngineFrame`       | `ArrayBuffer`: a 64-byte header, typed sections and packed tokens | Worker        | Immutable snapshot per step, appended to the instance's frame history.                     |
-| Frame payload       | `{ time, frame: ArrayBuffer }`                                    | Worker → Main | Structured-clone copy per frame. Retained by the frame store for scrubbing.                |
-| Frame reader        | Typed-array views over the stored buffer                          | Main          | Zero-copy. Materialises `TokenRecord`s only when asked.                                    |
-| Monte Carlo buffers | 2 × `ArrayBuffer` per run                                         | MC worker     | Swapped each step. Never cross to the main thread.                                         |
-| Compiled user code  | Versioned HIR buffer programs                                     | Workers       | Produced once at init.                                                                     |
-
-Rows 4 and 6 differ in what crosses to the main thread: every frame, or
-aggregates only. [Two execution paths](doc:two-execution-paths) gives the
-reason.
 
 ## The frame format
 
 One `ArrayBuffer` per frame, read through section-typed views. The frame stores
 **no IDs and no time**: decoding requires the layout derived from the SDCPN
 (place and transition order, per-place stride and field layout), and time travels
-alongside as payload metadata.
+beside the buffer, as the `time` of the event that carries it.
 
 `createEngineFrame()` computes every offset and is the only frame constructor;
 `readEngineFrame()` recreates the same views for reading. Both are in
@@ -104,15 +27,7 @@ alongside as payload metadata.
 
 The frame is internal to Core: it is no public API and no stable storage
 format, and it can only be read with the layout of the net it was built for.
-A host reads a frame through a `SimulationFrameReader`:
-
-```ts
-const createReader = compileSimulationFrameReader(sdcpn);
-const reader = createReader(engineFrame, frameNumber, frameTime);
-```
-
-`compileSimulationFrameReader` is in `frame-reader.ts`. The layout of each
-colour's token comes from `tokens/token-layout.ts` in
+The layout of each colour's token comes from `tokens/token-layout.ts` in
 [the token values block](layer:core.tokens).
 
 <ByteMap
@@ -202,18 +117,119 @@ bytes.
 
 <TokenEncodingPlayground />
 
-Because the string pool never crosses the worker boundary with the frames, each
-frame payload ships an append-only delta of new strings that the main-thread
-store accumulates and hands to the reader for decoding.
+## Reading a frame
 
-## Known cost: triple retention
+A host reads a frame through a `SimulationFrameReader` of `../api.ts`. The
+handle of a run returns one: `getEventState(index)` for the state an event
+recorded, and `getStateAt(time)` for the state at any time the trace covers.
 
-Each frame of the frame runtime exists three times: in the worker's frame
-history, as a structured-clone copy in the main-thread store, and for a moment
-in the `postMessage` queue. Frames are never transferred, and the worker's history
-is only ever read at its latest entry.
+Inside Core, `compileSimulationFrameReader` in `frame-reader.ts` derives the
+layout from the net once and returns the function that wraps one frame:
 
-Retention is behind the frame store in `runtime/frame-store.ts`, so this can
-change without touching consumers. Transferring buffers instead of copying is not a drop-in
-fix: computing the next frame re-reads the latest stored frame, so detaching the
-posted buffer first requires stepping from a retained working copy.
+```ts
+const createReader = compileSimulationFrameReader(sdcpn, stringPool);
+const reader = createReader(engineFrame, frameNumber, frameTime);
+```
+
+A reader holds typed-array views over the buffer and copies nothing.
+`getPlaceTokenCount` reads the count of one place, `getPlaceTokens` builds
+`TokenRecord`s when it is called, and `getRawView` hands the views to a
+compiled metric.
+
+A `string` field holds an ID, so a reader decodes it with the string pool of
+the run. That pool stays in the worker that computes the run. Each event of a
+trace carries the strings interned since the event before it as `newStrings`,
+and the trace store applies them in order to a copy of the pool, which it
+gives its readers.
+
+## Where frames live
+
+<Lanes
+  title="Who owns which buffer"
+  lanes={[
+    {
+      title: "Main thread, the host",
+      accent: "ui",
+      boxes: [
+        {
+          label: "Run configuration",
+          note: "Net, marking, parameters, seed, `maxTime`, simulator",
+        },
+        {
+          label: "Event trace store",
+          note: "Every event of the run, each with one frame",
+        },
+        {
+          label: "Frame readers",
+          note: "Views over a stored frame, or over a copy interpolated to one time",
+        },
+      ],
+    },
+    {
+      title: "Event simulation worker",
+      accent: "core",
+      boxes: [
+        {
+          label: "2 buffers of the run",
+          note: "Current and next, which the stepper advances",
+        },
+        {
+          label: "Pending events",
+          note: "One frame per recorded state, until the next post",
+        },
+      ],
+    },
+    {
+      title: "Monte Carlo worker",
+      accent: "worker",
+      boxes: [
+        {
+          label: "2 buffers per run",
+          note: "Current and next, swapped each step",
+        },
+        {
+          label: "Metric aggregates",
+          note: "The only thing that crosses back",
+        },
+      ],
+    },
+  ]}
+  legend={[
+    { label: "Host", accent: "ui" },
+    { label: "Event simulation worker", accent: "core" },
+    { label: "Monte Carlo worker", accent: "worker" },
+  ]}
+/>
+
+| Memory             | Structure                                                         | Thread              | Lifetime                                                                                     |
+| ------------------ | ----------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| SDCPN document     | Plain JS objects (editor state)                                   | Main                | Structured-cloned into the worker at `init`. Later edits do not reach a run.                 |
+| Initial marking    | JSON: a count or `TokenRecord[]` per place                        | Main                | Packed into frame 0 by `buildSimulation`.                                                    |
+| Run buffers        | 2 × `MonteCarloFrameBuffer` per run                               | Either worker       | Current and next, for the whole run. They never cross to the main thread.                    |
+| Frame of an event  | `ArrayBuffer`: a 64-byte header, typed sections and packed tokens | Event worker → Main | Copied out of the current run buffer when a state is recorded. Kept by the trace store.      |
+| Interpolated frame | A copy of an event's frame                                        | Main                | Made by `getStateAt` for a time after the event, in a net with dynamics. Its reader owns it. |
+| Metric aggregates  | Accumulator states per sample                                     | Monte Carlo → Main  | Posted as `metricFrames`. No frame of a run goes with them.                                  |
+| Compiled user code | Versioned HIR buffer programs                                     | Workers             | Instantiated once at `init` from the artifacts the language worker compiled.                 |
+
+A run buffer is no frame of the format above. It has no header, and its token
+region has spare capacity so that a step can add tokens without a new
+allocation. Its token bytes have the same packing.
+
+**A run of the event trace** advances in the two buffers of
+`../monte-carlo/run-state.ts`. When its stepper stops at a state worth
+keeping, `engineFrameFromRunFrame` in `../event-trace/worker/run-frame.ts`
+copies the current buffer into a frame, and the worker posts it in the next
+`events` message. The message is structured-cloned, and the worker drops its
+copy after the post. The trace store in `../event-trace/trace-store.ts` keeps
+every event for the life of the run's handle, so its size grows with the
+number of states the stepper records.
+
+**A run of an experiment** keeps its two buffers and no frame besides them.
+`createMonteCarloFrameReader` in `../monte-carlo/frame-reader.ts` reads the
+current buffer in place for the metrics, which the worker evaluates.
+[Two execution paths](doc:two-execution-paths) gives the reason no frame of
+an experiment crosses to the main thread.
+
+**The compiled model** of `../compiled-model.ts` runs in the calling thread.
+`computeNextFrame` returns a new frame for each step, and the model keeps the
+latest one.
