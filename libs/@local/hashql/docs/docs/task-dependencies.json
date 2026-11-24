@@ -45,6 +45,18 @@
         "@local/oxlint#build",
         "codegen"
       ]
+    },
+    "test:integration": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
     }
   }
 }

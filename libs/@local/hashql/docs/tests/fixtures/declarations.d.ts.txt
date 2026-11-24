@@ -1,0 +1,55 @@
+/** @module */
+export declare const brand: unique symbol;
+
+export interface Link {
+  readonly next?: Link;
+}
+
+/** Box documentation. */
+export declare class Box<T> {
+  /** Static description. */
+  static build<T>(value: T): Box<T>;
+  constructor(value: T);
+  /** Value description. */
+  value: T;
+  get current(): T;
+  set current(value: T);
+  [brand]: "Box Link T";
+}
+
+/** Alias documentation. */
+export type Select<T> = {
+  [K in keyof T as K extends string ? K : never]: T[K] | Link;
+};
+
+/** Callable documentation. */
+export declare const choose: {
+  /** First overload. */
+  (value: Link): Link;
+  /** Second overload. */
+  <T>(value: T, fallback: T): T;
+  new (value: Link): Box<Link>;
+  readonly marker: typeof brand;
+};
+
+declare function conditional<T>(value: T): T;
+export { conditional as if };
+export type { Box as TypeBox };
+
+export declare namespace Nested {
+  /** Nested description. */
+  interface Value {
+    readonly value: Link;
+  }
+}
+
+export interface Shadow {
+  first: Link;
+  second<Link>(value: Link): Link;
+  text: "Link";
+}
+
+export declare class Mixed {}
+export interface Mixed {
+  extra: string;
+}
