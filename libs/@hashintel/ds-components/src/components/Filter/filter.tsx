@@ -19,6 +19,7 @@ import {
   type ItemOrGroup,
 } from "../../primitives/SelectableList/selectable-list";
 import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
+import { viewportGapPx } from "../../primitives/SelectableList/selectable-list.recipe";
 import {
   flashInvalidInput,
   isRejectedNumberInputKey,
@@ -893,6 +894,7 @@ export const Filter = <
       }}
       disabled={disabled}
       loopFocus={false}
+      positioning={{ overflowPadding: viewportGapPx }}
       lazyMount
       unmountOnExit
       ref={rootRef}

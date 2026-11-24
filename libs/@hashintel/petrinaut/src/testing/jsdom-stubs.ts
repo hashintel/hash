@@ -30,4 +30,7 @@ if (typeof window !== "undefined") {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   })) as typeof matchMedia;
+  jsdomWindow.CSS ??= {
+    escape: (value: string) => value.replace(/[^\w-]/g, "\\$&"),
+  } as typeof CSS;
 }

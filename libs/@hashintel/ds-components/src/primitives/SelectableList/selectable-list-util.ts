@@ -65,10 +65,10 @@ type StandardItem = ItemBase &
         /** Opens a nested submenu of these entries */
         subItems: Array<ItemOrGroup<Item>>;
         /**
-         * Applied to this item's submenu content, composed with the list's
-         * own class, for styling that only that submenu should carry.
+         * Applied to this item's row. `--dropdown-max-height` and
+         * `--dropdown-max-width` set here size its submenu.
          */
-        menuClassName?: string;
+        className?: string;
       }
     | {
         /** Whether the item is an expandable row that reveals `subItems` inline, indented beneath it like a folder tree. Its chevron button (and ArrowRight/ArrowLeft while highlighted) toggles it; activating the row fires `onClick`, or toggles when there is no `onClick`. */

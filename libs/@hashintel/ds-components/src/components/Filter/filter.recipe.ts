@@ -73,6 +73,9 @@ export const filterRecipe = sva({
       "--filter-ring": "var(--colors-neutral-a80)",
       "--filter-property-padding-x": "var(--filter-padding-x)",
       "--filter-input-padding-x": "var(--filter-padding-x)",
+      // Relayed to the dropdown anchors below, so a consumer's
+      // --dropdown-max-width on this element still wins.
+      "--filter-dropdown-max-width": "var(--dropdown-max-width, 500px)",
       _hover: {
         "--filter-outer-border": "var(--colors-neutral-a60)",
         "--filter-divider": "var(--colors-neutral-a50)",
@@ -162,6 +165,7 @@ export const filterRecipe = sva({
       },
     },
     trigger: {
+      "--dropdown-max-width": "var(--filter-dropdown-max-width)",
       appearance: "none",
       border: "none",
       background: "[transparent]",
@@ -309,6 +313,7 @@ export const filterRecipe = sva({
       },
     },
     selectSlot: {
+      "--dropdown-max-width": "var(--filter-dropdown-max-width)",
       position: "relative",
       "&:has(:focus-visible)": {
         zIndex: "[1]",

@@ -7,6 +7,7 @@ import {
   type ItemOrGroup,
 } from "../../primitives/SelectableList/selectable-list";
 import { loopSelectionKeyDown } from "../../primitives/SelectableList/selectable-list-util";
+import { viewportGapPx } from "../../primitives/SelectableList/selectable-list.recipe";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { type MenuItem } from "../Menu/menu";
@@ -42,7 +43,7 @@ export const RightClickMenu = ({
 
   return (
     <ArkMenu.Root
-      positioning={{ placement: position }}
+      positioning={{ placement: position, overflowPadding: viewportGapPx }}
       loopFocus={false}
       lazyMount
       unmountOnExit

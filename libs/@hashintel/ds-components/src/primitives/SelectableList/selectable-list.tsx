@@ -32,7 +32,12 @@ import {
   useCustomRowNavigation,
   useItemsWithCustomIds,
 } from "./selectable-list-util";
-import { contentPaddingPx, styles } from "./selectable-list.recipe";
+import {
+  contentPaddingPx,
+  styles,
+  viewportGapPx,
+} from "./selectable-list.recipe";
+import { useAnchorSizeVars } from "./use-anchor-size-vars";
 
 import type { FormInputSize } from "../../util/form-shared";
 
@@ -57,7 +62,6 @@ const NestedMenu = ({
   subItems,
   body,
   className,
-  menuClassName,
   isSelected,
   ctx,
 }: {
@@ -65,12 +69,12 @@ const NestedMenu = ({
   subItems: Array<ItemOrGroup<Item>>;
   body: React.ReactNode;
   className: string | undefined;
-  menuClassName: string | undefined;
   isSelected: boolean;
   ctx: RenderCtx;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const parentDepth = use(NestedMenuDepthContext);
+  const contentRef = useAnchorSizeVars();
   const depth = parentDepth + 1;
   const normalizedSubItems = useItemsWithCustomIds(subItems);
   // The submenu is its own list, with its own collapsible expansion state.
@@ -99,6 +103,7 @@ const NestedMenu = ({
         placement: "right-start",
         offset: { mainAxis: 0 },
         shift: -contentPaddingPx[ctx.size],
+        overflowPadding: viewportGapPx,
       }}
     >
       <Menu.Context>
@@ -118,7 +123,8 @@ const NestedMenu = ({
                 onKeyDownCapture={(event) => loopSelectionKeyDown(event, menu)}
               >
                 <Menu.Content
-                  className={cx(ctx.contentClassName, menuClassName)}
+                  ref={contentRef}
+                  className={ctx.contentClassName}
                   onKeyDownCapture={(event) => {
                     handleCollapsibleKeyDown(event, menu);
                     handleCustomRowKeyDown(event, menu);
@@ -317,8 +323,7 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
         item={item}
         subItems={item.subItems}
         body={body}
-        className={classes.item}
-        menuClassName={item.menuClassName}
+        className={cx(classes.item, item.className)}
         isSelected={isSelected}
         ctx={ctx}
       />
@@ -524,6 +529,7 @@ export const SelectableList = ({
   });
 
   const isEmpty = normalizedItems.length === 0;
+  const contentRef = useAnchorSizeVars();
 
   // The scroll area may not shrink below min(200px, the list's natural
   // height) — see the recipe. CSS cannot compare a length with an intrinsic
@@ -605,6 +611,7 @@ export const SelectableList = ({
   if (as === "Select") {
     return (
       <Select.Content
+        ref={contentRef}
         className={cx(classes.content, className)}
         data-highlight-navigated={navigatedAttr}
       >
@@ -616,6 +623,7 @@ export const SelectableList = ({
   if (as === "Combobox") {
     return (
       <Combobox.Content
+        ref={contentRef}
         className={cx(classes.content, className)}
         data-highlight-navigated={navigatedAttr}
       >
@@ -628,6 +636,7 @@ export const SelectableList = ({
     <Menu.Context>
       {(menu) => (
         <Menu.Content
+          ref={contentRef}
           className={cx(classes.content, className)}
           data-highlight-navigated={navigatedAttr}
           onKeyDownCapture={(event) => {

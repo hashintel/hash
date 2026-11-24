@@ -13,6 +13,8 @@ export const styles = sva({
       textStyle: "xs",
     },
     icon: {
+      alignSelf: "flex-start",
+      marginTop: "[calc((1lh - 1em) / 2)]",
       flexShrink: "0",
       width: "[1em !important]",
       minWidth: "[1em !important]",

@@ -223,7 +223,8 @@ export const selectRecipe = sva({
       width: "[fit-content]",
       minWidth:
         "[max(var(--select-list-reference-width), var(--form-min-width)) !important]",
-      maxWidth: "[max(var(--select-list-reference-width), 18rem)]",
+      "--selectable-list-default-max-width":
+        "max(var(--select-list-reference-width), 18rem)",
     },
   },
   variants: {
@@ -428,7 +429,7 @@ export const selectRecipe = sva({
         },
         list: {
           width: "[auto]",
-          maxWidth: "[none]",
+          "--selectable-list-default-max-width": "100vw",
         },
       },
     },

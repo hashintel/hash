@@ -30,15 +30,16 @@ import { formatRelativeTime } from "./editor-menu/format-relative-time";
 import { ImportErrorDialog } from "./editor-menu/import-error-dialog";
 import { layOutNet } from "./editor-menu/lay-out-net";
 
-// `white-space` inherits down to the item text, whose `overflow: hidden;
-// text-overflow: ellipsis` only elides on a non-wrapping line. `&&` outranks
-// the menu's own max-height class, which ties on specificity.
 const openSubmenuStyle = css({
+  "--dropdown-max-width": "min(600px, 70vw)",
+  "--dropdown-max-height": "min(800px, 80vh)",
+});
+
+const netTitleStyle = css({
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  "&&": {
-    maxWidth: "[min(600px, 70vw)]",
-    maxHeight: "[min(800px, 80vh, var(--available-height, 100vh))]",
-  },
 });
 
 const exportFormats: { format: DocumentFormat; label: string }[] = [
@@ -102,10 +103,10 @@ export const EditorMenu = ({
           {
             id: "open",
             text: "Open",
-            menuClassName: openSubmenuStyle,
+            className: openSubmenuStyle,
             subItems: existingNets.map((net) => ({
               id: `open-${net.netId}`,
-              text: net.title,
+              text: <span className={netTitleStyle}>{net.title}</span>,
               suffix: formatRelativeTime(net.lastUpdated),
               onClick: () => {
                 loadPetriNet(net.netId);

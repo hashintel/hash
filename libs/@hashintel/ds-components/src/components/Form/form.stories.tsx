@@ -94,6 +94,8 @@ const sectionStyle = css({
   padding: "[16px]",
 });
 
+const narrowFieldStyle = css({ maxWidth: "[320px]" });
+
 const ActionButton = () => (
   <Button variant="ghost" size="xs" onClick={noop}>
     Action
@@ -228,7 +230,12 @@ const FormFieldDemo = (args: FormFieldArgs) => (
       {...args}
       as="label"
       label="Multiple errors"
-      errors={["First error", "Second error", "Third error"]}
+      className={narrowFieldStyle}
+      errors={[
+        "First error",
+        "Property names can only contain letters, numbers, spaces and underscores",
+        "Third error",
+      ]}
     >
       <ControlledTextInput
         name="form-field-multiple-errors"

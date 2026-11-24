@@ -8,5 +8,6 @@ export default defineConfig({
   oxc: false,
   test: {
     environment: "node",
+    setupFiles: ["./vitest.setup.ts"],
   },
 });

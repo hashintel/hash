@@ -30,6 +30,7 @@ import {
   getItemId,
   useCollapsibleExpansion,
 } from "../../primitives/SelectableList/selectable-list-util";
+import { viewportGapPx } from "../../primitives/SelectableList/selectable-list.recipe";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { isInteractiveTarget } from "../../util/interactive-target";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
@@ -906,6 +907,7 @@ export const Combobox = <TValue extends string>({
     allowCustomValue: true,
     positioning: {
       getAnchorElement: () => wrapperRef.current,
+      overflowPadding: viewportGapPx,
     },
     // The machine only knows its own input element, so interactions with the
     // rest of the input frame (the selected-values row, prefix, padding)

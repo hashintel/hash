@@ -53,10 +53,10 @@ export const placeholderLabel = cva({
 
 export const menuContent = cva({
   base: {
-    // && outranks the menu recipe's default max-width, which ties on
+    // && outranks the menu recipe's default max-width variable, which ties on
     // specificity and would otherwise win or lose by extraction order.
     "&&": {
-      maxWidth: "[300px]",
+      "--selectable-list-default-max-width": "300px",
     },
   },
 });

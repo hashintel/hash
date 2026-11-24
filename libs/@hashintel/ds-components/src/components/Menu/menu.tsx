@@ -11,6 +11,7 @@ import {
   getEventHighlightedId,
   loopSelectionKeyDown,
 } from "../../primitives/SelectableList/selectable-list-util";
+import { viewportGapPx } from "../../primitives/SelectableList/selectable-list.recipe";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { TriggerPressedContext } from "../../util/trigger-pressed-context";
@@ -83,7 +84,7 @@ export const Menu = ({
 
   return (
     <ArkMenu.Root
-      positioning={{ placement: position }}
+      positioning={{ placement: position, overflowPadding: viewportGapPx }}
       loopFocus={false}
       lazyMount
       unmountOnExit
