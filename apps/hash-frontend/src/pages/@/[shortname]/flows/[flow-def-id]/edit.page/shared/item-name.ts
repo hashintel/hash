@@ -81,6 +81,33 @@ const findListQuery = (
 };
 
 /**
+ * The entity types a step's value is limited to by the Find entities query it comes from, directly or through a
+ * for-each's item. Empty when it doesn't come from one, or the query isn't limited.
+ */
+export const getSourceEntityTypes = (
+  flowDefinition: FlowDefinition<string>,
+  stepId: string,
+  source: StepInputSource | undefined,
+): BaseUrl[] => {
+  const forEachStepId = getForEachScope(flowDefinition.steps, stepId)?.at(-1);
+  const forEach =
+    forEachStepId === undefined
+      ? undefined
+      : findStep(flowDefinition.steps, forEachStepId)?.step;
+  const list =
+    source?.kind === "item"
+      ? forEach?.kind === "for-each"
+        ? forEach.over
+        : undefined
+      : source;
+  const query = findListQuery(flowDefinition, list);
+
+  return query?.kind === "constant"
+    ? readQueryEntityTypes(query.payload.value)
+    : [];
+};
+
+/**
  * What one item of a for-each's list is called, as in "For each Supplier". Nothing stores it, so it comes from the
  * list: a Find entities query limited to one type, or a list taken from one, gives that type's title as written, so
  * "PDF Document" keeps its capitals, any other list of entities gives "entity", and anything else "item".
