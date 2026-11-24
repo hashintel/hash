@@ -107,7 +107,7 @@ applied when the net arrives. A React child runs its effect before its parent
 does, so a form can open its session before the provider has sent the net.
 
 A session that is never killed stays in every publish. In the editor,
-`useLspSession` of [the React language client](layer:react.lsp) ties the three
+`useLspSession` of [the React language client](layer:react.lsp) ties these
 messages to the life of a component. The editor opens no scenario session:
 the context of that block carries the calls for the ad-hoc, metric and
 constraint sessions, and the `temp/scenario/*` messages are for a host that

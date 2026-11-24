@@ -1,6 +1,6 @@
 ---
 layer: core.simulation
-role: Executes SDCPN nets, with the contract the runtimes share, the engine, the frame format, the steppers and the three runtimes
+role: Executes SDCPN nets, with the contract the runtimes share, the engine, the frame format, the steppers and the runtimes
 ---
 
 # Simulation
@@ -29,7 +29,7 @@ experiment have a runtime each.
 `sdcpn-item-error.ts` holds the error that names the item of the net it
 blames, which a runtime passes on as `itemId`.
 
-## The three runtimes
+## The runtimes
 
 | Runtime                                                                                         | Entry                                          | What it keeps                                                               | Who starts it                                                                                                      |
 | ----------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |

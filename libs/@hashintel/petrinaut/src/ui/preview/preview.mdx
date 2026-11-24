@@ -12,10 +12,10 @@ of a header, a canvas and a properties column. The canvas and the content of
 its panels are the editor's.
 
 This page is longer than a guide should be, because the preview repeats a
-part of two compositions, `PetrinautProvider` and `Petrinaut`, and the page
-says for each provider whether the preview mounts it.
+part of what `PetrinautProvider` and `Petrinaut` compose, and the page says
+for each provider whether the preview mounts it.
 
-![PetrinautPreview mounts the document, the location, the presentation profile and the canvas providers, adds the three run providers only for a quick simulation, and leaves out the language client, experiments, Monaco, plugins and the editor view.](./preview.d2)
+![PetrinautPreview mounts the document, the location, the presentation profile and the canvas providers, adds the run providers only for a quick simulation, and leaves out the language client, experiments, Monaco, plugins and the editor view.](./preview.d2)
 
 ## Entry point
 
@@ -43,14 +43,14 @@ section.
 
 ## What it leaves out
 
-| Not mounted                                                                    | Mounted in the editor by   | Why the preview does without                                                                                               |
-| ------------------------------------------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `LanguageClientProvider`                                                       | `PetrinautRuntimeProvider` | It starts the language worker. The preview shows no code, and a quick simulation runs on artifacts compiled at build time. |
-| `ExperimentsProvider`, `OptimizationsProvider`, `ExperimentHostProvider`       | `PetrinautRuntimeProvider` | An embed plays one run and creates no experiment.                                                                          |
-| The three run providers, without `quickSimulation`                             | `PetrinautRuntimeProvider` | A preview that only shows a net starts no simulation worker. The canvas providers read the inert default.                  |
-| `MonacoProvider`                                                               | `Petrinaut`                | No code editor is shown: `showSourceCode` is off in the `preview` profile.                                                 |
-| `PetrinautPluginsProvider`, `CommandRegistryProvider`, `PetrinautSlotsContext` | `Petrinaut`                | Plugins, commands and host parts belong to the editor.                                                                     |
-| `EditorView`                                                                   | `Petrinaut`                | The preview has a shell of its own.                                                                                        |
+| Not mounted                                                                                       | Mounted in the editor by   | Why the preview does without                                                                                               |
+| ------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `LanguageClientProvider`                                                                          | `PetrinautRuntimeProvider` | It starts the language worker. The preview shows no code, and a quick simulation runs on artifacts compiled at build time. |
+| `ExperimentsProvider`, `OptimizationsProvider`, `ExperimentHostProvider`                          | `PetrinautRuntimeProvider` | An embed plays one run and creates no experiment.                                                                          |
+| `NotificationsProvider`, `SimulatorsProvider` and `SimulationProvider`, without `quickSimulation` | `PetrinautRuntimeProvider` | A preview that only shows a net starts no simulation worker. The canvas providers read the inert default.                  |
+| `MonacoProvider`                                                                                  | `Petrinaut`                | No code editor is shown: `showSourceCode` is off in the `preview` profile.                                                 |
+| `PetrinautPluginsProvider`, `CommandRegistryProvider`, `PetrinautSlotsContext`                    | `Petrinaut`                | Plugins, commands and host parts belong to the editor.                                                                     |
+| `EditorView`                                                                                      | `Petrinaut`                | The preview has a shell of its own.                                                                                        |
 
 [The React layer](doc:react/react-layer) lists the providers of each group.
 
@@ -67,7 +67,23 @@ which holds the scenario, the component and the selection. The TSDoc of
 controller into the controller of the full location that
 [navigation](doc:react.navigation/navigation) expects. It fills every other
 field with its default, holds the mode at the one the props imply, and maps
-an update back onto the three fields.
+an update back onto the fields of the preview's state.
+
+## Data flow
+
+A host passes a new `definition`:
+
+1. The host passes its props to `PetrinautPreview`.
+2. The preview creates a read-only handle over the definition and an
+   instance over the handle, and disposes the instance of the model before.
+3. The handle is a new object, which raises a count of models that is part
+   of the key of `PetrinautDocumentProvider`. The preview mounts that
+   provider afresh, and with it every provider it wraps.
+4. A run built from the net before ends with its providers. The location is
+   the host's where it passes a controller, and starts from the mode the
+   props imply where it passes none.
+5. `PetrinautCanvasProvider` publishes the new net to `SDCPNView` and to the
+   parts of the editor shell.
 
 ## Parts of the editor shell
 
@@ -98,8 +114,9 @@ change to the preview:
 - **`quickSimulation` and `actualMode` exclude each other.** The preview
   opens in one mode: Actual for an execution, Simulate for a run. Held by "refuses
   both an execution and Quick Simulation" in `petrinaut-preview.test.tsx`.
-- **The adapter drops every field of the location but the three.** A host of
-  a preview then cannot be sent a mode or an overlay it has no place for.
+- **The adapter keeps only the fields of `PetrinautPreviewNavigationState`.**
+  A host of a preview then cannot be sent a mode or an overlay it has no
+  place for.
   Held by `navigation-adapter.test.ts`.
 - **A quick simulation compiles nothing.** `createPreviewSimulationCompiler`
   answers from the artifacts the host passed, and the preview throws on a

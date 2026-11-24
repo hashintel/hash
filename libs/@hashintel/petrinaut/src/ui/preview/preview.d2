@@ -16,7 +16,7 @@ presentation: "PetrinautPresentationProvider\nprofile preview" {class: ui}
 run: "NotificationsProvider, SimulatorsProvider,\nSimulationProvider\nonly with quickSimulation" {class: react}
 canvas-providers: "PetrinautCanvasProvider\nplayback, active net, editor state, frame source" {class: react}
 canvas: "SDCPNView\nthe canvas of the editor" {class: ui}
-parts: "Parts of the editor shell\nproperties, list of nets,\nplayback controls, two timelines" {class: ui}
+parts: "Parts of the editor shell\nproperties, list of nets,\nplayback controls, the timelines" {class: ui}
 absent: "Not mounted\nlanguage client, experiments, optimizations,\nMonaco, plugins, commands, editor view" {class: other}
 
 host -> preview: "passes props to"

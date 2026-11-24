@@ -21,7 +21,7 @@ The package publishes each file as an entry of its own,
 it starts: an editor with no experiment open never loads the Monte Carlo
 runtime.
 
-The optimizer has a fifth worker, which this folder does not export.
+The optimizer's worker is not exported from this folder.
 `createBrowserOptimization` of `@hashintel/petrinaut-core/browser-optimization`
 creates it, as [The browser runtime](doc:core.optimization.browser/browser-runtime)
 describes.

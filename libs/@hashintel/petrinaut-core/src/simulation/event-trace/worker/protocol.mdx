@@ -175,7 +175,7 @@ message. `shouldFlush` in `flush-policy.ts` decides when:
 `pause` flushes whatever is pending without asking the policy. Each post makes
 the host's stores publish and their readers render, so the interval bounds
 the host's work per second while the worker keeps up with playback.
-`flush-policy.test.ts` holds the four rows.
+`flush-policy.test.ts` holds the rows of the table.
 
 ## Lifecycle
 
@@ -206,7 +206,7 @@ never advance one recorder.
 
 ## What the host's end does
 
-`createEventSimulation` does four things around the messages:
+`createEventSimulation` does this around the messages:
 
 - **Prepares the net.** It removes what the disabled extensions cover and
   sends that net in `init`. It flattens the component instances for the trace

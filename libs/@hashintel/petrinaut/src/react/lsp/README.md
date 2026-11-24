@@ -35,7 +35,7 @@ above this one by the id of the document's handle, so a switch of net starts
 a new client.
 
 **The life of a temporary session.** A session checks code that is in no
-document yet, such as a metric in a drawer. `useLspSession` takes the three
+document yet, such as a metric in a drawer. `useLspSession` takes the
 calls of one kind of session, the content and a content key:
 
 | When                             | The hook calls                                                                  |
@@ -48,7 +48,7 @@ calls of one kind of session, the content and a content key:
 
 A component that mounts before the client exists calls the `initialize` of
 the default context, which does nothing. When the provider publishes the
-client the three calls change, the hook runs again and calls `update`, and
+client those calls change, the hook runs again and calls `update`, and
 that is the first message the worker receives for the session.
 
 The content is sent when the key, the session id or the client changes, and
@@ -63,7 +63,7 @@ behind these calls.
 
 - **A component that opens a session ends it.** The worker keeps a session,
   and publishes its diagnostics, until it is killed. `useLspSession` ties the
-  three calls to the mount, so a caller uses it and does not call
+  calls to the mount, so a caller uses it and does not call
   `initialize` itself.
 - **The content key names everything the session holds.** A part of the
   content that the key leaves out reaches the worker only with the next
