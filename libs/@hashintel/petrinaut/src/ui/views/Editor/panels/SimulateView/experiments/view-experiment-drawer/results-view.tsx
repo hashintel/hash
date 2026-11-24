@@ -1,7 +1,4 @@
 /**
- * @layerRoot ui.views.editor.simulate.shared
- * @role What the Simulate drawers share: the frame, the results surface, chart cards and formatters
- *
  * `ResultsView` is the one results surface the experiment panel renders from
  * a view-model: the header stats, the parameter card, the surface, the metric
  * cards and the footer in the shared frame, with the study's headline,
