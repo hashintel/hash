@@ -68,10 +68,17 @@ and the costs behind each design choice.
   stage order, and determinism.
 - [Compiling user code](doc:core.hir/user-code): the HIR
   pipeline, scenarios, and what the sandbox does not protect against.
-- [Worker protocol and backpressure](doc:core.simulation.worker/protocol):
-  messages, and the ack contract.
+- [Event worker protocol and demand](doc:core.simulation.event-trace.worker/protocol):
+  the messages of the worker behind the editor's Quick Simulation, and the
+  demand by time that bounds it.
 - [Monte Carlo experiments](doc:core.simulation.monte-carlo/experiments):
   bounded memory, and why only aggregates reach the UI.
+- [Monte Carlo worker protocol](doc:core.simulation.monte-carlo.worker/protocol):
+  the messages of one shard of an experiment, and how a worker is reset for
+  the next one.
+- [Worker protocol and backpressure](doc:core.simulation.worker/protocol):
+  the messages and the ack contract of the frame runtime, which is for other
+  hosts: the editor starts no run through it.
 
 ### Editor
 
@@ -104,6 +111,10 @@ what the UI layer mounts.
   editor, what mounts in each mode and what places each region.
 - [Monaco](doc:ui.monaco/monaco): one load of Monaco, one model per document
   URI, and how typing reaches the document.
+- [Language worker protocol](doc:core.lsp.worker/protocol): the messages
+  behind diagnostics, completions and the temporary session of a form. The
+  [language client](layer:react.lsp) of the React layer says which net is
+  checked and how a session lives.
 
 Layer rules in `archinaut.config.ts` hold the directions between these parts.
 `yarn workspace @apps/petrinaut-docs lint:arch-docs` fails on a dependency that
@@ -113,12 +124,16 @@ on [ui](layer:ui).
 
 ### Embedding Petrinaut
 
-How a host application connects its own document store to the editor and
-extends the editor with plugins.
+How a host application connects its own document store to the editor,
+controls its location, embeds a preview and extends the editor with plugins.
 
 - [Embedding in a host application](doc:core.handle/host-integration): the
   `PetrinautDocHandle` contract, the invariants the editor relies on, and a
   worked adapter.
+- [Navigation](doc:react.navigation/navigation): the location of the editor,
+  which a host may control, and the contract of the controller it passes.
+- [The preview](doc:ui.preview/preview): the compact read-only embed, what it
+  mounts of the editor and what it leaves out.
 - [Plugins](doc:ui.plugins/overview): what a plugin is, how to write one, the
   API reference, and how the editor runs plugins.
 
