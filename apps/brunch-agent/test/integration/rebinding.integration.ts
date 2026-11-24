@@ -22,13 +22,13 @@ import { createFlueClient } from "@flue/sdk";
 import {
   agentOwnershipHeaders,
   brunchRoutes,
+  browserCallUnstartedRefusal,
   canonicalContent,
   netReaderToolNames,
   type BrowserCallClaim,
 } from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
-import { BROWSER_CALL_UNSTARTED_ERROR } from "../../src/shared/conversation/browser-call-rendezvous.ts";
 import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
@@ -141,7 +141,7 @@ try {
   assert.equal(failed.status, 200);
   await client.wait(admission);
   assert(
-    readResult?.includes(BROWSER_CALL_UNSTARTED_ERROR),
+    readResult?.includes(browserCallUnstartedRefusal),
     `The model was told: ${readResult}`,
   );
   process.stdout.write("REBINDING_PASS\n");
