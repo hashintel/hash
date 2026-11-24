@@ -12,6 +12,7 @@ import {
   triggerDisplays,
 } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
+import { getShownState } from "../shared/step-states";
 import { useCanvasActions } from "./canvas-actions";
 import {
   forEachBoxPadding,
@@ -243,7 +244,7 @@ const TitleMarks = ({
           <Icon name="starFilled" size="xs" alt="Shown in run results" />
         </span>
       )}
-      <StepStateText state={run.mark.state} />
+      <StepStateText state={getShownState(run.mark.state, run.live)} />
     </>
   ) : (
     <ProblemsMarker problems={problems} />
