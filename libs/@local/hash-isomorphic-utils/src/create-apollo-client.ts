@@ -69,29 +69,6 @@ const isRetryableGraphQLResult = (result: FetchResult): boolean => {
   });
 };
 
-const getRetryAfterMs = (error: unknown): number | undefined => {
-  if (
-    typeof error !== "object" ||
-    error === null ||
-    !("response" in error) ||
-    !(error.response instanceof Response)
-  ) {
-    return undefined;
-  }
-  const header = error.response.headers.get("Retry-After")?.trim();
-  if (!header) {
-    return undefined;
-  }
-  if (/^\d+$/.test(header)) {
-    return Number(header) * 1_000;
-  }
-  const dateMs = Date.parse(header);
-  if (!Number.isNaN(dateMs)) {
-    return Math.max(0, dateMs - Date.now());
-  }
-  return undefined;
-};
-
 const shouldRetryError = (error: unknown): boolean => {
   if (error instanceof ResultWithErrors) {
     return isRetryableGraphQLResult(error.result);
@@ -110,11 +87,11 @@ const shouldRetryError = (error: unknown): boolean => {
 
 /**
  * Retries the operations that opt in through {@link RetryContext}, after
- * each of their delays in turn (honoring HTTP `Retry-After` when present),
- * when the failure is retryable. When retries are exhausted, GraphQL error
- * results are restored as normal {@link FetchResult}s so Apollo preserves
- * `graphQLErrors`, partial `data`, and `errorPolicy` instead of surfacing them
- * as network errors. Every other operation passes through untouched.
+ * each of their delays in turn, when the failure is retryable. When retries
+ * are exhausted, GraphQL error results are restored as normal
+ * {@link FetchResult}s so Apollo preserves `graphQLErrors`, partial `data`,
+ * and `errorPolicy` instead of surfacing them as network errors. Every other
+ * operation passes through untouched.
  */
 const retryLink = ApolloLink.split(
   (operation) => retryDelaysOf(operation) !== undefined,
@@ -137,8 +114,7 @@ const retryLink = ApolloLink.split(
         ),
     ),
     new RetryLink({
-      delay: (count, operation, error) =>
-        getRetryAfterMs(error) ?? retryDelaysOf(operation)?.[count - 1] ?? 0,
+      delay: (count, operation) => retryDelaysOf(operation)?.[count - 1] ?? 0,
       attempts: (count, operation, error) =>
         count <= (retryDelaysOf(operation)?.length ?? 0) &&
         shouldRetryError(error),
