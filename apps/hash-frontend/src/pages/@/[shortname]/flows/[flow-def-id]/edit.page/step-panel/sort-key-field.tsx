@@ -25,6 +25,7 @@ const sortIcons: Record<
   Text: "alphabetical",
   Number: "numeric",
   Date: "generic",
+  DateTime: "generic",
   Boolean: "generic",
 };
 

@@ -1,7 +1,10 @@
 import { useState } from "react";
 
 import { Filter, Form, LoadingSpinner } from "@hashintel/ds-components";
-import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
+import {
+  isIsoDate,
+  parseDateTime,
+} from "@local/hash-isomorphic-utils/flows/datetime";
 import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getKindIcon } from "../shared/value-display";
@@ -99,6 +102,12 @@ const getOperator = (
         label,
         input: { type: "string", placeholder: "YYYY-MM-DD" },
       };
+    case "DateTime":
+      return {
+        key: operator,
+        label,
+        input: { type: "string", placeholder: "YYYY-MM-DDTHH:mm:ssZ" },
+      };
     case "Text":
       return {
         key: operator,
@@ -154,6 +163,16 @@ const RowFilter = ({
 
     if (valueKind.kind === "Date" && !isIsoDate(String(value))) {
       setError("Enter a date as YYYY-MM-DD.");
+      return;
+    }
+
+    if (
+      valueKind.kind === "DateTime" &&
+      typeof parseDateTime(String(value)) !== "number"
+    ) {
+      setError(
+        "Enter a date and time as YYYY-MM-DDTHH:mm:ssZ, or with an offset.",
+      );
       return;
     }
 

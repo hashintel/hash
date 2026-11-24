@@ -26,8 +26,7 @@ const kindSizes: Record<PayloadKind, InputSize> = {
   WebPage: "short",
   WebSearchResult: "short",
   /*
-   * Each is made in a builder, which lays out its own rows. Only a query and a condition have one yet; the others are
-   * picked from a menu.
+   * Each is made in a builder, which lays out its own rows.
    */
   Aggregation: "long",
   EntityQuery: "long",

@@ -15,7 +15,7 @@ export type ConditionTarget = {
   valueKind: PropertyValueKind;
 };
 
-const rowKinds = ["Text", "Number", "Date", "Boolean"] as const;
+const rowKinds = ["Text", "Number", "Date", "DateTime", "Boolean"] as const;
 
 type RowKind = (typeof rowKinds)[number];
 
@@ -28,8 +28,8 @@ const subjectKeyOf = (subject: ConditionTarget["subject"]) =>
     : `property:${subject.propertyTypeBaseUrl}`;
 
 /**
- * What can be read from a value of `kind`: the value itself when it's text, a number, a date or true/false, or the
- * given properties when it's an entity. Nothing for any other kind, or nothing connected.
+ * What can be read from a value of `kind`: the value itself when it's text, a number, a date, a date and time or
+ * true/false, or the given properties when it's an entity. Nothing for any other kind, or nothing connected.
  */
 export const getConditionTargets = ({
   kind,

@@ -1,4 +1,7 @@
-import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
+import {
+  isIsoDate,
+  parseDateTime,
+} from "@local/hash-isomorphic-utils/flows/datetime";
 import {
   binaryFilterOperatorsByPrimitive,
   unaryFilterOperators,
@@ -26,7 +29,7 @@ import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 export type RowOperator = BinaryFilterOperator | UnaryFilterOperator;
 
-/** A row's value: text for text and dates, a number, or true or false. */
+/** A row's value: text for text, dates and times, a number, or true or false. */
 type RowValue = string | number | boolean;
 
 export type ConditionRow =
@@ -42,6 +45,7 @@ const primitives = {
   Text: "text",
   Number: "number",
   Date: "date",
+  DateTime: "datetime",
   Boolean: "boolean",
 } as const satisfies Record<PropertyValueKind["kind"], string>;
 
@@ -73,7 +77,7 @@ const operatorLabels: Record<RowOperator, string> = {
   isNotEmpty: "is not empty",
 };
 
-/** Dates compare as before and after, not greater and less. */
+/** Dates and times compare as before and after, not greater and less. */
 const dateOperatorLabels: Partial<Record<RowOperator, string>> = {
   greaterThan: "is after",
   greaterThanOrEqual: "is on or after",
@@ -85,8 +89,9 @@ export const getOperatorLabel = (
   operator: RowOperator,
   valueKind: PropertyValueKind,
 ) =>
-  (valueKind.kind === "Date" ? dateOperatorLabels[operator] : undefined) ??
-  operatorLabels[operator];
+  (valueKind.kind === "Date" || valueKind.kind === "DateTime"
+    ? dateOperatorLabels[operator]
+    : undefined) ?? operatorLabels[operator];
 
 /**
  * The kind a saved condition was built for, read from its first row: the value's own kind, or an entity's. Lets its
@@ -103,7 +108,7 @@ export const getSavedConditionKind = (
   return getSavedSubjectKind(first);
 };
 
-/** Whether a typed value is one of a kind's: a number, true or false, a date, a status's option, or any text. */
+/** Whether a typed value is one of a kind's: a number, true or false, a date, an instant, a status's option, or any text. */
 const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
   switch (valueKind.kind) {
     case "Number":
@@ -112,6 +117,8 @@ const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
       return typeof value === "boolean";
     case "Date":
       return typeof value === "string" && isIsoDate(value);
+    case "DateTime":
+      return typeof parseDateTime(value) === "number";
     case "Text":
       return (
         typeof value === "string" &&

@@ -34,7 +34,7 @@ describe("getConditionTargets", () => {
     ).toEqual(["Status", "Score"]);
     expect(
       getConditionTargets({
-        kind: "DateTime",
+        kind: "Duration",
         valueLabel: "Value",
         properties: [],
       }),

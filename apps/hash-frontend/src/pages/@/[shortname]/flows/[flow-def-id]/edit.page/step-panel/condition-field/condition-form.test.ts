@@ -69,6 +69,29 @@ describe("toFilterCondition", () => {
     );
 
     expect(validateCondition(onValue!, "Number")).toBeUndefined();
+
+    const dateTimeTargets = byKey(
+      getConditionTargets({
+        kind: "DateTime",
+        valueLabel: "Value",
+        properties: [],
+      }),
+    );
+    const onDateTime = toFilterCondition(
+      {
+        join: "all",
+        rows: [
+          {
+            targetKey: "input",
+            operator: "onSameUtcDate",
+            value: "2026-10-16T16:00:00+02:00",
+          },
+        ],
+      },
+      dateTimeTargets,
+    );
+
+    expect(validateCondition(onDateTime!, "DateTime")).toBeUndefined();
   });
 
   it("leaves no condition once every row is removed, as a group needs one", () => {

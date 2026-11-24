@@ -15,6 +15,7 @@ export type PropertyValueKind =
   | { kind: "Text"; options?: string[] }
   | { kind: "Number" }
   | { kind: "Date" }
+  | { kind: "DateTime" }
   | { kind: "Boolean" };
 
 /** A property a condition can check: one with a single value of a kind it compares. */
@@ -58,32 +59,41 @@ export const getLatestDataTypeIds = (
   return dataTypeIds;
 };
 
-/** Whether a data type, or one it inherits from, has format `date`. */
-const hasDateFormat = (
+/** The `date` or `date-time` format a data type, or one it inherits from, has. */
+const getDateFormat = (
   dataTypeId: VersionedUrl,
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata>,
   seen = new Set<VersionedUrl>(),
-): boolean => {
+): "date" | "date-time" | undefined => {
   const schema = dataTypes[dataTypeId]?.schema;
 
   if (!schema || seen.has(dataTypeId)) {
-    return false;
+    return undefined;
   }
 
   seen.add(dataTypeId);
 
+  const [only, ...others] = "anyOf" in schema ? schema.anyOf : [schema];
+  const format =
+    others.length === 0 && "format" in only ? only.format : undefined;
+
+  if (format === "date" || format === "date-time") {
+    return format;
+  }
+
   if ("anyOf" in schema) {
-    const [only, ...others] = schema.anyOf;
-    return others.length === 0 && "format" in only && only.format === "date";
+    return undefined;
   }
 
-  if ("format" in schema && schema.format === "date") {
-    return true;
+  for (const { $ref } of schema.allOf ?? []) {
+    const inherited = getDateFormat($ref, dataTypes, seen);
+
+    if (inherited) {
+      return inherited;
+    }
   }
 
-  return (schema.allOf ?? []).some(({ $ref }) =>
-    hasDateFormat($ref, dataTypes, seen),
-  );
+  return undefined;
 };
 
 const toEntityProperty = (
@@ -111,14 +121,19 @@ const toEntityProperty = (
       return { baseUrl, title, valueKind: { kind: "Boolean" } };
     case "string": {
       const dataTypeId = latestDataTypeIds.get(baseUrl);
+      const format = dataTypeId && getDateFormat(dataTypeId, dataTypes);
 
       return {
         baseUrl,
         title,
-        valueKind:
-          dataTypeId && hasDateFormat(dataTypeId, dataTypes)
-            ? { kind: "Date" }
-            : { kind: "Text" },
+        valueKind: {
+          kind:
+            format === "date"
+              ? "Date"
+              : format === "date-time"
+                ? "DateTime"
+                : "Text",
+        },
       };
     }
     /* A list, or a value of several shapes, has no single value to compare. */
@@ -163,7 +178,7 @@ const collectProperties = <
   );
 };
 
-/** The properties a condition can check: a single number, text, date, true/false or status. */
+/** The properties a condition can check: a single number, text, date, date and time, true/false or status. */
 export const getEntityProperties = (
   ontology: ConditionOntology,
   entityTypeIds: VersionedUrl[],
