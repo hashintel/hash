@@ -76,8 +76,12 @@ export type FlowNetStepRun = { stepId: string; itemPath: number[] };
  */
 export type FlowNetPath = readonly [string, ...string[]];
 
-/** A key for a path in maps and sets. Petrinaut ids are lowercase UUIDs, so `/` can't appear in one. */
-export const flowNetPathKey = (path: FlowNetPath) => path.join("/");
+/**
+ * A key for a path in maps and sets: its ids joined with `::`, the id Petrinaut's flattener gives the item. This
+ * mirrors `scopedId` in `@hashintel/petrinaut-core`'s `simulation/engine/scoped-id.ts`, which isn't exported.
+ * Petrinaut ids are lowercase UUIDs, so `::` can't appear in one.
+ */
+export const flowNetPathKey = (path: FlowNetPath) => path.join("::");
 
 export const isSameFlowNetPath = (path: FlowNetPath, otherPath: FlowNetPath) =>
   path.length === otherPath.length &&

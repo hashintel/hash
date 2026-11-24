@@ -326,6 +326,13 @@ describe("flow net paths", () => {
     ).toBe(false);
   });
 
+  it("keys a path with the id Petrinaut's flattener gives the item", () => {
+    expect(flowNetPathKey([placeId])).toBe(placeId);
+    expect(flowNetPathKey([instanceId, placeId])).toBe(
+      `${instanceId}::${placeId}`,
+    );
+  });
+
   it("writes a path with dots", () => {
     expect(formatFlowNetPath([instanceId, placeId])).toBe(
       `${instanceId}.${placeId}`,
