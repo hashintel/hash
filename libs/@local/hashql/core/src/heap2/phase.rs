@@ -83,6 +83,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc_with`] to handle that failure yourself.
     ///
     /// [`try_alloc_with`]: Self::try_alloc_with
+    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
     fn alloc_with<T>(&self, value: impl [const] FnOnce() -> T + [const] Destruct) -> &'alloc mut T {
         match self.try_alloc_with(value) {
@@ -100,6 +101,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// to handle that failure yourself.
     ///
     /// [`try_alloc`]: Self::try_alloc
+    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
     fn alloc<T>(&self, value: T) -> &'alloc mut T
     where
@@ -132,13 +134,13 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// Allocates a slice of `len` uninitialized values.
     ///
     /// Use this to build a slice one element at a time, for example from an iterator. To copy a
-    /// slice that already exists, use [`try_alloc_slice`].
+    /// slice that already exists, use [`try_alloc_slice_copy`].
     ///
     /// # Errors
     ///
     /// Returns [`AllocError`] if the arena cannot provide the memory.
     ///
-    /// [`try_alloc_slice`]: Self::try_alloc_slice
+    /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
     #[inline]
     fn try_alloc_slice_uninit<T>(
         &self,
@@ -152,7 +154,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// Allocates a slice of `len` uninitialized values.
     ///
     /// Use this to build a slice one element at a time, for example from an iterator. To copy a
-    /// slice that already exists, use [`alloc_slice`].
+    /// slice that already exists, use [`alloc_slice_copy`].
     ///
     /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
     /// [`try_alloc_slice_uninit`] to handle that failure yourself.
@@ -162,8 +164,9 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// Panics if a slice of `len` values of `T` would take more than [`isize::MAX`] bytes.
     /// [`try_alloc_slice_uninit`] returns an error in that case.
     ///
-    /// [`alloc_slice`]: Self::alloc_slice
+    /// [`alloc_slice_copy`]: Self::alloc_slice_copy
     /// [`try_alloc_slice_uninit`]: Self::try_alloc_slice_uninit
+    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
     fn alloc_slice_uninit<T>(&self, len: usize) -> &'alloc mut [mem::MaybeUninit<T>] {
         match self.try_alloc_slice_uninit(len) {
@@ -183,22 +186,82 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// # Errors
     ///
     /// Returns [`AllocError`] if the arena cannot provide the memory.
-    fn try_alloc_slice<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+    fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
     where
         T: Copy;
 
     /// Copies `slice` into the arena.
     ///
     /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
-    /// [`try_alloc_slice`] to handle that failure yourself.
+    /// [`try_alloc_slice_copy`] to handle that failure yourself.
     ///
-    /// [`try_alloc_slice`]: Self::try_alloc_slice
+    /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
+    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc_slice<T>(&self, slice: &[T]) -> &'alloc mut [T]
+    fn alloc_slice_copy<T>(&self, slice: &[T]) -> &'alloc mut [T]
     where
         T: Copy,
     {
-        match self.try_alloc_slice(slice) {
+        match self.try_alloc_slice_copy(slice) {
+            Ok(slice) => slice,
+            Err(_) => {
+                let Ok(layout) = Layout::array::<T>(slice.len()) else {
+                    panic!("stack overflow");
+                };
+
+                handle_alloc_error(layout)
+            }
+        }
+    }
+
+    /// Clones every element of `slice` into the arena.
+    ///
+    /// If `T` is [`Copy`], use [`try_alloc_slice_copy`], which copies the bytes of the slice and
+    /// calls [`Clone::clone`] for no element.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
+    ///
+    /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
+    #[inline]
+    fn try_alloc_slice_clone<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+    where
+        T: [const] Clone,
+    {
+        let uninit = match self.try_alloc_slice_uninit::<T>(slice.len()) {
+            Ok(uninit) => uninit,
+            Err(error) => return Err(error),
+        };
+
+        let mut index = 0;
+        while index < slice.len() {
+            uninit[index].write(slice[index].clone());
+            index += 1;
+        }
+
+        // SAFETY: `uninit` and `slice` have the same length, and the loop above wrote every element
+        // of `uninit`.
+        Ok(unsafe { uninit.assume_init_mut() })
+    }
+
+    /// Clones every element of `slice` into the arena.
+    ///
+    /// If `T` is [`Copy`], use [`alloc_slice_copy`], which copies the bytes of the slice and calls
+    /// [`Clone::clone`] for no element.
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
+    /// [`try_alloc_slice_clone`] to handle that failure yourself.
+    ///
+    /// [`alloc_slice_copy`]: Self::alloc_slice_copy
+    /// [`try_alloc_slice_clone`]: Self::try_alloc_slice_clone
+    #[expect(clippy::single_match_else, reason = "clarity")]
+    #[inline]
+    fn alloc_slice_clone<T>(&self, slice: &[T]) -> &'alloc mut [T]
+    where
+        T: [const] Clone,
+    {
+        match self.try_alloc_slice_clone(slice) {
             Ok(slice) => slice,
             Err(_) => {
                 let Ok(layout) = Layout::array::<T>(slice.len()) else {
@@ -210,3 +273,113 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
         }
     }
 }
+
+macro_rules! forward_to_referent {
+    ($($reference:tt)+) => {
+        // SAFETY: Every method calls the method of the same name on `A`, whose implementation
+        // upholds the contract for `'alloc`. A reference to `A` adds no way to release memory that
+        // `A` handed out.
+        const unsafe impl<'alloc, A> PhaseAllocator<'alloc> for $($reference)+
+        where
+            A: [const] PhaseAllocator<'alloc> + ?Sized,
+        {
+            #[inline]
+            unsafe fn try_alloc_with_unchecked<T>(
+                &self,
+                value: impl [const] FnOnce() -> T + [const] Destruct,
+            ) -> Result<&'alloc mut T, AllocError> {
+                // SAFETY: The caller upholds the same requirement.
+                unsafe { (**self).try_alloc_with_unchecked(value) }
+            }
+
+            #[inline]
+            fn try_alloc_with<T>(
+                &self,
+                value: impl [const] FnOnce() -> T + [const] Destruct,
+            ) -> Result<&'alloc mut T, AllocError> {
+                (**self).try_alloc_with(value)
+            }
+
+            #[inline]
+            fn try_alloc<T>(&self, value: T) -> Result<&'alloc mut T, AllocError>
+            where
+                T: [const] Destruct,
+            {
+                (**self).try_alloc(value)
+            }
+
+            #[inline]
+            fn alloc_with<T>(
+                &self,
+                value: impl [const] FnOnce() -> T + [const] Destruct,
+            ) -> &'alloc mut T {
+                (**self).alloc_with(value)
+            }
+
+            #[inline]
+            fn alloc<T>(&self, value: T) -> &'alloc mut T
+            where
+                T: [const] Destruct,
+            {
+                (**self).alloc(value)
+            }
+
+            #[inline]
+            unsafe fn try_alloc_slice_uninit_unchecked<T>(
+                &self,
+                len: usize,
+            ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
+                // SAFETY: The caller upholds the same requirement.
+                unsafe { (**self).try_alloc_slice_uninit_unchecked(len) }
+            }
+
+            #[inline]
+            fn try_alloc_slice_uninit<T>(
+                &self,
+                len: usize,
+            ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
+                (**self).try_alloc_slice_uninit(len)
+            }
+
+            #[inline]
+            fn alloc_slice_uninit<T>(&self, len: usize) -> &'alloc mut [mem::MaybeUninit<T>] {
+                (**self).alloc_slice_uninit(len)
+            }
+
+            #[inline]
+            fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+            where
+                T: Copy,
+            {
+                (**self).try_alloc_slice_copy(slice)
+            }
+
+            #[inline]
+            fn alloc_slice_copy<T>(&self, slice: &[T]) -> &'alloc mut [T]
+            where
+                T: Copy,
+            {
+                (**self).alloc_slice_copy(slice)
+            }
+
+            #[inline]
+            fn try_alloc_slice_clone<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+            where
+                T: [const] Clone,
+            {
+                (**self).try_alloc_slice_clone(slice)
+            }
+
+            #[inline]
+            fn alloc_slice_clone<T>(&self, slice: &[T]) -> &'alloc mut [T]
+            where
+                T: [const] Clone,
+            {
+                (**self).alloc_slice_clone(slice)
+            }
+        }
+    };
+}
+
+forward_to_referent!(&A);
+forward_to_referent!(&mut A);

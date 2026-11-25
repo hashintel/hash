@@ -44,6 +44,7 @@
         "co_sort",
         "try_scan",
         "heap::transfer",
+        "heap2",
         "stable_empty_slice",
         "id::slice",
         "tarjan::tests::members",

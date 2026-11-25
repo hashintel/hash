@@ -153,16 +153,29 @@ macro_rules! delegate_phase_allocator {
             }
 
             #[inline]
-            fn try_alloc_slice<T: Copy>(
+            fn try_alloc_slice_copy<T: Copy>(
                 &self,
                 slice: &[T],
             ) -> Result<&$alloc mut [T], ::core::alloc::AllocError> {
-                $crate::heap2::PhaseAllocator::try_alloc_slice(&self.$field, slice)
+                $crate::heap2::PhaseAllocator::try_alloc_slice_copy(&self.$field, slice)
             }
 
             #[inline]
-            fn alloc_slice<T: Copy>(&self, slice: &[T]) -> &$alloc mut [T] {
-                $crate::heap2::PhaseAllocator::alloc_slice(&self.$field, slice)
+            fn alloc_slice_copy<T: Copy>(&self, slice: &[T]) -> &$alloc mut [T] {
+                $crate::heap2::PhaseAllocator::alloc_slice_copy(&self.$field, slice)
+            }
+
+            #[inline]
+            fn try_alloc_slice_clone<T: Clone>(
+                &self,
+                slice: &[T],
+            ) -> Result<&$alloc mut [T], ::core::alloc::AllocError> {
+                $crate::heap2::PhaseAllocator::try_alloc_slice_clone(&self.$field, slice)
+            }
+
+            #[inline]
+            fn alloc_slice_clone<T: Clone>(&self, slice: &[T]) -> &$alloc mut [T] {
+                $crate::heap2::PhaseAllocator::alloc_slice_clone(&self.$field, slice)
             }
         }
     };

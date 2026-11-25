@@ -19,6 +19,7 @@
     bound_copied,
     clone_from_ref,
     clone_to_uninit,
+    const_clone,
     const_cmp,
     const_convert,
     const_destruct,
