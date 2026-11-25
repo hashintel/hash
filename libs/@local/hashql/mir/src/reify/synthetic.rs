@@ -469,7 +469,7 @@ impl<'syn, A: Allocator, S: Allocator> SyntheticBuilder<'syn, '_, '_, '_, '_, '_
         let operand_id = locals.push(LocalDecl {
             span: self.hir_id.span,
             r#type: operand_type,
-            name: Some(sym::lhs),
+            name: Some(sym::value),
         });
         let output = locals.push(LocalDecl {
             span: self.hir_id.span,
