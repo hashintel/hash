@@ -380,6 +380,9 @@ async fn prepare_aviation() {
     prepare(&storage, &record)
         .await
         .expect("the first attempt should write the sync table");
+    let first = sync_table::read(&storage, run)
+        .await
+        .expect("should read the sync table");
     prepare_incremental(&storage, run)
         .await
         .expect("should prepare the run");
@@ -401,6 +404,10 @@ async fn prepare_aviation() {
     let rows = sync_table::read(&storage, run)
         .await
         .expect("should read the sync table");
+    assert_eq!(
+        rows, first,
+        "a second attempt should write the same rows as the first"
+    );
     let mut changes = rows.iter().map(|row| (row.seq, row.op)).collect::<Vec<_>>();
     changes.sort_unstable();
     assert_eq!(
