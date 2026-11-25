@@ -125,7 +125,7 @@ const SourceMenu = ({
   onClear,
 }: {
   label: string;
-  /** Flow inputs, then the outputs of earlier steps, nearest first. */
+  /** The current item inside a for-each step, flow inputs, then the outputs of earlier steps, nearest first. */
   options: SourceOption[];
   pickedKey: string | undefined;
   pickedLabel: string | undefined;
@@ -436,9 +436,9 @@ export const InputField = ({
     );
   }
 
-  const { flowInputs, earlierSteps } = readOnly
-    ? { flowInputs: [], earlierSteps: [] }
-    : getSourceOptions({ flowDefinition, stepId, target });
+  const { item, flowInputs, earlierSteps } = readOnly
+    ? { item: null, flowInputs: [], earlierSteps: [] }
+    : getSourceOptions({ flowDefinition, stepId, target, getItemName });
   const forEachStepId = getForEachScope(flowDefinition.steps, stepId)?.at(-1);
   const pickedLabel =
     source &&
@@ -463,7 +463,7 @@ export const InputField = ({
     >
       <SourceMenu
         label={label}
-        options={[...flowInputs, ...earlierSteps]}
+        options={[...(item ? [item] : []), ...flowInputs, ...earlierSteps]}
         pickedKey={source && getSourceKey(source)}
         pickedLabel={pickedLabel}
         brokenReason={

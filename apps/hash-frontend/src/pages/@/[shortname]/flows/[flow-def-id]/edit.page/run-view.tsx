@@ -273,7 +273,7 @@ export const RunView = ({
               /* Each step's panel starts afresh, e.g. with its outputs open. */
               key={selected.step.stepId}
               step={selected.step}
-              inner={selected.inner}
+              inner={selected.parent !== null}
               flowDefinition={flowDefinition}
               mark={marks.get(selected.step.stepId) ?? notReachedMark}
               stepRuns={stepRuns}
