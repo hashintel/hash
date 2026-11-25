@@ -79,7 +79,7 @@ export const getOrCreateOwningWebId = async (
    */
   const systemActorMachineId = await context.graphApi
     .getOrCreateSystemMachine(webShortname)
-    .then(({ data }) => data as MachineId);
+    .then((data) => data as MachineId);
 
   const foundWeb = await getWebByShortname(
     context.graphApi,

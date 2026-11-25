@@ -1,0 +1,13 @@
+diff --git a/dist/config-lAL8eZQF.mjs b/dist/config-lAL8eZQF.mjs
+index ab4e208aabd3f9098c16fb6342c00e5c93954163..33d89bfc0f202583446af6fa82dfd7abbe6cc969 100644
+--- a/dist/config-lAL8eZQF.mjs
++++ b/dist/config-lAL8eZQF.mjs
+@@ -1748,7 +1748,7 @@ function scrubUnwantedKeys(obj) {
+ 		const out = {};
+ 		for (const [k, v] of Object.entries(rec)) {
+ 			if (UNWANTED_KEYS.has(k)) continue;
+-			out[k] = scrubUnwantedKeys(v);
++			out[k] = k === "properties" && isObject(v) ? Object.fromEntries(Object.entries(v).map(([name, schema]) => [name, scrubUnwantedKeys(schema)])) : scrubUnwantedKeys(v);
+ 		}
+ 		return out;
+ 	}

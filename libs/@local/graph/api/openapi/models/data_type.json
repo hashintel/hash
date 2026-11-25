@@ -43,6 +43,5 @@
       ]
     }
   },
-  "required": ["$schema", "kind", "$id", "title", "description"],
-  "additionalProperties": true
+  "required": ["$schema", "kind", "$id", "title", "description"]
 }

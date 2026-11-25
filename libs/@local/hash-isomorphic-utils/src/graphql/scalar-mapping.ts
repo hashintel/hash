@@ -105,7 +105,7 @@ export const scalars = {
   DiffEntityInput: "@local/hash-graph-sdk/entity#DiffEntityInput",
   DiffEntityResult: "@local/hash-graph-client#DiffEntityResult",
   ValidateEntityParamsComponents:
-    "@local/hash-graph-client#ValidateEntityParamsComponents",
+    "@local/hash-graph-client#ValidateEntityComponents",
   EntityQueryCursor: "@local/hash-graph-client#EntityQueryCursor",
   CreatedByIdsMap: "@local/hash-graph-sdk/entity#CreatedByIdsMap",
   TypeIdsAndPropertiesForEntity:

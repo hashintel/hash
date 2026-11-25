@@ -1,8 +1,9 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["./dist", "./scripts"],
+  "include": ["src"],
   "compilerOptions": {
     "declaration": true,
+    "rootDir": "src",
     "outDir": "dist"
   }
 }

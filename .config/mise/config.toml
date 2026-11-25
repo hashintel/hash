@@ -28,7 +28,6 @@ uv             = "0.13.6"
 # wasm-opt crate from source added ~7 minutes to every install that needed it.
 "github:WebAssembly/binaryen"   = "version_131"
 "github:wasm-bindgen/wasm-pack" = "0.15.0"
-java                            = "temurin-25.0.5+8.0.LTS"
 protoc                          = "35.1"
 
 # CLI tools
@@ -45,7 +44,6 @@ protoc                          = "35.1"
 just                                    = "1.51.0"
 markdownlint-cli2                       = "0.24.0"
 "npm:@napi-rs/cli"                      = "3.7.0"
-"npm:@redocly/cli"                      = "2.31.5"
 # TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2
 # ships (https://github.com/yarnpkg/berry/issues/7182). That exact version was published without
 # provenance by a legitimate maintainer (manual backfill of a failed CI release batch); content was

@@ -14,16 +14,7 @@
     // every consumer's build.
     "codegen": {
       "dependsOn": ["hash-graph-api#manifest:openapi"],
-      "outputs": [
-        ".npmignore",
-        "api.ts",
-        "base.ts",
-        "common.ts",
-        "configuration.ts",
-        "git_push.sh",
-        "index.ts",
-        "openapi.json"
-      ]
+      "outputs": ["openapi.json", "src/api.gen.ts"]
     }
   }
 }

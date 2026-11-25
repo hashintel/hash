@@ -6,6 +6,7 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { actorHeaders } from "@local/hash-graph-client";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -97,14 +98,17 @@ export const ensureUnitDataType: typeof createSystemDataTypeIfNotExists =
       });
       const updated = isSelfHostedInstance
         ? await context.graphApi
-            .loadExternalDataType(systemActorMachineId, {
+            .loadExternalDataType(
+              {
+                schema,
+                conversions,
+                provenance: context.provenance,
+              },
+              actorHeaders(systemActorMachineId),
+            )
+            .then((metadata) => ({
               schema,
-              conversions,
-              provenance: context.provenance,
-            })
-            .then(({ data }) => ({
-              schema,
-              metadata: data as DataTypeMetadata,
+              metadata: metadata as DataTypeMetadata,
             }))
         : await updateDataType(
             context,

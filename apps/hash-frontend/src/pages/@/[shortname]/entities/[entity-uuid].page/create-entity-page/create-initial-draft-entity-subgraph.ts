@@ -10,8 +10,8 @@ import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Entity as GraphApiEntity,
-  EntityVertex,
   EntityVertexId,
+  KnowledgeGraphVertex,
   KnowledgeGraphVertices,
 } from "@local/hash-graph-client";
 
@@ -100,7 +100,7 @@ export const createInitialDraftEntitySubgraph = (
         [draftEntityVertexId.revisionId]: {
           kind: "entity",
           inner: entity,
-        } as const satisfies EntityVertex,
+        } as const satisfies KnowledgeGraphVertex,
       },
     } satisfies KnowledgeGraphVertices,
   };
