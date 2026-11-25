@@ -13,6 +13,35 @@
 /// An implementor must not also implement [`ScopeAllocator`]. A reference that a `ScopeAllocator`
 /// returns does not borrow it, and it would stay usable after a `reset`.
 ///
+/// # Example
+///
+/// ```
+/// use hashql_core::heap::{PhaseAllocator as _, ResetAllocator, Scratch};
+///
+/// // Runs `step` for every input and releases the memory of a step before the next one starts.
+/// fn run_each<A>(arena: &mut A, inputs: &[u32], mut step: impl FnMut(&A, u32) -> u32) -> u32
+/// where
+///     A: ResetAllocator,
+/// {
+///     let mut total = 0;
+///
+///     for &input in inputs {
+///         total += step(arena, input);
+///         arena.reset();
+///     }
+///
+///     total
+/// }
+///
+/// let mut scratch = Scratch::new();
+/// let total = run_each(&mut scratch, &[1, 2, 3], |scratch, input| {
+///     let doubled = scratch.alloc(input * 2);
+///     *doubled
+/// });
+///
+/// assert_eq!(total, 12);
+/// ```
+///
 /// [`reset`]: Self::reset
 /// [`ScopeAllocator`]: super::ScopeAllocator
 pub const unsafe trait ResetAllocator {

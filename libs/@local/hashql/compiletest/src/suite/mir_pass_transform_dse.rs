@@ -43,7 +43,7 @@ pub(crate) fn mir_pass_transform_dse<'heap>(
     };
 
     // CFG -> SROA -> Inst -> DSE
-    let mut pass = DeadStoreElimination::new_in(&mut scratch);
+    let mut pass = DeadStoreElimination::new_in(scratch.as_mut_scope());
     for body in bodies.as_mut_slice() {
         let _: Changed = pass.run(&mut context, body);
     }

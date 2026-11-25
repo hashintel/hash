@@ -1,6 +1,6 @@
 use core::mem;
 
-use hashql_core::{heap::BumpAllocator, module::Universe, span::SpanId};
+use hashql_core::{heap::ScopeAllocator, module::Universe, span::SpanId};
 
 use super::Expander;
 use crate::{
@@ -11,15 +11,15 @@ use crate::{
     },
 };
 
-fn lower_as_impl<'heap, S>(
+fn lower_as_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, S>,
+    expander: &mut Expander<'_, 'heap, '_, S>,
 
     body: &mut Argument<'heap>,
     r#type: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let mut body = mem::replace(&mut body.value, Expr::dummy());
     let mut r#type = mem::replace(&mut r#type.value, Expr::dummy());
@@ -46,8 +46,8 @@ where
 /// universe.
 ///
 /// [`AsExpr`]: crate::node::expr::AsExpr
-pub(super) fn lower_as<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+pub(super) fn lower_as<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     CallExpr {
         id: _,
         span,
@@ -57,7 +57,7 @@ pub(super) fn lower_as<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         expander

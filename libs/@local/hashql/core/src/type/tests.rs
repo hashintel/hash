@@ -9,6 +9,7 @@ use super::{
     kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::assert_equiv},
 };
 use crate::{
+    heap::SymbolAllocator as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -471,7 +472,7 @@ fn recursive_simplify() {
 fn never_projection() {
     scaffold!(heap, env, builder, [lattice: lattice]);
 
-    let result = lattice.projection(builder.never(), Ident::synthetic(heap.intern_symbol("foo")));
+    let result = lattice.projection(builder.never(), Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(result, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics();
@@ -501,7 +502,7 @@ fn unknown_projection() {
 
     let result = lattice.projection(
         builder.unknown(),
-        Ident::synthetic(heap.intern_symbol("foo")),
+        Ident::synthetic(heap.alloc_symbol("foo")),
     );
     assert_eq!(result, Projection::Error);
 

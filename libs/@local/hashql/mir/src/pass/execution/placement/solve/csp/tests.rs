@@ -30,7 +30,7 @@ const P: TargetId = TargetId::Postgres;
 const E: TargetId = TargetId::Embedding;
 
 fn take_cyclic<'alloc>(
-    solver: &mut PlacementSolver<'_, 'alloc, &'alloc Heap, Heap>,
+    solver: &mut PlacementSolver<'_, 'alloc, &'alloc Heap, &'alloc Heap>,
 ) -> (PlacementRegionId, CyclicPlacementRegion<'alloc>) {
     let region_ids: Vec<_> = solver.condensation.reverse_topological_order().collect();
 

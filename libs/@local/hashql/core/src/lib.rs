@@ -60,7 +60,6 @@ pub mod algorithms;
 pub mod collections;
 pub mod graph;
 pub mod heap;
-mod heap2;
 pub mod id;
 pub mod intern;
 mod macros;

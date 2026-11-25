@@ -50,12 +50,9 @@
 #[cfg(test)]
 mod tests;
 
-use core::convert::Infallible;
+use core::{alloc::Allocator, convert::Infallible};
 
-use hashql_core::{
-    heap::BumpAllocator,
-    id::{Id as _, bit_vec::DenseBitSet},
-};
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
 use crate::{
     body::{
@@ -74,12 +71,12 @@ use crate::{
 ///
 /// Removes unused locals and compacts the local ID space.
 #[derive(Debug)]
-pub struct DeadLocalElimination<A: BumpAllocator> {
+pub struct DeadLocalElimination<A: Allocator> {
     alloc: A,
     dead: Option<DenseBitSet<Local>>,
 }
 
-impl<A: BumpAllocator> DeadLocalElimination<A> {
+impl<A: Allocator> DeadLocalElimination<A> {
     /// Creates a new dead local elimination pass.
     ///
     /// The pass will compute which locals are dead by scanning all references in the body.
@@ -103,7 +100,7 @@ impl<A: BumpAllocator> DeadLocalElimination<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
+impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut dead = if let Some(dead) = self.dead.take() {
             dead

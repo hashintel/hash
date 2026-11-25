@@ -20,9 +20,9 @@
 //!
 //! Using integer literals:
 //! ```
-//! # use hashql_core::{heap::Heap, value::Integer};
+//! # use hashql_core::{heap::{Heap, SymbolAllocator as _}, value::Integer};
 //! # let heap = Heap::new();
-//! let int_literal = Integer::new_unchecked(heap.intern_symbol("42"));
+//! let int_literal = Integer::new_unchecked(heap.alloc_symbol("42"));
 //!
 //! assert_eq!(int_literal.as_i32(), Some(42));
 //! assert_eq!(int_literal.as_f64(), 42.0);
@@ -30,9 +30,9 @@
 //!
 //! Using float literals:
 //! ```
-//! # use hashql_core::{heap::Heap, value::Float};
+//! # use hashql_core::{heap::{Heap, SymbolAllocator as _}, value::Float};
 //! # let heap = Heap::new();
-//! let float_literal = Float::new_unchecked(heap.intern_symbol("3.14159"));
+//! let float_literal = Float::new_unchecked(heap.alloc_symbol("3.14159"));
 //!
 //! assert!((float_literal.as_f64() - 3.14159).abs() < f64::EPSILON);
 //! ```

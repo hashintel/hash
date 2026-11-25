@@ -17,7 +17,7 @@ use codspeed_criterion_compat::{
     BatchSize, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main,
 };
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _},
+    heap::{Heap, ResetAllocator as _, SymbolAllocator as _},
     symbol::sym,
 };
 
@@ -96,7 +96,7 @@ fn interning(criterion: &mut Criterion) {
                 bencher.iter(|| {
                     heap.reset();
                     for ident in &identifiers {
-                        black_box(heap.intern_symbol(ident));
+                        black_box(heap.alloc_symbol(ident));
                     }
                 });
             },
@@ -116,7 +116,7 @@ fn interning(criterion: &mut Criterion) {
                     heap.reset();
                     for _ in 0..count {
                         for ident in IDENTIFIERS {
-                            black_box(heap.intern_symbol(ident));
+                            black_box(heap.alloc_symbol(ident));
                         }
                     }
                 });
@@ -135,11 +135,11 @@ fn interning(criterion: &mut Criterion) {
             for _ in 0..10 {
                 // Keywords (repeated)
                 for ident in IDENTIFIERS.iter().take(20) {
-                    black_box(heap.intern_symbol(ident));
+                    black_box(heap.alloc_symbol(ident));
                 }
                 // Unique identifiers
                 for ident in &unique {
-                    black_box(heap.intern_symbol(ident));
+                    black_box(heap.alloc_symbol(ident));
                 }
             }
         });
@@ -195,8 +195,8 @@ fn equality(criterion: &mut Criterion) {
     // Benchmark: Compare runtime symbols (same interned string)
     group.bench_function("runtime_equal", |bencher| {
         let heap = Heap::new();
-        let a = heap.intern_symbol("some_identifier");
-        let b = heap.intern_symbol("some_identifier");
+        let a = heap.alloc_symbol("some_identifier");
+        let b = heap.alloc_symbol("some_identifier");
 
         bencher.iter(|| black_box(a) == black_box(b));
     });
@@ -204,8 +204,8 @@ fn equality(criterion: &mut Criterion) {
     // Benchmark: Compare runtime symbols (different strings)
     group.bench_function("runtime_not_equal", |bencher| {
         let heap = Heap::new();
-        let a = heap.intern_symbol("identifier_one");
-        let b = heap.intern_symbol("identifier_two");
+        let a = heap.alloc_symbol("identifier_one");
+        let b = heap.alloc_symbol("identifier_two");
 
         bencher.iter(|| black_box(a) == black_box(b));
     });
@@ -253,7 +253,7 @@ fn hashing(criterion: &mut Criterion) {
     // Benchmark: Hash runtime symbols
     group.bench_function("runtime", |bencher| {
         let heap = Heap::new();
-        let symbol = heap.intern_symbol("some_identifier");
+        let symbol = heap.alloc_symbol("some_identifier");
 
         bencher.iter_batched(
             DefaultHasher::new,
@@ -284,7 +284,7 @@ fn string_access(criterion: &mut Criterion) {
     // Benchmark: Access string content of runtime symbols
     group.bench_function("runtime", |bencher| {
         let heap = Heap::new();
-        let symbol = heap.intern_symbol("some_identifier");
+        let symbol = heap.alloc_symbol("some_identifier");
         bencher.iter(|| black_box(symbol.as_str()));
     });
 
@@ -312,7 +312,7 @@ fn realistic(criterion: &mut Criterion) {
             let mut ident_count = 0;
 
             for token in &source_tokens {
-                let symbol = heap.intern_symbol(token);
+                let symbol = heap.alloc_symbol(token);
 
                 // Check if it's a keyword
                 if matches!(
@@ -338,7 +338,7 @@ fn realistic(criterion: &mut Criterion) {
     // Simulate type checker: lots of symbol comparisons
     group.bench_function("type_checker_simulation", |bencher| {
         let heap = Heap::new();
-        let symbols: Vec<_> = IDENTIFIERS.iter().map(|s| heap.intern_symbol(s)).collect();
+        let symbols: Vec<_> = IDENTIFIERS.iter().map(|s| heap.alloc_symbol(s)).collect();
 
         bencher.iter(|| {
             let mut matches = 0;

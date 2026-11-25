@@ -179,9 +179,9 @@ impl<'heap> Symbol<'heap> {
     /// ```
     ///
     /// ```
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// let heap = Heap::new();
-    /// let symbol = heap.intern_symbol("hello");
+    /// let symbol = heap.alloc_symbol("hello");
     /// assert_eq!(symbol.as_str(), "hello");
     /// ```
     #[must_use]
@@ -237,16 +237,16 @@ impl<'heap> Symbol<'heap> {
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// let heap = Heap::new();
     ///
-    /// let mangled = heap.intern_symbol("variable:42");
+    /// let mangled = heap.alloc_symbol("variable:42");
     /// assert_eq!(mangled.demangle(), "variable");
     ///
-    /// let plain = heap.intern_symbol("plain_name");
+    /// let plain = heap.alloc_symbol("plain_name");
     /// assert_eq!(plain.demangle(), "plain_name");
     ///
-    /// let multiple = heap.intern_symbol("a:b:c");
+    /// let multiple = heap.alloc_symbol("a:b:c");
     /// assert_eq!(multiple.demangle(), "a:b");
     /// ```
     #[must_use]
@@ -505,14 +505,14 @@ mod tests {
     use std::hash::RandomState;
 
     use super::sym;
-    use crate::heap::Heap;
+    use crate::heap::{Heap, SymbolAllocator as _};
 
     #[test]
     fn symbol_equality() {
         let heap = Heap::new();
-        let a = heap.intern_symbol("foo");
-        let b = heap.intern_symbol("bar");
-        let c = heap.intern_symbol("bar");
+        let a = heap.alloc_symbol("foo");
+        let b = heap.alloc_symbol("bar");
+        let c = heap.alloc_symbol("bar");
         let d = sym::Integer;
         let e = sym::String;
         let f = sym::String;
@@ -527,9 +527,9 @@ mod tests {
     #[test]
     fn symbol_ordering() {
         let heap = Heap::new();
-        let a = heap.intern_symbol("aaa");
+        let a = heap.alloc_symbol("aaa");
         let b = sym::bar;
-        let c = heap.intern_symbol("ccc");
+        let c = heap.alloc_symbol("ccc");
 
         assert_eq!(a.cmp(&b), Ordering::Less);
         assert_eq!(b.cmp(&c), Ordering::Less);
@@ -540,7 +540,7 @@ mod tests {
     #[test]
     fn symbol_consistent_hashing() {
         let heap = Heap::new();
-        let a = heap.intern_symbol("test");
+        let a = heap.alloc_symbol("test");
 
         let hasher = RandomState::new();
 
@@ -550,7 +550,7 @@ mod tests {
     #[test]
     fn interned_predefined_returns_constant() {
         let heap = Heap::new();
-        let interned = heap.intern_symbol("let");
+        let interned = heap.alloc_symbol("let");
 
         assert_eq!(interned.as_constant(), Some(sym::r#let::CONST));
     }
@@ -558,7 +558,7 @@ mod tests {
     #[test]
     fn runtime_symbol_returns_no_constant() {
         let heap = Heap::new();
-        let runtime = heap.intern_symbol("not_a_keyword");
+        let runtime = heap.alloc_symbol("not_a_keyword");
 
         assert!(runtime.as_constant().is_none());
     }

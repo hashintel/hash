@@ -110,7 +110,7 @@ mod tests {
     use alloc::alloc::Global;
 
     use hashql_core::{
-        heap::{Heap, Scratch},
+        heap::{Heap, Scratch, SymbolAllocator as _},
         span::SpanId,
         symbol::{Ident, IdentKind},
         value::{self, Primitive},
@@ -161,14 +161,14 @@ mod tests {
         );
         assert_eq!(
             reify(Data::Primitive(Primitive::Integer(
-                value::Integer::new_unchecked(heap.intern_symbol("42"))
+                value::Integer::new_unchecked(heap.alloc_symbol("42"))
             ))),
             Value::Integer(Int::from(42_i128))
         );
 
         let huge = "99999999999999999999999999999999999999999";
         let Value::Number(widened) = reify(Data::Primitive(Primitive::Integer(
-            value::Integer::new_unchecked(heap.intern_symbol(huge)),
+            value::Integer::new_unchecked(heap.alloc_symbol(huge)),
         ))) else {
             panic!("overflowing integer must widen to Number");
         };
@@ -176,15 +176,15 @@ mod tests {
 
         assert_eq!(
             reify(Data::Primitive(Primitive::Float(
-                value::Float::new_unchecked(heap.intern_symbol("3.5"))
+                value::Float::new_unchecked(heap.alloc_symbol("3.5"))
             ))),
             Value::Number(Num::from(3.5))
         );
         assert_eq!(
             reify(Data::Primitive(Primitive::String(value::String::new(
-                heap.intern_symbol("hello"),
+                heap.alloc_symbol("hello"),
             )))),
-            Value::String(Str::from(value::String::new(heap.intern_symbol("hello"))))
+            Value::String(Str::from(value::String::new(heap.alloc_symbol("hello"))))
         );
 
         let empty_tuple = Data::Tuple(Tuple {
@@ -197,7 +197,7 @@ mod tests {
         hir_node(
             interner,
             Data::Primitive(Primitive::Integer(value::Integer::new_unchecked(
-                heap.intern_symbol(raw),
+                heap.alloc_symbol(raw),
             ))),
         )
     }
@@ -231,7 +231,7 @@ mod tests {
 
         let ident = |name| Ident {
             span: SpanId::SYNTHETIC,
-            value: heap.intern_symbol(name),
+            value: heap.alloc_symbol(name),
             kind: IdentKind::Lexical,
         };
         let mut fields = [
@@ -258,7 +258,7 @@ mod tests {
         assert_eq!(r#struct.len(), 2);
 
         let Value::List(list) = r#struct
-            .get_by_name(heap.intern_symbol("a_list"))
+            .get_by_name(heap.alloc_symbol("a_list"))
             .expect("a_list field")
         else {
             panic!("expected list in a_list");
@@ -274,7 +274,7 @@ mod tests {
         );
 
         let Value::Tuple(tuple) = r#struct
-            .get_by_name(heap.intern_symbol("z_tuple"))
+            .get_by_name(heap.alloc_symbol("z_tuple"))
             .expect("z_tuple field")
         else {
             panic!("expected tuple in z_tuple");
@@ -295,7 +295,7 @@ mod tests {
         let key_node = hir_node(
             &hir_interner,
             Data::Primitive(Primitive::String(value::String::new(
-                heap.intern_symbol("k"),
+                heap.alloc_symbol("k"),
             ))),
         );
         let dict_node = hir_node(
@@ -319,7 +319,7 @@ mod tests {
             panic!("expected dict value");
         };
         assert_eq!(dict.len(), 1);
-        let key = Value::String(Str::from(value::String::new(heap.intern_symbol("k"))));
+        let key = Value::String(Str::from(value::String::new(heap.alloc_symbol("k"))));
         assert_eq!(dict.get(&key), Some(&Value::Integer(Int::from(2_i128))));
     }
 

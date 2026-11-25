@@ -39,20 +39,20 @@ use crate::body::place::FieldIndex;
 /// use alloc::alloc::Global;
 ///
 /// use hashql_mir::interpret::value::{Struct, StructBuilder, Value};
-/// # use hashql_core::heap::Heap;
+/// # use hashql_core::heap::{Heap, SymbolAllocator as _};
 /// # use hashql_mir::intern::Interner;
 ///
 /// let heap = Heap::new();
 /// let interner = Interner::new(&heap);
 ///
 /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-/// builder.push(heap.intern_symbol("x"), Value::Integer(1.into()));
-/// builder.push(heap.intern_symbol("y"), Value::Integer(2.into()));
+/// builder.push(heap.alloc_symbol("x"), Value::Integer(1.into()));
+/// builder.push(heap.alloc_symbol("y"), Value::Integer(2.into()));
 /// let s = builder.finish(&interner.symbols, Global);
 ///
 /// assert_eq!(s.len(), 2);
 /// assert_eq!(
-///     s.get_by_name(heap.intern_symbol("x")),
+///     s.get_by_name(heap.alloc_symbol("x")),
 ///     Some(&Value::Integer(1.into())),
 /// );
 /// ```
@@ -115,15 +115,15 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
     /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-    /// builder.push(heap.intern_symbol("a"), Value::Unit);
-    /// builder.push(heap.intern_symbol("b"), Value::Unit);
+    /// builder.push(heap.alloc_symbol("a"), Value::Unit);
+    /// builder.push(heap.alloc_symbol("b"), Value::Unit);
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// let names: Vec<_> = s.fields().iter().map(|sym| sym.as_str()).collect();
@@ -144,14 +144,14 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
     /// let mut builder = StructBuilder::<'_, Global, 1>::new();
-    /// builder.push(heap.intern_symbol("x"), Value::Integer(5.into()));
+    /// builder.push(heap.alloc_symbol("x"), Value::Integer(5.into()));
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// assert_eq!(s.values(), &[Value::Integer(5.into())]);
@@ -169,15 +169,15 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
     /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-    /// builder.push(heap.intern_symbol("a"), Value::Unit);
-    /// builder.push(heap.intern_symbol("b"), Value::Unit);
+    /// builder.push(heap.alloc_symbol("a"), Value::Unit);
+    /// builder.push(heap.alloc_symbol("b"), Value::Unit);
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// assert_eq!(s.len(), 2);
@@ -218,19 +218,19 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
-    /// let name = heap.intern_symbol("age");
+    /// let name = heap.alloc_symbol("age");
     /// let mut builder = StructBuilder::<'_, Global, 1>::new();
     /// builder.push(name, Value::Integer(30.into()));
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// assert_eq!(s.get_by_name(name), Some(&Value::Integer(30.into())));
-    /// assert_eq!(s.get_by_name(heap.intern_symbol("missing")), None);
+    /// assert_eq!(s.get_by_name(heap.alloc_symbol("missing")), None);
     /// ```
     #[inline]
     #[must_use]
@@ -248,13 +248,13 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
-    /// let name = heap.intern_symbol("count");
+    /// let name = heap.alloc_symbol("count");
     /// let mut builder = StructBuilder::<'_, Global, 1>::new();
     /// builder.push(name, Value::Integer(0.into()));
     /// let mut s = builder.finish(&interner.symbols, Global);
@@ -284,7 +284,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::{
     ///     body::place::FieldIndex,
@@ -294,8 +294,8 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
     /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-    /// builder.push(heap.intern_symbol("b"), Value::Integer(2.into()));
-    /// builder.push(heap.intern_symbol("a"), Value::Integer(1.into()));
+    /// builder.push(heap.alloc_symbol("b"), Value::Integer(2.into()));
+    /// builder.push(heap.alloc_symbol("a"), Value::Integer(1.into()));
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// // After sorting: "a" is at index 0, "b" is at index 1
@@ -321,7 +321,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::{
     ///     body::place::FieldIndex,
@@ -331,7 +331,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
     /// let mut builder = StructBuilder::<'_, Global, 1>::new();
-    /// builder.push(heap.intern_symbol("x"), Value::Integer(0.into()));
+    /// builder.push(heap.alloc_symbol("x"), Value::Integer(0.into()));
     /// let mut s = builder.finish(&interner.symbols, Global);
     ///
     /// *s.get_by_index_mut(FieldIndex::new(0)).unwrap() = Value::Integer(99.into());
@@ -355,15 +355,15 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// # let interner = Interner::new(&heap);
     /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-    /// builder.push(heap.intern_symbol("x"), Value::Integer(1.into()));
-    /// builder.push(heap.intern_symbol("y"), Value::Integer(2.into()));
+    /// builder.push(heap.alloc_symbol("x"), Value::Integer(1.into()));
+    /// builder.push(heap.alloc_symbol("y"), Value::Integer(2.into()));
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// let names: Vec<_> = s.iter().map(|(name, _)| name.as_str().to_owned()).collect();
@@ -571,13 +571,13 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
     /// # let heap = Heap::new();
     /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-    /// builder.push(heap.intern_symbol("x"), Value::Integer(1.into()));
-    /// builder.push(heap.intern_symbol("y"), Value::Integer(2.into()));
+    /// builder.push(heap.alloc_symbol("x"), Value::Integer(1.into()));
+    /// builder.push(heap.alloc_symbol("y"), Value::Integer(2.into()));
     ///
     /// assert_eq!(builder.len(), 2);
     /// ```
@@ -601,7 +601,7 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
@@ -609,8 +609,8 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     /// let interner = Interner::new(&heap);
     ///
     /// let mut builder = StructBuilder::<'_, Global, 2>::new();
-    /// builder.push(heap.intern_symbol("b"), Value::Integer(2.into()));
-    /// builder.push(heap.intern_symbol("a"), Value::Integer(1.into()));
+    /// builder.push(heap.alloc_symbol("b"), Value::Integer(2.into()));
+    /// builder.push(heap.alloc_symbol("a"), Value::Integer(1.into()));
     /// let s = builder.finish(&interner.symbols, Global);
     ///
     /// // Fields are sorted: "a" comes first
@@ -696,7 +696,7 @@ impl<A: Allocator, const N: usize> Drop for StructBuilder<'_, A, N> {
 mod tests {
     use alloc::alloc::Global;
 
-    use hashql_core::heap::Heap;
+    use hashql_core::heap::{Heap, SymbolAllocator as _};
 
     use super::*;
     use crate::{
@@ -717,8 +717,8 @@ mod tests {
         let heap = Heap::new();
         let interner = Interner::new(&heap);
 
-        let sym_b = heap.intern_symbol("b");
-        let sym_a = heap.intern_symbol("a");
+        let sym_b = heap.alloc_symbol("b");
+        let sym_a = heap.alloc_symbol("a");
 
         // Push in reverse order; finish must sort by symbol.
         let mut builder = StructBuilder::<'_, Global, 2>::new();
@@ -750,7 +750,7 @@ mod tests {
         let heap = Heap::new();
         let interner = Interner::new(&heap);
 
-        let sym = heap.intern_symbol("only");
+        let sym = heap.alloc_symbol("only");
 
         let mut builder = StructBuilder::<'_, Global, 1>::new();
         builder.push(sym, int(42));
@@ -765,8 +765,8 @@ mod tests {
     fn drop_partial_builder_no_double_free() {
         let heap = Heap::new();
 
-        let sym_x = heap.intern_symbol("x");
-        let sym_y = heap.intern_symbol("y");
+        let sym_x = heap.alloc_symbol("x");
+        let sym_y = heap.alloc_symbol("y");
 
         // Push values with Drop (String contains Rc), then drop the
         // builder without finishing. Miri detects double-free or leak.
@@ -787,8 +787,8 @@ mod tests {
     fn drop_full_builder_without_finish() {
         let heap = Heap::new();
 
-        let sym_a = heap.intern_symbol("a");
-        let sym_b = heap.intern_symbol("b");
+        let sym_a = heap.alloc_symbol("a");
+        let sym_b = heap.alloc_symbol("b");
 
         let mut builder = StructBuilder::<'_, Global, 2>::new();
         builder.push(sym_a, string("val_a"));
@@ -802,8 +802,8 @@ mod tests {
         let heap = Heap::new();
         let interner = Interner::new(&heap);
 
-        let sym_a = heap.intern_symbol("a");
-        let sym_b = heap.intern_symbol("b");
+        let sym_a = heap.alloc_symbol("a");
+        let sym_b = heap.alloc_symbol("b");
 
         let mut builder = StructBuilder::<'_, Global, 2>::new();
         builder.push(sym_a, string("alpha"));
@@ -827,9 +827,9 @@ mod tests {
         let interner = Interner::new(&heap);
 
         // Create symbols that sort in a known order.
-        let sym_c = heap.intern_symbol("c");
-        let sym_a = heap.intern_symbol("a");
-        let sym_b = heap.intern_symbol("b");
+        let sym_c = heap.alloc_symbol("c");
+        let sym_a = heap.alloc_symbol("a");
+        let sym_b = heap.alloc_symbol("b");
 
         // Push in c, a, b order.
         let mut builder = StructBuilder::<'_, Global, 3>::new();
@@ -857,8 +857,8 @@ mod tests {
     fn fields_and_values_reflect_push_count() {
         let heap = Heap::new();
 
-        let sym_a = heap.intern_symbol("a");
-        let sym_b = heap.intern_symbol("b");
+        let sym_a = heap.alloc_symbol("a");
+        let sym_b = heap.alloc_symbol("b");
 
         let mut builder = StructBuilder::<'_, Global, 3>::new();
         assert!(builder.is_empty());
@@ -880,8 +880,8 @@ mod tests {
     fn push_panics_when_full() {
         let heap = Heap::new();
 
-        let sym_a = heap.intern_symbol("a");
-        let sym_b = heap.intern_symbol("b");
+        let sym_a = heap.alloc_symbol("a");
+        let sym_b = heap.alloc_symbol("b");
 
         let mut builder = StructBuilder::<'_, Global, 1>::new();
         builder.push(sym_a, int(1));
@@ -894,7 +894,7 @@ mod tests {
     fn push_panics_on_duplicate_field() {
         let heap = Heap::new();
 
-        let sym = heap.intern_symbol("dup");
+        let sym = heap.alloc_symbol("dup");
 
         let mut builder = StructBuilder::<'_, Global, 2>::new();
         builder.push(sym, string("first"));

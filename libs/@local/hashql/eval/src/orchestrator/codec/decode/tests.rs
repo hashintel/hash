@@ -499,7 +499,7 @@ mod miri {
     use std::panic::catch_unwind;
 
     use hashql_core::{
-        heap::Heap,
+        heap::{Heap, SymbolAllocator as _},
         r#type::{builder::TypeBuilder, environment::Environment},
     };
     use hashql_mir::interpret::value::Value;
@@ -616,7 +616,7 @@ mod miri {
             ("https://example.com/c/", "three"),
         ] {
             assert_matches!(
-                structure.get_by_name(heap.intern_symbol(name)),
+                structure.get_by_name(heap.alloc_symbol(name)),
                 Some(Value::String(string)) if string.as_str() == expected
             );
         }

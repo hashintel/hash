@@ -17,7 +17,7 @@
 //! individual crate APIs.
 
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch, SymbolAllocator as _},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     r#type::environment::Environment,
@@ -155,11 +155,11 @@ impl<'heap> Pipeline<'heap> {
         let registry = ModuleRegistry::new(&self.env);
 
         let types = tri!(hashql_ast::lower::lower(
-            self.heap.intern_symbol("::main"),
+            self.heap.alloc_symbol("::main"),
             &mut expr,
             &self.env,
             &registry,
-            &mut self.scratch
+            self.scratch.as_mut_scope()
         ));
         self.scratch.reset();
 

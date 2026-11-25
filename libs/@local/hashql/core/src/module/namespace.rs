@@ -11,6 +11,7 @@ use super::{
 };
 use crate::{
     collections::FastHashSet,
+    heap::SymbolAllocator as _,
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
     symbol::Symbol,
 };
@@ -214,10 +215,10 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         name: &'static str,
         query: impl IntoIterator<Item = &'static str, IntoIter: Clone>,
     ) -> bool {
-        let name = self.registry.heap.intern_symbol(name);
+        let name = self.registry.heap.alloc_symbol(name);
         let query = query
             .into_iter()
-            .map(|symbol| self.registry.heap.intern_symbol(symbol));
+            .map(|symbol| self.registry.heap.alloc_symbol(symbol));
 
         self.import_absolute(
             name,
@@ -479,7 +480,7 @@ mod tests {
 
     use super::ModuleNamespace;
     use crate::{
-        heap::{BumpAllocator as _, Heap},
+        heap::{Heap, PhaseAllocator as _, SymbolAllocator as _},
         module::{
             ModuleRegistry, Reference, Universe,
             error::ResolutionError,
@@ -500,7 +501,7 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
                     universe: Universe::Value,
@@ -532,7 +533,7 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [heap.intern_symbol("Dict")],
+                [heap.alloc_symbol("Dict")],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
                     universe: Universe::Type,
@@ -564,9 +565,9 @@ mod tests {
         let item = namespace
             .resolve_absolute(
                 [
-                    heap.intern_symbol("kernel"),
-                    heap.intern_symbol("special_form"),
-                    heap.intern_symbol("let"),
+                    heap.alloc_symbol("kernel"),
+                    heap.alloc_symbol("special_form"),
+                    heap.alloc_symbol("let"),
                 ],
                 ResolveOptions {
                     mode: ResolutionMode::Absolute,
@@ -600,9 +601,9 @@ mod tests {
         let item = namespace
             .resolve_absolute(
                 [
-                    heap.intern_symbol("kernel"),
-                    heap.intern_symbol("type"),
-                    heap.intern_symbol("Dict"),
+                    heap.alloc_symbol("kernel"),
+                    heap.alloc_symbol("type"),
+                    heap.alloc_symbol("Dict"),
                 ],
                 ResolveOptions {
                     mode: ResolutionMode::Absolute,
@@ -634,10 +635,10 @@ mod tests {
 
         namespace
             .import_absolute(
-                heap.intern_symbol("special_form"),
+                heap.alloc_symbol("special_form"),
                 [
-                    heap.intern_symbol("kernel"),
-                    heap.intern_symbol("special_form"),
+                    heap.alloc_symbol("kernel"),
+                    heap.alloc_symbol("special_form"),
                 ],
                 ImportOptions {
                     glob: false,
@@ -649,10 +650,7 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [
-                    heap.intern_symbol("special_form"),
-                    heap.intern_symbol("let"),
-                ],
+                [heap.alloc_symbol("special_form"), heap.alloc_symbol("let")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -680,12 +678,12 @@ mod tests {
         let environment = Environment::new(&heap);
 
         let mut builder = ModuleRegistry::builder(&environment);
-        builder.insert_root_module(heap.intern_symbol("foo"), |id| {
-            heap.allocate_slice_copy(&[Item {
+        builder.insert_root_module(heap.alloc_symbol("foo"), |id| {
+            heap.alloc_slice_copy(&[Item {
                 module: id,
-                name: heap.intern_symbol("bar"),
+                name: heap.alloc_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
-                    name: heap.intern_symbol("::foo::bar"),
+                    name: heap.alloc_symbol("::foo::bar"),
                 })),
             }])
         });
@@ -696,7 +694,7 @@ mod tests {
 
         let import = namespace
             .resolve_relative(
-                [heap.intern_symbol("Dict")],
+                [heap.alloc_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
                     mode: ResolutionMode::Relative,
@@ -717,8 +715,8 @@ mod tests {
 
         namespace
             .import_absolute(
-                heap.intern_symbol("Dict"),
-                [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
+                heap.alloc_symbol("Dict"),
+                [heap.alloc_symbol("foo"), heap.alloc_symbol("bar")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -729,7 +727,7 @@ mod tests {
 
         let import = namespace
             .resolve_relative(
-                [heap.intern_symbol("Dict")],
+                [heap.alloc_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
                     mode: ResolutionMode::Relative,
@@ -760,8 +758,8 @@ mod tests {
         // first import the type module as a module
         namespace
             .import_absolute(
-                heap.intern_symbol("type"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.alloc_symbol("type"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("type")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -773,8 +771,8 @@ mod tests {
         // import `Dict` relative from type (now that it is imported)
         namespace
             .import_relative(
-                heap.intern_symbol("Dict"),
-                [heap.intern_symbol("type"), heap.intern_symbol("Dict")],
+                heap.alloc_symbol("Dict"),
+                [heap.alloc_symbol("type"), heap.alloc_symbol("Dict")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Relative,
@@ -786,7 +784,7 @@ mod tests {
         // We should be able to import `Dict` now
         let import = namespace
             .resolve_relative(
-                [heap.intern_symbol("Dict")],
+                [heap.alloc_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
                     mode: ResolutionMode::Relative,
@@ -810,8 +808,8 @@ mod tests {
         // first import the type module as a module
         namespace
             .import_absolute(
-                heap.intern_symbol("foo"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.alloc_symbol("foo"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("type")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -823,8 +821,8 @@ mod tests {
         // import `Dict` relative from type (now that it is imported)
         namespace
             .import_relative(
-                heap.intern_symbol("Dict"),
-                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                heap.alloc_symbol("Dict"),
+                [heap.alloc_symbol("foo"), heap.alloc_symbol("Dict")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Relative,
@@ -845,8 +843,8 @@ mod tests {
         // First import the type module as a module
         namespace
             .import_absolute(
-                heap.intern_symbol("*"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.alloc_symbol("*"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("type")],
                 ImportOptions {
                     glob: true,
                     mode: ResolutionMode::Absolute,
@@ -858,7 +856,7 @@ mod tests {
         // We should be able to import `Dict` now
         let import = namespace
             .resolve_relative(
-                [heap.intern_symbol("Dict")],
+                [heap.alloc_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
                     mode: ResolutionMode::Relative,
@@ -881,8 +879,8 @@ mod tests {
 
         let error = namespace
             .import_absolute(
-                heap.intern_symbol("*"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("foo")],
+                heap.alloc_symbol("*"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("foo")],
                 ImportOptions {
                     glob: true,
                     mode: ResolutionMode::Absolute,
@@ -910,14 +908,14 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        namespace.local(heap.intern_symbol("+"), Universe::Value);
+        namespace.local(heap.alloc_symbol("+"), Universe::Value);
 
         assert_eq!(
             namespace
                 .locals(Universe::Value)
                 .into_iter()
                 .collect::<Vec<_>>(),
-            [heap.intern_symbol("+")]
+            [heap.alloc_symbol("+")]
         );
         assert_eq!(
             namespace
@@ -929,7 +927,7 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -946,12 +944,12 @@ mod tests {
         let environment = Environment::new(&heap);
 
         let mut builder = ModuleRegistry::builder(&environment);
-        let custom_module = builder.insert_root_module(heap.intern_symbol("custom"), |id| {
-            heap.allocate_slice_copy(&[Item {
+        let custom_module = builder.insert_root_module(heap.alloc_symbol("custom"), |id| {
+            heap.alloc_slice_copy(&[Item {
                 module: id,
-                name: heap.intern_symbol("my_add"),
+                name: heap.alloc_symbol("my_add"),
                 kind: ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                    name: heap.intern_symbol("::custom::my_add"),
+                    name: heap.alloc_symbol("::custom::my_add"),
                     r#type: crate::module::locals::TypeDef {
                         id: crate::r#type::builder::TypeBuilder::synthetic(&environment).never(),
                         arguments: crate::intern::Interned::empty(),
@@ -967,7 +965,7 @@ mod tests {
         // `+` resolves to `::core::math::add` via the prelude
         let original = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -984,12 +982,12 @@ mod tests {
             .next()
             .expect("module should have one item");
 
-        namespace.alias(heap.intern_symbol("+"), custom_item);
+        namespace.alias(heap.alloc_symbol("+"), custom_item);
 
         // `+` now resolves to the aliased item, not the prelude import
         let aliased = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -1019,7 +1017,7 @@ mod tests {
 
         let original = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -1031,12 +1029,12 @@ mod tests {
         let snapshot = namespace.snapshot();
 
         // Alias `+` to itself under a different name (simulating a `use` rebinding)
-        namespace.alias(heap.intern_symbol("+"), original);
+        namespace.alias(heap.alloc_symbol("+"), original);
 
         // Still resolves (to the alias, which points to the same item)
         let during = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -1052,7 +1050,7 @@ mod tests {
         // After rollback, `+` resolves through the original prelude import
         let after = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -1075,7 +1073,7 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [heap.intern_symbol("+")],
+                [heap.alloc_symbol("+")],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -1084,13 +1082,13 @@ mod tests {
             .expect("prelude should have `+`")
             .expect_item();
 
-        namespace.alias(heap.intern_symbol("my_add"), item);
+        namespace.alias(heap.alloc_symbol("my_add"), item);
 
         // An alias is not a local binding, so it should not appear in locals
         assert!(
             !namespace
                 .locals(Universe::Value)
-                .contains(&heap.intern_symbol("my_add"))
+                .contains(&heap.alloc_symbol("my_add"))
         );
     }
 }

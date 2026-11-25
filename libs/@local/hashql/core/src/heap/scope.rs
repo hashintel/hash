@@ -106,6 +106,31 @@ delegate_scope_allocator!(
 ///
 /// - the memory of a scope stays valid until the closure that received the scope returns
 /// - the end of a scope releases only memory that this scope or a scope nested in it allocated
+///
+/// # Example
+///
+/// ```
+/// use hashql_core::heap::{PhaseAllocator as _, ScopeAllocator, Scratch};
+///
+/// // Sums the lengths of `names`. Each step copies one name into a scope of its own, which
+/// // releases the copy at the end of the step.
+/// fn total_len<'alloc, S>(alloc: &mut S, names: &[&str]) -> usize
+/// where
+///     S: ScopeAllocator<'alloc>,
+/// {
+///     let mut total = 0;
+///
+///     for name in names {
+///         total += alloc.scoped(|scope| scope.alloc_slice_copy(name.as_bytes()).len());
+///     }
+///
+///     total
+/// }
+///
+/// let mut scratch = Scratch::new();
+///
+/// assert_eq!(total_len(scratch.as_mut_scope(), &["a", "bcd"]), 4);
+/// ```
 pub const unsafe trait ScopeAllocator<'alloc>: Allocator {
     /// The arena of a scope opened on this arena.
     type Scoped<'scope>: ScopeAllocator<'scope>;

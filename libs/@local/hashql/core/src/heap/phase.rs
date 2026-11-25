@@ -47,6 +47,32 @@ impl<A> AllocatorPointer for &A where A: Allocator + ?Sized {}
 ///
 /// A returned slice must have exactly the requested length.
 ///
+/// # Example
+///
+/// ```
+/// use hashql_core::heap::{PhaseAllocator, Scratch};
+///
+/// // The slice lives for `'alloc`, however long `alloc` itself is in use.
+/// fn squares<'alloc, A>(alloc: A, values: &[u32]) -> &'alloc [u32]
+/// where
+///     A: PhaseAllocator<'alloc>,
+/// {
+///     let squares = alloc.alloc_slice_copy(values);
+///     for value in &mut *squares {
+///         *value *= *value;
+///     }
+///
+///     squares
+/// }
+///
+/// let scratch = Scratch::new();
+/// let first = squares(&scratch, &[1, 2, 3]);
+/// let second = squares(&scratch, first);
+///
+/// assert_eq!(first, [1, 4, 9]);
+/// assert_eq!(second, [1, 16, 81]);
+/// ```
+///
 /// [scope]: super::ScopeAllocator
 pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     /// Allocates the result of calling `value`, without checking that `T` needs no destructor.

@@ -14,6 +14,30 @@ use crate::symbol::Symbol;
 ///
 /// Implementors must ensure that the string a returned [`Symbol`] refers to stays valid and
 /// unchanged for all of `'alloc`.
+///
+/// # Example
+///
+/// ```
+/// use hashql_core::{
+///     heap::{Heap, SymbolAllocator},
+///     symbol::Symbol,
+/// };
+///
+/// fn qualified<'alloc, A>(alloc: A, module: &str, name: &str) -> Symbol<'alloc>
+/// where
+///     A: SymbolAllocator<'alloc>,
+/// {
+///     alloc.alloc_symbol(&format!("{module}::{name}"))
+/// }
+///
+/// let heap = Heap::new();
+/// let first = qualified(&heap, "math", "total price");
+/// let second = qualified(&heap, "math", "total price");
+///
+/// assert_eq!(first.as_str(), "math::total price");
+/// // Equal strings intern to one symbol, which compares by address.
+/// assert_eq!(first, second);
+/// ```
 pub const unsafe trait SymbolAllocator<'alloc>: AllocatorPointer {
     /// Interns `name` and returns its [`Symbol`].
     ///

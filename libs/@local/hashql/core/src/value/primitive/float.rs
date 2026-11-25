@@ -51,9 +51,12 @@ impl<'heap> Float<'heap> {
     ///
     /// # Examples
     /// ```
-    /// use hashql_core::{heap::Heap, value::Float};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Float,
+    /// };
     /// let heap = Heap::new();
-    /// let float = Float::new_unchecked(heap.intern_symbol("42.0"));
+    /// let float = Float::new_unchecked(heap.alloc_symbol("42.0"));
     ///
     /// assert_eq!(float.as_f32(), 42.0);
     /// ```
@@ -82,11 +85,14 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Float};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Float,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
+    /// let float = |value: &'static str| Float::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Standard decimal
     /// assert_eq!(float("123.456").as_f32(), 123.456);
@@ -119,11 +125,14 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Float};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Float,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
+    /// let float = |value: &'static str| Float::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // High precision decimal
     /// assert_eq!(float("123.456789012345").as_f64(), 123.456789012345);
@@ -156,11 +165,14 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Float};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Float,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
+    /// let float = |value: &'static str| Float::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Whole number (can convert)
     /// assert!(float("42").as_integer().is_some());
@@ -190,11 +202,14 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Float};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Float,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
+    /// let float = |value: &'static str| Float::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Standard decimal
     /// let real = float("3.14159").as_real();
@@ -224,11 +239,14 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Float};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Float,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
+    /// let float = |value: &'static str| Float::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Standard decimal
     /// let symbol = float("3.14159").as_symbol();
@@ -251,7 +269,7 @@ impl<'heap> Float<'heap> {
 #[cfg(test)]
 mod tests {
     use super::Float;
-    use crate::heap::Heap;
+    use crate::heap::{Heap, SymbolAllocator as _};
 
     #[test]
     #[should_panic(expected = "float literal should be formatted according to JSON specification")]
@@ -259,7 +277,7 @@ mod tests {
         let heap = Heap::new();
 
         let literal = Float {
-            value: heap.intern_symbol("not-a-number"),
+            value: heap.alloc_symbol("not-a-number"),
         };
 
         let _value = literal.as_f64();

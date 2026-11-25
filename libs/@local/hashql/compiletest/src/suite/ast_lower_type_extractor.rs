@@ -12,7 +12,7 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::Scratch,
+    heap::{Scratch, SymbolAllocator as _},
     module::{
         ModuleRegistry,
         locals::{Local, TypeDef},
@@ -50,7 +50,7 @@ impl Suite for AstLowerTypeExtractorSuite {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let mut expander = Expander::new(namespace, &mut scratch);
+        let mut expander = Expander::new(namespace, scratch.as_mut_scope());
         expander.visit_expr(&mut expr);
         process_issues(diagnostics, expander.take_diagnostics())?;
 
@@ -58,7 +58,7 @@ impl Suite for AstLowerTypeExtractorSuite {
         mangler.visit_expr(&mut expr);
 
         let mut extractor =
-            TypeDefinitionExtractor::new(&environment, &registry, heap.intern_symbol("::main"));
+            TypeDefinitionExtractor::new(&environment, &registry, heap.alloc_symbol("::main"));
         extractor.visit_expr(&mut expr);
 
         let (locals, extractor_diagnostics) = extractor.finish();

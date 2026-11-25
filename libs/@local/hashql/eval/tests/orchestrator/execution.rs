@@ -133,9 +133,9 @@ fn run_impl<'heap>(
         bodies,
         &analysis,
         pipeline.heap,
-        &mut pipeline.scratch,
+        pipeline.scratch.as_mut_scope(),
     );
-    let mut postgres = PostgresCompiler::new_in(&mut context, &mut pipeline.scratch);
+    let mut postgres = PostgresCompiler::new_in(&mut context, pipeline.scratch.as_mut_scope());
     let queries = postgres.compile();
     pipeline.scratch.reset();
 

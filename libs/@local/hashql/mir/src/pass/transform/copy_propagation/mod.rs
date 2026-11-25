@@ -55,7 +55,7 @@ use core::{
 
 use hashql_core::{
     graph::Predecessors as _,
-    heap::{BumpAllocator, Scratch, TransferInto as _},
+    heap::{PhaseAllocator, TransferInto as _},
     id::IdVec,
 };
 
@@ -202,46 +202,33 @@ impl<'heap> From<KnownValue<'heap>> for Operand<'heap> {
     }
 }
 
-pub struct CopyPropagation<A: BumpAllocator = Scratch> {
+pub struct CopyPropagation<A> {
     alloc: A,
 }
 
-impl CopyPropagation {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            alloc: Scratch::new(),
-        }
-    }
-}
-
-impl Default for CopyPropagation {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<A: BumpAllocator> CopyPropagation<A> {
+impl<A> CopyPropagation<A> {
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CopyPropagation<A> {
+impl<'env, 'heap, 'alloc, A> TransformPass<'env, 'heap> for CopyPropagation<A>
+where
+    A: PhaseAllocator<'alloc>,
+{
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut visitor = CopyPropagationVisitor {
             interner: context.interner,
-            values: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
+            values: IdVec::with_capacity_in(body.local_decls.len(), self.alloc),
             changed: false,
         };
 
         let reverse_postorder = body
             .basic_blocks
             .reverse_postorder()
-            .transfer_into(&self.alloc);
+            .transfer_into(self.alloc);
 
-        let mut args = Vec::new_in(&self.alloc);
+        let mut args = Vec::new_in(self.alloc);
 
         for &mut id in reverse_postorder {
             for (local, value) in

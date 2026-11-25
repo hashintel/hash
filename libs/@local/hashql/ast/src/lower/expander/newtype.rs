@@ -1,7 +1,7 @@
 use core::mem;
 
 use hashql_core::{
-    heap::{self, BumpAllocator},
+    heap::{self, ScopeAllocator},
     module::Universe,
     span::SpanId,
     symbol::{Ident, sym},
@@ -19,16 +19,16 @@ use crate::{
     },
 };
 
-fn lower_newtype_impl<'heap, S>(
+fn lower_newtype_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, S>,
+    expander: &mut Expander<'_, 'heap, '_, S>,
 
     name: &mut Argument<'heap>,
     value: &mut Argument<'heap>,
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let (name, constraints) = if let Some(result) = argument_to_generic_ident(expander, name) {
         result
@@ -93,8 +93,8 @@ where
 /// constructor).
 ///
 /// [`NewTypeExpr`]: crate::node::expr::NewTypeExpr
-pub(super) fn lower_newtype<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+pub(super) fn lower_newtype<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     CallExpr {
         id: _,
         span,
@@ -104,7 +104,7 @@ pub(super) fn lower_newtype<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         expander

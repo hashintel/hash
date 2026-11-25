@@ -3,7 +3,7 @@ use core::alloc::Allocator;
 
 use hashql_core::{
     algorithms::did_you_mean,
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::{SpanAncestors, SpanId, SpanTable},
 };
 use hashql_diagnostics::{
@@ -468,10 +468,10 @@ pub(crate) fn suggest_similar(
         return Vec::new();
     }
 
-    let lookup_sym = heap.intern_symbol(lookup);
+    let lookup_sym = heap.alloc_symbol(lookup);
     let interned: Vec<_> = candidates
         .iter()
-        .map(|candidate| heap.intern_symbol(candidate))
+        .map(|candidate| heap.alloc_symbol(candidate))
         .collect();
 
     did_you_mean(lookup_sym, &interned, Some(top_n), None)

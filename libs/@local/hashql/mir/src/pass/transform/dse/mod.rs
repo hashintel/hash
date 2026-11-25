@@ -50,7 +50,7 @@ use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
     collections::WorkQueue,
-    heap::{BumpAllocator, Scratch},
+    heap::ScopeAllocator,
     id::{
         Id as _,
         bit_vec::{BitMatrix, DenseBitSet},
@@ -81,23 +81,16 @@ use crate::{
 /// Dead stores are assignments, storage statements, and block parameters whose values are never
 /// used in any observable way. This includes locals that are only used by other dead locals,
 /// even in cyclic dependency patterns.
-pub struct DeadStoreElimination<A: BumpAllocator = Scratch> {
-    alloc: A,
+pub struct DeadStoreElimination<'scratch, S> {
+    alloc: &'scratch mut S,
 }
 
-impl DeadStoreElimination {
+impl<'scratch, S> DeadStoreElimination<'scratch, S> {
     /// Creates a new [`DeadStoreElimination`].
+    ///
+    /// The pass opens its scopes on `alloc`.
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            alloc: Scratch::new(),
-        }
-    }
-}
-
-impl<A: BumpAllocator> DeadStoreElimination<A> {
-    #[must_use]
-    pub const fn new_in(alloc: A) -> Self {
+    pub const fn new_in(alloc: &'scratch mut S) -> Self {
         Self { alloc }
     }
 
@@ -106,7 +99,7 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
     /// Uses a backwards "mark-live" algorithm: starting from root uses (observable uses like
     /// return values and branch conditions), propagates liveness through the dependency graph.
     /// Returns the complement (all locals not marked live).
-    fn dead_locals<S: Allocator>(body: &Body<'_>, scratch: &S) -> DenseBitSet<Local> {
+    fn dead_locals<A: Allocator>(body: &Body<'_>, scratch: A) -> DenseBitSet<Local> {
         let mut dependencies = DependencyVisitor::new_in(body, scratch);
         dependencies.visit_body(body);
 
@@ -131,24 +124,18 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
     }
 }
 
-impl Default for DeadStoreElimination {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
+impl<'env, 'heap, 'alloc, S> TransformPass<'env, 'heap> for DeadStoreElimination<'_, S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        let dead = self
-            .alloc
-            .scoped_mut(|alloc| Self::dead_locals(body, &alloc));
+        let dead = self.alloc.scoped(|alloc| Self::dead_locals(body, &alloc));
 
         if dead.is_empty() {
             return Changed::No;
         }
 
-        let mut changed = self.alloc.scoped_mut(|alloc| {
+        let mut changed = self.alloc.scoped(|alloc| {
             let mut visitor = EliminationVisitor {
                 dead: &dead,
                 params: BasicBlockVec::from_fn_in(
@@ -167,8 +154,8 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElim
             Changed::from(visitor.changed)
         });
 
-        changed |= self.alloc.scoped_mut(|alloc| {
-            DeadLocalElimination::new_in(alloc)
+        changed |= self.alloc.scoped(|alloc| {
+            DeadLocalElimination::new_in(&alloc)
                 .with_dead(dead)
                 .run(context, body)
         });

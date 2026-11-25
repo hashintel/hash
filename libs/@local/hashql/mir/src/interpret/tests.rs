@@ -18,7 +18,7 @@ use alloc::rc::Rc;
 use core::{assert_matches, ops::ControlFlow};
 
 use hashql_core::{
-    heap::{self, FromIteratorIn as _, Heap},
+    heap::{self, FromIteratorIn as _, Heap, SymbolAllocator as _},
     id::{Id as _, IdVec},
     symbol::sym,
     r#type::{TypeBuilder, TypeId, environment::Environment},
@@ -1082,7 +1082,7 @@ fn input_load_returns_value() {
 
     let mut inputs = Inputs::default();
     inputs.insert(
-        heap.intern_symbol("my_input"),
+        heap.alloc_symbol("my_input"),
         Value::Integer(Int::from(999_i128)),
     );
 
@@ -1107,7 +1107,7 @@ fn input_exists_returns_true() {
 
     let mut inputs = Inputs::default();
     inputs.insert(
-        heap.intern_symbol("my_input"),
+        heap.alloc_symbol("my_input"),
         Value::Integer(Int::from(1_i128)),
     );
 
@@ -1634,7 +1634,7 @@ fn ice_invalid_projection_by_name_type() {
 
     let const42 = builder.const_int(42);
 
-    let field_name = heap.intern_symbol("field");
+    let field_name = heap.alloc_symbol("field");
     let x_field = builder.place(|place| place.from(x).field_by_name(field_name, TypeId::MAX));
 
     let bb0 = builder.reserve_block([]);
@@ -1663,12 +1663,12 @@ fn ice_unknown_field_by_name() {
 
     let const42 = builder.const_int(42);
 
-    let wrong_field = heap.intern_symbol("nonexistent");
+    let wrong_field = heap.alloc_symbol("nonexistent");
     let s_field = builder.place(|place| place.from(s).field_by_name(wrong_field, TypeId::MAX));
 
     let bb0 = builder.reserve_block([]);
 
-    let field_a = heap.intern_symbol("a");
+    let field_a = heap.alloc_symbol("a");
 
     builder
         .build_block(bb0)
@@ -1693,9 +1693,9 @@ fn ice_struct_field_length_mismatch() {
 
     let bb0 = builder.reserve_block([]);
 
-    let field_a = heap.intern_symbol("a");
-    let field_b = heap.intern_symbol("b");
-    let field_c = heap.intern_symbol("c");
+    let field_a = heap.alloc_symbol("a");
+    let field_b = heap.alloc_symbol("b");
+    let field_c = heap.alloc_symbol("c");
 
     let fields = interner.symbols.intern_slice(&[field_a, field_b, field_c]);
 
@@ -1848,7 +1848,7 @@ fn run_graph_read_body<'heap>(
     let bodies = DefIdSlice::from_raw(&bodies);
 
     let mut inputs = Inputs::default();
-    inputs.insert(heap.intern_symbol("axis"), axis_value);
+    inputs.insert(heap.alloc_symbol("axis"), axis_value);
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let callstack = CallStack::new(&runtime, DefId::new(0), []);
@@ -1876,7 +1876,7 @@ fn start_suspend_resume_return() {
     let bodies = DefIdSlice::from_raw(&bodies);
 
     let mut inputs = Inputs::default();
-    inputs.insert(heap.intern_symbol("axis"), axis_value);
+    inputs.insert(heap.alloc_symbol("axis"), axis_value);
 
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, &inputs);
     let mut callstack = CallStack::new(&runtime, DefId::new(0), []);
@@ -1973,7 +1973,7 @@ fn multi_suspension_round_trip() {
 
     let mut inputs = Inputs::default();
     inputs.insert(
-        heap.intern_symbol("axis"),
+        heap.alloc_symbol("axis"),
         make_temporal_axes(&interner, 1000, 500),
     );
 
@@ -2128,7 +2128,7 @@ fn transition_fires_on_reentry_after_continuation_apply() {
 
     let mut inputs = Inputs::default();
     inputs.insert(
-        heap.intern_symbol("axis"),
+        heap.alloc_symbol("axis"),
         make_temporal_axes(&interner, 1000, 500),
     );
 

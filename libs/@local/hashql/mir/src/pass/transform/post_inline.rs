@@ -2,9 +2,7 @@
 //!
 //! Runs [`Canonicalization`] to clean up redundancy from inlining.
 
-use core::alloc::Allocator;
-
-use hashql_core::heap::BumpAllocator;
+use hashql_core::heap::ScopeAllocator;
 
 use super::{Canonicalization, CanonicalizationConfig};
 use crate::{
@@ -27,16 +25,16 @@ use crate::{
 /// more optimization opportunities that may require additional passes to fully resolve.
 ///
 /// See [`Canonicalization`] for details on the pass ordering and implementation.
-pub struct PostInline<A: Allocator> {
-    canonicalization: Canonicalization<A>,
+pub struct PostInline<'scratch, S> {
+    canonicalization: Canonicalization<'scratch, S>,
 }
 
-impl<A: BumpAllocator> PostInline<A> {
+impl<'scratch, S> PostInline<'scratch, S> {
     /// Creates a new post-inlining pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
     /// between pass invocations.
-    pub const fn new_in(alloc: A) -> Self {
+    pub const fn new_in(alloc: &'scratch mut S) -> Self {
         Self {
             canonicalization: Canonicalization::new_in(
                 CanonicalizationConfig { max_iterations: 16 },
@@ -46,7 +44,10 @@ impl<A: BumpAllocator> PostInline<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PostInline<A> {
+impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for PostInline<'_, S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,

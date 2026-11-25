@@ -2,7 +2,7 @@ use core::{iter, mem};
 
 use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
-    heap::BumpAllocator,
+    heap::ScopeAllocator,
     module::namespace::{ImportOptions, ResolutionMode},
     symbol::sym,
 };
@@ -22,7 +22,7 @@ use crate::{
 };
 
 fn lower_imports_tuple<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+    expander: &mut Expander<'_, 'heap, '_, S>,
     tuple: &mut crate::node::expr::TupleExpr<'heap>,
 ) -> UseKind<'heap> {
     if let Some(annotation) = tuple.r#type.as_ref() {
@@ -60,7 +60,7 @@ fn lower_imports_tuple<'heap, S>(
 }
 
 fn lower_imports_struct<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+    expander: &mut Expander<'_, 'heap, '_, S>,
     r#struct: &mut crate::node::expr::StructExpr<'heap>,
 ) -> UseKind<'heap> {
     if let Some(annotation) = r#struct.r#type.as_ref() {
@@ -110,13 +110,13 @@ fn lower_imports_struct<'heap, S>(
     UseKind::Named(bindings)
 }
 
-fn lower_imports<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+fn lower_imports<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
 
     imports: &mut Argument<'heap>,
 ) -> Option<UseKind<'heap>>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let mut imports = match &mut imports.value.kind {
         ExprKind::Path(path)
@@ -155,8 +155,8 @@ where
 
     if let Some(UseKind::Named(bindings)) = &mut imports {
         let diagnostics = &mut expander.diagnostics;
-        expander.scratch.scoped_mut(|scratch| {
-            let mut seen = fast_hash_map_with_capacity_in(bindings.len(), scratch);
+        expander.scratch.scoped(|scratch| {
+            let mut seen = fast_hash_map_with_capacity_in(bindings.len(), &scratch);
 
             bindings.retain(|binding| {
                 let effective_name = binding.alias.unwrap_or(binding.name);
@@ -178,14 +178,14 @@ where
     imports
 }
 
-fn lower_body<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+fn lower_body<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     path: &Path<'heap>,
     imports: UseKind<'heap>,
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let mode = if path.rooted {
         ResolutionMode::Absolute
@@ -268,15 +268,15 @@ where
     }
 }
 
-fn lower_use_impl<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+fn lower_use_impl<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
 
     path: &mut Argument<'heap>,
     imports: &mut Argument<'heap>,
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let path_expr = mem::replace(&mut path.value, Expr::dummy());
     let path = if let ExprKind::Path(path) = path_expr.kind {
@@ -324,8 +324,8 @@ where
 /// Unlike other forms, `use` does not produce a dedicated AST node.
 /// It resolves the imports into the namespace, visits the body with
 /// those imports available, and returns the body directly.
-pub(super) fn lower_use<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+pub(super) fn lower_use<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     CallExpr {
         id: _,
         span,
@@ -335,7 +335,7 @@ pub(super) fn lower_use<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         expander

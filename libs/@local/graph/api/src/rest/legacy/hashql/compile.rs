@@ -99,11 +99,17 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: types,
             advisories,
-        } = hashql_ast::lower::lower(sym::path::main, &mut ast, &env, &modules, &mut *scratch)
-            .map_category(|category| {
-                HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
-            })
-            .with_diagnostics(advisories)?;
+        } = hashql_ast::lower::lower(
+            sym::path::main,
+            &mut ast,
+            &env,
+            &modules,
+            scratch.as_mut_scope(),
+        )
+        .map_category(|category| {
+            HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
+        })
+        .with_diagnostics(advisories)?;
         scratch.reset();
 
         let interner = hashql_hir::intern::Interner::new(heap);
@@ -184,10 +190,10 @@ impl<'heap> Compilation<'heap> {
             &bodies,
             &execution,
             heap,
-            &mut *scratch,
+            scratch.as_mut_scope(),
         );
 
-        let mut postgres = PostgresCompiler::new_in(&mut context, &mut *scratch);
+        let mut postgres = PostgresCompiler::new_in(&mut context, scratch.as_mut_scope());
         let queries = postgres.compile();
         scratch.reset();
 

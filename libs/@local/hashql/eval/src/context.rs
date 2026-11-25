@@ -1,7 +1,7 @@
 use core::{alloc::Allocator, fmt, ops::Index};
 
 use hashql_core::{
-    heap::BumpAllocator, id::bit_vec::DenseBitSet, r#type::environment::Environment,
+    heap::ScopeAllocator, id::bit_vec::DenseBitSet, r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
@@ -62,16 +62,17 @@ pub struct CodeGenerationContext<'ctx, 'heap, A: Allocator> {
 }
 
 impl<'ctx, 'heap, A: Allocator> CodeGenerationContext<'ctx, 'heap, A> {
-    pub fn new_in<S: BumpAllocator>(
+    pub fn new_in<'scratch, S>(
         env: &'ctx Environment<'heap>,
         interner: &'ctx Interner<'heap>,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         execution: &'ctx DefIdSlice<Option<ExecutionAnalysisResidual<A>>>,
         alloc: A,
-        mut scratch: S,
+        scratch: &mut S,
     ) -> Self
     where
         A: Clone,
+        S: ScopeAllocator<'scratch>,
     {
         let mut live_out = DefIdVec::new_in(alloc.clone());
 
@@ -90,7 +91,7 @@ impl<'ctx, 'heap, A: Allocator> CodeGenerationContext<'ctx, 'heap, A> {
             };
 
             #[expect(unsafe_code)]
-            let exit_states = scratch.scoped_mut(|scoped| {
+            let exit_states = scratch.scoped(|scoped| {
                 let analysis = TraversalLivenessAnalysis { vertex };
                 let DataflowResults {
                     analysis: _,

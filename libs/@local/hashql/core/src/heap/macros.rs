@@ -1,9 +1,9 @@
 macro_rules! delegate_allocator {
     ($wrapper:ty, $field:tt $(,)?) => {
-        $crate::heap2::macros::delegate_allocator!($wrapper, $field, ::core::alloc::Allocator);
+        $crate::heap::macros::delegate_allocator!($wrapper, $field, ::core::alloc::Allocator);
     };
     ($wrapper:ty, $field:tt, $inner:path $(,)?) => {
-        $crate::heap2::macros::delegate_allocator!($wrapper, $field, $inner, []);
+        $crate::heap::macros::delegate_allocator!($wrapper, $field, $inner, []);
     };
     ($wrapper:ty, $field:tt, $inner:path, [$($generics:tt)*] $(where $($bounds:tt)+)?) => {
         // SAFETY: Every operation uses the same inner allocator and preserves its contract.
@@ -84,7 +84,7 @@ macro_rules! delegate_allocator {
 macro_rules! delegate_phase_allocator {
     ($alloc:lifetime, $wrapper:ty, $field:tt $(,)?) => {
         // SAFETY: The selected allocator supplies the allocations for the same lifetime.
-        unsafe impl<$alloc> $crate::heap2::PhaseAllocator<$alloc> for $wrapper {
+        unsafe impl<$alloc> $crate::heap::PhaseAllocator<$alloc> for $wrapper {
             #[inline]
             unsafe fn try_alloc_with_unchecked<T>(
                 self,
@@ -92,7 +92,7 @@ macro_rules! delegate_phase_allocator {
             ) -> Result<&$alloc mut T, ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner allocator.
                 unsafe {
-                    $crate::heap2::PhaseAllocator::try_alloc_with_unchecked(&self.$field, value)
+                    $crate::heap::PhaseAllocator::try_alloc_with_unchecked(&self.$field, value)
                 }
             }
 
@@ -101,22 +101,22 @@ macro_rules! delegate_phase_allocator {
                 self,
                 value: impl FnOnce() -> T,
             ) -> Result<&$alloc mut T, ::core::alloc::AllocError> {
-                $crate::heap2::PhaseAllocator::try_alloc_with(&self.$field, value)
+                $crate::heap::PhaseAllocator::try_alloc_with(&self.$field, value)
             }
 
             #[inline]
             fn try_alloc<T>(self, value: T) -> Result<&$alloc mut T, ::core::alloc::AllocError> {
-                $crate::heap2::PhaseAllocator::try_alloc(&self.$field, value)
+                $crate::heap::PhaseAllocator::try_alloc(&self.$field, value)
             }
 
             #[inline]
             fn alloc_with<T>(self, value: impl FnOnce() -> T) -> &$alloc mut T {
-                $crate::heap2::PhaseAllocator::alloc_with(&self.$field, value)
+                $crate::heap::PhaseAllocator::alloc_with(&self.$field, value)
             }
 
             #[inline]
             fn alloc<T>(self, value: T) -> &$alloc mut T {
-                $crate::heap2::PhaseAllocator::alloc(&self.$field, value)
+                $crate::heap::PhaseAllocator::alloc(&self.$field, value)
             }
 
             #[inline]
@@ -126,7 +126,7 @@ macro_rules! delegate_phase_allocator {
             ) -> Result<&$alloc mut [::core::mem::MaybeUninit<T>], ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner allocator.
                 unsafe {
-                    $crate::heap2::PhaseAllocator::try_alloc_slice_uninit_unchecked(
+                    $crate::heap::PhaseAllocator::try_alloc_slice_uninit_unchecked(
                         &self.$field,
                         len,
                     )
@@ -138,12 +138,12 @@ macro_rules! delegate_phase_allocator {
                 self,
                 len: usize,
             ) -> Result<&$alloc mut [::core::mem::MaybeUninit<T>], ::core::alloc::AllocError> {
-                $crate::heap2::PhaseAllocator::try_alloc_slice_uninit(&self.$field, len)
+                $crate::heap::PhaseAllocator::try_alloc_slice_uninit(&self.$field, len)
             }
 
             #[inline]
             fn alloc_slice_uninit<T>(self, len: usize) -> &$alloc mut [::core::mem::MaybeUninit<T>] {
-                $crate::heap2::PhaseAllocator::alloc_slice_uninit(&self.$field, len)
+                $crate::heap::PhaseAllocator::alloc_slice_uninit(&self.$field, len)
             }
 
             #[inline]
@@ -151,12 +151,12 @@ macro_rules! delegate_phase_allocator {
                 self,
                 slice: &[T],
             ) -> Result<&$alloc mut [T], ::core::alloc::AllocError> {
-                $crate::heap2::PhaseAllocator::try_alloc_slice_copy(&self.$field, slice)
+                $crate::heap::PhaseAllocator::try_alloc_slice_copy(&self.$field, slice)
             }
 
             #[inline]
             fn alloc_slice_copy<T: Copy>(self, slice: &[T]) -> &$alloc mut [T] {
-                $crate::heap2::PhaseAllocator::alloc_slice_copy(&self.$field, slice)
+                $crate::heap::PhaseAllocator::alloc_slice_copy(&self.$field, slice)
             }
 
             #[inline]
@@ -164,12 +164,12 @@ macro_rules! delegate_phase_allocator {
                 self,
                 slice: &[T],
             ) -> Result<&$alloc mut [T], ::core::alloc::AllocError> {
-                $crate::heap2::PhaseAllocator::try_alloc_slice_clone(&self.$field, slice)
+                $crate::heap::PhaseAllocator::try_alloc_slice_clone(&self.$field, slice)
             }
 
             #[inline]
             fn alloc_slice_clone<T: Clone>(self, slice: &[T]) -> &$alloc mut [T] {
-                $crate::heap2::PhaseAllocator::alloc_slice_clone(&self.$field, slice)
+                $crate::heap::PhaseAllocator::alloc_slice_clone(&self.$field, slice)
             }
         }
     };
@@ -178,18 +178,19 @@ macro_rules! delegate_phase_allocator {
 macro_rules! delegate_reset_allocator {
     ($wrapper:ty, $field:tt $(, [$($generics:tt)+])? $(,)?) => {
         // SAFETY: Reset uses the inner allocator's reset contract.
-        unsafe impl $(<$($generics)+>)? $crate::heap2::ResetAllocator for $wrapper {
+        unsafe impl $(<$($generics)+>)? $crate::heap::ResetAllocator for $wrapper {
             #[inline]
             fn reset(&mut self) {
-                $crate::heap2::ResetAllocator::reset(&mut self.$field);
+                $crate::heap::ResetAllocator::reset(&mut self.$field);
             }
         }
     };
 }
 
+// Delegates to a field that holds an exclusive reference to an arena of type `$inner`.
 macro_rules! delegate_scope_allocator {
     ($alloc:lifetime, $wrapper:ty, $field:tt, $inner:ty $(,)?) => {
-        $crate::heap2::macros::delegate_scope_allocator!($alloc, $wrapper, $field, $inner, []);
+        $crate::heap::macros::delegate_scope_allocator!($alloc, $wrapper, $field, $inner, []);
     };
     (
         $alloc:lifetime, $wrapper:ty, $field:tt, $inner:ty,
@@ -197,11 +198,11 @@ macro_rules! delegate_scope_allocator {
     ) => {
         // SAFETY: The selected arena supplies the allocations for the same lifetime, and both scope
         // methods pass `func` to the method of the same name on that arena.
-        unsafe impl<$alloc, $($generics)*> $crate::heap2::ScopeAllocator<$alloc> for $wrapper
+        unsafe impl<$alloc, $($generics)*> $crate::heap::ScopeAllocator<$alloc> for $wrapper
         $(where $($bounds)+)?
         {
             type Scoped<'nested> =
-                <$inner as $crate::heap2::ScopeAllocator<$alloc>>::Scoped<'nested>;
+                <$inner as $crate::heap::ScopeAllocator<$alloc>>::Scoped<'nested>;
 
             #[inline]
             unsafe fn try_alloc_with_unchecked<T>(
@@ -210,8 +211,8 @@ macro_rules! delegate_scope_allocator {
             ) -> Result<&$alloc mut T, ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner arena.
                 unsafe {
-                    <$inner as $crate::heap2::ScopeAllocator<$alloc>>::try_alloc_with_unchecked(
-                        &this.$field,
+                    <$inner as $crate::heap::ScopeAllocator<$alloc>>::try_alloc_with_unchecked(
+                        &*this.$field,
                         value,
                     )
                 }
@@ -224,8 +225,8 @@ macro_rules! delegate_scope_allocator {
             ) -> Result<&$alloc mut [::core::mem::MaybeUninit<T>], ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner arena.
                 unsafe {
-                    <$inner as $crate::heap2::ScopeAllocator<$alloc>>
-                        ::try_alloc_slice_uninit_unchecked(&this.$field, len)
+                    <$inner as $crate::heap::ScopeAllocator<$alloc>>
+                        ::try_alloc_slice_uninit_unchecked(&*this.$field, len)
                 }
             }
 
@@ -234,8 +235,8 @@ macro_rules! delegate_scope_allocator {
                 this: &Self,
                 slice: &[T],
             ) -> Result<&$alloc mut [T], ::core::alloc::AllocError> {
-                <$inner as $crate::heap2::ScopeAllocator<$alloc>>::try_alloc_slice_copy(
-                    &this.$field,
+                <$inner as $crate::heap::ScopeAllocator<$alloc>>::try_alloc_slice_copy(
+                    &*this.$field,
                     slice,
                 )
             }
@@ -244,44 +245,20 @@ macro_rules! delegate_scope_allocator {
             fn scoped<T>(
                 &mut self,
                 func: impl for<'nested> FnOnce(
-                    $crate::heap2::Scoped<'nested, $alloc, Self::Scoped<'nested>>,
+                    $crate::heap::Scoped<'nested, $alloc, Self::Scoped<'nested>>,
                 ) -> T,
             ) -> T {
-                use $crate::heap2::ScopeAllocator as _;
-
-                // The method call reborrows a field that holds a reference to the arena, and
-                // borrows a field that holds the arena itself.
-                self.$field.scoped(func)
+                <$inner as $crate::heap::ScopeAllocator<$alloc>>::scoped(&mut *self.$field, func)
             }
 
             #[inline]
             fn scoped_ref<T>(
                 &self,
                 func: impl for<'nested> FnOnce(
-                    $crate::heap2::Scoped<'nested, $alloc, Self::Scoped<'nested>>,
+                    $crate::heap::Scoped<'nested, $alloc, Self::Scoped<'nested>>,
                 ) -> T,
             ) -> T {
-                <$inner as $crate::heap2::ScopeAllocator<$alloc>>::scoped_ref(&self.$field, func)
-            }
-        }
-    };
-}
-
-macro_rules! delegate_symbol_allocator {
-    ($alloc:lifetime, $wrapper:ty, $field:tt $(,)?) => {
-        // SAFETY: The selected allocator supplies the symbols for the same lifetime.
-        unsafe impl<$alloc> $crate::heap2::SymbolAllocator<$alloc> for $wrapper {
-            #[inline]
-            fn try_alloc_symbol(
-                self,
-                name: &str,
-            ) -> Result<$crate::symbol::Symbol<$alloc>, ::core::alloc::AllocError> {
-                $crate::heap2::SymbolAllocator::try_alloc_symbol(&self.$field, name)
-            }
-
-            #[inline]
-            fn alloc_symbol(self, name: &str) -> $crate::symbol::Symbol<$alloc> {
-                $crate::heap2::SymbolAllocator::alloc_symbol(&self.$field, name)
+                <$inner as $crate::heap::ScopeAllocator<$alloc>>::scoped_ref(&*self.$field, func)
             }
         }
     };
@@ -291,4 +268,3 @@ pub(super) use delegate_allocator;
 pub(super) use delegate_phase_allocator;
 pub(super) use delegate_reset_allocator;
 pub(super) use delegate_scope_allocator;
-pub(super) use delegate_symbol_allocator;

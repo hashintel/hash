@@ -7,7 +7,7 @@ use core::{
 };
 
 use hashql_core::{
-    heap::{FromIn as _, TryCloneIn},
+    heap::{CloneIn, FromIn as _},
     symbol::Symbol,
     value::String,
 };
@@ -226,12 +226,12 @@ impl<A: Allocator> Ord for Str<'_, A> {
     }
 }
 
-impl<'heap, A: Allocator, B: Allocator> TryCloneIn<B> for Str<'heap, A> {
+impl<'heap, A: Allocator, B: Allocator> CloneIn<B> for Str<'heap, A> {
     type Cloned = Str<'heap, B>;
 
-    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
+    fn try_clone_in(&self, alloc: B) -> Result<Self::Cloned, AllocError> {
         match &self.inner {
-            StrInner::Owned(value) => Ok(Str::from(Rc::from_in(&**value, allocator))),
+            StrInner::Owned(value) => Ok(Str::from(Rc::from_in(&**value, alloc))),
             &StrInner::Interned(symbol) => Ok(Str::from(symbol)),
         }
     }

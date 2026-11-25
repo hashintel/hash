@@ -1,8 +1,8 @@
-use core::{iter, mem};
+use core::{alloc::Allocator, iter, mem};
 
 use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
-    heap::{self, BumpAllocator, Heap},
+    heap::{self, Heap, ScopeAllocator},
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicTypeItem, Item},
@@ -24,12 +24,12 @@ use crate::{
     visit::Visitor as _,
 };
 
-fn lower_call_to_type<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+fn lower_call_to_type<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     mut call: CallExpr<'heap>,
 ) -> Type<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !call.labeled_arguments.is_empty() {
         expander
@@ -109,12 +109,12 @@ where
 /// Paths, tuples, structs, `_`, and type constructor calls (`|`, `&`) are
 /// valid. Everything else produces a diagnostic and returns [`Type::dummy`].
 /// [`ExprKind::Dummy`] is suppressed (a resolution error was already reported).
-pub(super) fn lower_expr_to_type<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+pub(super) fn lower_expr_to_type<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     expr: Expr<'heap>,
 ) -> Type<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     match expr.kind {
         ExprKind::Call(call) => lower_call_to_type(expander, call),
@@ -231,7 +231,7 @@ fn path_arguments_to_constraints_unvalidated<'heap, S>(
     arguments: &mut [PathSegmentArgument<'heap>],
 ) -> heap::Vec<'heap, GenericConstraint<'heap>>
 where
-    S: BumpAllocator,
+    S: Allocator,
 {
     let mut constraints = heap::Vec::with_capacity_in(arguments.len(), heap);
     let mut seen = fast_hash_map_with_capacity_in(arguments.len(), scratch);
@@ -302,23 +302,23 @@ where
     constraints
 }
 
-pub(super) fn argument_to_generic_ident<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+pub(super) fn argument_to_generic_ident<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
 
     argument: &mut Argument<'heap>,
 ) -> Option<(Ident<'heap>, heap::Vec<'heap, GenericConstraint<'heap>>)>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if let ExprKind::Path(path) = &mut argument.value.kind
         && let Some((name, arguments)) = path.as_generic_ident_mut()
     {
         // Generic constraints _may_ be recursive. To allow for that we must put the name of the
         // ident into view before we do anything
-        let constraints = expander.scratch.scoped_mut(|scratch| {
+        let constraints = expander.scratch.scoped(|scratch| {
             path_arguments_to_constraints_unvalidated(
                 expander.heap,
-                scratch,
+                &scratch,
                 &mut expander.diagnostics,
                 arguments,
             )
@@ -357,16 +357,16 @@ where
     }
 }
 
-fn lower_type_impl<'heap, S>(
+fn lower_type_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, S>,
+    expander: &mut Expander<'_, 'heap, '_, S>,
 
     name: &mut Argument<'heap>,
     value: &mut Argument<'heap>,
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let (name, constraints) = if let Some(result) = argument_to_generic_ident(expander, name) {
         result
@@ -458,8 +458,8 @@ where
 /// The name is bound in the type universe for `body`.
 ///
 /// [`TypeExpr`]: crate::node::expr::TypeExpr
-pub(super) fn lower_type<'heap, S>(
-    expander: &mut Expander<'_, 'heap, S>,
+pub(super) fn lower_type<'heap, 'alloc, S>(
+    expander: &mut Expander<'_, 'heap, '_, S>,
     CallExpr {
         id: _,
         span,
@@ -469,7 +469,7 @@ pub(super) fn lower_type<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         expander

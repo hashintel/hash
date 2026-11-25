@@ -19,6 +19,28 @@ use crate::{
 ///
 /// To open scopes, borrow the arena through [`as_mut_scope`] or [`as_scope`].
 ///
+/// # Example
+///
+/// ```
+/// use hashql_core::heap::{Heap, PhaseAllocator as _, ResetAllocator as _, SymbolAllocator as _};
+///
+/// let mut heap = Heap::new();
+///
+/// let name = heap.alloc_symbol("total price");
+/// let node = heap.alloc((name, 3_u32));
+/// assert_eq!(node.0.as_str(), "total price");
+///
+/// // A collection of the standard library allocates through `&heap`.
+/// let mut prices = Vec::new_in(&heap);
+/// prices.push(node.1);
+/// assert_eq!(prices, [3]);
+/// drop(prices);
+///
+/// // `reset` compiles only once nothing borrows the heap any more.
+/// heap.reset();
+/// assert_eq!(heap.alloc_symbol("total price").as_str(), "total price");
+/// ```
+///
 /// [`PhaseAllocator`]: super::PhaseAllocator
 /// [`sym`]: crate::symbol::sym
 /// [`reset`]: ResetAllocator::reset
@@ -207,7 +229,7 @@ mod tests {
 
     use super::Heap;
     use crate::{
-        heap2::{PhaseAllocator, ResetAllocator as _, ScopeAllocator, SymbolAllocator},
+        heap::{PhaseAllocator, ResetAllocator as _, ScopeAllocator, SymbolAllocator},
         symbol::{Symbol, sym},
     };
 
