@@ -7,8 +7,10 @@ import { CollapseButton } from "../shared/collapse-button";
 import { useRecentActions } from "../shared/recent-actions";
 import {
   getActionTone,
+  getAddId,
+  getListedActionGroups,
   isAddableAction,
-  listedActionGroups,
+  isUpcomingAction,
   searchListedActions,
   stepNoun,
   upcomingNote,
@@ -35,7 +37,8 @@ const noMatches = css({
 export const AddTab = ({
   onAddStep,
 }: {
-  onAddStep: (actionDefinitionId: string) => void;
+  /** Called with what was picked: an action definition id, or `forEachAddId`. */
+  onAddStep: (addId: string) => void;
 }) => {
   const [query, setQuery] = useState("");
   const { recordAddedAction } = useRecentActions();
@@ -55,23 +58,26 @@ export const AddTab = ({
     });
 
   const actionRow = (action: ListedAction, depth: number) => {
-    const addable = isAddableAction(action);
+    const addId = isUpcomingAction(action) ? undefined : getAddId(action);
 
     return (
       <TreeRow
-        key={addable ? action.actionDefinitionId : action.upcomingId}
+        key={isUpcomingAction(action) ? action.upcomingId : addId}
         depth={depth}
         icon={action.icon}
         tone={getActionTone(action)}
         label={action.label}
-        disabledTooltip={addable ? undefined : upcomingNote}
+        disabledTooltip={addId === undefined ? upcomingNote : undefined}
         onClick={
-          addable
-            ? () => {
-                recordAddedAction(action.actionDefinitionId);
-                onAddStep(action.actionDefinitionId);
+          addId === undefined
+            ? undefined
+            : () => {
+                /* Recent lists actions only. */
+                if (isAddableAction(action)) {
+                  recordAddedAction(action.actionDefinitionId);
+                }
+                onAddStep(addId);
               }
-            : undefined
         }
       />
     );
@@ -92,7 +98,7 @@ export const AddTab = ({
       />
       <div>
         {matches === null ? (
-          listedActionGroups.map(({ groupId, label, actions }) => {
+          getListedActionGroups().map(({ groupId, label, actions }) => {
             const expanded = expandedGroupIds.has(groupId);
 
             return (

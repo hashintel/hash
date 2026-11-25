@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  listedActionGroups,
+  getListedActionGroups,
+  isUpcomingAction,
   recommendedActions,
   searchListedActions,
 } from "./step-display";
@@ -9,10 +10,10 @@ import {
 const labelsOf = (actions: { label: string }[]) =>
   actions.map(({ label }) => label);
 
-describe("listedActionGroups", () => {
+describe("getListedActionGroups", () => {
   it("lists every group with its actions, in order", () => {
     expect(
-      listedActionGroups.map(({ label, actions }) => [
+      getListedActionGroups().map(({ label, actions }) => [
         label,
         labelsOf(actions),
       ]),
@@ -24,6 +25,23 @@ describe("listedActionGroups", () => {
       ["Lists", ["Filter list", "Find", "Order by", "Take first", "Aggregate"]],
       ["Flow control", ["If", "For each"]],
     ]);
+  });
+
+  it("lists only the actions without a definition yet as upcoming", () => {
+    expect(
+      labelsOf(
+        getListedActionGroups()
+          .flatMap(({ actions }) => actions)
+          .filter(isUpcomingAction),
+      ),
+    ).toEqual(["Ask a person", "Send email"]);
+  });
+
+  it("leaves For each out inside a for-each step, also from a search", () => {
+    expect(
+      getListedActionGroups({ insideForEach: true }).at(-1)?.actions,
+    ).toMatchObject([{ label: "If" }]);
+    expect(searchListedActions("each", { insideForEach: true })).toEqual([]);
   });
 });
 

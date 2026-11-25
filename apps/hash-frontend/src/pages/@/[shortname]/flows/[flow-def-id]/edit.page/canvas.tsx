@@ -26,11 +26,16 @@ import { RightClickMenu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AddStepMenuAt } from "./canvas/add-step-menu";
-import { CanvasActionsContext } from "./canvas/canvas-actions";
+import { addPickedStep, CanvasActionsContext } from "./canvas/canvas-actions";
 import { CanvasToolbar } from "./canvas/canvas-toolbar";
 import { ConnectionEdge } from "./canvas/connection-edge";
 import { getContextMenuItems } from "./canvas/context-menu";
-import { getFlowGraph, getStepNodeId, startNodeId } from "./canvas/flow-graph";
+import {
+  firstPlaceInBox,
+  getFlowGraph,
+  getStepNodeId,
+  startNodeId,
+} from "./canvas/flow-graph";
 import {
   ForEachNode,
   StartNode,
@@ -38,7 +43,13 @@ import {
   TriggerNode,
 } from "./canvas/flow-nodes";
 import { getFreePosition, layOutFlow } from "./canvas/layout";
-import { getStepCardSize, stepCardSize, stepGap } from "./canvas/sizes";
+import {
+  emptyForEachSize,
+  forEachBoxPadding,
+  getStepCardSize,
+  stepCardSize,
+  stepGap,
+} from "./canvas/sizes";
 import {
   getCenterToReveal,
   useSelectedStepInView,
@@ -46,6 +57,7 @@ import {
 } from "./canvas/use-step-focus";
 import { getScheduleSummary } from "./shared/flow-triggers";
 import { useItemNames } from "./shared/item-name";
+import { forEachAddId } from "./shared/step-display";
 import { connectFromNewStep, getActionPaths } from "./shared/step-paths";
 
 import type { CanvasActions } from "./canvas/canvas-actions";
@@ -59,6 +71,7 @@ import type {
 } from "./canvas/flow-graph";
 import type { FlowSchedules, TriggerKind } from "./shared/flow-triggers";
 import type { FlowEditor } from "@local/hash-isomorphic-utils/flows/flow-editor";
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   Connection,
   EdgeChange,
@@ -103,9 +116,41 @@ const getNodeStepId = (node: FlowNode) =>
     : node.data.step.stepId;
 
 type AddMenuState = {
-  /** Where the picked step will land, shown as a ghost card the menu opens beside. */
+  /** Where the picked step will land, shown as a ghost card the menu opens beside. On the canvas, not in a box. */
   position: XYPosition;
-  addStep: (actionDefinitionId: string) => void;
+  /** Whether the step will go inside a for-each step, where For each isn't offered. */
+  insideForEach: boolean;
+  /** Called with what was picked (see `addPickedStep`). */
+  addStep: (addId: string) => void;
+};
+
+const addPoints = (first: XYPosition, second: XYPosition) => ({
+  x: first.x + second.x,
+  y: first.y + second.y,
+});
+
+/** Every step at any depth, by id, and the for-each step it's directly inside, if any. */
+const indexSteps = (steps: StepDefinition<string>[]) => {
+  const index = new Map<
+    string,
+    { step: StepDefinition<string>; parentStepId: string | null }
+  >();
+  const visit = (
+    children: StepDefinition<string>[],
+    parentStepId: string | null,
+  ) => {
+    for (const step of children) {
+      index.set(step.stepId, { step, parentStepId });
+
+      if (step.kind === "for-each") {
+        visit(step.steps, step.stepId);
+      }
+    }
+  };
+
+  visit(steps, null);
+
+  return index;
 };
 
 const refuseContextMenu = (event: ReactMouseEvent | MouseEvent) => {
@@ -119,8 +164,8 @@ const cardBeside = (point: XYPosition, side: "left" | "right") => ({
 });
 
 export type CanvasHandle = {
-  /** Adds a step in the middle of the view, and selects it. */
-  addStepInView: (actionDefinitionId: string) => void;
+  /** Adds what was picked (see `addPickedStep`) in the middle of the view, and selects it. */
+  addStepInView: (addId: string) => void;
 };
 
 export type CanvasSelection = {
@@ -220,11 +265,16 @@ const FlowCanvas = ({
           return;
         }
 
-        /* On open, only steps with no saved position are placed. */
+        /* On open, only steps with no saved position are placed: those inside a box where it lays them out. */
         const unplacedPositions = new Map<string, XYPosition>();
 
-        for (const step of editor.getState().flowDefinition.steps) {
-          const position = positions.get(step.stepId);
+        for (const { step, parentStepId } of indexSteps(
+          editor.getState().flowDefinition.steps,
+        ).values()) {
+          const position =
+            parentStepId === null
+              ? positions.get(step.stepId)
+              : layouts.get(parentStepId)?.positions.get(step.stepId);
 
           if (!step.position && position) {
             unplacedPositions.set(step.stepId, position);
@@ -364,26 +414,30 @@ const FlowCanvas = ({
     [graph.edges, selectedEdgeIds],
   );
 
-  const topLevelSteps = useMemo(
-    () => new Map(flowDefinition.steps.map((step) => [step.stepId, step])),
+  const steps = useMemo(
+    () => indexSteps(flowDefinition.steps),
     [flowDefinition.steps],
   );
-  /** `null` for Start and inner steps. */
-  const getTopLevelStepId = useCallback(
+  /** `null` for Start and triggers. */
+  const getStepIdOf = useCallback(
     (nodeId: string) => {
       const node = graphNodesById.get(nodeId);
-      const stepId = node ? getNodeStepId(node) : null;
 
-      return stepId !== null && topLevelSteps.has(stepId) ? stepId : null;
+      return node ? getNodeStepId(node) : null;
     },
-    [graphNodesById, topLevelSteps],
+    [graphNodesById],
   );
-  const getTopLevelStepIds = (stepNodes: FlowNode[]) =>
+  const getStepIds = (stepNodes: FlowNode[]) =>
     stepNodes.flatMap((node) => {
-      const stepId = getTopLevelStepId(node.id);
+      const stepId = getStepIdOf(node.id);
 
       return stepId === null ? [] : [stepId];
     });
+  const getParentStepId = useCallback(
+    (stepId: string | null) =>
+      stepId === null ? null : (steps.get(stepId)?.parentStepId ?? null),
+    [steps],
+  );
 
   const selectStep = useCallback(
     (stepId: string) => {
@@ -393,26 +447,43 @@ const FlowCanvas = ({
     [onSelectionChange],
   );
 
+  /** The places of the cards on the canvas, or inside the box of `parentStepId`, relative to it. */
   const getTakenPlaces = useCallback(
-    () =>
-      getNodes()
-        .filter((node) => node.parentId === undefined)
+    (parentStepId: string | null = null) => {
+      const parentNodeId =
+        parentStepId === null ? undefined : getStepNodeId(parentStepId);
+
+      return getNodes()
+        .filter((node) => node.parentId === parentNodeId)
         .map((node) => ({
           position: node.position,
           width: node.measured?.width ?? stepCardSize.width,
           height: node.measured?.height ?? stepCardSize.height,
-        })),
+        }));
+    },
     [getNodes],
   );
 
+  /** Where the box of `parentStepId` is on the canvas, which places inside it are relative to. */
+  const getBoxOrigin = useCallback(
+    (parentStepId: string | null): XYPosition =>
+      (parentStepId === null
+        ? undefined
+        : getInternalNode(getStepNodeId(parentStepId))?.internals
+            .positionAbsolute) ?? { x: 0, y: 0 },
+    [getInternalNode],
+  );
+
   /** `position`, or below it if a new step's card would cover another card there. The ghost card is sized as a
-   * step without paths, so a step with paths is moved further down if its taller card wouldn't fit. */
+   * step without paths, so a step with paths, or an empty box, is moved further down if it wouldn't fit. */
   const getNewStepPosition = useCallback(
-    (actionDefinitionId: string, position: XYPosition) =>
+    (addId: string, position: XYPosition, parentStepId: string | null = null) =>
       getFreePosition(
         position,
-        getStepCardSize(getActionPaths(actionDefinitionId).length),
-        getTakenPlaces(),
+        addId === forEachAddId
+          ? emptyForEachSize
+          : getStepCardSize(getActionPaths(addId).length),
+        getTakenPlaces(parentStepId),
       ),
     [getTakenPlaces],
   );
@@ -440,14 +511,11 @@ const FlowCanvas = ({
     );
   };
 
-  const addStepInView = (
-    actionDefinitionId: string,
-    position = getPositionInView(),
-  ) => {
+  const addStepInView = (addId: string, position = getPositionInView()) => {
     if (position) {
       selectStep(
-        editor.addStep(actionDefinitionId, {
-          position: getNewStepPosition(actionDefinitionId, position),
+        addPickedStep(editor, addId, {
+          position: getNewStepPosition(addId, position),
         }),
       );
     }
@@ -499,6 +567,8 @@ const FlowCanvas = ({
             return;
           }
 
+          /* After a step inside a box, the new step goes beside it in the box. */
+          const parentStepId = getParentStepId(stepId);
           const ghostPosition = getFreePosition(
             {
               x:
@@ -508,20 +578,23 @@ const FlowCanvas = ({
               y: node.position.y,
             },
             stepCardSize,
-            getTakenPlaces(),
+            getTakenPlaces(parentStepId),
           );
 
           openAddMenu({
-            position: ghostPosition,
-            addStep: (actionDefinitionId) => {
+            position: addPoints(getBoxOrigin(parentStepId), ghostPosition),
+            insideForEach: parentStepId !== null,
+            addStep: (addId) => {
               const position = getNewStepPosition(
-                actionDefinitionId,
+                addId,
                 ghostPosition,
+                parentStepId,
               );
 
               selectStep(
-                editor.addStep(
-                  actionDefinitionId,
+                addPickedStep(
+                  editor,
+                  addId,
                   stepId === null
                     ? { position }
                     : { after: stepId, outputName, position },
@@ -530,14 +603,39 @@ const FlowCanvas = ({
             },
           });
         },
+        openAddMenuInside: (forEachStepId) => {
+          const ghostPosition = getFreePosition(
+            firstPlaceInBox,
+            stepCardSize,
+            getTakenPlaces(forEachStepId),
+          );
+
+          openAddMenu({
+            position: addPoints(getBoxOrigin(forEachStepId), ghostPosition),
+            insideForEach: true,
+            addStep: (addId) =>
+              selectStep(
+                addPickedStep(editor, addId, {
+                  position: getNewStepPosition(
+                    addId,
+                    ghostPosition,
+                    forEachStepId,
+                  ),
+                  inside: forEachStepId,
+                }),
+              ),
+          });
+        },
         removeConnection: editor.removeConnection,
       },
       toggleCollapsed: onToggleCollapsed,
     }),
     [
       editor,
+      getBoxOrigin,
       getInternalNode,
       getNewStepPosition,
+      getParentStepId,
       getTakenPlaces,
       openAddMenu,
       selectStep,
@@ -545,21 +643,33 @@ const FlowCanvas = ({
     ],
   );
 
-  const openAddMenuAtContextPoint = (addStep: AddStepAt) => {
-    const point = contextPointRef.current;
-    const position = getFreePosition(
-      cardBeside(screenToFlowPosition(point), "right"),
+  /** Where a card at `point` on screen goes in the box of `parentStepId`, or on the canvas. */
+  const getPlaceAt = (
+    point: XYPosition,
+    side: "left" | "right",
+    parentStepId: string | null,
+  ) => {
+    const origin = getBoxOrigin(parentStepId);
+    const card = cardBeside(screenToFlowPosition(point), side);
+
+    return getFreePosition(
+      { x: card.x - origin.x, y: card.y - origin.y },
       stepCardSize,
-      getTakenPlaces(),
+      getTakenPlaces(parentStepId),
     );
+  };
+
+  const openAddMenuAtContextPoint = (
+    addStep: AddStepAt,
+    parentStepId: string | null,
+  ) => {
+    const position = getPlaceAt(contextPointRef.current, "right", parentStepId);
 
     openAddMenu({
-      position,
-      addStep: (actionDefinitionId) =>
-        addStep(
-          actionDefinitionId,
-          getNewStepPosition(actionDefinitionId, position),
-        ),
+      position: addPoints(getBoxOrigin(parentStepId), position),
+      insideForEach: parentStepId !== null,
+      addStep: (addId) =>
+        addStep(addId, getNewStepPosition(addId, position, parentStepId)),
     });
   };
 
@@ -654,12 +764,23 @@ const FlowCanvas = ({
 
   const savePositions = (draggedNodes: FlowNode[]) => {
     for (const node of draggedNodes) {
-      const stepId = getTopLevelStepId(node.id);
+      const stepId = getStepIdOf(node.id);
 
       if (stepId !== null) {
+        /* A card dragged out of its box's top or left goes back to its edge; the box grows to the right and down. */
+        const inBox = node.parentId !== undefined;
+
         editor.moveStep(stepId, {
-          x: Math.round(node.position.x),
-          y: Math.round(node.position.y),
+          x: Math.round(
+            inBox
+              ? Math.max(node.position.x, forEachBoxPadding.side)
+              : node.position.x,
+          ),
+          y: Math.round(
+            inBox
+              ? Math.max(node.position.y, forEachBoxPadding.header)
+              : node.position.y,
+          ),
         });
       }
     }
@@ -667,18 +788,27 @@ const FlowCanvas = ({
     setDragPositions(new Map());
   };
 
+  /**
+   * A step can run after a step beside it, in its box or on the canvas, or inside a box after a step on the canvas
+   * other than the box. Not twice after the same step.
+   */
   const isValidConnection = ({
     source,
     target,
   }: Pick<Connection, "source" | "target">) => {
-    const from = getTopLevelStepId(source);
-    const to = getTopLevelStepId(target);
+    const from = getStepIdOf(source);
+    const to = getStepIdOf(target);
+
+    if (from === null || to === null || from === to) {
+      return false;
+    }
+
+    const fromParent = getParentStepId(from);
+    const toParent = getParentStepId(to);
 
     return (
-      from !== null &&
-      to !== null &&
-      from !== to &&
-      !topLevelSteps.get(to)?.runAfter?.some(({ stepId }) => stepId === from)
+      (fromParent === toParent || (fromParent === null && from !== toParent)) &&
+      !steps.get(to)?.step.runAfter?.some(({ stepId }) => stepId === from)
     );
   };
 
@@ -690,7 +820,7 @@ const FlowCanvas = ({
       return;
     }
 
-    const fromStepId = getTopLevelStepId(fromNode.id);
+    const fromStepId = getStepIdOf(fromNode.id);
 
     if (fromNode.id !== startNodeId && fromStepId === null) {
       return;
@@ -702,37 +832,40 @@ const FlowCanvas = ({
       return;
     }
 
+    /* From a step inside a box, the new step goes in the box too. */
+    const parentStepId = getParentStepId(fromStepId);
     const fromOutput = fromHandle.type === "source";
-    const ghostPosition = getFreePosition(
-      cardBeside(
-        screenToFlowPosition({ x: point.clientX, y: point.clientY }),
-        fromOutput ? "right" : "left",
-      ),
-      stepCardSize,
-      getTakenPlaces(),
+    const ghostPosition = getPlaceAt(
+      { x: point.clientX, y: point.clientY },
+      fromOutput ? "right" : "left",
+      parentStepId,
     );
 
     openAddMenu({
-      position: ghostPosition,
-      addStep: (actionDefinitionId) => {
-        const position = getNewStepPosition(actionDefinitionId, ghostPosition);
+      position: addPoints(getBoxOrigin(parentStepId), ghostPosition),
+      insideForEach: parentStepId !== null,
+      addStep: (addId) => {
+        const position = getNewStepPosition(addId, ghostPosition, parentStepId);
 
         if (fromStepId === null) {
-          selectStep(editor.addStep(actionDefinitionId, { position }));
+          selectStep(addPickedStep(editor, addId, { position }));
         } else if (fromOutput) {
           selectStep(
-            editor.addStep(actionDefinitionId, {
+            addPickedStep(editor, addId, {
               after: fromStepId,
               outputName: fromHandle.id ?? undefined,
               position,
             }),
           );
         } else {
-          const stepId = editor.addStep(actionDefinitionId, { position });
+          const stepId = addPickedStep(editor, addId, {
+            position,
+            ...(parentStepId !== null && { inside: parentStepId }),
+          });
 
           connectFromNewStep(
             editor,
-            { stepId, actionDefinitionId },
+            { stepId, actionDefinitionId: addId },
             fromStepId,
           );
           selectStep(stepId);
@@ -746,7 +879,8 @@ const FlowCanvas = ({
     nodes: deletedNodes,
     edges: deletedEdges,
   }) => {
-    const removedStepIds = new Set(getTopLevelStepIds(deletedNodes));
+    /* With a box, React Flow deletes the steps inside it too, which removing the box removes. */
+    const removedStepIds = new Set(getStepIds(deletedNodes));
 
     for (const { data } of deletedEdges) {
       if (
@@ -759,7 +893,11 @@ const FlowCanvas = ({
     }
 
     for (const stepId of removedStepIds) {
-      editor.removeStep(stepId);
+      const parentStepId = getParentStepId(stepId);
+
+      if (parentStepId === null || !removedStepIds.has(parentStepId)) {
+        editor.removeStep(stepId);
+      }
     }
 
     onSelectionChange({
@@ -810,7 +948,10 @@ const FlowCanvas = ({
       return;
     }
 
-    for (const [stepId, position] of positions) {
+    for (const [stepId, position] of [
+      ...positions,
+      ...[...layouts.values()].flatMap((layout) => [...layout.positions]),
+    ]) {
       editor.moveStep(stepId, position);
     }
 
@@ -827,7 +968,7 @@ const FlowCanvas = ({
   /* Every card and line is given these, so they are kept the same while dragging. */
   const onNodeContextMenu = useCallback<NodeMouseHandler<FlowNode>>(
     (event, node) => {
-      const stepId = getTopLevelStepId(node.id);
+      const stepId = getStepIdOf(node.id);
 
       if (stepId === null) {
         refuseContextMenu(event);
@@ -852,7 +993,7 @@ const FlowCanvas = ({
           : { kind: "step", stepId },
       );
     },
-    [getTopLevelStepId],
+    [getStepIdOf],
   );
   const onEdgeContextMenu = useCallback<EdgeMouseHandler<ConnectionEdgeType>>(
     (event, edge) => {
@@ -899,7 +1040,7 @@ const FlowCanvas = ({
           items={getContextMenuItems({
             target: contextTarget,
             editor,
-            topLevelSteps,
+            steps,
             openAddMenu: openAddMenuAtContextPoint,
             selectStep,
           })}
@@ -919,8 +1060,8 @@ const FlowCanvas = ({
             }
             isValidConnection={isValidConnection}
             onConnect={({ source, sourceHandle, target }) => {
-              const from = getTopLevelStepId(source);
-              const to = getTopLevelStepId(target);
+              const from = getStepIdOf(source);
+              const to = getStepIdOf(target);
 
               if (from !== null && to !== null) {
                 editor.addConnection({
@@ -942,7 +1083,7 @@ const FlowCanvas = ({
               rememberContextPoint(event);
               setContextTarget({
                 kind: "selection",
-                stepIds: getTopLevelStepIds(selectedNodes),
+                stepIds: getStepIds(selectedNodes),
               });
             }}
             onPaneContextMenu={refuseContextMenu}
@@ -986,11 +1127,8 @@ const FlowCanvas = ({
             tool={tool}
             onToolChange={setTool}
             editing={{
-              onAddStep: (actionDefinitionId) =>
-                addStepInView(
-                  actionDefinitionId,
-                  toolbarAddPosition ?? undefined,
-                ),
+              onAddStep: (addId) =>
+                addStepInView(addId, toolbarAddPosition ?? undefined),
               onAddMenuOpen: (open) =>
                 setToolbarAddPosition(open ? getPositionInView() : null),
               emptyFlow,
@@ -1005,6 +1143,7 @@ const FlowCanvas = ({
           <AddStepMenuAt
             anchor={getScreenRect(addMenu.position)}
             emptyFlow={emptyFlow}
+            insideForEach={addMenu.insideForEach}
             onPick={addMenu.addStep}
             onClose={() => setAddMenu(null)}
           />
