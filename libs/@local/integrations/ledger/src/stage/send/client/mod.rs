@@ -60,25 +60,23 @@ impl GraphClient {
     /// # Errors
     ///
     /// Returns [`GraphError::Configuration`] if `graph_url` is not an HTTP(S) URL without
-    /// credentials, the secret is empty or not a header value, or the HTTP client cannot be built.
+    /// credentials whose path ends in `/`, the secret is empty or not a header value, or the HTTP
+    /// client cannot be built.
     pub fn new(graph_url: &Url, service_secret: &Secret<str>) -> Result<Self, Report<GraphError>> {
         if !matches!(graph_url.scheme(), "http" | "https")
             || !graph_url.username().is_empty()
             || graph_url.password().is_some()
+            || !graph_url.path().ends_with('/')
             || service_secret.expose().is_empty()
         {
             return Err(Report::new(GraphError::Configuration));
         }
-        let mut entities = graph_url.clone();
-        entities
-            .path_segments_mut()
-            .map_err(|()| Report::new(GraphError::Configuration))?
-            .pop_if_empty()
-            .push("entities");
-        let mut bulk = entities.clone();
-        bulk.path_segments_mut()
-            .map_err(|()| Report::new(GraphError::Configuration))?
-            .push("bulk");
+        let entities = graph_url
+            .join("entities")
+            .change_context(GraphError::Configuration)?;
+        let bulk = graph_url
+            .join("entities/bulk")
+            .change_context(GraphError::Configuration)?;
         let mut authorization = HeaderValue::from_str(&format!(
             "{SERVICE_AUTH_SCHEME} {}",
             service_secret.expose()

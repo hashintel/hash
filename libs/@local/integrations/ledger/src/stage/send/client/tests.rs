@@ -263,6 +263,7 @@ async fn graph_url_path() {
 #[rstest]
 #[case::scheme("ftp://graph.test", SERVICE_SECRET)]
 #[case::credentials("http://user:password@graph.test", SERVICE_SECRET)]
+#[case::path_without_slash("http://graph.test/graph", SERVICE_SECRET)]
 #[case::empty_secret("http://graph.test", "")]
 fn configuration(#[case] url: &str, #[case] secret: &str) {
     let error = GraphClient::new(
