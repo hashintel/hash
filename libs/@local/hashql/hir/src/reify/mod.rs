@@ -19,7 +19,7 @@ use self::error::{
 };
 use crate::{
     context::HirContext,
-    node::{Node, NodeData, Value},
+    node::{Node, NodeData, modname::Value},
 };
 
 fn finish_reify<'heap>(
@@ -78,7 +78,7 @@ impl<'heap> NodeData<'heap> {
     }
 }
 
-impl<'heap> Value<'heap> {
+impl<'heap> modname::Value<'heap> {
     /// Reifies a value-only AST node into an interned HIR [`Value`].
     ///
     /// Interns the literal and compound data nodes of `value` into `context`, using `scratch` for

@@ -1,3 +1,11 @@
+use hashql_core::{
+    id::{self, HasId},
+    intern::Interned,
+    span::SpanId,
+};
+
+use self::kind::NodeKind;
+
 pub mod access;
 pub mod branch;
 pub mod call;
@@ -8,15 +16,10 @@ pub mod kind;
 pub mod r#let;
 pub mod operation;
 pub mod thunk;
+mod value;
 pub mod variable;
 
-use hashql_core::{
-    id::{self, HasId},
-    intern::Interned,
-    span::SpanId,
-};
-
-use self::kind::NodeKind;
+pub use self::value::Value;
 
 id::newtype!(
     /// A unique identifier for nodes in the HashQL High-Level Intermediate Representation (HIR).
@@ -101,72 +104,5 @@ impl HasId for NodeData<'_> {
 
     fn id(&self) -> Self::Id {
         self.id
-    }
-}
-
-/// An HIR [`Node`] restricted to data values.
-///
-/// Every node in a `Value` tree has kind [`NodeKind::Data`], covering primitive literals, structs,
-/// dictionaries, tuples, and lists without variables, bindings, operations, control flow, or graph
-/// reads.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Value<'heap>(Node<'heap>);
-
-impl<'heap> Value<'heap> {
-    /// Constructs a [`Value`] from a [`Node`] known to contain only [`NodeKind::Data`] nodes.
-    ///
-    /// Every node reachable from `node` must have kind [`NodeKind::Data`].
-    pub(crate) fn new_unchecked(node: Node<'heap>) -> Self {
-        #[cfg(debug_assertions)]
-        Self::debug_assert_integrity(node);
-
-        Self(node)
-    }
-
-    /// Returns the interned [`Node`] representing this value.
-    #[must_use]
-    pub const fn node(self) -> Node<'heap> {
-        self.0
-    }
-
-    #[cfg(debug_assertions)]
-    fn debug_assert_integrity(node: Node<'_>) {
-        use self::data::Data;
-
-        match node.0.kind {
-            NodeKind::Data(Data::Struct(data::Struct { fields })) => {
-                for &data::StructField { name: _, value } in fields {
-                    Self::debug_assert_integrity(value);
-                }
-            }
-            NodeKind::Data(Data::Tuple(data::Tuple { fields })) => {
-                for &value in fields {
-                    Self::debug_assert_integrity(value);
-                }
-            }
-            NodeKind::Data(Data::Dict(data::Dict { fields })) => {
-                for &data::DictField { key, value } in fields {
-                    Self::debug_assert_integrity(key);
-                    Self::debug_assert_integrity(value);
-                }
-            }
-            NodeKind::Data(Data::List(data::List { elements })) => {
-                for &value in elements {
-                    Self::debug_assert_integrity(value);
-                }
-            }
-            NodeKind::Data(Data::Primitive(_)) => {}
-            NodeKind::Variable(_)
-            | NodeKind::Let(_)
-            | NodeKind::Operation(_)
-            | NodeKind::Access(_)
-            | NodeKind::Call(_)
-            | NodeKind::Branch(_)
-            | NodeKind::Closure(_)
-            | NodeKind::Thunk(_)
-            | NodeKind::Graph(_) => {
-                panic!("expected data")
-            }
-        }
     }
 }
