@@ -12,13 +12,14 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::{Scratch, SymbolAllocator as _},
+    heap::Scratch,
     module::{
         ModuleRegistry,
         locals::{Local, TypeDef},
         namespace::ModuleNamespace,
     },
     pretty::{Formatter, RenderOptions},
+    symbol::sym,
     r#type::{TypeFormatter, environment::Environment, kind::generic::GenericArgumentReference},
 };
 
@@ -57,8 +58,7 @@ impl Suite for AstLowerTypeExtractorSuite {
         let mut mangler = NameMangler::new(heap);
         mangler.visit_expr(&mut expr);
 
-        let mut extractor =
-            TypeDefinitionExtractor::new(&environment, &registry, heap.alloc_symbol("::main"));
+        let mut extractor = TypeDefinitionExtractor::new(&environment, &registry, sym::path::main);
         extractor.visit_expr(&mut expr);
 
         let (locals, extractor_diagnostics) = extractor.finish();

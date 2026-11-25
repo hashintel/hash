@@ -3,9 +3,10 @@ use hashql_ast::{
     node::expr::Expr,
 };
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _, Scratch, SymbolAllocator as _},
+    heap::{ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     pretty::{Formatter, RenderOptions},
+    symbol::sym,
     r#type::environment::Environment,
 };
 use hashql_hir::{
@@ -18,7 +19,6 @@ use hashql_hir::{
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
 
 pub(crate) fn hir_reify<'heap>(
-    heap: &'heap Heap,
     mut expr: Expr<'heap>,
     environment: &Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
@@ -26,7 +26,7 @@ pub(crate) fn hir_reify<'heap>(
 ) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
     let mut scratch = Scratch::new();
     let result = lower(
-        heap.alloc_symbol("::main"),
+        sym::path::main,
         &mut expr,
         environment,
         context.modules,
@@ -65,7 +65,7 @@ impl Suite for HirReifySuite {
         let interner = Interner::new(heap);
         let mut context = HirContext::new(&interner, &registry);
 
-        let (node, _) = hir_reify(heap, expr, &environment, &mut context, diagnostics)?;
+        let (node, _) = hir_reify(expr, &environment, &mut context, diagnostics)?;
 
         let formatter = Formatter::new(heap);
         let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);

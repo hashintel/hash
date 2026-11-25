@@ -8,10 +8,11 @@ use std::{
 use error_stack::ReportSink;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _, Scratch, SymbolAllocator as _},
+    heap::{Heap, ResetAllocator as _, Scratch},
     id::IdVec,
     module::ModuleRegistry,
     pretty::Formatter,
+    symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{context::HirContext, node::NodeData};
@@ -39,7 +40,7 @@ pub(crate) fn mir_reify<'heap>(
     let mut hir_context = HirContext::new(&hir_interner, &registry);
 
     let result = hashql_ast::lower::lower(
-        heap.alloc_symbol("::main"),
+        sym::path::main,
         &mut expr,
         environment,
         hir_context.modules,
