@@ -37,7 +37,7 @@ import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
-import { NetSwitch } from "./edit.page/net-switch";
+import { CanvasNotices, NetSwitch } from "./edit.page/net-switch";
 import { EditorNetView } from "./edit.page/net-view";
 import {
   generateRunViewPath,
@@ -82,18 +82,6 @@ const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 const editorBody = css({ display: "flex", flex: "1", minHeight: "0" });
 const canvasArea = css({ position: "relative", flex: "1" });
-const notices = css({
-  position: "absolute",
-  zIndex: "docked",
-  top: "4",
-  left: "4",
-  right: "4",
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  maxWidth: "[560px]",
-  mx: "auto",
-});
 
 /**
  * Collapses the app sidebar while the editor is open, and opens it again on leaving if it was open before. The
@@ -389,6 +377,34 @@ const FlowEditor = ({
     return true;
   };
 
+  /* Shown over the flow and the net alike, as an autosave can be refused or overwritten in either. */
+  const saveBanners = (saveRefusedReason !== null || changedElsewhere) && (
+    <>
+      {saveRefusedReason !== null && (
+        <Banner tone="error">
+          <Banner.Title>Your latest edits can't be saved</Banner.Title>
+          <Banner.Description as="div">
+            {saveRefusedReason.split("\n").map((line) => (
+              <div key={line}>{line}</div>
+            ))}
+          </Banner.Description>
+        </Banner>
+      )}
+      {changedElsewhere && (
+        <Banner
+          tone="warning"
+          dismissible={{ onDismiss: dismissChangedElsewhere }}
+        >
+          <Banner.Title>This flow changed elsewhere</Banner.Title>
+          <Banner.Description>
+            It was saved from somewhere else, so it now shows the latest
+            version. Your latest edits weren't saved.
+          </Banner.Description>
+        </Banner>
+      )}
+    </>
+  );
+
   /* One read of the flow's runs for the Logs table and the run switcher, so they agree. */
   const { flowRuns, retry: retryFlowRuns } = useFlowRuns(
     view === "logs" ? flowDefinitionEntityId : null,
@@ -465,6 +481,7 @@ const FlowEditor = ({
       ) : shape === "net" ? (
         <EditorNetView
           editorState={editorState}
+          notices={saveBanners}
           flowDefinitionEntityId={flowDefinitionEntityId}
           onShapeChange={showShape}
           onShowStep={(stepId) => {
@@ -486,39 +503,9 @@ const FlowEditor = ({
             }
           />
           <div className={canvasArea}>
-            {(saveRefusedReason !== null || changedElsewhere) && (
-              <div
-                className={notices}
-                style={
-                  panelSubject ? { right: sidePanelWidth + 16 } : undefined
-                }
-              >
-                {saveRefusedReason !== null && (
-                  <Banner tone="error">
-                    <Banner.Title>
-                      Your latest edits can't be saved
-                    </Banner.Title>
-                    <Banner.Description as="div">
-                      {saveRefusedReason.split("\n").map((line) => (
-                        <div key={line}>{line}</div>
-                      ))}
-                    </Banner.Description>
-                  </Banner>
-                )}
-                {changedElsewhere && (
-                  <Banner
-                    tone="warning"
-                    dismissible={{ onDismiss: dismissChangedElsewhere }}
-                  >
-                    <Banner.Title>This flow changed elsewhere</Banner.Title>
-                    <Banner.Description>
-                      It was saved from somewhere else, so it now shows the
-                      latest version. Your latest edits weren't saved.
-                    </Banner.Description>
-                  </Banner>
-                )}
-              </div>
-            )}
+            <CanvasNotices coveredRight={panelSubject ? sidePanelWidth : 0}>
+              {saveBanners}
+            </CanvasNotices>
             <Canvas
               key={session.key}
               ref={canvasRef}
