@@ -1,0 +1,123 @@
+[
+  {
+    "name": "Riverbend Roasters",
+    "industry": "Food and drink",
+    "size": 42,
+    "description": "Roasts single-origin coffee for cafés and offices in the river valley.",
+    "contactName": "Tom Ellis",
+    "contactEmail": "orders@riverbend-roasters.example",
+    "lastContacted": "2026-09-14"
+  },
+  {
+    "name": "Cascadia Coffee Collective",
+    "industry": "Food and drink",
+    "size": 180,
+    "description": "A cooperative of coffee shops that buys green beans together.",
+    "contactName": "Priya Raman",
+    "contactEmail": "hello@cascadia-coffee.example"
+  },
+  {
+    "name": "Harborcity Foods",
+    "industry": "Food and drink",
+    "size": 1200,
+    "description": "Makes ready meals for supermarkets across the region.",
+    "contactName": "Grace Okafor",
+    "contactEmail": "procurement@harborcity-foods.example",
+    "lastContacted": "2026-10-02"
+  },
+  {
+    "name": "Fernwood Bakery",
+    "industry": "Food and drink",
+    "size": 6,
+    "description": "A neighbourhood bakery selling sourdough and pastries.",
+    "contactName": "Fakey McFakeface",
+    "contactEmail": "fakey.mcfakeface@gmail.com"
+  },
+  {
+    "name": "Little Larder Deli",
+    "industry": "Food and drink",
+    "size": 3,
+    "description": "A deli and cheese counter run by its owner.",
+    "contactName": "Ima Sample",
+    "contactEmail": "ima.sample@outlook.com",
+    "lastContacted": "2026-08-21"
+  },
+  {
+    "name": "Northgate Freight",
+    "industry": "Logistics",
+    "size": 850,
+    "description": "Moves full and part loads by road between the north and the ports.",
+    "contactName": "Luis Ortega",
+    "contactEmail": "partnerships@northgate-freight.example",
+    "lastContacted": "2026-07-30"
+  },
+  {
+    "name": "Bluewater Shipping Lines",
+    "industry": "Logistics",
+    "size": 2400,
+    "description": "Runs container ships on short-sea routes.",
+    "contactName": "Camila Rojas",
+    "contactEmail": "sales@bluewater-shipping.example"
+  },
+  {
+    "name": "Quickhop Couriers",
+    "industry": "Logistics",
+    "size": 25,
+    "description": "Same-day bike and van couriers in the city centre.",
+    "contactName": "Dan Mercer",
+    "contactEmail": "dispatch@quickhop-couriers.example",
+    "lastContacted": "2026-10-19"
+  },
+  {
+    "name": "Two Vans Removals",
+    "industry": "Logistics",
+    "size": 4,
+    "description": "A small house removals business with two vans.",
+    "contactName": "Notta Realperson",
+    "contactEmail": "notta.realperson@gmail.com"
+  },
+  {
+    "name": "Midland Cold Chain",
+    "industry": "Logistics",
+    "size": 310,
+    "description": "Stores and delivers chilled and frozen goods.",
+    "contactName": "Helen Park",
+    "contactEmail": "ops@midland-coldchain.example",
+    "lastContacted": "2026-06-11"
+  },
+  {
+    "name": "Lumen Analytics",
+    "industry": "Software",
+    "size": 520,
+    "description": "Builds dashboards and reporting tools for retailers.",
+    "contactName": "Omar Haddad",
+    "contactEmail": "omar.haddad@lumen-analytics.example",
+    "lastContacted": "2026-09-03"
+  },
+  {
+    "name": "Tinyforms",
+    "industry": "Software",
+    "size": 1,
+    "description": "A form builder made and run by one developer.",
+    "contactName": "Sam Fictional",
+    "contactEmail": "sam.fictional@outlook.com",
+    "lastContacted": "2026-10-27"
+  },
+  {
+    "name": "Brightpath Learning",
+    "industry": "Software",
+    "size": 95,
+    "description": "Makes an online learning platform for schools.",
+    "contactName": "Mei Lin",
+    "contactEmail": "team@brightpath-learning.example"
+  },
+  {
+    "name": "Corvid Security",
+    "industry": "Software",
+    "size": 640,
+    "description": "Sells network monitoring software to banks and insurers.",
+    "contactName": "Ruth Adeyemi",
+    "contactEmail": "ruth.adeyemi@corvid-security.example",
+    "lastContacted": "2026-05-18"
+  }
+]
