@@ -22,13 +22,17 @@ const AVIATION: &str = include_str!("../../definition/examples/aviation.yaml");
 
 /// Starts `run` of the `aviation` example in `storage`.
 pub(crate) async fn started(storage: &Storage, run: RunId) {
-    let definition =
-        Definition::from_yaml(AVIATION).expect("the example should be a valid definition");
+    started_with(storage, run, AVIATION).await;
+}
+
+/// Starts `run` of the definition `yaml` in `storage`.
+pub(crate) async fn started_with(storage: &Storage, run: RunId, yaml: &str) {
+    let definition = Definition::from_yaml(yaml).expect("should be a valid definition");
     let input = StartInput {
         run,
         web: WebId::new(Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0001)),
         actor: ActorEntityUuid::new(Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0002)),
-        definition: AVIATION.into(),
+        definition: yaml.into(),
         id_namespace: None,
         submitted_at: OffsetDateTime::UNIX_EPOCH,
     };

@@ -1,62 +1,89 @@
-// From `engine/src/workspace/connection/staging.rs:1-7`
-use duckdb::params_from_iter;
 use error_stack::{Report, ResultExt as _};
+use hash_integrations_definition::PrimaryKey;
 
-use super::Connection;
-use crate::{
-    AssertionFailure, PreparationError, TableAssertions, pipeline::StagingRequest, sql::Identifier,
+use crate::stage::prepare::{
+    pipeline::PreparationError,
+    workspace::{Identifier, Workspace},
 };
 
-// From `engine/src/workspace/connection/staging.rs:67-114`
-    /// Adds snapshot metadata to source rows and checks their declared constraints.
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub(super) fn stage_table(
-        &self,
-        request: &StagingRequest,
-    ) -> Result<u64, Report<PreparationError>> {
-        let sql = self.pipeline_sql(&request.sql)?;
-        let schema = self.describe(&sql)?;
-        for (column, _) in &schema {
-            if ["_op", "_key", "_content_hash"]
-                .iter()
-                .any(|reserved| column.eq_ignore_ascii_case(reserved))
-            {
-                return Err(Report::new(PreparationError::ReservedColumn {
-                    column: column.clone().into_boxed_str(),
-                }));
-            }
-        }
-        for column in request.primary_key.columns() {
-            if !schema
-                .iter()
-                .any(|(name, _)| name.eq_ignore_ascii_case(column.as_ref()))
-            {
-                return Err(Report::new(PreparationError::MissingColumn {
-                    column: column.to_string().into_boxed_str(),
-                }));
-            }
-        }
-        let keys = request
-            .primary_key
-            .columns()
+/// Copies the captured table `capture` to `table` with the staging columns: `_op` is the row's
+/// `_change`, `_key` its primary key as JSON, and `_seq` its position in the captured file.
+///
+/// # Errors
+///
+/// - [`MissingChange`] if `capture` has no column `_change`
+/// - [`ReservedColumn`] if `capture` has a column `_op`, `_key` or `_seq`
+/// - [`MissingColumn`] if `capture` lacks a column of `primary_key`
+/// - [`InvalidChange`] if a row's `_change` is not `insert`, `update` or `delete`
+/// - [`Statement`] if DuckDB cannot copy the table
+///
+/// [`MissingChange`]: PreparationError::MissingChange
+/// [`ReservedColumn`]: PreparationError::ReservedColumn
+/// [`MissingColumn`]: PreparationError::MissingColumn
+/// [`InvalidChange`]: PreparationError::InvalidChange
+/// [`Statement`]: PreparationError::Statement
+pub(super) fn stage(
+    workspace: &Workspace,
+    capture: &str,
+    table: &str,
+    primary_key: &PrimaryKey,
+) -> Result<(), Report<PreparationError>> {
+    let source = Identifier::new(capture);
+    let schema = workspace
+        .describe(&format!("SELECT * FROM {source}"))
+        .change_context(PreparationError::Statement)?;
+    let has = |column: &str| {
+        schema
             .iter()
-            .map(|column| {
-                let column = Identifier::new(column.as_ref());
-                format!("{column} := {column}")
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
-        self.create_table(
-            &request.table,
+            .any(|(name, _)| name.eq_ignore_ascii_case(column))
+    };
+    if !has("_change") {
+        return Err(Report::new(PreparationError::MissingChange));
+    }
+    for (column, _) in &schema {
+        if ["_op", "_key", "_seq"]
+            .iter()
+            .any(|reserved| column.eq_ignore_ascii_case(reserved))
+        {
+            return Err(Report::new(PreparationError::ReservedColumn {
+                column: column.clone().into_boxed_str(),
+            }));
+        }
+    }
+    for column in primary_key.columns() {
+        if !has(column.as_ref()) {
+            return Err(Report::new(PreparationError::MissingColumn {
+                column: column.to_string().into_boxed_str(),
+            }));
+        }
+    }
+    let keys = primary_key
+        .columns()
+        .iter()
+        .map(|column| {
+            let column = Identifier::new(column.as_ref());
+            format!("{column} := {column}")
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    workspace
+        .create_table(
+            table,
             &format!(
-                "SELECT 'snapshot' AS _op, to_json(struct_pack({keys}))::VARCHAR AS _key, \
-                 source.* FROM ({sql}) AS source"
+                "SELECT source._change::VARCHAR AS _op, to_json(struct_pack({keys}))::VARCHAR AS \
+                 _key, source.rowid AS _seq, source.* EXCLUDE (_change) FROM {source} AS source"
             ),
         )
         .change_context(PreparationError::Statement)?;
-        self.check_assertions(&request.table, &request.assertions)
+    let invalid = workspace
+        .count(&format!(
+            "SELECT count(*) FROM {} WHERE _op IS NULL OR _op NOT IN ('insert', 'update', \
+             'delete')",
+            Identifier::new(table)
+        ))
+        .change_context(PreparationError::Statement)?;
+    if invalid > 0 {
+        return Err(Report::new(PreparationError::InvalidChange));
     }
-
-// From `engine/src/pipeline/mod.rs:52-53`
-    #[display("source column `{column}` is reserved for staging metadata")]
-    ReservedColumn { column: Box<str> },
+    Ok(())
+}

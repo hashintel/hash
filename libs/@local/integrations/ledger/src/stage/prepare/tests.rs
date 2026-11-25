@@ -1,36 +1,24 @@
-// From `engine/src/graph/plan/tests.rs:1-146`
 use core::fmt::Write as _;
-use std::collections::HashMap;
 
 use duckdb::types::Value;
-use hash_graph_store::entity::{CreateEntityParams, PatchEntityParams};
 use hash_integrations_definition::{Action, Definition, EntitySink, LinkPipeline, StepKind};
 use pretty_assertions::assert_eq;
-use rstest::rstest;
-use serde_json::value::RawValue;
-use time::OffsetDateTime;
 use type_system::{
-    knowledge::{
-        PropertyValue,
-        entity::{id::EntityId, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObjectWithMetadata, PropertyValueWithMetadata, PropertyWithMetadata},
-        value::metadata::ValueMetadata,
-    },
-    ontology::{BaseUrl, VersionedUrl},
-    principal::actor_group::WebId,
-    provenance::{Location, SourceProvenance, SourceType},
+    knowledge::entity::id::EntityId, ontology::VersionedUrl, principal::actor_group::WebId,
 };
 use uuid::Uuid;
 
-use super::{DuplicateWrite, FinishedPlan, GraphPlan, Payload, PlannedWrite, Planner};
-use crate::{
-    Archive, EntityUpsert, GraphOperation, OperationKind, SinkColumns, SinkRow, derive_entity_id,
-    integration_provenance,
+use super::{
+    changes::{Changes, Context},
+    entity_id::derive_entity_id,
 };
+use crate::{run::RunId, sync_table::Op};
 
 const NAMESPACE: &str = "aviation";
 const TYPES: &str = "https://example.com/@demo/types";
-const COLUMNS: [&str; 6] = [
+const COLUMNS: [&str; 8] = [
+    "_op",
+    "_seq",
     "TAIL",
     "MODEL",
     "FIRST_FLIGHT",
@@ -80,125 +68,172 @@ fn web_id() -> WebId {
     WebId::new(Uuid::from_u128(0xA2C8_E6C7_485D_4B54_A248_53C9_B9B0_14A2))
 }
 
-fn provenance() -> ProvidedEntityEditionProvenance {
-    integration_provenance(SourceProvenance {
-        ty: SourceType::Integration,
-        entity_id: None,
-        authors: Vec::new(),
-        location: Some(Location {
-            name: Some("aviation".to_owned()),
-            uri: None,
-            description: None,
-        }),
-        first_published: None,
-        last_updated: None,
-        loaded_at: Some(
-            OffsetDateTime::from_unix_timestamp(1_793_966_400).expect("should be a valid time"),
-        ),
-    })
+fn id(entity_type: &str, source_id: &str) -> EntityId {
+    derive_entity_id(web_id(), NAMESPACE, &url(entity_type), source_id)
 }
 
-fn planner(definition: &Definition) -> Planner {
-    Planner::new(
-        web_id(),
-        NAMESPACE,
-        provenance(),
-        definition.unit_maps().clone(),
-    )
-}
-
-fn aircraft_id(tail: &str) -> EntityId {
-    derive_entity_id(web_id(), NAMESPACE, &url("entity-type/aircraft"), tail)
-}
-
-/// Rows of `COLUMNS`, all text, as a sink table holds them.
-fn rows(rows: &[[&str; 6]]) -> Vec<Vec<Value>> {
+/// Rows of `COLUMNS`, as a sink table holds them: a kind of change, its `_seq` and text.
+fn rows(rows: &[(&str, [&str; 6])]) -> Vec<Vec<Value>> {
     rows.iter()
-        .map(|row| {
-            row.iter()
-                .map(|value| Value::Text((*value).to_owned()))
+        .zip(0_i64..)
+        .map(|((op, values), seq)| {
+            [Value::Text((*op).to_owned()), Value::BigInt(seq)]
+                .into_iter()
+                .chain(values.iter().map(|value| Value::Text((*value).to_owned())))
                 .collect()
         })
         .collect()
 }
 
-/// What a planned write does, without its requests.
-#[derive(Debug, PartialEq, Eq)]
-struct Target {
-    kind: OperationKind,
-    entity_id: EntityId,
+/// The changes of the aircraft sink and the link pipeline for `aircraft`.
+fn changes(aircraft: &[Vec<Value>]) -> Changes {
+    let definition = definition();
+    let context = Context {
+        run: RunId::new(),
+        web_id: web_id(),
+        id_namespace: NAMESPACE,
+        unit_maps: definition.unit_maps(),
+    };
+    let columns = COLUMNS.map(Box::from);
+    let mut changes = Changes::default();
+    context
+        .entity_changes(
+            &mut changes,
+            sink(&definition, "entity-type/aircraft"),
+            &columns,
+            aircraft.iter().map(Vec::as_slice),
+        )
+        .expect("the aircraft should become changes");
+    context
+        .link_changes(
+            &mut changes,
+            based_at(&definition),
+            &columns,
+            aircraft.iter().map(Vec::as_slice),
+        )
+        .expect("the links should become changes");
+    changes
 }
 
-fn targets(plan: &FinishedPlan) -> Vec<Target> {
-    plan.writes()
-        .iter()
-        .map(|write| Target {
-            kind: write.kind,
-            entity_id: write.entity_id,
-        })
-        .collect()
-}
-
-/// The requests a planned write saved, decoded for inspection.
-fn requests(write: &PlannedWrite) -> serde_json::Value {
-    let mut delivery: serde_json::Value =
-        serde_json::from_str(write.payload.as_str()).expect("the payload should be JSON");
-    delivery["request"].take()
-}
-
-// From `engine/src/graph/plan/tests.rs:326-380`
-
-/// Every request planned from a few aviation rows, and every issue, for review as a whole.
-fn render(plan: &FinishedPlan) -> String {
+/// Every change made from a few aviation rows, and every issue, for review as a whole.
+fn render(changes: &Changes) -> String {
     let mut rendered = String::new();
-    for write in plan.writes() {
-        let requests =
-            serde_json::to_string_pretty(&requests(write)).expect("the requests should render");
-        writeln!(rendered, "{} {}\n{requests}\n", write.kind, write.entity_id)
-            .expect("writing to a string should succeed");
+    for row in &changes.rows {
+        let op = serde_json::to_value(row.op).expect("the op should render");
+        writeln!(
+            rendered,
+            "{} {} {} {}",
+            row.seq,
+            op.as_str().unwrap_or_default(),
+            row.entity_type,
+            row.entity_id
+        )
+        .expect("writing to a string should succeed");
+        if let (Some(left), Some(right)) = (row.left_entity_id, row.right_entity_id) {
+            writeln!(rendered, "{left} -> {right}").expect("writing to a string should succeed");
+        }
+        // Through `Value`, whose map sorts its keys: the properties are held in a `HashMap`.
+        let properties = serde_json::to_value(&row.properties)
+            .and_then(|properties| serde_json::to_string_pretty(&properties))
+            .expect("the properties should render");
+        writeln!(rendered, "{properties}\n").expect("writing to a string should succeed");
     }
     rendered.push_str("issues:\n");
-    for issue in plan.issues() {
-        write!(rendered, "  {issue}").expect("writing to a string should succeed");
-        let mut source = core::error::Error::source(issue);
-        while let Some(error) = source {
-            write!(rendered, ": {error}").expect("writing to a string should succeed");
-            source = error.source();
-        }
-        rendered.push('\n');
+    for issue in &changes.issues {
+        let issue = serde_json::to_string(issue).expect("the issue should render");
+        writeln!(rendered, "  {issue}").expect("writing to a string should succeed");
     }
     rendered
 }
 
-/// Plans aircraft and their links, covering a clean row, a bad date, a blank amount,
+/// Turns aircraft and their links into changes, covering a clean row, a bad date, a blank amount,
 /// a blank tail and a missing home base.
 #[test]
-fn plan_aviation() {
-    let definition = definition();
-    let planner = planner(&definition);
-
-    let columns = COLUMNS.into_iter().collect::<SinkColumns>();
-    let aircraft = rows(&[
-        ["SE-XXX", "DC-3", "17.12.1935", "8030", "KG", "ESSA"],
-        ["G-ABC", "  Ju 52 ", "unknown", "", "KG", ""],
-        ["", "L-1049", "1957-07-15", "69000", "LB", "ESSA"],
-    ]);
-
-    let plan = [
-        planner.plan_entities(
-            sink(&definition, "entity-type/aircraft"),
-            aircraft.iter().map(|values| SinkRow::new(&columns, values)),
+fn aviation_changes() {
+    let changes = changes(&rows(&[
+        (
+            "insert",
+            ["SE-XXX", "DC-3", "17.12.1935", "8030", "KG", "ESSA"],
         ),
-        planner.plan_links(
-            based_at(&definition),
-            aircraft.iter().map(|values| SinkRow::new(&columns, values)),
+        ("update", ["G-ABC", "  Ju 52 ", "unknown", "", "KG", ""]),
+        (
+            "insert",
+            ["", "L-1049", "1957-07-15", "69000", "LB", "ESSA"],
         ),
-    ]
-    .into_iter()
-    .collect::<Result<GraphPlan, _>>()
-    .expect("the rows should plan")
-    .finish()
-    .expect("each entity should be written once");
+    ]));
 
-    insta::assert_snapshot!(render(&plan));
+    insta::assert_snapshot!(render(&changes));
+}
+
+#[test]
+fn changes_follow_the_kind_of_change() {
+    let changes = changes(&rows(&[
+        (
+            "insert",
+            ["SE-XXX", "DC-3", "1946-04-02", "8030", "KG", "ESSA"],
+        ),
+        (
+            "update",
+            ["N100", "L-1049", "1957-07-15", "69000", "LB", "ESSB"],
+        ),
+        (
+            "delete",
+            ["G-OLD", "Ju 52", "1932-10-13", "6500", "KG", "ESSA"],
+        ),
+    ]));
+
+    let aircraft = |tail| id("entity-type/aircraft", tail);
+    let airfield = |icao| id("entity-type/airfield", icao);
+    assert_eq!(
+        changes
+            .rows
+            .iter()
+            .map(|row| (
+                row.op,
+                row.seq,
+                row.left_entity_id,
+                row.right_entity_id,
+                row.properties.value.is_empty()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (Op::CreateEntity, 0, None, None, false),
+            (Op::UpdateEntity, 1, None, None, false),
+            (Op::ArchiveEntity, 2, None, None, true),
+            (
+                Op::CreateLink,
+                0,
+                Some(aircraft("SE-XXX")),
+                Some(airfield("ESSA")),
+                true
+            ),
+            (
+                Op::UpdateLink,
+                1,
+                Some(aircraft("N100")),
+                Some(airfield("ESSB")),
+                true
+            ),
+            (
+                Op::ArchiveLink,
+                2,
+                Some(aircraft("G-OLD")),
+                Some(airfield("ESSA")),
+                true
+            ),
+        ],
+        "each row should become the change its `_op` names, and an archive should have no \
+         properties"
+    );
+    assert_eq!(
+        changes
+            .rows
+            .iter()
+            .take(3)
+            .map(|row| row.entity_id)
+            .collect::<Vec<_>>(),
+        [aircraft("SE-XXX"), aircraft("N100"), aircraft("G-OLD")],
+        "the left end of each link should be the entity its row changes"
+    );
+    assert_eq!(changes.issues, [], "the rows should convert without issues");
 }

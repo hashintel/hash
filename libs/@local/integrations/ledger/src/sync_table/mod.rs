@@ -28,7 +28,10 @@ use url::Url;
 
 #[cfg_attr(
     not(test),
-    expect(unused_imports, reason = "Prepare and Send are the first callers")
+    expect(
+        unused_imports,
+        reason = "Send is the first caller of `read` and `order_key`"
+    )
 )]
 pub(crate) use self::{
     read::read,

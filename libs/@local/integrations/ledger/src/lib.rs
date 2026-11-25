@@ -7,6 +7,9 @@
 //! once per run, so that a start that failed can be repeated with the same id.
 //!
 //! [`capture`] is the first stage of a run. It stores the files the run works on, one per table.
+//! [`prepare_incremental`] is the second stage for incremental updates. It turns the captured rows
+//! into the run's entity changes.
+//!
 //! A stage that fails says with a [`StageError`] whether running it again can help.
 //!
 //! ## Workspace dependencies
@@ -17,16 +20,13 @@ extern crate alloc;
 mod run;
 mod stage;
 mod storage;
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "Prepare writes the sync table and Send reads it")
-)]
+#[cfg_attr(not(test), expect(dead_code, reason = "Send reads the sync table"))]
 mod sync_table;
 #[cfg(test)]
 mod testing;
 
 pub use self::{
     run::{RunId, Stage, StartError, StartInput, start},
-    stage::{StageError, capture},
+    stage::{StageError, capture, prepare_incremental},
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };

@@ -1,22 +1,112 @@
-//! Prepare, the second stage: runs a definition's SQL on the rows a run captured.
+//! Prepare, the second stage: runs a definition's SQL on the rows a run captured and writes the
+//! run's entity changes to the sync table.
+//!
+//! A version of Prepare stages each captured table so that every row has an `_op` of `insert`,
+//! `update` or `delete`, a `_key` and a `_seq`. The steps after staging are the same for every
+//! version: [`run_pipelines`] and [`collect_changes`].
 
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "Prepare's entry is the first caller")
-)]
+mod changes;
 mod entity_id;
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "Prepare's entry is the first caller")
-)]
+mod incremental;
+mod issues;
 mod pipeline;
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "Prepare's entry is the first caller")
-)]
 mod property;
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "Prepare's entry is the first caller")
-)]
+#[cfg(test)]
+mod tests;
 mod workspace;
+
+use alloc::collections::BTreeMap;
+
+use error_stack::{Report, ResultExt as _};
+use hash_integrations_definition::{Definition, SourceKind, SourceName};
+
+pub use self::incremental::prepare_incremental;
+use self::{
+    changes::{Changes, Context},
+    pipeline::{PreparationError, PreparedLink, PreparedSink},
+    workspace::{Identifier, Workspace},
+};
+
+/// The tables the SQL steps of a definition leave for its sinks and its link pipelines.
+#[derive(Debug)]
+struct PreparedTables {
+    sinks: Vec<PreparedSink>,
+    links: Vec<PreparedLink>,
+}
+
+/// Runs the entity pipelines of `definition` on the `staged` tables, by the name of their source,
+/// and then its link pipelines.
+///
+/// A pipeline whose source is a checkpoint reads the table an earlier pipeline wrote for it.
+///
+/// # Errors
+///
+/// Returns [`PreparationError`] if a step fails, a table loses its staging columns, or a sink or
+/// a link reads a column its table lacks.
+fn run_pipelines(
+    workspace: &Workspace,
+    definition: &Definition,
+    staged: &BTreeMap<SourceName, Box<str>>,
+) -> Result<PreparedTables, Report<PreparationError>> {
+    let mut checkpoints = BTreeMap::new();
+    let mut sinks = Vec::new();
+    for pipeline in definition.entity_pipelines() {
+        let input = match definition
+            .sources()
+            .get(&pipeline.source)
+            .map(|source| &source.kind)
+        {
+            Some(SourceKind::Checkpoint { checkpoint }) => {
+                checkpoints.get(checkpoint).cloned().ok_or_else(|| {
+                    Report::new(PreparationError::MissingCheckpoint {
+                        checkpoint: checkpoint.clone(),
+                    })
+                })?
+            }
+            _ => staged
+                .get(&pipeline.source)
+                .cloned()
+                .expect("every table of the definition should be staged"),
+        };
+        let prepared = workspace.prepare_pipeline(pipeline, &input, &checkpoints)?;
+        checkpoints.extend(prepared.checkpoints);
+        sinks.extend(prepared.sinks);
+    }
+    let mut links = Vec::new();
+    for link in definition.link_pipelines() {
+        let prepared = workspace.prepare_link_pipeline(link, &checkpoints)?;
+        workspace.check_metadata(&prepared.table)?;
+        links.push(prepared);
+    }
+    Ok(PreparedTables { sinks, links })
+}
+
+/// Reads the rows of each table in `tables` and turns them into changes.
+///
+/// # Errors
+///
+/// - [`Statement`] if a table cannot be read
+/// - the errors of [`Context::entity_changes`]
+///
+/// [`Statement`]: PreparationError::Statement
+fn collect_changes(
+    workspace: &Workspace,
+    tables: &PreparedTables,
+    context: &Context<'_>,
+) -> Result<Changes, Report<PreparationError>> {
+    let read = |table: &str| {
+        workspace
+            .query(&format!("SELECT * FROM {}", Identifier::new(table)))
+            .change_context(PreparationError::Statement)
+    };
+    let mut changes = Changes::default();
+    for sink in &tables.sinks {
+        let rows = read(&sink.table)?;
+        context.entity_changes(&mut changes, &sink.sink, rows.columns(), rows.iter())?;
+    }
+    for link in &tables.links {
+        let rows = read(&link.table)?;
+        context.link_changes(&mut changes, &link.pipeline, rows.columns(), rows.iter())?;
+    }
+    Ok(changes)
+}
