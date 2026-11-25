@@ -33,6 +33,7 @@ fn open(directory: &TempDir) -> Workspace {
     Workspace::open(
         &directory.path().join("workspace.duckdb"),
         WorkspaceConfig::default(),
+        &[],
     )
     .expect("the workspace should open")
 }

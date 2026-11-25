@@ -14,7 +14,7 @@ use hash_integrations_definition::{Definition, LinkInput, PrimaryKey, SourceName
 use super::{
     changes::{Changes, Context},
     collect_changes, issues, run_pipelines,
-    workspace::{Workspace, WorkspaceConfig},
+    workspace::{OpenError, Workspace, WorkspaceConfig},
 };
 use crate::{
     run::{CapturePart, Input, PreparePart, RunId, RunRecord, Stage},
@@ -153,20 +153,29 @@ fn changes(
         variables: definition.variables().clone(),
         ..WorkspaceConfig::default()
     };
-    let workspace = Workspace::open(database, config).change_context(retryable(Stage::Prepare))?;
-    let mut staged = BTreeMap::new();
-    for (table, file) in tables.iter().zip(files) {
-        let capture = format!("_capture/{}", table.name);
-        let source = format!("_source/{}", table.name).into_boxed_str();
-        let refused = || InputError::Staging {
-            table: table.name.clone(),
+    let captures = tables
+        .iter()
+        .map(|table| format!("_capture/{}", table.name))
+        .collect::<Vec<_>>();
+    let loaded = captures
+        .iter()
+        .zip(files)
+        .map(|(capture, file)| (capture.as_str(), file.as_path()))
+        .collect::<Vec<_>>();
+    let workspace = Workspace::open(database, config, &loaded).map_err(|report| {
+        let context = match report.current_context() {
+            OpenError::Load { .. } => failed(CAPTURE_INVALID),
+            OpenError::Configure { .. } | OpenError::Open { .. } => retryable(Stage::Prepare),
         };
-        workspace
-            .load_capture(file, &capture)
-            .change_context_lazy(refused)
-            .change_context(failed(CAPTURE_INVALID))?;
-        staging::stage(&workspace, &capture, &source, &table.primary_key)
-            .change_context_lazy(refused)
+        report.change_context(context)
+    })?;
+    let mut staged = BTreeMap::new();
+    for (table, capture) in tables.iter().zip(&captures) {
+        let source = format!("_source/{}", table.name).into_boxed_str();
+        staging::stage(&workspace, capture, &source, &table.primary_key)
+            .change_context_lazy(|| InputError::Staging {
+                table: table.name.clone(),
+            })
             .change_context(failed(CAPTURE_INVALID))?;
         staged.insert(table.name.clone(), source);
     }
