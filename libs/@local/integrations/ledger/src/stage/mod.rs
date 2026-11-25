@@ -6,13 +6,6 @@
 mod capture;
 mod failure;
 mod prepare;
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "Send does not call the requests and the client yet"
-    )
-)]
 mod send;
 #[cfg(test)]
 mod tests;
@@ -24,7 +17,7 @@ pub use self::{
     capture::capture,
     failure::StageError,
     prepare::prepare_incremental,
-    send::{GraphClient, GraphError},
+    send::{GraphClient, GraphError, send},
 };
 use crate::{
     run::{self, Failure, RunError, RunId, RunRecord, Stage, current},

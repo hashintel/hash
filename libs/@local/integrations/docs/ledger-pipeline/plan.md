@@ -384,9 +384,10 @@ libs/@local/integrations/ledger/src/
 │   │
 │   └── send/                 STAGE 3
 │       ├── mod.rs            the steps of Send, in order
-│       ├── batch.rs          sort the rows and cut them into batches
+│       ├── plan/             sort the rows and cut them into batches
 │       ├── request.rs        create, patch and archive bodies, provenance
-│       ├── delivery.rs       one batch: in bulk, then one by one as upserts
+│       ├── delivery/         one batch: in bulk, then one by one as upserts
+│       ├── tally.rs          the counts of the `send` part
 │       └── client.rs         the Graph routes: bulk create, bulk patch, single create, single patch
 │
 ├── run/                      WHAT IS KNOWN ABOUT A RUN
@@ -460,7 +461,7 @@ Step 3 belongs to the version: it leaves `insert`, `update` or `delete` in `_op`
 
 1. Read `run.json` (`stage/mod.rs`). If the `send` part is there, go to step 6.
 2. Read the run's rows (`sync_table/read.rs`) and build the body of each (`request.rs`). The bodies come first, because a batch is limited by its size in bytes.
-3. Sort the rows and cut them into batches (`batch.rs`), then send each batch (`delivery.rs`, on `client.rs`).
+3. Sort the rows and cut them into batches (`plan/`), then send each batch (`delivery/`, on `client.rs`), and count what the Graph did (`tally.rs`).
 4. Collect the counts and the failed entities.
 5. Write the `send` part (`stage/mod.rs`).
 6. Name the run as the last completed run in `current.json` (`run/current.rs`).
@@ -526,7 +527,7 @@ Agreed by Paul on 2026-11-19. For each module of the new crate: the existing tes
 
 - **New,** against MinIO: a run's rows come back in `seq` order with every column unchanged. A read of one run returns no rows of another. A second write of a run adds nothing. After a write that stopped before the pointer was moved, the next write leaves the rows in the table once. The two spikes observed all of this by hand.
 
-### `stage/send/batch.rs`
+### `stage/send/plan/`
 
 - **Carry over, adapted,** from `graph/tests.rs` and `graph/plan/tests.rs`: `operations_sort_into_application_order` and `finish_order`, for six kinds and the order by `seq`.
 - **New:** a batch holds one kind, at most the count and at most the size from `run.json`. An entity is never twice in a batch. The same rows give the same batches every time.
@@ -536,7 +537,7 @@ Agreed by Paul on 2026-11-19. For each module of the new crate: the existing tes
 - **Carry over** from `graph/plan/tests.rs` and `graph/tests.rs`: `requests_graph_readable`, which checks that the Graph's own request types can read the bodies; `payload_property_order`; `archive_payload`, adapted; `integration_provenance_wire_shape`.
 - **Leave behind:** the three `unreadable_payload` tests. Bodies are no longer stored and read back.
 
-### `stage/send/client.rs` and `delivery.rs`
+### `stage/send/client.rs` and `delivery/`
 
 - **Carry over** from `graph/client/tests.rs`, which run against a small HTTP server in the test: `upsert_creates`, `archive`, `upsert_rejected`, `graph_url_path`, `configuration`, adapted to routes that no longer follow a create with a patch. The case of `upsert_patches_existing` moves to Send's test of a refused batch (`spec/10-send.md`, test 3).
 - **Carry over as scenarios** from labs `graph/executor.rs`. The labs tests are written against labs types, so the cases move and the code is written again on the same test server: a bulk create refused with a conflict falls back to single writes (`:3110`); a create answered with a conflict is followed by a patch (`:2494`); a patch that finds nothing is followed by a create (`:3303`); a failure that is not a conflict is recorded and not retried (`:2671`). From labs `tests/crash_replay_test.rs:245`: a create whose answer was lost is sent again and ends as a patch.
@@ -568,7 +569,7 @@ The order was agreed by Paul on 2026-11-19 ("the order makes sense to me overall
 | 7   | Ids and properties        | `stage/prepare/entity_id.rs`, `property/`                                       | 3             |
 | 8   | Prepare, incremental      | `stage/prepare/mod.rs`, `incremental/`, `changes.rs`, `issues.rs`               | 3, 4, 6, 7    |
 | 9   | Graph requests and client | `stage/send/request.rs`, `client.rs`                                            | 2, 3, 4       |
-| 10  | Send                      | `stage/send/mod.rs`, `batch.rs`, `delivery.rs`                                  | 1, 2, 3, 4, 9 |
+| 10  | Send                      | `stage/send/mod.rs`, `plan/`, `delivery/`, `tally.rs`                           | 1, 2, 3, 4, 9 |
 | 11  | The whole pipeline        | The command line tool, the run through all stages, the run against a real Graph | 2, 3, 8, 10   |
 
 ### How much code, and how much of it exists already

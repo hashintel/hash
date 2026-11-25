@@ -28,9 +28,9 @@ Lines are source lines without tests, with doc comments and blank lines. Moved a
 | 7   | `07-ids-and-properties.md`        | agreed                      | 705       | 681       | 20        | 4         | 99%     |
 | 8   | `08-prepare-incremental.md`       | agreed                      | 750       | 0         | 370       | 380       | 49%     |
 | 9   | `09-graph-requests-and-client.md` | agreed                      | 371       | 72        | 240       | 59        | 84%     |
-| 10  | `10-send.md`                      | waiting for Fedor's changes | 440       | 0         | 40        | 400       | 9%      |
+| 10  | `10-send.md`                      | waiting for Fedor's changes | 844       | 0         | 40        | 804       | 5%      |
 | 11  | `11-whole-pipeline.md`            | agreed                      | 260       | 0         | 20        | 240       | 8%      |
-|     | **All**                           |                             | **5,135** | **1,165** | **1,651** | **2,319** | **55%** |
+|     | **All**                           |                             | **5,539** | **1,165** | **1,651** | **2,723** | **51%** |
 
 The numbers of every milestone come from its source table. This table replaces the estimate in `../plan.md`, step 6.
 
