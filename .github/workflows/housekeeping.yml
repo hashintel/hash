@@ -57,7 +57,7 @@ jobs:
         uses: hashintel/actions/.github/actions/install-renovate@main
 
       - name: Validate Renovate config
-        run: renovate-config-validator
+        run: renovate-config-validator --strict
 
   renovate:
     name: Dependencies
