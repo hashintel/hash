@@ -4,18 +4,21 @@ use std::sync::Mutex;
 use axum::{
     Router,
     extract::State,
-    http::{HeaderMap, Method, StatusCode, Uri, header::CONTENT_TYPE},
+    http::{
+        HeaderMap, Method, StatusCode, Uri,
+        header::{AUTHORIZATION, CONTENT_TYPE},
+    },
     routing::any,
 };
 use hash_crypto::Secret;
 use hash_middleware::authentication::{
-    request::ACTOR_ID_HEADER, service_secret::service_credential,
+    request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
 };
 use pretty_assertions::assert_eq;
 use reqwest::Url;
 use rstest::rstest;
 use serde_json::value::RawValue;
-use tokio::{net::TcpListener, task::JoinHandle};
+use tokio::net::TcpListener;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
@@ -23,41 +26,13 @@ use super::{Answer, GraphClient, GraphError};
 
 const SERVICE_SECRET: &str = "service-secret";
 
-struct Server {
-    url: String,
-    task: JoinHandle<()>,
-}
-
-impl Drop for Server {
-    fn drop(&mut self) {
-        self.task.abort();
-    }
-}
-
-async fn server(router: Router) -> Server {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("should bind the test server");
-    let address = listener.local_addr().expect("should get the test address");
-    let task = tokio::spawn(async move {
-        axum::serve(listener, router)
-            .await
-            .expect("should serve test responses");
-    });
-    Server {
-        url: format!("http://{address}"),
-        task,
-    }
-}
-
 /// A request the Graph received.
 #[derive(Debug, PartialEq)]
 struct Received {
     method: Method,
     path: String,
-    actor: Option<String>,
-    credential: Option<String>,
-    content_type: Option<String>,
+    /// The actor, authorization and content type headers.
+    headers: [Option<String>; 3],
     body: String,
 }
 
@@ -79,15 +54,22 @@ impl Graph {
         }
     }
 
-    /// Serves the entity API under `prefix`.
-    async fn serve(&self, prefix: &str) -> Server {
-        server(
-            Router::new()
-                .route(&format!("{prefix}/entities"), any(record))
-                .route(&format!("{prefix}/entities/bulk"), any(record))
-                .with_state(self.clone()),
-        )
-        .await
+    /// Serves the entity API under `prefix` until the test ends, and returns its URL.
+    async fn serve(&self, prefix: &str) -> String {
+        let router = Router::new()
+            .route(&format!("{prefix}/entities"), any(record))
+            .route(&format!("{prefix}/entities/bulk"), any(record))
+            .with_state(self.clone());
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("should bind the test server");
+        let address = listener.local_addr().expect("should get the test address");
+        tokio::spawn(async move {
+            axum::serve(listener, router)
+                .await
+                .expect("should serve test responses");
+        });
+        format!("http://{address}{prefix}")
     }
 
     fn received(&self) -> Vec<Received> {
@@ -102,23 +84,26 @@ async fn record(
     headers: HeaderMap,
     body: String,
 ) -> (StatusCode, String) {
+    let headers = [
+        ACTOR_ID_HEADER,
+        AUTHORIZATION.as_str(),
+        CONTENT_TYPE.as_str(),
+    ]
+    .map(|name| {
+        headers
+            .get(name)
+            .and_then(|value| value.to_str().ok())
+            .map(ToOwned::to_owned)
+    });
     graph
         .received
         .lock()
         .expect("should not be poisoned")
         .push(Received {
-            path: uri.path().to_owned(),
-            actor: headers
-                .get(ACTOR_ID_HEADER)
-                .and_then(|value| value.to_str().ok())
-                .map(ToOwned::to_owned),
-            credential: service_credential(&headers).map(ToOwned::to_owned),
-            content_type: headers
-                .get(CONTENT_TYPE)
-                .and_then(|value| value.to_str().ok())
-                .map(ToOwned::to_owned),
-            body,
             method,
+            path: uri.path().to_owned(),
+            headers,
+            body,
         });
     (graph.status, graph.message)
 }
@@ -139,14 +124,17 @@ fn body(entity: &str) -> Box<RawValue> {
     RawValue::from_string(format!(r#"{{"entityId":"{entity}"}}"#)).expect("should be valid JSON")
 }
 
-fn received(method: Method, path: &str, body: String) -> Received {
+/// A request sent as the run's owner, with the service credential.
+fn received(method: Method, path: &str, body: &str) -> Received {
     Received {
         method,
         path: path.to_owned(),
-        actor: Some(actor().to_string()),
-        credential: Some(SERVICE_SECRET.to_owned()),
-        content_type: Some("application/json".to_owned()),
-        body,
+        headers: [
+            Some(actor().to_string()),
+            Some(format!("{SERVICE_AUTH_SCHEME} {SERVICE_SECRET}")),
+            Some("application/json".to_owned()),
+        ],
+        body: body.to_owned(),
     }
 }
 
@@ -157,41 +145,45 @@ fn refused(status: u16) -> Answer {
     }
 }
 
+#[rstest]
+#[case::create(Method::POST)]
+#[case::patch(Method::PATCH)]
 #[tokio::test]
-async fn create_applied() {
+async fn sends(#[case] method: Method) {
     let graph = Graph::new(StatusCode::OK);
-    let server = graph.serve("").await;
+    let client = client(&graph.serve("").await);
 
-    let answer = client(&server.url).create(actor(), &body("a")).await;
+    let answer = if method == Method::POST {
+        client.create(actor(), &body("a")).await
+    } else {
+        client.patch(actor(), &body("a")).await
+    };
 
     assert_eq!(answer, Answer::Applied);
     assert_eq!(
         graph.received(),
-        [received(
-            Method::POST,
-            "/entities",
-            body("a").get().to_owned()
-        )],
-        "should send the body as the run's owner"
+        [received(method, "/entities", r#"{"entityId":"a"}"#)]
     );
 }
 
 #[tokio::test]
-async fn patch_applied() {
+async fn bulk_routes() {
     let graph = Graph::new(StatusCode::OK);
-    let server = graph.serve("").await;
+    let client = client(&graph.serve("").await);
+    let (first, second) = (body("a"), body("b"));
+    let bodies = [&*first, &*second];
 
-    let answer = client(&server.url).patch(actor(), &body("a")).await;
+    assert_eq!(client.create_bulk(actor(), &bodies).await, Answer::Applied);
+    assert_eq!(client.patch_bulk(actor(), &bodies).await, Answer::Applied);
 
-    assert_eq!(answer, Answer::Applied);
+    let list = r#"[{"entityId":"a"},{"entityId":"b"}]"#;
     assert_eq!(
         graph.received(),
-        [received(
-            Method::PATCH,
-            "/entities",
-            body("a").get().to_owned()
-        )],
-        "should send the body as the run's owner"
+        [
+            received(Method::POST, "/entities/bulk", list),
+            received(Method::PATCH, "/entities/bulk", list),
+        ],
+        "should send the bodies as one array"
     );
 }
 
@@ -208,9 +200,10 @@ async fn patch_applied() {
 #[tokio::test]
 async fn answers(#[case] status: StatusCode, #[case] expected: Answer) {
     let graph = Graph::new(status);
-    let server = graph.serve("").await;
 
-    let answer = client(&server.url).create(actor(), &body("a")).await;
+    let answer = client(&graph.serve("").await)
+        .create(actor(), &body("a"))
+        .await;
 
     assert_eq!(answer, expected);
 }
@@ -219,9 +212,10 @@ async fn answers(#[case] status: StatusCode, #[case] expected: Answer) {
 async fn refused_message_cut() {
     let mut graph = Graph::new(StatusCode::BAD_REQUEST);
     graph.message = "x".repeat(2000);
-    let server = graph.serve("").await;
 
-    let answer = client(&server.url).create(actor(), &body("a")).await;
+    let answer = client(&graph.serve("").await)
+        .create(actor(), &body("a"))
+        .await;
 
     assert_eq!(
         answer,
@@ -248,41 +242,19 @@ async fn unavailable_without_answer() {
 }
 
 #[tokio::test]
-async fn bulk_routes() {
-    let graph = Graph::new(StatusCode::OK);
-    let server = graph.serve("").await;
-    let client = client(&server.url);
-    let (first, second) = (body("a"), body("b"));
-    let bodies = [&*first, &*second];
-
-    assert_eq!(client.create_bulk(actor(), &bodies).await, Answer::Applied);
-    assert_eq!(client.patch_bulk(actor(), &bodies).await, Answer::Applied);
-
-    let list = r#"[{"entityId":"a"},{"entityId":"b"}]"#;
-    assert_eq!(
-        graph.received(),
-        [
-            received(Method::POST, "/entities/bulk", list.to_owned()),
-            received(Method::PATCH, "/entities/bulk", list.to_owned()),
-        ],
-        "should send the bodies as one array"
-    );
-}
-
-#[tokio::test]
 async fn graph_url_path() {
     let graph = Graph::new(StatusCode::OK);
-    let server = graph.serve("/graph").await;
+    let client = client(&format!("{}/", graph.serve("/graph").await));
 
-    client(&format!("{}/graph/", server.url))
-        .create(actor(), &body("a"))
-        .await;
+    client.create(actor(), &body("a")).await;
+    client.create_bulk(actor(), &[&body("a")]).await;
 
-    let [request] = graph
+    let paths = graph
         .received()
-        .try_into()
-        .expect("should send one request");
-    assert_eq!(request.path, "/graph/entities");
+        .into_iter()
+        .map(|request| request.path)
+        .collect::<Vec<_>>();
+    assert_eq!(paths, ["/graph/entities", "/graph/entities/bulk"]);
 }
 
 #[rstest]

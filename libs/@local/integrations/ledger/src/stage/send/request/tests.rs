@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+use error_stack::Report;
 use hash_graph_store::entity::{CreateEntityParams, PatchEntityParams};
 use pretty_assertions::assert_eq;
-use serde_json::json;
+use serde::de::DeserializeOwned;
+use serde_json::value::RawValue;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
@@ -21,7 +23,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{archive, create, integration_provenance, patch};
+use super::{RequestError, archive, create, integration_provenance, patch};
 use crate::{
     RunId,
     sync_table::{Op, SyncRow},
@@ -53,9 +55,10 @@ fn aircraft_id() -> EntityId {
     entity_id("SE-XXX")
 }
 
+/// The provenance of a run that read a web page, which is recorded as an integration.
 fn provenance() -> ProvidedEntityEditionProvenance {
     integration_provenance(SourceProvenance {
-        ty: SourceType::Integration,
+        ty: SourceType::Webpage,
         entity_id: None,
         authors: Vec::new(),
         location: Some(Location {
@@ -113,6 +116,15 @@ fn row(op: Op, properties: PropertyObjectWithMetadata) -> SyncRow {
     }
 }
 
+fn text(body: Result<Box<RawValue>, Report<RequestError>>) -> String {
+    body.expect("should build the body").get().to_owned()
+}
+
+/// The body as the Graph's own request type reads it.
+fn read<T: DeserializeOwned>(body: Result<Box<RawValue>, Report<RequestError>>) -> T {
+    serde_json::from_str(&text(body)).expect("the Graph should read the body")
+}
+
 #[test]
 fn requests_graph_readable() {
     let aircraft = row(
@@ -120,12 +132,7 @@ fn requests_graph_readable() {
         properties(&["model", "first-flight", "empty-mass"]),
     );
 
-    let created: CreateEntityParams = serde_json::from_str(
-        create(&aircraft, &provenance())
-            .expect("should build the create")
-            .get(),
-    )
-    .expect("the Graph should read the create request");
+    let created: CreateEntityParams = read(create(&aircraft, &provenance()));
     assert_eq!(created.web_id, web_id());
     assert_eq!(created.entity_uuid, Some(aircraft_id().entity_uuid));
     assert!(
@@ -135,12 +142,7 @@ fn requests_graph_readable() {
     assert_eq!(created.properties.value.len(), 3);
     assert!(created.link_data.is_none(), "an entity should have no ends");
 
-    let patched: PatchEntityParams = serde_json::from_str(
-        patch(&aircraft, &provenance())
-            .expect("should build the patch")
-            .get(),
-    )
-    .expect("the Graph should read the patch request");
+    let patched: PatchEntityParams = read(patch(&aircraft, &provenance()));
     assert_eq!(patched.entity_id, aircraft_id());
     assert_eq!(
         patched.archived,
@@ -149,26 +151,13 @@ fn requests_graph_readable() {
     );
     assert_eq!(patched.properties.len(), 3);
 
-    let archived: PatchEntityParams = serde_json::from_str(
-        archive(&aircraft, &provenance())
-            .expect("should build the archive")
-            .get(),
-    )
-    .expect("the Graph should read the archive request");
+    let archived: PatchEntityParams = read(archive(&aircraft, &provenance()));
     assert_eq!(archived.entity_id, aircraft_id());
     assert_eq!(archived.archived, Some(true));
 
     // Send creates a link that an update did not find, so an update row also names its ends.
     for op in [Op::CreateLink, Op::UpdateLink] {
-        let link: CreateEntityParams = serde_json::from_str(
-            create(
-                &row(op, PropertyObjectWithMetadata::default()),
-                &provenance(),
-            )
-            .expect("should build the create")
-            .get(),
-        )
-        .expect("the Graph should read the create request of a link");
+        let link: CreateEntityParams = read(create(&row(op, properties(&[])), &provenance()));
         let Some(Link::Directed { source, target }) = link.link_data else {
             panic!("a link should name its ends");
         };
@@ -184,22 +173,15 @@ fn requests_graph_readable() {
         );
     }
 
-    let unchanged: PatchEntityParams = serde_json::from_str(
-        patch(
-            &row(Op::UpdateLink, PropertyObjectWithMetadata::default()),
-            &provenance(),
-        )
-        .expect("should build the patch")
-        .get(),
-    )
-    .expect("the Graph should read a patch without properties");
+    let unchanged: PatchEntityParams =
+        read(patch(&row(Op::UpdateLink, properties(&[])), &provenance()));
     assert!(unchanged.properties.is_empty(), "should change no property");
     assert_eq!(unchanged.archived, Some(false));
 }
 
 #[test]
 fn link_without_ends() {
-    let mut link = row(Op::CreateLink, PropertyObjectWithMetadata::default());
+    let mut link = row(Op::CreateLink, properties(&[]));
     link.right_entity_id = None;
 
     let error = create(&link, &provenance()).expect_err("should refuse a link without an end");
@@ -209,81 +191,36 @@ fn link_without_ends() {
 
 #[test]
 fn payload_property_order() {
-    let names = [
-        "model",
-        "first-flight",
-        "empty-mass",
-        "operator",
-        "registry",
-    ];
-    let mut reversed = names;
-    reversed.reverse();
-    let forward = row(Op::UpdateEntity, properties(&names));
-    let backward = row(Op::UpdateEntity, properties(&reversed));
+    let forward = row(
+        Op::UpdateEntity,
+        properties(&["model", "operator", "registry"]),
+    );
+    let backward = row(
+        Op::UpdateEntity,
+        properties(&["registry", "operator", "model"]),
+    );
 
     for build in [create, patch] {
         assert_eq!(
-            build(&forward, &provenance())
-                .expect("should build the body")
-                .get(),
-            build(&backward, &provenance())
-                .expect("should build the body")
-                .get(),
+            text(build(&forward, &provenance())),
+            text(build(&backward, &provenance())),
             "the same properties should encode to the same bytes"
         );
     }
 }
 
+/// Pins the whole body, and with it the provenance: a machine writing through the API from an
+/// integration source.
 #[test]
 fn archive_payload() {
-    let body = archive(
-        &row(Op::ArchiveEntity, PropertyObjectWithMetadata::default()),
-        &provenance(),
-    )
-    .expect("should build the archive");
     assert_eq!(
-        body.get(),
+        text(archive(
+            &row(Op::ArchiveEntity, properties(&[])),
+            &provenance()
+        )),
         format!(
             r#"{{"archived":true,"entityId":"{}","provenance":{{"actorType":"machine","origin":{{"type":"api"}},"sources":[{{"loadedAt":"2026-11-06T12:00:00.000000000Z","location":{{"name":"aviation"}},"type":"integration"}}]}}}}"#,
             aircraft_id()
         ),
-        "the archive request should be built exactly"
-    );
-}
-
-fn source() -> SourceProvenance {
-    SourceProvenance {
-        ty: SourceType::Webpage,
-        entity_id: None,
-        authors: vec!["CAA".to_owned()],
-        location: Some(Location {
-            name: Some("aviation".to_owned()),
-            uri: None,
-            description: None,
-        }),
-        first_published: None,
-        last_updated: None,
-        loaded_at: Some(
-            OffsetDateTime::from_unix_timestamp(1_793_966_400).expect("should be a valid time"),
-        ),
-    }
-}
-
-#[test]
-fn integration_provenance_wire_shape() {
-    assert_eq!(
-        serde_json::to_value(integration_provenance(source()))
-            .expect("provenance should serialize"),
-        json!({
-            "actorType": "machine",
-            "origin": {"type": "api"},
-            "sources": [{
-                "type": "integration",
-                "authors": ["CAA"],
-                "location": {"name": "aviation"},
-                "loadedAt": "2026-11-06T12:00:00.000000000Z",
-            }],
-        }),
-        "should record a machine writing through the API from an integration source"
     );
 }
