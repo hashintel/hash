@@ -78,10 +78,6 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
   /* Picked under Add property, until its row has a value. */
   const [newProperty, setNewProperty] = useState<SettableProperty>();
   const [rowErrors, setRowErrors] = useState<Map<number, string>>(new Map());
-  /* By row key, removals switched to Set to, which stay saved as removals until a value is typed. */
-  const [settingKeys, setSettingKeys] = useState<ReadonlySet<number>>(
-    new Set(),
-  );
   const { getRowKey, forgetRowKey } = useRowKeys();
 
   const ontology = useConditionOntology();
@@ -227,22 +223,7 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
       return next;
     });
 
-  const setSetting = (index: number, setting: boolean) =>
-    setSettingKeys((keys) => {
-      const key = getRowKey(index);
-
-      if (keys.has(key) === setting) {
-        return keys;
-      }
-
-      return setting
-        ? new Set([...keys, key])
-        : new Set([...keys].filter((other) => other !== key));
-    });
-
   const commitRow = (index: number, row: PropertyRow) => {
-    setSetting(index, false);
-
     if (index === form.length) {
       setNewProperty(undefined);
       save([...form, row]);
@@ -253,7 +234,6 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
 
   const removeRow = (index: number) => {
     setRowError(index, undefined);
-    setSetting(index, false);
     forgetRowKey(index, rows.length);
 
     if (index === form.length) {
@@ -293,8 +273,7 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
           return null;
         }
 
-        const op: RowOp =
-          row?.op === "remove" && !settingKeys.has(key) ? "remove" : "set";
+        const op: RowOp = row?.op === "remove" ? "remove" : "set";
         const notOnTypes =
           op === "set" &&
           offeredByBaseUrl !== null &&
@@ -371,7 +350,9 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
                         op: "remove",
                       });
                     } else {
-                      setSetting(index, true);
+                      /* The removal is dropped, so a run before a value is typed doesn't remove the property. */
+                      removeRow(index);
+                      setNewProperty(property);
                     }
                   }}
                 />

@@ -16,6 +16,9 @@ const typedErrors: Record<PropertyValueKind["kind"], string> = {
   DateTime: "Enter a date and time",
 };
 
+/* The graph's date-time format needs seconds, which `parseDateTime` doesn't. */
+const hasSeconds = (text: string) => /T\d{2}:\d{2}:\d{2}/.test(text);
+
 /** A property's value, typed or picked. Commits only a valid value; until then, `onError` reports what's wrong. */
 export const PropertyValueInput = ({
   valueKind,
@@ -108,7 +111,11 @@ export const PropertyValueInput = ({
       aria-label={label}
       onChange={(text) => {
         /* Empty text isn't a value to set: Update entity removes a property instead. */
-        if (text === "" || !isValueOfKind(valueKind, text)) {
+        if (
+          text === "" ||
+          !isValueOfKind(valueKind, text) ||
+          (kind === "DateTime" && !hasSeconds(text))
+        ) {
           setDraft(text);
           onError(typedErrors[kind]);
           return;
