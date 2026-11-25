@@ -54,6 +54,16 @@ export default defineConfig({
         trailingComma: "none",
       },
     },
+    {
+      // These pages teach the Cargo.toml layout that tombi produces. oxfmt
+      // formats ```toml fences with its own TOML style, and it can neither
+      // switch off one fence language nor hand a fence to tombi, so the
+      // fences in these pages are left as written.
+      files: [".agents/skills/managing-cargo-dependencies/**/*.md"],
+      options: {
+        embeddedLanguageFormatting: "off",
+      },
+    },
   ],
 
   ignorePatterns: [

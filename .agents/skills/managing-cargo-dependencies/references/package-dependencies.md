@@ -12,21 +12,21 @@ Complete guide for managing dependencies in package Cargo.toml files.
 [dependencies]
 # Public workspace dependencies
 hash-graph-types = { workspace = true, public = true }
-hashql-core = { workspace = true, public = true }
+hashql-core      = { workspace = true, public = true }
 
 # Public third-party dependencies
-serde = { workspace = true, public = true, features = ["derive"] }
-tokio = { workspace = true, public = true }
-smallvec = { workspace = true, public = true }
+serde     = { workspace = true, public = true, features = ["derive"] }
+tokio     = { workspace = true, public = true }
+smallvec  = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }
-hash-codec = { workspace = true }
+hash-codec  = { workspace = true }
 
 # Private third-party dependencies
-tracing = { workspace = true }
-regex = { workspace = true }
-derive_more = { workspace = true, features = ["debug", "from"] }
+tracing       = { workspace = true }
+regex         = { workspace = true }
+derive_more   = { workspace = true, features = ["debug", "from"] }
 ```
 
 ### Section Order (Always)
@@ -107,13 +107,13 @@ pub fn process() {
 ```toml
 [dependencies]
 # Public - these appear in public API
-serde = { workspace = true, public = true }
-tokio = { workspace = true, public = true }
+serde      = { workspace = true, public = true }
+tokio      = { workspace = true, public = true }
 hash-codec = { workspace = true, public = true }
 
 # Private - only used internally
 tracing = { workspace = true }
-regex = { workspace = true }
+regex   = { workspace = true }
 ```
 
 ---
@@ -169,13 +169,13 @@ Align `=` signs within each section for readability:
 
 ```toml
 # Public workspace dependencies
-hash-graph-types = { workspace = true, public = true }
-hashql-core = { workspace = true, public = true }
-hashql-diagnostics = { workspace = true, public = true }
+hash-graph-types      = { workspace = true, public = true }
+hashql-core           = { workspace = true, public = true }
+hashql-diagnostics    = { workspace = true, public = true }
 
 # Public third-party dependencies
-anstyle = { workspace = true, public = true }
-foldhash = { workspace = true, public = true }
+anstyle   = { workspace = true, public = true }
+foldhash  = { workspace = true, public = true }
 hashbrown = { workspace = true, public = true }
 ```
 
@@ -241,9 +241,9 @@ Dev dependencies don't need the 4-section structure:
 
 ```toml
 [dev-dependencies]
-insta = { workspace = true }
-proptest = { workspace = true }
-rstest = { workspace = true }
+insta         = { workspace = true }
+proptest      = { workspace = true }
+rstest        = { workspace = true }
 test-strategy = { workspace = true }
 ```
 
@@ -282,9 +282,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 ```toml
 [dependencies]
 # Public third-party dependencies
-serde = { workspace = true, public = true, optional = true, features = [
-  "derive",
-] }
+serde = { workspace = true, public = true, optional = true, features = ["derive"] }
 
 [features]
 serde = ["dep:serde"]

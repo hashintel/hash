@@ -13,24 +13,19 @@ Complete example from [hash-codec/Cargo.toml](../../../../libs/@local/codec/Carg
 ```toml
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, optional = true }
+error-stack         = { workspace = true, public = true, optional = true }
 harpc-wire-protocol = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
-bytes = { workspace = true, public = true }
+bytes      = { workspace = true, public = true }
 serde_core = { workspace = true, public = true, optional = true }
-uuid = { workspace = true, public = true, optional = true, features = [
-  "serde",
-] }
+uuid       = { workspace = true, public = true, optional = true, features = ["serde"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-dashu-base = { workspace = true, optional = true, features = ["std"] }
-derive_more = { workspace = true, optional = true, features = [
-  "display",
-  "error",
-] }
+dashu-base     = { workspace = true, optional = true, features = ["std"] }
+derive_more    = { workspace = true, optional = true, features = ["display", "error"] }
 simple-mermaid = { workspace = true }
 ```
 
@@ -62,19 +57,19 @@ Complete example from [hashql-core/Cargo.toml](../../../../libs/@local/hashql/co
 ```toml
 [dependencies]
 # Public workspace dependencies
-hash-graph-types = { workspace = true, public = true }
-hashql-diagnostics = { workspace = true, public = true }
+hash-graph-types      = { workspace = true, public = true }
+hashql-diagnostics    = { workspace = true, public = true }
 
 # Public third-party dependencies
-anstyle = { workspace = true, public = true }
-foldhash = { workspace = true, public = true }
+anstyle   = { workspace = true, public = true }
+foldhash  = { workspace = true, public = true }
 hashbrown = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-bitvec = { workspace = true, features = ["alloc"] }
-derive_more = { workspace = true, features = ["debug", "from"] }
+bitvec               = { workspace = true, features = ["alloc"] }
+derive_more          = { workspace = true, features = ["debug", "from"] }
 unicode-segmentation = { workspace = true }
 ```
 
@@ -96,7 +91,7 @@ Pattern for a backend service package:
 [dependencies]
 # Public workspace dependencies
 hash-graph-types = { workspace = true, public = true }
-error-stack = { workspace = true, public = true }
+error-stack      = { workspace = true, public = true }
 
 # Public third-party dependencies
 serde = { workspace = true, public = true, features = ["derive"] }
@@ -106,11 +101,11 @@ tokio = { workspace = true, public = true }
 hash-codec = { workspace = true }
 
 # Private third-party dependencies
-tracing = { workspace = true }
-regex = { workspace = true }
-serde_json = { workspace = true }
-tokio-util = { workspace = true, features = ["codec"] }
-derive_more = { workspace = true, features = ["debug", "display", "from"] }
+tracing       = { workspace = true }
+regex         = { workspace = true }
+serde_json    = { workspace = true }
+tokio-util    = { workspace = true, features = ["codec"] }
+derive_more   = { workspace = true, features = ["debug", "display", "from"] }
 ```
 
 ---
@@ -121,11 +116,11 @@ Dev dependencies don't need 4-section structure:
 
 ```toml
 [dev-dependencies]
-insta = { workspace = true }
-proptest = { workspace = true }
-rstest = { workspace = true }
-test-strategy = { workspace = true }
-tokio = { workspace = true, features = ["test-util"] }
+insta              = { workspace = true }
+proptest           = { workspace = true }
+rstest             = { workspace = true }
+test-strategy      = { workspace = true }
+tokio              = { workspace = true, features = ["test-util"] }
 ```
 
 **Note:** Can add features to dev-dependencies for testing.
@@ -142,9 +137,7 @@ Full pattern with optional dependencies:
 error-stack = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
-serde = { workspace = true, public = true, optional = true, features = [
-  "derive",
-] }
+serde = { workspace = true, public = true, optional = true, features = ["derive"] }
 
 # Private workspace dependencies
 
@@ -166,15 +159,18 @@ When a dependency needs many features:
 ```toml
 [dependencies]
 # Private third-party dependencies
-tokio = { workspace = true, features = [
-  "rt-multi-thread",
-  "macros",
-  "signal",
-  "sync",
-  "time",
-  "fs",
-  "io-util",
-] }
+tokio = {
+    workspace = true,
+    features = [
+        "rt-multi-thread",
+        "macros",
+        "signal",
+        "sync",
+        "time",
+        "fs",
+        "io-util",
+    ],
+}
 ```
 
 **Note:** Multi-line format when feature list is long.
