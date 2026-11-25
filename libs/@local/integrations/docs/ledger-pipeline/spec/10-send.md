@@ -25,6 +25,7 @@ Prepare ──► [ Send ] ──► Graph
 The plan estimated 490. Lines count doc comments and blank lines, as on every page.
 
 Send is built from types:
+
 - `Plan`, `Batch` and the three write types keep the rules of a batch.
 - `Delivery` holds the client and the run's actor.
 - `Tally` is the only place that counts.
@@ -46,6 +47,7 @@ Everything it calls from other milestones is in `contracts.md`: `stage::begin` a
 ## Pseudo code
 
 Send is built from types, each holding what its step needs:
+
 - `RunSend` holds the storage, the run's record and the client.
 - `Delivery` holds the client and the run's actor.
 
@@ -86,18 +88,19 @@ If the `send` part is there, Send skips the Graph and only completes the run in 
 
 Which failure is which:
 
-| Failure                                                                                                                    | Kind      | Code                |
-| -------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------- |
-| Reading the sync table or `current.json` fails in storage                                                                  | retryable |                     |
-| The Graph is not available                                                                                                 | retryable |                     |
-| `run.json` or `current.json` was changed by someone else                                                                   | retryable |                     |
+| Failure                                                                                                                                                 | Kind      | Code                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------- |
+| Reading the sync table or `current.json` fails in storage                                                                                               | retryable |                     |
+| The Graph is not available                                                                                                                              | retryable |                     |
+| `run.json` or `current.json` was changed by someone else                                                                                                | retryable |                     |
 | A row of the sync table cannot be read (`SyncTableError::Invalid`, which also stands for a storage without a sync table), or its bodies cannot be built | permanent | `send_row_invalid`  |
-| The sync table holds another number of the run's rows than the `prepare` part names                                        | permanent | `send_rows_missing` |
-| `current.json` names another run when Send wants to complete this one                                                      | permanent | `run_not_active`    |
+| The sync table holds another number of the run's rows than the `prepare` part names                                                                     | permanent | `send_rows_missing` |
+| `current.json` names another run when Send wants to complete this one                                                                                   | permanent | `run_not_active`    |
 
 An error of `run` becomes a stage error by the table of `03-stage-frame-and-capture.md`. An entity the Graph refuses is not a failure of the stage. It is recorded, and Send goes on.
 
 Two cases need someone to look:
+
 - **The Graph never answers.** If the Graph is not available on any attempt, every Send returns the retryable error and records nothing.
 - **The run is finished but not completed.** If `current.json` names another run after the `send` part is saved, `run.json` shows a finished run that `current.json` does not name. That needs two processes working on one integration at once.
 
@@ -202,7 +205,7 @@ So `created + updated + archived + archive_missing` plus the entries of `failed`
 | New file               | Item                                                                                   | Comes from                                                                                                                                                                     | Kind    | Lines |
 | ---------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ----- |
 | `send/mod.rs`          | `send`, `RunSend`, the failure codes                                                   | none                                                                                                                                                                           | new     | 165   |
-| `send/plan/mod.rs`     | `Position`, `Target`, the three write types, `Writes`, `Batch`, `Plan`, the open batch | none. The order is that of `Op` in `sync_table/row.rs`, which extends `engine`'s `OperationKind` (`graph/mod.rs:148-158`) to six kinds                                          | new     | 337   |
+| `send/plan/mod.rs`     | `Position`, `Target`, the three write types, `Writes`, `Batch`, `Plan`, the open batch | none. The order is that of `Op` in `sync_table/row.rs`, which extends `engine`'s `OperationKind` (`graph/mod.rs:148-158`) to six kinds                                         | new     | 337   |
 | `send/delivery/mod.rs` | `Upsert` for a create and an archive                                                   | `engine/graph/client/mod.rs:114-140`, `GraphClient::send` (27): a create, then a patch on a conflict; an archive that finds nothing                                            | adapted | 40    |
 | `send/delivery/mod.rs` | `Delivery`, `Unavailable`, `Reply`, `Upsert` for an update                             | none. The cases are those of labs `graph/executor.rs`: `execute_create_batch_group` (`:1017-1111`), `deliver_once` (`:1413-1528`), `execute_patch_first_effect` (`:1211-1336`) | new     | 198   |
 | `send/tally.rs`        | `Effect`, `Refusal`, `Outcome`, `Tally`                                                | none                                                                                                                                                                           | new     | 104   |
