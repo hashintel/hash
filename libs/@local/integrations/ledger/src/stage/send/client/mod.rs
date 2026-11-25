@@ -14,7 +14,7 @@ use hash_middleware::authentication::{
     request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
 };
 use reqwest::{
-    Client, Method, Response, StatusCode,
+    Client, Method, StatusCode,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderValue},
     redirect::Policy,
 };
@@ -34,7 +34,7 @@ pub enum GraphError {
 
 /// What the Graph did with a request.
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum Answer {
+pub(super) enum Response {
     Applied,
     /// No answer, a timeout, or a status that says to try again later.
     Unavailable,
@@ -100,25 +100,33 @@ impl GraphClient {
     }
 
     /// Creates the entities of `bodies` in one request, acting for `actor`.
-    pub(super) async fn create_bulk(&self, actor: ActorEntityUuid, bodies: &[&RawValue]) -> Answer {
+    pub(super) async fn create_bulk(
+        &self,
+        actor: ActorEntityUuid,
+        bodies: &[&RawValue],
+    ) -> Response {
         self.request(Method::POST, &self.bulk, actor, list(bodies))
             .await
     }
 
     /// Patches the entities of `bodies` in one request, acting for `actor`.
-    pub(super) async fn patch_bulk(&self, actor: ActorEntityUuid, bodies: &[&RawValue]) -> Answer {
+    pub(super) async fn patch_bulk(
+        &self,
+        actor: ActorEntityUuid,
+        bodies: &[&RawValue],
+    ) -> Response {
         self.request(Method::PATCH, &self.bulk, actor, list(bodies))
             .await
     }
 
     /// Creates the entity of `body`, acting for `actor`.
-    pub(super) async fn create(&self, actor: ActorEntityUuid, body: &RawValue) -> Answer {
+    pub(super) async fn create(&self, actor: ActorEntityUuid, body: &RawValue) -> Response {
         self.request(Method::POST, &self.entities, actor, body.get().to_owned())
             .await
     }
 
     /// Patches the entity of `body`, acting for `actor`.
-    pub(super) async fn patch(&self, actor: ActorEntityUuid, body: &RawValue) -> Answer {
+    pub(super) async fn patch(&self, actor: ActorEntityUuid, body: &RawValue) -> Response {
         self.request(Method::PATCH, &self.entities, actor, body.get().to_owned())
             .await
     }
@@ -129,7 +137,7 @@ impl GraphClient {
         url: &Url,
         actor: ActorEntityUuid,
         body: String,
-    ) -> Answer {
+    ) -> Response {
         let sent = self
             .client
             .request(method, url.clone())
@@ -140,24 +148,24 @@ impl GraphClient {
             .send()
             .await;
         match sent {
-            Ok(response) => answer(response).await,
+            Ok(response) => classify(response).await,
             Err(error) => {
                 tracing::warn!(error = %error.without_url(), "the Graph did not answer");
-                Answer::Unavailable
+                Response::Unavailable
             }
         }
     }
 }
 
 /// What `response` says the Graph did.
-async fn answer(response: Response) -> Answer {
+async fn classify(response: reqwest::Response) -> Response {
     match response.status() {
-        status if status.is_success() => Answer::Applied,
+        status if status.is_success() => Response::Applied,
         StatusCode::TOO_MANY_REQUESTS
         | StatusCode::BAD_GATEWAY
         | StatusCode::SERVICE_UNAVAILABLE
-        | StatusCode::GATEWAY_TIMEOUT => Answer::Unavailable,
-        status => Answer::Refused {
+        | StatusCode::GATEWAY_TIMEOUT => Response::Unavailable,
+        status => Response::Refused {
             status: status.as_u16(),
             message: response
                 .text()

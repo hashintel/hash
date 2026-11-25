@@ -22,7 +22,7 @@ use tokio::net::TcpListener;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use super::{Answer, GraphClient, GraphError};
+use super::{GraphClient, GraphError, Response};
 
 const SERVICE_SECRET: &str = "service-secret";
 
@@ -138,8 +138,8 @@ fn received(method: Method, path: &str, body: &str) -> Received {
     }
 }
 
-fn refused(status: u16) -> Answer {
-    Answer::Refused {
+fn refused(status: u16) -> Response {
+    Response::Refused {
         status,
         message: "graph says no".into(),
     }
@@ -153,13 +153,13 @@ async fn sends(#[case] method: Method) {
     let graph = Graph::new(StatusCode::OK);
     let client = client(&graph.serve("").await);
 
-    let answer = if method == Method::POST {
+    let response = if method == Method::POST {
         client.create(actor(), &body("a")).await
     } else {
         client.patch(actor(), &body("a")).await
     };
 
-    assert_eq!(answer, Answer::Applied);
+    assert_eq!(response, Response::Applied);
     assert_eq!(
         graph.received(),
         [received(method, "/entities", r#"{"entityId":"a"}"#)]
@@ -173,8 +173,11 @@ async fn bulk_routes() {
     let (first, second) = (body("a"), body("b"));
     let bodies = [&*first, &*second];
 
-    assert_eq!(client.create_bulk(actor(), &bodies).await, Answer::Applied);
-    assert_eq!(client.patch_bulk(actor(), &bodies).await, Answer::Applied);
+    assert_eq!(
+        client.create_bulk(actor(), &bodies).await,
+        Response::Applied
+    );
+    assert_eq!(client.patch_bulk(actor(), &bodies).await, Response::Applied);
 
     let list = r#"[{"entityId":"a"},{"entityId":"b"}]"#;
     assert_eq!(
@@ -193,19 +196,19 @@ async fn bulk_routes() {
 #[case::bad_request(StatusCode::BAD_REQUEST, refused(400))]
 #[case::unprocessable(StatusCode::UNPROCESSABLE_ENTITY, refused(422))]
 #[case::server_error(StatusCode::INTERNAL_SERVER_ERROR, refused(500))]
-#[case::too_many_requests(StatusCode::TOO_MANY_REQUESTS, Answer::Unavailable)]
-#[case::bad_gateway(StatusCode::BAD_GATEWAY, Answer::Unavailable)]
-#[case::service_unavailable(StatusCode::SERVICE_UNAVAILABLE, Answer::Unavailable)]
-#[case::gateway_timeout(StatusCode::GATEWAY_TIMEOUT, Answer::Unavailable)]
+#[case::too_many_requests(StatusCode::TOO_MANY_REQUESTS, Response::Unavailable)]
+#[case::bad_gateway(StatusCode::BAD_GATEWAY, Response::Unavailable)]
+#[case::service_unavailable(StatusCode::SERVICE_UNAVAILABLE, Response::Unavailable)]
+#[case::gateway_timeout(StatusCode::GATEWAY_TIMEOUT, Response::Unavailable)]
 #[tokio::test]
-async fn answers(#[case] status: StatusCode, #[case] expected: Answer) {
+async fn answers(#[case] status: StatusCode, #[case] expected: Response) {
     let graph = Graph::new(status);
 
-    let answer = client(&graph.serve("").await)
+    let response = client(&graph.serve("").await)
         .create(actor(), &body("a"))
         .await;
 
-    assert_eq!(answer, expected);
+    assert_eq!(response, expected);
 }
 
 #[tokio::test]
@@ -213,13 +216,13 @@ async fn refused_message_cut() {
     let mut graph = Graph::new(StatusCode::BAD_REQUEST);
     graph.message = "x".repeat(2000);
 
-    let answer = client(&graph.serve("").await)
+    let response = client(&graph.serve("").await)
         .create(actor(), &body("a"))
         .await;
 
     assert_eq!(
-        answer,
-        Answer::Refused {
+        response,
+        Response::Refused {
             status: 400,
             message: "x".repeat(1024).into(),
         }
@@ -234,11 +237,11 @@ async fn unavailable_without_answer() {
     let address = listener.local_addr().expect("should get the address");
     drop(listener);
 
-    let answer = client(&format!("http://{address}"))
+    let response = client(&format!("http://{address}"))
         .create(actor(), &body("a"))
         .await;
 
-    assert_eq!(answer, Answer::Unavailable);
+    assert_eq!(response, Response::Unavailable);
 }
 
 #[tokio::test]
