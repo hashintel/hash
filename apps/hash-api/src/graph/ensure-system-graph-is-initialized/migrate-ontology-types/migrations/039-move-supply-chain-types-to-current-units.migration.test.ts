@@ -20,6 +20,8 @@ import {
 import { archiveDataType } from "../../../ontology/primitive/data-type";
 import * as util from "../util";
 import supplyChainMigration from "./026-add-supply-chain-types.migration";
+import siUnitMigration from "./034-add-si-unit-data-types.migration";
+import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
 import migrate, {
   archivedLengthGroupKeys,
   upgradedEntityTypeKeys,
@@ -56,6 +58,10 @@ vi.mock("@local/hash-graph-sdk/property-type", () => ({
 }));
 vi.mock("../../../ontology/primitive/data-type", () => ({
   archiveDataType: vi.fn(),
+}));
+
+vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
+  ensureUnitDataType: vi.fn(),
 }));
 
 vi.mock("../util", async (importOriginal) => {
@@ -300,40 +306,65 @@ describe("moving supply chain types to current units", () => {
     );
   });
 
-  it("upgrades every 026 property type whose units 034 moved, and no other", () => {
-    const currentDataTypeIds = new Set<VersionedUrl>(
-      Object.values(systemDataTypes).map(({ dataTypeId }) => dataTypeId),
+  it("upgrades every 026 property type with a unit that 034 gave a new version", async () => {
+    const seededBy034 = new Set<string>();
+    vi.mocked(ensureUnitDataType).mockImplementation(
+      async (
+        _context,
+        _authentication,
+        { dataTypeDefinition, dataTypeBaseUrl },
+      ) => {
+        const baseUrl =
+          dataTypeBaseUrl ??
+          util.generateSystemTypeBaseUrl({
+            kind: "data-type",
+            title: dataTypeDefinition.title,
+            shortname: "h",
+          });
+        seededBy034.add(baseUrl);
+        return {
+          schema: {
+            ...dataTypeDefinition,
+            $id: versionedUrlFromComponents(baseUrl, v1),
+          },
+          metadata: { recordId: { baseUrl, version: v1 } },
+        } as unknown as DataTypeWithMetadata;
+      },
     );
-    const staleUnitIds = new Set<VersionedUrl>(
-      upgradedUnitKeys.map((key) =>
-        firstVersionOf(systemDataTypes[key].dataTypeId),
+    await siUnitMigration({
+      context: {} as Parameters<MigrationFunction>[0]["context"],
+      authentication: {} as Parameters<MigrationFunction>[0]["authentication"],
+      migrationState: {
+        dataTypeVersions: {},
+        propertyTypeVersions: {},
+        entityTypeVersions: {},
+      },
+    });
+
+    const movedUnitsInUse = new Set(
+      [...supplyChainTypes.propertyTypes.values()]
+        .flatMap(dataTypeReferences)
+        .map(extractBaseUrl)
+        .filter((baseUrl) => seededBy034.has(baseUrl)),
+    );
+    expect(movedUnitsInUse).toEqual(
+      new Set(
+        upgradedUnitKeys.map((key) => systemDataTypes[key].dataTypeBaseUrl),
       ),
     );
 
-    const propertyTypesWithStaleUnits = [
+    const propertyTypesWithMovedUnits = [
       ...supplyChainTypes.propertyTypes.entries(),
     ]
       .filter(([, schema]) =>
-        dataTypeReferences(schema).some(
-          (dataTypeId) =>
-            extractBaseUrl(dataTypeId).startsWith("https://hash.ai/") &&
-            !currentDataTypeIds.has(dataTypeId),
+        dataTypeReferences(schema).some((dataTypeId) =>
+          movedUnitsInUse.has(extractBaseUrl(dataTypeId)),
         ),
       )
       .map(([typeId]) => typeId);
-
-    expect(new Set(propertyTypesWithStaleUnits)).toEqual(
+    expect(new Set(propertyTypesWithMovedUnits)).toEqual(
       new Set(upgradedPropertyTypeIds.map(firstVersionOf)),
     );
-    for (const typeId of propertyTypesWithStaleUnits) {
-      const staleReferences = dataTypeReferences(
-        supplyChainTypes.propertyTypes.get(typeId)!,
-      ).filter((dataTypeId) => !currentDataTypeIds.has(dataTypeId));
-      expect(
-        staleReferences.every((dataTypeId) => staleUnitIds.has(dataTypeId)),
-        typeId,
-      ).toBe(true);
-    }
   });
 
   it("points the property types at the current version of every unit", async () => {
