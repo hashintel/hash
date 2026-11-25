@@ -20,12 +20,14 @@ import {
 import { InputField } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-flow";
 import {
   editorRunDataSources,
+  getAiFlagBlocker,
   getFlowInputValues,
   getInitialFormValues,
   withGivenValues,
 } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/run-form";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getBrowserTimeZone } from "../../shared/schedule-repeat";
+import { useEnabledFeatureFlags } from "../../shared/use-enabled-feature-flags";
 import { useFlowDefinitions } from "../../shared/use-flow-definitions";
 import { ScheduleFields } from "./schedule-fields";
 import { getNextRuns } from "./schedule-times";
@@ -128,6 +130,7 @@ export const NewTriggerForm = ({
   onCancel: () => void;
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
+  const { ai } = useEnabledFeatureFlags();
   const { flowDefinitions, loading } = useFlowDefinitions();
   const [values, setValues] = useState<NewTriggerFormValues>(() => ({
     flowEntityId: initialFlowEntityId,
@@ -195,11 +198,9 @@ export const NewTriggerForm = ({
     values.inputValues,
   );
   const nextRuns = getPreviewedRuns(values);
-  const blocker = getNewTriggerBlocker(
-    { ...values, inputValues },
-    inputs,
-    nextRuns,
-  );
+  const blocker =
+    (flow && getAiFlagBlocker(flow.flowDefinition, { canUseAi: ai })) ??
+    getNewTriggerBlocker({ ...values, inputValues }, inputs, nextRuns);
 
   const add = async () => {
     if (!flow || !inputs) {

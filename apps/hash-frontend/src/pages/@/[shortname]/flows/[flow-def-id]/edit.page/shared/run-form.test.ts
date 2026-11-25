@@ -38,8 +38,8 @@ const draftFlow = (
   inputs: [instructionsInput, ...otherInputs],
 });
 
-const blockerOf = (flowDefinition: FlowDefinition<string>) =>
-  getRunBlocker(createFlowEditor(flowDefinition).getState());
+const blockerOf = (flowDefinition: FlowDefinition<string>, canUseAi = true) =>
+  getRunBlocker(createFlowEditor(flowDefinition).getState(), { canUseAi });
 
 describe("getRunBlocker", () => {
   it("lets a valid flow run, even with warnings", () => {
@@ -67,6 +67,20 @@ describe("getRunBlocker", () => {
 
   it("stops a flow with no steps", () => {
     expect(blockerOf(flowWith([]))).toBe("Add a step to run this flow");
+  });
+
+  it("stops a flow with an AI step for a user without AI, before its other problems, but not a flow without one", () => {
+    const aiNotTurnedOn =
+      "AI isn't turned on for your account, so you can't run or schedule flows that use it. Ask an admin to turn it on.";
+
+    expect(blockerOf(draftFlow(), false)).toBe(aiNotTurnedOn);
+    expect(
+      blockerOf(
+        flowWith([actionStep("draft", { ...draftStep, inputs: {} })]),
+        false,
+      ),
+    ).toBe(aiNotTurnedOn);
+    expect(blockerOf(flowWith([]), false)).toBe("Add a step to run this flow");
   });
 
   it("stops a flow with a required input the form can't take, but not an optional one", () => {

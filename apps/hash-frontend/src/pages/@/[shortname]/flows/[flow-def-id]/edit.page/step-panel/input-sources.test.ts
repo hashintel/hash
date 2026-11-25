@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
+import { getUnfillableInputProblem } from "../shared/run-form";
 import { actionStep, flowWith } from "../shared/step-fixtures";
 import {
+  flowInputTypes,
   getInputTarget,
   getNewFlowInput,
   getSourceLabel,
@@ -236,5 +238,24 @@ describe("getSourceLabel", () => {
     expect(getSourceLabel(forEach(""), item, scope)).toBe(
       "For each › Supplier",
     );
+  });
+});
+
+describe("flowInputTypes", () => {
+  it("offers an entity and a list of entities, and only types the run form can fill in", () => {
+    expect(flowInputTypes).toContainEqual({
+      payloadKind: "EntityId",
+      array: false,
+    });
+    expect(flowInputTypes).toContainEqual({
+      payloadKind: "EntityId",
+      array: true,
+    });
+
+    for (const type of flowInputTypes) {
+      expect(
+        getUnfillableInputProblem([{ name: "input", required: true, ...type }]),
+      ).toBeNull();
+    }
   });
 });

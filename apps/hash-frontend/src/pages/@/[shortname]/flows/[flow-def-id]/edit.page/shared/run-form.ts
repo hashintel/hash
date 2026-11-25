@@ -1,9 +1,12 @@
+import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
+
 import { getFlowInputLabel, getKindLabel, withArticle } from "./value-display";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type {
   FlowDataSources,
+  FlowDefinition,
   FlowInputDefinition,
   FlowInputValues,
   Payload,
@@ -207,14 +210,32 @@ export const getUnfillableInputProblem = (
 };
 
 /**
- * Why the flow can't be run from the editor, or `null` if it can: the first of its errors, no steps, or a required
- * input the form can't take.
+ * Why the user can't run or schedule the flow, or `null` if they can: the API refuses a flow with an AI step to a user
+ * without the `ai` feature flag. Every step the editor adds is one.
  */
-export const getRunBlocker = ({
-  flowDefinition,
-  flowProblems,
-  problemsByStepId,
-}: FlowEditorState): string | null => {
+export const getAiFlagBlocker = (
+  flowDefinition: FlowDefinition<string>,
+  { canUseAi }: { canUseAi: boolean },
+): string | null =>
+  !canUseAi && getFlowType(flowDefinition) === "ai"
+    ? "AI isn't turned on for your account, so you can't run or schedule flows that use it. Ask an admin to turn it on."
+    : null;
+
+/**
+ * Why the flow can't be run from the editor, or `null` if it can: AI not turned on for the user, the first of its
+ * errors, no steps, or a required input the form can't take.
+ */
+export const getRunBlocker = (
+  { flowDefinition, flowProblems, problemsByStepId }: FlowEditorState,
+  user: { canUseAi: boolean },
+): string | null => {
+  /* First, as fixing anything else wouldn't let the user run it. */
+  const aiFlagBlocker = getAiFlagBlocker(flowDefinition, user);
+
+  if (aiFlagBlocker !== null) {
+    return aiFlagBlocker;
+  }
+
   /* Warnings, e.g. an unused input, don't stop a flow running. */
   const firstError = [
     ...flowProblems,

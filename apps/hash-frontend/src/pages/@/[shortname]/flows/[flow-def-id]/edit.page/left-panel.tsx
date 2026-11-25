@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Button, SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 
 import { AddTab } from "./left-panel/add-tab";
 import { RunStatus } from "./left-panel/run-status";
@@ -141,7 +142,12 @@ const StepsSection = ({
   onToggleGroup,
   onCollapseAll,
   run,
-}: StepsSectionProps & { run: StepsRun | null }) => {
+  start,
+}: StepsSectionProps & {
+  run: StepsRun | null;
+  /** Whether Start is selected, and selects it. Omitted where it can't be selected, as in a run. */
+  start?: { selected: boolean; onClick: () => void };
+}) => {
   const { steps } = flowDefinition;
   const getItemName = useItemNames(flowDefinition);
   const tree = getStepsTree(steps);
@@ -151,8 +157,10 @@ const StepsSection = ({
     <div className={stepsSection}>
       <div className={stepsHeader}>
         <p className={stepCount}>
-          {/* Start counts as a step, as the design shows. */}
-          {countSteps(steps.length + 1)}
+          {/* Start counts as a step, as the design shows, and so does each step inside a for-each step. */}
+          {countSteps(
+            getAllStepDefinitionsInFlowDefinition(flowDefinition).length + 1,
+          )}
         </p>
         <Button
           variant="ghost"
@@ -168,6 +176,8 @@ const StepsSection = ({
         icon={startDisplay.icon}
         tone={startDisplay.tone}
         label={startDisplay.description}
+        selected={start?.selected}
+        onClick={start?.onClick}
         status={run && <RunStatus mark={startMark} live={run.live} />}
       />
       <StepsTree
@@ -187,10 +197,14 @@ const StepsSection = ({
 /** The flow editor's left panel: the flow's steps, and the steps that can be added to it. */
 export const LeftPanel = ({
   onAddStep,
+  startSelected,
+  onStartClick,
   ...stepsSectionProps
 }: StepsSectionProps & {
   /** Adds a step that runs the action, in view. */
   onAddStep: (actionDefinitionId: string) => void;
+  startSelected: boolean;
+  onStartClick: () => void;
 }) => {
   const [tab, setTab] = useState<LeftPanelTab>("steps");
 
@@ -209,7 +223,11 @@ export const LeftPanel = ({
         />
       </div>
       {tab === "steps" ? (
-        <StepsSection {...stepsSectionProps} run={null} />
+        <StepsSection
+          {...stepsSectionProps}
+          run={null}
+          start={{ selected: startSelected, onClick: onStartClick }}
+        />
       ) : (
         <AddTab onAddStep={onAddStep} />
       )}

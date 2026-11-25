@@ -270,13 +270,17 @@ const canBeTyped = {
 const typedKinds = typedKeys(canBeTyped).filter((kind) => canBeTyped[kind]);
 
 /**
- * The types a flow input can be given on Start: one value of a kind that can be typed. Not a list of them, which the
- * Run flow form can't take yet.
+ * The types a flow input can be given on Start: one value of a kind that can be typed, or an entity or a list of them,
+ * which the run form picks. Not a list of typed values, which it can't take yet.
  */
-export const flowInputTypes = typedKinds.map((payloadKind) => ({
-  payloadKind,
-  array: false,
-}));
+export const flowInputTypes: Pick<
+  FlowInputDefinition,
+  "payloadKind" | "array"
+>[] = [
+  ...typedKinds.map((payloadKind) => ({ payloadKind, array: false })),
+  { payloadKind: "EntityId", array: false },
+  { payloadKind: "EntityId", array: true },
+];
 
 /** A fixed value that can be typed in its field, as it reads there: one text, number or date. */
 export const getTypedConstant = (
