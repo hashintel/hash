@@ -260,6 +260,21 @@ describe("updateFlowDefinitionResolver", () => {
     expect(mocks.updateFlowDefinition).not.toHaveBeenCalled();
   });
 
+  it("tells a schedule set up to run another type of flow to be added again, not paused, when the flow isn't valid", async () => {
+    mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
+      activeSchedule([]),
+    ]);
+    mocks.describeSchedule.mockResolvedValue({
+      action: { taskQueue: "integration", args: [{}] },
+    });
+
+    await expect(update(unfinishedDefinition)).rejects.toMatchObject({
+      message: expect.stringContaining(
+        '- "Nightly": it was added when the flow had no steps that use AI, so it can\'t run a flow that does. Delete it and add it again.',
+      ),
+    });
+  });
+
   it("saves a change to a flow with an active schedule that still fills its inputs", async () => {
     mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
       activeSchedule([questionValue]),
