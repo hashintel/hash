@@ -3,7 +3,7 @@ import { use } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
-import { ActualTimeline } from "../views/Editor/panels/BottomPanel/subviews/timeline/actual-timeline";
+import { EventTimeline } from "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline";
 import { floatingBarStyle } from "./floating-bar-style";
 
 // The width Quick Simulation's playback bar takes once its timeline is expanded.
@@ -14,8 +14,9 @@ const timelineSizeStyle = css({
 });
 
 /**
- * The host's execution as a timeline. The canvas shows the latest frame until
- * the timeline is scrubbed back, and follows again once it's scrubbed to the
+ * The host's execution as a timeline: the one a run has, over the trace the
+ * execution was mapped to. The canvas shows the latest state until the
+ * timeline is scrubbed back, and follows again once it's scrubbed to the
  * end.
  */
 export const PreviewActualModeTimeline = () => {
@@ -30,7 +31,7 @@ export const PreviewActualModeTimeline = () => {
       aria-label="Execution timeline"
       className={cx(floatingBarStyle, timelineSizeStyle)}
     >
-      <ActualTimeline showLegend={false} />
+      <EventTimeline showLegend={false} />
     </section>
   );
 };

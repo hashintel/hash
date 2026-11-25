@@ -45,10 +45,11 @@ The runtimes around the step are separate, so a change to how a run starts or
 ends is made once in [the event trace](layer:core.simulation.event-trace) and
 once in [the Monte Carlo runtime](layer:core.simulation.monte-carlo).
 
-## Actual mode is a third source of frames
+## Actual mode is a second writer of the same trace
 
 Actual mode renders an execution that came from a live external system, with
-no simulation behind it. The canvas and the timeline read frames through the
-[execution-frame interface](layer:react.execution-frame), so they show such an
-execution with the code that shows a run. For a run, a frame behind that
-interface is a recorded event.
+no simulation behind it. It is no third path: the host's firings are written
+to an [execution trace](layer:core.execution-trace), the object a run's
+worker writes its events to. The player, the canvas and the timeline read a
+trace and never what wrote it, so they show such an execution with the code
+that shows a run.

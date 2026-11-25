@@ -9,7 +9,10 @@ import "uplot/dist/uPlot.min.css";
 import { useElementSize } from "../../../../../../../shared/use-element-size";
 import {
   describeRunPosition,
+  describeWallClock,
   formatRunPosition,
+  formatWallClock,
+  type RunAxis,
 } from "../../../../../shared/run-position";
 import { createChartTooltip, type ChartTooltip } from "../shared/chart-tooltip";
 import { formatTick, formatValue } from "./format";
@@ -54,15 +57,24 @@ const REFERENCE_MARK_PX = 4;
 const PLAYHEAD_COLOR = "#1e293b";
 const ACCENT_COLOR = "#2563eb";
 
-/** A position in the tooltip: a time, or the step it falls in. */
-const formatPosition = (clock: RunClock, position: number): string =>
-  clock === "steps"
-    ? describeRunPosition(clock, position)
-    : `${formatRunPosition(clock, position)}s`;
+/** A position in the tooltip: a time, the step it falls in, or the instant on the wall clock. */
+const formatPosition = (axis: RunAxis, position: number): string =>
+  describeWallClock(axis, position) ??
+  (axis.clock === "steps"
+    ? describeRunPosition(axis.clock, position)
+    : `${formatRunPosition(axis.clock, position)}s`);
 
-/** A tick of the axis. A run in steps has ticks on whole steps only. */
-const formatAxisPosition = (clock: RunClock, position: number): string =>
-  clock === "steps" ? String(position) : formatPosition(clock, position);
+/**
+ * A tick of the axis, `spacing` apart from the next. A run in steps has
+ * ticks on whole steps only.
+ */
+const formatAxisPosition = (
+  axis: RunAxis,
+  position: number,
+  spacing: number,
+): string =>
+  formatWallClock(axis, position, spacing) ??
+  (axis.clock === "steps" ? String(position) : formatPosition(axis, position));
 
 /** Tick spacings of a run in steps: 1, 2 and 5 times each power of ten. */
 const STEP_INCREMENTS = Array.from({ length: 10 }, (_, power) =>
@@ -73,6 +85,8 @@ const STEP_INCREMENTS = Array.from({ length: 10 }, (_, power) =>
 type ChartState = {
   /** What a position on the time axis counts. */
   clock: RunClock;
+  /** The instant of position 0 on the wall clock, when the execution has one. */
+  epochMs: number | null;
   data: EventTimelineData;
   firings: readonly FiringMark[];
   references: readonly number[];
@@ -277,7 +291,7 @@ const createOverlay = (
     host?.setAttribute("aria-valuenow", String(time));
     host?.setAttribute(
       "aria-valuetext",
-      describeRunPosition(state.clock, time),
+      describeWallClock(state, time) ?? describeRunPosition(state.clock, time),
     );
   };
   resize();
@@ -329,11 +343,11 @@ const updateTooltip = (
   nodes.name.textContent = showSeries ? series.seriesName : "";
   nodes.value.textContent =
     showSeries && value != null ? formatValue(value) : "";
-  nodes.time.textContent = formatPosition(state.clock, time);
+  nodes.time.textContent = formatPosition(state, time);
   nodes.detail.textContent = firing
     ? `${firing.transitionIds
         .map((id) => state.transitionNames.get(id) ?? id)
-        .join(", ")} fired at ${formatPosition(state.clock, firing.time)}`
+        .join(", ")} fired at ${formatPosition(state, firing.time)}`
     : "";
 
   nodes.root.style.display = "block";
@@ -585,9 +599,9 @@ const buildOptions = (
         ...(stateRef.current.clock === "steps"
           ? { incrs: STEP_INCREMENTS }
           : {}),
-        values: (_u, values) =>
+        values: (_u, values, _axis, _space, increment) =>
           values.map((value) =>
-            formatAxisPosition(stateRef.current.clock, value),
+            formatAxisPosition(stateRef.current, value, increment),
           ),
       },
       laneLabels
@@ -674,6 +688,11 @@ const hostStyle = css({
 export const EventTimelineChart: FC<{
   /** What a position on the time axis counts: seconds, or steps. */
   clock: RunClock;
+  /**
+   * The instant of position 0 on the wall clock, in milliseconds since the
+   * Unix epoch. With one, the axis and the tooltip read as times of day.
+   */
+  epochMs?: number | null;
   data: EventTimelineData;
   firings: readonly FiringMark[];
   /** Times of the reference frames recorded between firings. */
@@ -702,6 +721,7 @@ export const EventTimelineChart: FC<{
   paused?: boolean;
 }> = ({
   clock,
+  epochMs = null,
   data,
   firings,
   references,
@@ -730,6 +750,7 @@ export const EventTimelineChart: FC<{
 
   const stateRef = useLatest<ChartState>({
     clock,
+    epochMs,
     data,
     firings,
     references,

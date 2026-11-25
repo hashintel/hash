@@ -9,6 +9,7 @@ import { useHandleHistoryAsUndoRedo } from "./document/use-handle-history-as-und
 import { ReadOnlyReasonProvider } from "./editing/read-only-reason-provider";
 import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
+import { ExecutionTraceProvider } from "./execution-trace/provider";
 import { ExperimentHostProvider } from "./experiment-host/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import {
@@ -135,20 +136,23 @@ export const PetrinautCanvasProvider: React.FC<
   PetrinautCanvasProviderProps
 > = ({ children, initialPlaybackSpeed }) => (
   <CanvasViewportProvider>
-    <EventPlaybackProvider initialSpeed={initialPlaybackSpeed}>
-      <ActiveNetProvider>
-        <PanelSizesProvider>
-          <EditorProvider>
-            {/* Reads the mode in the commit that changes it, so it sits directly below the editor state. */}
-            <ReadOnlyReasonProvider>
-              {/* The panels open, close, dock and float by the editor state. This reads it and has Motion animate them. */}
-              <PanelPresenceProvider>
-                <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
-              </PanelPresenceProvider>
-            </ReadOnlyReasonProvider>
-          </EditorProvider>
-        </PanelSizesProvider>
-      </ActiveNetProvider>
-    </EventPlaybackProvider>
+    <ActiveNetProvider>
+      <PanelSizesProvider>
+        <EditorProvider>
+          {/* Reads the mode in the commit that changes it, so it sits directly below the editor state. */}
+          <ReadOnlyReasonProvider>
+            {/* The panels open, close, dock and float by the editor state. This reads it and has Motion animate them. */}
+            <PanelPresenceProvider>
+              {/* Which execution is viewed follows the editor's mode, and playback plays the one viewed. */}
+              <ExecutionTraceProvider>
+                <EventPlaybackProvider initialSpeed={initialPlaybackSpeed}>
+                  <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
+                </EventPlaybackProvider>
+              </ExecutionTraceProvider>
+            </PanelPresenceProvider>
+          </ReadOnlyReasonProvider>
+        </EditorProvider>
+      </PanelSizesProvider>
+    </ActiveNetProvider>
   </CanvasViewportProvider>
 );

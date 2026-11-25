@@ -44,11 +44,6 @@ vi.mock("../views/SDCPN/sdcpn-view", async () => {
 });
 
 /* The timelines' chart needs a browser's canvas. */
-vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/timeline/actual-timeline/chart",
-  () => ({ UPlotChart: () => <div>Chart</div> }),
-);
-
 // uPlot reads the device pixel ratio as it loads, which jsdom cannot answer.
 vi.mock(
   "../views/Editor/panels/BottomPanel/subviews/timeline/run-timeline/chart",
@@ -154,7 +149,7 @@ describe("PetrinautPreview", () => {
     expect(
       await within(
         screen.getByRole("region", { name: "Execution timeline" }),
-      ).findByText("Chart"),
+      ).findByText("Event chart"),
     ).not.toBeNull();
   });
 

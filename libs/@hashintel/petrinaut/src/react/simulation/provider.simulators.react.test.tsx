@@ -9,6 +9,7 @@ import {
   defineSimulator,
   DEFAULT_PETRINAUT_EXTENSIONS,
   type EventSimulation,
+  type ExecutionTrace,
   type HirArtifacts,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -70,26 +71,39 @@ const sdcpnContextValue: SDCPNContextValue = {
 
 const artifacts = { version: 4 } as unknown as HirArtifacts;
 
-const makeHandle = () =>
+/** A run whose trace holds its first event and says what `trace` adds. */
+const makeHandle = (
+  trace: Partial<Pick<ExecutionTrace, "clock" | "continuity">> = {},
+) =>
   ({
     status: { get: () => "Ready", subscribe: () => () => {} },
     trace: {
-      get: () => ({ eventCount: 1, coveredTime: 0, latest: null }),
-      subscribe: () => () => {},
+      clock: "steps",
+      continuity: "discrete",
+      epochMs: null,
+      coverage: {
+        get: () => ({
+          eventCount: 1,
+          startTime: 0,
+          coveredTime: 0,
+          ended: false,
+        }),
+        subscribe: () => () => {},
+      },
+      placeIndexById: new Map(),
+      demand: vi.fn(),
+      getEvent: () => null,
+      findEventIndexAt: () => -1,
+      findDiscreteEventAtOrBefore: () => null,
+      findDiscreteEventAfter: () => null,
+      getEventState: () => null,
+      getStateAt: () => null,
+      ...trace,
     },
     events: { subscribe: () => () => {} },
-    placeIndexById: new Map(),
     run: vi.fn(),
     pause: vi.fn(),
-    reset: vi.fn(),
-    demand: vi.fn(),
     dispose: vi.fn(),
-    getEvent: () => null,
-    findEventIndexAt: () => -1,
-    findDiscreteEventAtOrBefore: () => null,
-    findDiscreteEventAfter: () => null,
-    getEventState: () => null,
-    getStateAt: () => null,
   }) as unknown as EventSimulation;
 
 /** An experiment that reports whatever status it was last put in. */
@@ -286,7 +300,7 @@ describe("SimulationProvider on a registered simulator", () => {
       start: () =>
         Promise.resolve({
           ok: true,
-          handle: { ...makeHandle(), clock: "time" },
+          handle: makeHandle({ clock: "time" }),
         }),
     });
     const { getValue } = renderProvider([simulator.registration]);
@@ -304,7 +318,7 @@ describe("SimulationProvider on a registered simulator", () => {
       start: () =>
         Promise.resolve({
           ok: true,
-          handle: { ...makeHandle(), continuity: "continuous" },
+          handle: makeHandle({ clock: "time", continuity: "continuous" }),
         }),
     });
     // A rate takes time, and nothing moves between two of its firings.
@@ -615,7 +629,9 @@ describe("SimulationProvider in Stochastic mode", () => {
     // Playback has the experiment's samples to move over.
     expect(getValue().playbackSource?.coverage.get()).toEqual({
       eventCount: 0,
+      startTime: 0,
       coveredTime: 0,
+      ended: false,
     });
 
     // It starts once: resuming playback finds it already going.

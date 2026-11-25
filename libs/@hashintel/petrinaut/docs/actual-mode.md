@@ -8,7 +8,19 @@ While the host is still connecting or waiting for the net, and if the host repor
 
 ## Timeline and events
 
-Actual mode opens the bottom panel with an Actual timeline once execution data is available. The timeline can be scrubbed to inspect the net state at earlier points in the execution. Use the series selector below the chart to show, hide, or focus individual traces. Hover a trace and click the eye icon to hide it -- it stays in place, struck through, until the pointer leaves the selector, so a second click undoes the change -- or open the dropdown to search and use **Only**.
+Actual mode opens the bottom panel with a timeline once execution data is available. It is the timeline of a simulated run: token counts step at each transition firing, every firing is marked on the ruler, and positions read as the time of day the execution happened at, in your time zone. Drag on the ruler to scrub, scroll sideways to pan, and pinch or scroll to zoom. Use the series selector below the chart to show, hide, or focus individual traces. Hover a trace and click the eye icon to hide it -- it stays in place, struck through, until the pointer leaves the selector, so a second click undoes the change -- or open the dropdown to search and use **Only**.
+
+## Playback
+
+The bottom bar shows the playback controls of a simulated run over the execution: play and pause, previous and next event, the viewed time with a scrubber, and the playback speed.
+
+- While the execution is still happening, the view **follows** it: the canvas shows each firing as it arrives, and the readout shows the time it now is.
+- **Pause**, or scrub back, to stay on an earlier point. The execution keeps arriving on the timeline while the view holds.
+- **Play** from an earlier point plays the execution back from there at the chosen speed. Once playback reaches the end of an execution that is still happening, it follows again. Putting the scrubber at the end does the same.
+- For an execution that has ended, the view opens on its final state, and **Play** plays it back from the start.
+- The previous and next buttons move from one transition firing to the next.
+
+The readout shows the time of day at the viewed point over the latest time reported. Hover it for the full date and time.
 
 The bottom panel also includes an **Events** tab. It shows the transitions that fired, in order, including each event timestamp, transition name, and the input and output tokens by place name. An unnamed transition or place shows its id.
 

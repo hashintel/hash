@@ -13,12 +13,12 @@
  */
 
 import type { TimelineSeriesMeta } from "../shared/types";
-import type { EventSimulation } from "@hashintel/petrinaut-core";
+import type { ExecutionTrace } from "@hashintel/petrinaut-core";
 import type uPlot from "uplot";
 
-/** What the timeline reads from a run. */
+/** What the timeline reads from a trace. */
 export type TraceReader = Pick<
-  EventSimulation,
+  ExecutionTrace,
   "getEvent" | "getEventState" | "getStateAt" | "placeIndexById"
 >;
 

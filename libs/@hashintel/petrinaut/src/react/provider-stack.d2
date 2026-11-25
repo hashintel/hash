@@ -15,7 +15,7 @@ provider: "PetrinautProvider" {
   doc: "PetrinautDocumentProvider\ninstance, host values, undo history,\nuser settings, imports, document" {class: react}
   navigation: "PetrinautNavigationProvider\nthe location, keyed by the handle's id" {class: react}
   runtime: "PetrinautRuntimeProvider\nlanguage client, notifications,\nsimulators, simulation, experiments,\noptimizations, experiment host" {class: react}
-  canvas: "PetrinautCanvasProvider\nviewport, playback, active net,\npanel sizes, editor state, read-only reason,\npanel presence, frame source" {class: react}
+  canvas: "PetrinautCanvasProvider\nviewport, active net, panel sizes,\neditor state, read-only reason,\npanel presence, viewed execution,\nplayback, frame source" {class: react}
 }
 hooks: "Hooks\nuseStore, useEditorState,\nusePetrinautMutations" {class: react}
 ui: "Editor view and plugin hosts"

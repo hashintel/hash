@@ -5,53 +5,42 @@ import { afterEach, expect, it } from "vitest";
 
 import {
   createReadableStore,
-  type EventPlaybackSnapshot,
+  type TracePlayerSnapshot,
 } from "@hashintel/petrinaut-core";
 
 import { EventPlaybackContext } from "../event-playback/context";
 import {
-  DEFAULT_SIMULATION_CONTEXT,
-  SimulationContext,
-  type SimulationContextValue,
-} from "../simulation/context";
+  ExecutionTraceContext,
+  NO_VIEWED_EXECUTION,
+} from "../execution-trace/context";
+import { createQueueTrace } from "../execution-trace/trace.test-helpers";
 import { useEventExecutionFrameSource } from "./use-event-execution-frame-source";
 
 afterEach(cleanup);
 
-const times = [0, 1, 2];
-const run = {
-  trace: { get: () => ({ eventCount: times.length }) },
-  findEventIndexAt: (time: number) =>
-    times.findLastIndex((eventTime) => eventTime <= time),
-  getEvent: (index: number) =>
-    times[index] === undefined ? null : { time: times[index] },
-  getEventState: (index: number) => ({ index }),
-  getStateAt: () => null,
-  findDiscreteEventAtOrBefore: () => null,
-  findDiscreteEventAfter: () => null,
-} as unknown as SimulationContextValue["eventSimulation"];
-
 it("keeps one function to read frames while playback moves", async () => {
-  const playbackStore = createReadableStore<EventPlaybackSnapshot>({
+  const { trace } = createQueueTrace({ firingTimes: [1, 2], coveredTime: 2 });
+  const playbackStore = createReadableStore<TracePlayerSnapshot>({
     playState: "Playing",
     time: 0,
     speed: 1,
     mode: "computeBuffer",
+    following: false,
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <SimulationContext
-      value={{ ...DEFAULT_SIMULATION_CONTEXT, eventSimulation: run }}
+    <ExecutionTraceContext
+      value={{ ...NO_VIEWED_EXECUTION, trace, playable: trace }}
     >
       <EventPlaybackContext
         value={{
           ...use(EventPlaybackContext),
-          eventCount: times.length,
+          eventCount: trace.coverage.get().eventCount,
           playbackStore,
         }}
       >
         {children}
       </EventPlaybackContext>
-    </SimulationContext>
+    </ExecutionTraceContext>
   );
 
   const { result } = renderHook(() => useEventExecutionFrameSource(), {
@@ -64,6 +53,14 @@ it("keeps one function to read frames while playback moves", async () => {
 
   expect(result.current.currentFrameIndex).toBe(2);
   expect(result.current.totalFrames).toBe(3);
+  expect(result.current.currentViewedFrame?.places).toEqual({
+    queued: { tokenCount: 1 },
+    done: { tokenCount: 2 },
+  });
   expect(result.current.getFramesInRange).toBe(getFramesInRange);
-  expect(await getFramesInRange(1)).toEqual([{ index: 1 }, { index: 2 }]);
+  expect(
+    (await getFramesInRange(1)).map((frame) =>
+      frame.getPlaceTokenCount("done"),
+    ),
+  ).toEqual([1, 2]);
 });

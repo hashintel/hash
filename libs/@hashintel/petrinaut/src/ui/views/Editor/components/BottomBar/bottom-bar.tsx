@@ -27,6 +27,7 @@ import { CursorModeDropdown } from "./cursor-mode-dropdown";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { EditionTools } from "./edition-tools";
 import { EventSimulationControls } from "./event-simulation-controls";
+import { ExecutionPlaybackControls } from "./execution-playback-controls";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 import { useBottomBarLayout } from "./use-bottom-bar-layout";
@@ -207,7 +208,9 @@ export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
                 size="sm"
               />
             </ToolbarButton>
-            {!isActualMode && (
+            {isActualMode ? (
+              <ExecutionPlaybackControls />
+            ) : (
               <>
                 <DiagnosticsIndicator
                   onClick={showDiagnostics}

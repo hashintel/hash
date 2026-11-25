@@ -91,13 +91,12 @@ The preview imports these components from inside the folder of
 [the editor shell](layer:ui.views.editor), so a change to one of them is a
 change to the preview:
 
-| Component                 | File, under `views/Editor/`                                | Mounted by                              |
-| ------------------------- | ---------------------------------------------------------- | --------------------------------------- |
-| `SelectedItemProperties`  | `panels/PropertiesPanel/selected-item-properties.tsx`      | `properties-panel.tsx`                  |
-| `NetNavigationList`       | `panels/LeftSideBar/subviews/nets-list.tsx`                | `preview-net-navigation.tsx`            |
-| `EventSimulationControls` | `components/BottomBar/event-simulation-controls.tsx`       | `preview-quick-simulation-controls.tsx` |
-| `EventTimeline`           | `panels/BottomPanel/subviews/timeline/run-timeline.tsx`    | `preview-quick-simulation-controls.tsx` |
-| `ActualTimeline`          | `panels/BottomPanel/subviews/timeline/actual-timeline.tsx` | `preview-actual-mode-timeline.tsx`      |
+| Component                 | File, under `views/Editor/`                             | Mounted by                                                                  |
+| ------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `SelectedItemProperties`  | `panels/PropertiesPanel/selected-item-properties.tsx`   | `properties-panel.tsx`                                                      |
+| `NetNavigationList`       | `panels/LeftSideBar/subviews/nets-list.tsx`             | `preview-net-navigation.tsx`                                                |
+| `EventSimulationControls` | `components/BottomBar/event-simulation-controls.tsx`    | `preview-quick-simulation-controls.tsx`                                     |
+| `EventTimeline`           | `panels/BottomPanel/subviews/timeline/run-timeline.tsx` | `preview-quick-simulation-controls.tsx`, `preview-actual-mode-timeline.tsx` |
 
 ## Rules
 
@@ -106,11 +105,12 @@ change to the preview:
   What needs Monaco or the language client is
   behind a capability that the `preview` profile switches off in
   `../presentation/presentation-context.ts`. `petrinaut-preview.test.tsx`
-  mounts `ActualTimeline` below the preview's own providers, in "opens an
-  execution in Actual mode on its latest frame, with its timeline". No test
-  mounts the others there: `preview-quick-simulation-controls.test.tsx`
-  replaces `EventSimulationControls` and `EventTimeline` with stand-ins, and
-  no preview test selects an item or shows a net with components.
+  mounts `EventTimeline` below the preview's own providers, in "opens an
+  execution in Actual mode on its latest frame, with its timeline", with a
+  stand-in for its chart. No test mounts the others there:
+  `preview-quick-simulation-controls.test.tsx` replaces
+  `EventSimulationControls` and `EventTimeline` with stand-ins, and no
+  preview test selects an item or shows a net with components.
 - **`quickSimulation` and `actualMode` exclude each other.** The preview
   opens in one mode: Actual for an execution, Simulate for a run. Held by "refuses
   both an execution and Quick Simulation" in `petrinaut-preview.test.tsx`.

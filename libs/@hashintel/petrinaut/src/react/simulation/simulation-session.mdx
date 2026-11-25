@@ -8,17 +8,20 @@ sidebar_order: 10
 experiment on the selected simulator, and mirrors its handle into React. It
 computes nothing: a simulator from
 [the simulators layer](layer:react.simulators) computes,
-[event playback](layer:react.event-playback) moves the viewed time, and
+[the viewed execution](layer:react.execution-trace) says which trace the
+editor shows, [event playback](layer:react.event-playback) moves the viewed
+time over it, and
 [the execution frame source](layer:react.execution-frame) hands frames to the
 views.
 
-![A start takes the configuration and gives a run in Quick mode or an experiment in Stochastic mode. Playback bounds how far a run computes, and the views read a run's frames and the host's Actual mode stream through one source.](./simulation-session.d2)
+![A start takes the configuration and gives a run in Quick mode or an experiment in Stochastic mode. A run is a trace its worker writes, and the host's execution in Actual mode is mapped to one. The trace of the editor's mode is the one viewed: one player moves over it, and the views read it.](./simulation-session.d2)
 
 ## Entry point
 
 `SimulationProvider` in `provider.tsx` publishes `SimulationContext`. It is
-mounted below `SimulatorsProvider`, and above `EventPlaybackProvider` and
-`ExecutionFrameProvider`.
+mounted below `SimulatorsProvider`, and above `ExecutionTraceProvider`,
+`EventPlaybackProvider` and `ExecutionFrameProvider`, which wrap one another
+in that order below the editor state.
 
 ## Interface
 
@@ -28,6 +31,7 @@ mounted below `SimulatorsProvider`, and above `EventPlaybackProvider` and
 | Discard the run                   | `reset` of `SimulationContext`                                                                                                                                                                     |
 | Change what the next run computes | `setInitialMarking`, `setParameterValue`, `setMode`, `setRuns`, `setMaxTime`, `selectSimulator`, `setSimulatorParameter`, `setSelectedScenarioId`, `setAdHocScenario`, `setScenarioParameterValue` |
 | Show where it stands              | `state`, `error`; `eventCount` of `EventPlaybackContext` for a run                                                                                                                                 |
+| Read the viewed execution         | `trace`, `origin`, `clock` and `continuity` of `ExecutionTraceContext`                                                                                                                             |
 | Show the state of a run at a time | `currentFrameReader` of `ExecutionFrameSourceContext`                                                                                                                                              |
 | Show the metrics of an experiment | `stochasticRun.reader`                                                                                                                                                                             |
 | Show the viewed time              | `useEventPlaybackFrame`                                                                                                                                                                            |
@@ -38,8 +42,9 @@ the viewed time, which a `SimulationFrameReader` gives: `getPlaceTokenCount`
 and `getPlaceTokens` for a place, `getTransitionState` for a transition.
 
 `clock` says what a position counts: simulated seconds, or steps for an
-untimed net. The location owns the selected scenario, so
-`setSelectedScenarioId` navigates.
+untimed net. A view reads it from `ExecutionTraceContext`, which gives the
+viewed execution's clock; `SimulationContext` gives the simulation's. The
+location owns the selected scenario, so `setSelectedScenarioId` navigates.
 
 ## Data flow
 
@@ -56,24 +61,30 @@ Pressing Play with nothing started:
    assessed with the request, and starts an `EventSimulation` in Quick mode
    or a `MonteCarloExperiment` in Stochastic mode.
 4. The provider keeps the handle in state and reads its status with
-   `useStore`. `playbackSource` exposes the handle's coverage, its status and
-   `demand`.
-5. `EventPlaybackProvider` advances the viewed time once per animation
-   frame. For a run it demands the viewed time plus the lead of the play
-   mode, which `EVENT_PLAY_MODE_LEAD` gives: 2 seconds in `computeBuffer`,
-   no bound in `computeMax`. In `viewOnly` it demands nothing, so the run
-   computes nothing more. `event-playback/provider.test.tsx` holds both.
-6. `ExecutionFrameProvider` publishes the run's state at the viewed time.
+   `useStore`. `playbackSource` is the run's
+   [execution trace](layer:core.execution-trace), which the worker's events
+   are written to.
+5. `ExecutionTraceProvider` gives that trace as the viewed execution, and
+   `EventPlaybackProvider` loads it into the one player.
+6. The player advances the viewed time once per animation frame. It asks
+   the trace to cover the viewed time plus the lead of the play mode, which
+   `EVENT_PLAY_MODE_LEAD` gives: 2 seconds in `computeBuffer`, no bound in
+   `computeMax`. In `viewOnly` it asks for nothing, so the run computes
+   nothing more. `event-playback/provider.test.tsx` holds both.
+7. `ExecutionFrameProvider` publishes the trace's state at the viewed time.
 
-Stochastic mode differs from step 5 on. The experiment computes freely, and
-its `demand` does nothing. It has no frames: `currentFrameReader` is null,
-`totalFrames` stays at zero, and a view reads the metrics by time from
-`stochasticRun.reader`.
+Stochastic mode differs from step 4 on. `playbackSource` is the experiment's
+samples as something the player can play: positions, and no events. The
+experiment computes freely, so asking it to cover a time does nothing. It
+has no frames: `currentFrameReader` is null, `totalFrames` stays at zero,
+and a view reads the metrics by time from `stochasticRun.reader`.
 
-In Actual mode the host supplies a stream of firings through
-`ActualModeContext`. `ExecutionFrameProvider` publishes its frames through
-the same `ExecutionFrameSource`, and the viewed frame is an index the
-provider holds, which playback does not move.
+In Actual mode the host supplies an initial state and a list of firings
+through `ActualModeContext`, and `useActualModeTrace` maps them to an
+execution trace. From step 5 on nothing differs: the same player moves over
+that trace and the same views read it. The player opens it at its end and
+follows it while the host's execution is still going, and Play never starts
+or pauses a simulation there.
 
 `reset` ends the run and puts the parameter values back to their defaults. It
 keeps `initialMarking`, which configures the next run.
@@ -95,6 +106,11 @@ created in the Simulate view never passes through this provider:
 - **Play pressed during a start joins that start.** A second `initialize`
   would supersede the first and compile the net again. Held by
   `event-playback/provider.test.tsx`.
+- **One trace lasts for one execution of the host.** The trace grows with
+  the host's list of firings, so the viewed position and the zoom of the
+  timeline survive an update. Another source id, another net, or a list
+  that does not continue the one mapped starts a new trace. Held by
+  `execution-trace/use-actual-mode-trace.test.tsx`.
 
 ## Pitfalls
 

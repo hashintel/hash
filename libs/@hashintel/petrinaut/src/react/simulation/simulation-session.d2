@@ -16,9 +16,12 @@ provider: "SimulationProvider" {
 }
 run: "EventSimulation\nQuick mode" {class: core}
 experiment: "MonteCarloExperiment\nStochastic mode" {class: core}
-source: "PlaybackSource\ncoverage, status, demand(time)" {class: react}
-playback: "EventPlaybackProvider\nviewed time, frame loop" {class: react}
-recording: "Actual mode stream\nfirings from the host" {class: core}
+trace: "ExecutionTrace\nevents, state at a time,\ncoverage, demand(time)" {class: core}
+samples: "Samples of the experiment\npositions, no events" {class: react}
+recording: "Actual mode\ninitial state and firings\nfrom the host" {class: core}
+mapping: "useActualModeTrace\nmaps firings to events" {class: react}
+viewed: "ExecutionTraceProvider\nthe trace of the editor's mode" {class: react}
+playback: "EventPlaybackProvider\none player: viewed time, frame loop" {class: react}
 frames: "ExecutionFrameSource\ncurrent frame reader" {class: react}
 readers: "Canvas, timeline, visualizers"
 
@@ -28,11 +31,16 @@ simulators -> provider.start: "offers the selected simulator to"
 playback -> provider.start: "calls on Play"
 provider.start -> run: "starts"
 provider.start -> experiment: "starts"
-run -> source: "exposes its stores as"
-experiment -> source: "exposes its stores as"
-playback -> source: "reads coverage of,\ndemands time of a run from"
-run -> frames: "records\nevents for"
-recording -> frames: "supplies\nfirings to"
-playback -> frames: "sets the viewed\ntime of a run in"
+run -> trace: "writes its\nevents to"
+recording -> mapping: "supplies\nfirings to"
+mapping -> trace: "writes its\nevents to"
+experiment -> samples: "exposes its\nstores as"
+trace -> viewed: "is offered to"
+samples -> viewed: "are offered to"
+viewed -> playback: "gives what\nto play to"
+playback -> trace: "reads coverage of,\nasks a run to cover a time"
+viewed -> frames: "gives the\ntrace to"
+playback -> frames: "sets the\nviewed time in"
 frames -> readers: "feeds frames to"
+viewed -> readers: "gives the trace to\nthe timeline"
 experiment -> readers: "feeds metrics to"

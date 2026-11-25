@@ -7,8 +7,8 @@ import {
   type ExperimentReader,
   type MonteCarloExperiment,
   type MonteCarloMetricSpec,
-  type SimulationState as CoreSimulationState,
   type Parameter,
+  type PlayableTrace,
   type InitialMarking,
   type InitialPlaceMarking,
   type RunClock,
@@ -16,7 +16,6 @@ import {
   type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
-  type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
 import type { SimulationMode, SimulatorSelection } from "../simulators/context";
@@ -40,22 +39,6 @@ export type SimulationState =
   | "Complete"
   | "Error"
   | "Paused";
-
-/**
- * What playback moves a viewed time over, whichever mode computed it: how
- * far the time may go, whether more is coming, and a way to ask for more.
- */
-export type PlaybackSource = {
-  readonly coverage: ReadableStore<{
-    /** Recorded states to view. Zero until the first one arrives. */
-    eventCount: number;
-    /** Simulation time the viewed time may reach. */
-    coveredTime: number;
-  }>;
-  readonly status: ReadableStore<CoreSimulationState>;
-  /** Asks for the computation to cover `time`. A no-op when it runs freely. */
-  demand(time: number): void;
-};
 
 /** The experiment a Stochastic simulation computes, as the editor holds it. */
 export type StochasticRun = {
@@ -126,13 +109,13 @@ export type SimulationContextValue = {
   /** The Stochastic simulation's experiment while one exists; null otherwise. */
   stochasticRun: StochasticRun | null;
   /**
-   * What playback moves over: the run's events in Quick mode, the
+   * What playback moves over: the run's trace in Quick mode, the
    * experiment's samples in Stochastic mode. Null without a run.
    */
-  playbackSource: PlaybackSource | null;
+  playbackSource: PlayableTrace | null;
   /**
-   * The Quick Simulation's run while one exists; null otherwise. Playback
-   * reads its trace through it.
+   * The Quick Simulation's run while one exists; null otherwise: the trace
+   * its worker writes, and the controls of the computation.
    */
   eventSimulation: EventSimulation | null;
 
