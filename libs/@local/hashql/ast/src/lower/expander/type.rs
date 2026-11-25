@@ -25,7 +25,7 @@ use crate::{
 };
 
 fn lower_call_to_type<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     mut call: CallExpr<'heap>,
 ) -> Type<'heap>
 where
@@ -110,7 +110,7 @@ where
 /// valid. Everything else produces a diagnostic and returns [`Type::dummy`].
 /// [`ExprKind::Dummy`] is suppressed (a resolution error was already reported).
 pub(super) fn lower_expr_to_type<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     expr: Expr<'heap>,
 ) -> Type<'heap>
 where
@@ -303,7 +303,7 @@ where
 }
 
 pub(super) fn argument_to_generic_ident<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     argument: &mut Argument<'heap>,
 ) -> Option<(Ident<'heap>, heap::Vec<'heap, GenericConstraint<'heap>>)>
@@ -359,7 +359,7 @@ where
 
 fn lower_type_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     name: &mut Argument<'heap>,
     value: &mut Argument<'heap>,
@@ -459,7 +459,7 @@ where
 ///
 /// [`TypeExpr`]: crate::node::expr::TypeExpr
 pub(super) fn lower_type<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

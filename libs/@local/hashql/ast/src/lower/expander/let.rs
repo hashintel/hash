@@ -32,7 +32,7 @@ pub(super) fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ide
 
 fn lower_let_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     name: &Argument<'heap>,
     value: &mut Argument<'heap>,
@@ -128,7 +128,7 @@ where
 ///
 /// [`LetExpr`]: crate::node::expr::LetExpr
 pub(super) fn lower_let<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

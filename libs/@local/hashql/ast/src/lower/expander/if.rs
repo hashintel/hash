@@ -13,7 +13,7 @@ use crate::{
 
 fn lower_if_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     test: &mut Argument<'heap>,
     then: &mut Argument<'heap>,
@@ -53,7 +53,7 @@ where
 ///
 /// [`IfExpr`]: crate::node::expr::IfExpr
 pub(super) fn lower_if<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

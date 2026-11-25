@@ -81,16 +81,16 @@ use crate::{
 /// Dead stores are assignments, storage statements, and block parameters whose values are never
 /// used in any observable way. This includes locals that are only used by other dead locals,
 /// even in cyclic dependency patterns.
-pub struct DeadStoreElimination<'scratch, S> {
-    alloc: &'scratch mut S,
+pub struct DeadStoreElimination<S> {
+    alloc: S,
 }
 
-impl<'scratch, S> DeadStoreElimination<'scratch, S> {
+impl<S> DeadStoreElimination<S> {
     /// Creates a new [`DeadStoreElimination`].
     ///
     /// The pass opens its scopes on `alloc`.
     #[must_use]
-    pub const fn new_in(alloc: &'scratch mut S) -> Self {
+    pub const fn new_in(alloc: S) -> Self {
         Self { alloc }
     }
 
@@ -124,7 +124,7 @@ impl<'scratch, S> DeadStoreElimination<'scratch, S> {
     }
 }
 
-impl<'env, 'heap, 'alloc, S> TransformPass<'env, 'heap> for DeadStoreElimination<'_, S>
+impl<'env, 'heap, 'alloc, S> TransformPass<'env, 'heap> for DeadStoreElimination<S>
 where
     S: ScopeAllocator<'alloc>,
 {

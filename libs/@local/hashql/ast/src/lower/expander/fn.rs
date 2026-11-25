@@ -22,7 +22,7 @@ use crate::{
 };
 
 fn lower_generics_tuple<'heap, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     tuple: &mut crate::node::expr::TupleExpr<'heap>,
 ) -> Generics<'heap> {
     if let Some(annotation) = tuple.r#type.as_ref() {
@@ -58,7 +58,7 @@ fn lower_generics_tuple<'heap, S>(
 }
 
 fn lower_generics_struct<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     r#struct: &mut crate::node::expr::StructExpr<'heap>,
 ) -> Generics<'heap>
 where
@@ -106,7 +106,7 @@ where
 }
 
 fn lower_generics<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     generics: &mut Argument<'heap>,
 ) -> Generics<'heap>
@@ -168,7 +168,7 @@ where
 }
 
 fn lower_params<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     params: &mut Argument<'heap>,
 ) -> heap::Vec<'heap, ClosureParam<'heap>>
@@ -230,7 +230,7 @@ where
 
 fn lower_fn_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     generics: &mut Argument<'heap>,
     params: &mut Argument<'heap>,
@@ -312,7 +312,7 @@ where
 ///
 /// [`ClosureExpr`]: crate::node::expr::ClosureExpr
 pub(super) fn lower_fn<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

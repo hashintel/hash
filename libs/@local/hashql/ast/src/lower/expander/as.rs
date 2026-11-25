@@ -13,7 +13,7 @@ use crate::{
 
 fn lower_as_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     body: &mut Argument<'heap>,
     r#type: &mut Argument<'heap>,
@@ -47,7 +47,7 @@ where
 ///
 /// [`AsExpr`]: crate::node::expr::AsExpr
 pub(super) fn lower_as<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

@@ -8,7 +8,9 @@
 //! - [`PhaseAllocator`] allocates values and slices that live for `'alloc`. An implementor is an
 //!   [`AllocatorPointer`], a shared reference that you take by value.
 //! - [`ScopeAllocator`] is an arena that also opens scopes, which release their memory when they
-//!   end. Take one as `&mut S` to open scopes with exclusive access. `&S` is a [`PhaseAllocator`].
+//!   end. Take one as `&mut S` in a function to open scopes with exclusive access. A type that
+//!   stores its arena holds an `S`, and `&mut S` is itself a `ScopeAllocator`. `&S` is a
+//!   [`PhaseAllocator`].
 //! - [`SymbolAllocator`] interns strings as [`Symbol`]s that live for `'alloc`.
 //! - [`ResetAllocator`] releases every allocation of an arena at once.
 //!

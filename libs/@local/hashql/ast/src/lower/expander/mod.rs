@@ -95,9 +95,9 @@ struct CurrentItem<'heap> {
 /// `fn`, `use`) into typed AST nodes. Errors that prevent resolution produce
 /// dummy expression placeholders so that later diagnostics can be
 /// suppressed for cascading failures.
-pub struct Expander<'env, 'heap, 'scratch, S> {
+pub struct Expander<'env, 'heap, S> {
     heap: &'heap heap::Heap,
-    scratch: &'scratch mut S,
+    scratch: S,
 
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
@@ -108,13 +108,13 @@ pub struct Expander<'env, 'heap, 'scratch, S> {
     special_form_module: module::ModuleId,
 }
 
-impl<'env, 'heap, 'scratch, S> Expander<'env, 'heap, 'scratch, S> {
+impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     /// Creates a new [`Expander`] with the given namespace and scratch space.
     ///
     /// # Panics
     ///
     /// Panics if the standard library does not contain the kernel module.
-    pub fn new(mut namespace: ModuleNamespace<'env, 'heap>, scratch: &'scratch mut S) -> Self {
+    pub fn new(mut namespace: ModuleNamespace<'env, 'heap>, scratch: S) -> Self {
         // First we need to find the special form module, this is used during resolution to forbid
         // the use of generics attached to them.
         let kernel_module = namespace
@@ -259,7 +259,7 @@ impl<'env, 'heap, 'scratch, S> Expander<'env, 'heap, 'scratch, S> {
     }
 }
 
-impl<'heap, 'alloc, S> Visitor<'heap> for Expander<'_, 'heap, '_, S>
+impl<'heap, 'alloc, S> Visitor<'heap> for Expander<'_, 'heap, S>
 where
     S: ScopeAllocator<'alloc>,
 {

@@ -454,21 +454,21 @@ fn mark_dead_blocks<A: Allocator>(
 /// Control-flow graph simplification pass.
 ///
 /// Simplifies the CFG by merging blocks, constant-folding switches, and eliminating dead blocks.
-pub struct CfgSimplify<'scratch, S> {
-    alloc: &'scratch mut S,
+pub struct CfgSimplify<S> {
+    alloc: S,
 }
 
-impl<'scratch, S> CfgSimplify<'scratch, S> {
+impl<S> CfgSimplify<S> {
     /// Creates a new instance of the control-flow graph simplification pass.
     ///
     /// The pass opens its scopes on `alloc`.
     #[must_use]
-    pub const fn new_in(alloc: &'scratch mut S) -> Self {
+    pub const fn new_in(alloc: S) -> Self {
         Self { alloc }
     }
 }
 
-impl<'alloc, S> CfgSimplify<'_, S>
+impl<'alloc, S> CfgSimplify<S>
 where
     S: ScopeAllocator<'alloc>,
 {
@@ -483,7 +483,7 @@ where
     }
 }
 
-impl<'env, 'heap, 'alloc, S> TransformPass<'env, 'heap> for CfgSimplify<'_, S>
+impl<'env, 'heap, 'alloc, S> TransformPass<'env, 'heap> for CfgSimplify<S>
 where
     S: ScopeAllocator<'alloc>,
 {

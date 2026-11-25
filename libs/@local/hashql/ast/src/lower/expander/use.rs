@@ -22,7 +22,7 @@ use crate::{
 };
 
 fn lower_imports_tuple<'heap, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     tuple: &mut crate::node::expr::TupleExpr<'heap>,
 ) -> UseKind<'heap> {
     if let Some(annotation) = tuple.r#type.as_ref() {
@@ -60,7 +60,7 @@ fn lower_imports_tuple<'heap, S>(
 }
 
 fn lower_imports_struct<'heap, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     r#struct: &mut crate::node::expr::StructExpr<'heap>,
 ) -> UseKind<'heap> {
     if let Some(annotation) = r#struct.r#type.as_ref() {
@@ -111,7 +111,7 @@ fn lower_imports_struct<'heap, S>(
 }
 
 fn lower_imports<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     imports: &mut Argument<'heap>,
 ) -> Option<UseKind<'heap>>
@@ -179,7 +179,7 @@ where
 }
 
 fn lower_body<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     path: &Path<'heap>,
     imports: UseKind<'heap>,
     body: &mut Argument<'heap>,
@@ -269,7 +269,7 @@ where
 }
 
 fn lower_use_impl<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     path: &mut Argument<'heap>,
     imports: &mut Argument<'heap>,
@@ -325,7 +325,7 @@ where
 /// It resolves the imports into the namespace, visits the body with
 /// those imports available, and returns the body directly.
 pub(super) fn lower_use<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

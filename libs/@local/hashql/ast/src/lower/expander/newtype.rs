@@ -21,7 +21,7 @@ use crate::{
 
 fn lower_newtype_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     name: &mut Argument<'heap>,
     value: &mut Argument<'heap>,
@@ -94,7 +94,7 @@ where
 ///
 /// [`NewTypeExpr`]: crate::node::expr::NewTypeExpr
 pub(super) fn lower_newtype<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

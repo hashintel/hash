@@ -25,16 +25,16 @@ use crate::{
 /// more optimization opportunities that may require additional passes to fully resolve.
 ///
 /// See [`Canonicalization`] for details on the pass ordering and implementation.
-pub struct PostInline<'scratch, S> {
-    canonicalization: Canonicalization<'scratch, S>,
+pub struct PostInline<S> {
+    canonicalization: Canonicalization<S>,
 }
 
-impl<'scratch, S> PostInline<'scratch, S> {
+impl<S> PostInline<S> {
     /// Creates a new post-inlining pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
     /// between pass invocations.
-    pub const fn new_in(alloc: &'scratch mut S) -> Self {
+    pub const fn new_in(alloc: S) -> Self {
         Self {
             canonicalization: Canonicalization::new_in(
                 CanonicalizationConfig { max_iterations: 16 },
@@ -44,7 +44,7 @@ impl<'scratch, S> PostInline<'scratch, S> {
     }
 }
 
-impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for PostInline<'_, S>
+impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for PostInline<S>
 where
     S: ScopeAllocator<'alloc>,
 {

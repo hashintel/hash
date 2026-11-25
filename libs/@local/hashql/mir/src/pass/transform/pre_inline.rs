@@ -23,16 +23,16 @@ use crate::{
 /// - The overall MIR size is reduced before the potential code explosion from inlining
 ///
 /// See [`Canonicalization`] for details on the pass ordering and implementation.
-pub struct PreInline<'scratch, S> {
-    canonicalization: Canonicalization<'scratch, S>,
+pub struct PreInline<S> {
+    canonicalization: Canonicalization<S>,
 }
 
-impl<'scratch, S> PreInline<'scratch, S> {
+impl<S> PreInline<S> {
     /// Creates a new pre-inlining pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
     /// between pass invocations.
-    pub const fn new_in(alloc: &'scratch mut S) -> Self {
+    pub const fn new_in(alloc: S) -> Self {
         Self {
             canonicalization: Canonicalization::new_in(
                 CanonicalizationConfig { max_iterations: 8 },
@@ -42,7 +42,7 @@ impl<'scratch, S> PreInline<'scratch, S> {
     }
 }
 
-impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for PreInline<'_, S>
+impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for PreInline<S>
 where
     S: ScopeAllocator<'alloc>,
 {

@@ -13,7 +13,7 @@ use crate::{
 
 fn lower_index_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     value: &mut Argument<'heap>,
     index: &mut Argument<'heap>,
@@ -46,7 +46,7 @@ where
 ///
 /// [`IndexExpr`]: crate::node::expr::IndexExpr
 pub(super) fn lower_index<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

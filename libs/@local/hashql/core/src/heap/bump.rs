@@ -248,6 +248,25 @@ mod tests {
         })
     }
 
+    // The same with the arena held by value, as a pass that stores its arena does.
+    fn total_len_owned<'heap, 'alloc, S>(mut alloc: S, names: &[&'heap str]) -> usize
+    where
+        'heap: 'alloc,
+        S: ScopeAllocator<'alloc>,
+    {
+        let Some((&first, rest)) = names.split_first() else {
+            return 0;
+        };
+
+        let kept: &'alloc [&'heap str] = alloc.alloc_slice_copy(&[first]);
+
+        alloc.scoped(|scope| {
+            let parent = scope.alloc(kept);
+
+            parent[0].len() + total_len_owned(scope, rest)
+        })
+    }
+
     // Uses its allocator for two allocations, as a type that stores one does.
     fn sum_in<'alloc, A>(alloc: A, values: &[u32]) -> u32
     where
@@ -345,6 +364,25 @@ mod tests {
 
         bump.reset();
         assert_eq!(total_len(bump.as_mut_scope(), &names), 4);
+    }
+
+    #[test]
+    fn scopes_through_exclusive_reference() {
+        let names = ["a", "bcd", "ef"];
+
+        let mut bump = Bump::new();
+        let root = bump.as_mut_scope();
+
+        // A reborrow keeps `root` usable, and both calls nest scopes of one type.
+        assert_eq!(total_len_owned(&mut *root, &names), 6);
+        assert_eq!(
+            root.scoped(|mut scope| total_len_owned(&mut scope, &names)),
+            6
+        );
+        assert_eq!(root.scoped_ref(|scope| *scope.alloc(1_u32)), 1);
+
+        let kept = (&root).alloc(2_u32);
+        assert_eq!(total_len_owned(root, &names) + *kept as usize, 8);
     }
 
     #[test]

@@ -28,7 +28,7 @@ fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ident<'heap>> 
 
 fn lower_input_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     name: &Argument<'heap>,
     r#type: &mut Argument<'heap>,
@@ -87,7 +87,7 @@ where
 ///
 /// [`InputExpr`]: crate::node::expr::InputExpr
 pub(super) fn lower_input<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

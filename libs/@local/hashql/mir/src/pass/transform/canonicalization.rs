@@ -48,34 +48,34 @@ impl Default for CanonicalizationConfig {
 /// 3. **Value propagation** (FS/CP alternating) - Propagates values through the code
 /// 4. **Dead store elimination** - Removes stores made dead by propagation
 /// 5. **CFG simplification** - Cleans up control flow after local changes
-pub struct Canonicalization<'scratch, S> {
-    alloc: &'scratch mut S,
+pub struct Canonicalization<S> {
+    alloc: S,
     config: CanonicalizationConfig,
 }
 
-impl<'scratch, S> Canonicalization<'scratch, S> {
+impl<S> Canonicalization<S> {
     /// Creates a new canonicalization pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
     /// between pass invocations.
-    pub const fn new_in(config: CanonicalizationConfig, alloc: &'scratch mut S) -> Self {
+    pub const fn new_in(config: CanonicalizationConfig, alloc: S) -> Self {
         Self { alloc, config }
     }
 
     /// Returns a reference to the allocator used for temporary data structures.
     #[must_use]
     pub const fn allocator(&self) -> &S {
-        self.alloc
+        &self.alloc
     }
 
     /// Returns a mutable reference to the allocator, allowing callers to run additional
     /// passes within the same allocator scope.
     pub const fn allocator_mut(&mut self) -> &mut S {
-        self.alloc
+        &mut self.alloc
     }
 }
 
-impl<'alloc, S> Canonicalization<'_, S>
+impl<'alloc, S> Canonicalization<S>
 where
     S: ScopeAllocator<'alloc>,
 {
@@ -211,7 +211,7 @@ where
     }
 }
 
-impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for Canonicalization<'_, S>
+impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for Canonicalization<S>
 where
     S: ScopeAllocator<'alloc>,
 {
@@ -225,7 +225,7 @@ where
         let global = state;
 
         let state = {
-            let uninit = (&*self.alloc).alloc_slice_uninit(bodies.len());
+            let uninit = self.alloc.alloc_slice_uninit(bodies.len());
             let init = uninit.write_filled(Changed::No);
 
             DefIdSlice::from_raw_mut(init)

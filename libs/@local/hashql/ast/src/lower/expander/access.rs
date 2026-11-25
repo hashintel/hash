@@ -22,7 +22,7 @@ use crate::{
 /// access (integer literals like `0` for tuple fields). Integer literals are
 /// validated for bounds.
 fn argument_to_field<'heap, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     argument: &Argument<'heap>,
 ) -> Option<Ident<'heap>> {
     // Integer literal for tuple field access
@@ -70,7 +70,7 @@ fn argument_to_field<'heap, S>(
 
 fn lower_access_impl<'heap, 'alloc, S>(
     span: SpanId,
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
 
     value: &mut Argument<'heap>,
     field: &Argument<'heap>,
@@ -108,7 +108,7 @@ where
 ///
 /// [`FieldExpr`]: crate::node::expr::FieldExpr
 pub(super) fn lower_access<'heap, 'alloc, S>(
-    expander: &mut Expander<'_, 'heap, '_, S>,
+    expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
         span,

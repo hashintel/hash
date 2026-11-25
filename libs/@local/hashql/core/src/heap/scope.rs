@@ -62,6 +62,10 @@ delegate_scope_allocator!(
 /// method call on a `ScopeAllocator` you hold takes that reference for you. What you allocate does
 /// not borrow the `ScopeAllocator` and stays usable while you open a scope on it.
 ///
+/// An exclusive reference to a `ScopeAllocator` is itself a `ScopeAllocator` for the same `'alloc`
+/// and opens the same scopes. Pass `&mut arena` to a type that stores an `S: ScopeAllocator` when
+/// you use the arena again afterwards.
+///
 /// A scope is an arena for temporary data: when it ends, it releases the memory allocated through
 /// it. Opening one around each step of a long computation keeps the intermediate values of every
 /// step from accumulating in the arena. You open a scope with a closure, and the scope ends when
@@ -200,6 +204,58 @@ pub const unsafe trait ScopeAllocator<'alloc>: Allocator {
         &self,
         func: impl for<'scope> FnOnce(Scoped<'scope, 'alloc, Self::Scoped<'scope>>) -> T,
     ) -> T;
+}
+
+// SAFETY: `S` upholds the conditions on the allocations and on the scopes, and every function here
+// calls the function of the same name on that `S`. The reference owns no memory of the arena, and
+// dropping it releases none. Therefore every condition that holds for `S` holds for `&mut S`.
+const unsafe impl<'alloc, S> ScopeAllocator<'alloc> for &mut S
+where
+    S: [const] ScopeAllocator<'alloc> + ?Sized,
+{
+    type Scoped<'scope> = S::Scoped<'scope>;
+
+    #[inline]
+    unsafe fn try_alloc_with_unchecked<T>(
+        this: &Self,
+        value: impl [const] FnOnce() -> T + [const] Destruct,
+    ) -> Result<&'alloc mut T, AllocError> {
+        // SAFETY: The caller upholds the same requirement.
+        unsafe { S::try_alloc_with_unchecked(&**this, value) }
+    }
+
+    #[inline]
+    unsafe fn try_alloc_slice_uninit_unchecked<T>(
+        this: &Self,
+        len: usize,
+    ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
+        // SAFETY: The caller upholds the same requirement.
+        unsafe { S::try_alloc_slice_uninit_unchecked(&**this, len) }
+    }
+
+    #[inline]
+    fn try_alloc_slice_copy<T>(this: &Self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+    where
+        T: Copy,
+    {
+        S::try_alloc_slice_copy(&**this, slice)
+    }
+
+    #[inline]
+    fn scoped<T>(
+        &mut self,
+        func: impl for<'scope> FnOnce(Scoped<'scope, 'alloc, Self::Scoped<'scope>>) -> T,
+    ) -> T {
+        S::scoped(&mut **self, func)
+    }
+
+    #[inline]
+    fn scoped_ref<T>(
+        &self,
+        func: impl for<'scope> FnOnce(Scoped<'scope, 'alloc, Self::Scoped<'scope>>) -> T,
+    ) -> T {
+        S::scoped_ref(&**self, func)
+    }
 }
 
 // SAFETY: Every method calls the function of the same name on `A`. `ScopeAllocator` requires of

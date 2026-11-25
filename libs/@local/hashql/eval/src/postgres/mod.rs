@@ -207,17 +207,14 @@ pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S> {
     context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>,
 
     alloc: A,
-    scratch: &'eval mut S,
+    scratch: S,
 }
 
 impl<'eval, 'ctx, 'heap, 'alloc, A: Allocator, S> PostgresCompiler<'eval, 'ctx, 'heap, A, S>
 where
     S: ScopeAllocator<'alloc>,
 {
-    pub fn new_in(
-        context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>,
-        scratch: &'eval mut S,
-    ) -> Self
+    pub fn new_in(context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>, scratch: S) -> Self
     where
         A: Clone,
     {
