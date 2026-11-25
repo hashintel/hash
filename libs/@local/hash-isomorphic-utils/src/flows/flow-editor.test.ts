@@ -722,7 +722,10 @@ describe("createFlowEditor", () => {
 
     it("points what read its output to the output it collects instead, keeping the flow output's name and how each reads it", () => {
       const editor = loadFlow();
-      const filter = editor.addStep("filterList", { after: "each" });
+      const filter = editor.addStep("filterList", {
+        after: "each",
+        outputName: "explanations",
+      });
       editor.setInputSource(filter, "items", {
         kind: "step-output",
         stepId: "each",
@@ -743,6 +746,7 @@ describe("createFlowEditor", () => {
         },
       });
       expect(stepOf(editor, filter)).toMatchObject({
+        runAfter: [{ stepId: "each", outputName: "collectedConfidence" }],
         inputs: {
           items: {
             kind: "step-output",

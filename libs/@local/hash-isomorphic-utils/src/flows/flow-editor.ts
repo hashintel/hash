@@ -574,7 +574,24 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
             ...step,
             collect: { ...collected, as },
           }),
-          (candidate) => {
+          (stepToRepoint) => {
+            /* A connection naming the step's output, as one on a path does, names the collected one too. */
+            const candidate = stepToRepoint.runAfter?.some(
+              (entry) =>
+                entry.stepId === stepId &&
+                entry.outputName !== undefined &&
+                entry.outputName !== as,
+            )
+              ? setRunAfter(
+                  stepToRepoint,
+                  stepToRepoint.runAfter.map((entry) =>
+                    entry.stepId === stepId && entry.outputName !== undefined
+                      ? { ...entry, outputName: as }
+                      : entry,
+                  ),
+                )
+              : stepToRepoint;
+
             if (candidate.kind === "for-each") {
               const over = candidate.over && repoint(candidate.over);
 
