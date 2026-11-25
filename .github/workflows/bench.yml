@@ -110,7 +110,7 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name == 'pull_request' && matrix.criterion
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
 
       - name: Install tools
         if: github.event_name == 'pull_request' && matrix.criterion
@@ -150,7 +150,7 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -233,7 +233,7 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name == 'pull_request'
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
 
       - name: Install tools
         if: github.event_name == 'pull_request'
@@ -332,7 +332,7 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
 
       - name: Install tools
         uses: $/.github/actions/install-tools

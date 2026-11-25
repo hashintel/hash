@@ -81,7 +81,7 @@ jobs:
           fetch-depth: 2
 
       - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
 
       - name: Install tools
         uses: $/.github/actions/install-tools
