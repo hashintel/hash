@@ -85,11 +85,11 @@ version = "6.0.0"
 backend = "cargo:cargo-codspeed"
 
 [[tools."cargo:cargo-hack"]]
-version = "0.6.45"
+version = "0.6.46"
 backend = "cargo:cargo-hack"
 
 [[tools."cargo:cargo-insta"]]
-version = "1.47.2"
+version = "1.49.0"
 backend = "cargo:cargo-insta"
 
 [[tools."github:WebAssembly/binaryen"]]
@@ -165,42 +165,38 @@ url = "https://github.com/casey/just/releases/download/1.51.0/just-1.51.0-x86_64
 url_api = "https://api.github.com/repos/casey/just/releases/assets/416466221"
 
 [[tools.markdownlint-cli2]]
-version = "0.24.0"
+version = "0.24.1"
 backend = "npm:markdownlint-cli2"
 
 [[tools.node]]
-version = "22.23.4"
+version = "22.23.5"
 backend = "core:node"
 
 [tools.node."platforms.linux-arm64"]
-checksum = "sha256:f7a1e486dbc8b286847815b477d4fb5e9fb963ed4489c3e1588853d685f589f9"
-url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-arm64.tar.gz"
+checksum = "sha256:8bd3dc69eee8f3f226315a80d7d1d4faccf217a4c8fae500168ac2e38f3bdba3"
+url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-linux-arm64.tar.gz"
 
 [tools.node."platforms.linux-x64"]
-checksum = "sha256:b8492284c76a54baf58d61668dd0e41ee0fc98adabf9503d30f05d08f55b4406"
-url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.gz"
+checksum = "sha256:c54118104acc524633b5abe106bbf44a53126ec8b4e5fa105cb92b5d7de8a1a1"
+url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-linux-x64.tar.gz"
 
 [tools.node."platforms.macos-arm64"]
-checksum = "sha256:c9e1dbc748b33ed2d14f42445191ecaf14c56259c7a9a26d0042c49ec2b66428"
-url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-arm64.tar.gz"
+checksum = "sha256:e7131995759b61a0170b646010d2ad35a5d37b4cb0d471f3e8317eac6f742f3d"
+url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-darwin-arm64.tar.gz"
 
 [tools.node."platforms.macos-x64"]
-checksum = "sha256:efcc2b0db6f94bf53eddb038fe2b370277a042bd29e4f19b8f8e23598795b819"
-url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-x64.tar.gz"
-
-[[tools."npm:@napi-rs/cli"]]
-version = "3.7.0"
-backend = "npm:@napi-rs/cli"
+checksum = "sha256:c53383238206b9ae4db23c5d8a63645e2e753bec8ab51a49cc81939aa64e9422"
+url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-darwin-x64.tar.gz"
 
 [[tools."npm:renovate"]]
-version = "43.212.4"
+version = "44.251.0"
 backend = "npm:renovate"
 
 [tools."npm:renovate".options]
 trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
 
 [[tools."npm:turbo"]]
-version = "2.11.5"
+version = "2.11.12"
 backend = "npm:turbo"
 
 [[tools.oxfmt]]
