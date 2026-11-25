@@ -197,7 +197,7 @@ export const NewTriggerForm = ({
   const nextRuns = getPreviewedRuns(values);
   const blocker = getNewTriggerBlocker(
     { ...values, inputValues },
-    inputs,
+    flow?.flowDefinition ?? null,
     nextRuns,
   );
 

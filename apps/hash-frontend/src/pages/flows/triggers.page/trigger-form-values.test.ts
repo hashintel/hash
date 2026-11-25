@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { actionStep } from "../../@/[shortname]/flows/[flow-def-id]/edit.page/shared/step-fixtures";
 import {
   getNewTriggerBlocker,
   getScheduleBlocker,
@@ -23,6 +24,12 @@ const input = (
   array: false,
   required: true,
   ...fields,
+});
+
+/** A flow with a step, taking these inputs. */
+const flowTaking = (inputs: FlowInputDefinition[]) => ({
+  inputs,
+  steps: [actionStep("find")],
 });
 
 const newTrigger = (
@@ -151,9 +158,15 @@ describe("getNewTriggerBlocker", () => {
         aRun,
       ),
     ).toBe("Choose a flow");
-    expect(getNewTriggerBlocker(newTrigger({ name: "   " }), [], aRun)).toBe(
-      "Name the trigger",
-    );
+    expect(
+      getNewTriggerBlocker(newTrigger({ name: "   " }), flowTaking([]), aRun),
+    ).toBe("Name the trigger");
+  });
+
+  it("refuses a flow with no steps, whose type a schedule couldn't keep up with", () => {
+    expect(
+      getNewTriggerBlocker(newTrigger(), { inputs: [], steps: [] }, aRun),
+    ).toBe("Add a step to this flow before scheduling it");
   });
 
   it("asks for the required inputs left blank, by their labels, but not the optional ones", () => {
@@ -176,7 +189,7 @@ describe("getNewTriggerBlocker", () => {
             threshold: { kind: "Number", value: null },
           },
         }),
-        inputs,
+        flowTaking(inputs),
         aRun,
       ),
     ).toBe("Fill in Review month, Threshold");
@@ -189,7 +202,7 @@ describe("getNewTriggerBlocker", () => {
             threshold: { kind: "Number", value: 0 },
           },
         }),
-        inputs,
+        flowTaking(inputs),
         aRun,
       ),
     ).toBeNull();
@@ -199,7 +212,9 @@ describe("getNewTriggerBlocker", () => {
     expect(
       getNewTriggerBlocker(
         newTrigger(),
-        [input({ name: "sheet", label: "Sheet", payloadKind: "GoogleSheet" })],
+        flowTaking([
+          input({ name: "sheet", label: "Sheet", payloadKind: "GoogleSheet" }),
+        ]),
         aRun,
       ),
     ).toBe("“Sheet” takes a Google Sheet, which can't be given here yet");

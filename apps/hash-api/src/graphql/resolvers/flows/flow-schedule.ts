@@ -56,6 +56,13 @@ export const createFlowScheduleResolver: ResolverFn<
     flowDefinitionEntityId,
   );
 
+  /* A schedule only runs the type of flow it was created for, which an empty flow will stop being. */
+  if (flowDefinition.steps.length === 0) {
+    throw GraphQLError.badRequest(
+      "A flow with no steps can't be scheduled. Add a step to it first.",
+    );
+  }
+
   if (flowType === "ai" && !input.dataSources) {
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }

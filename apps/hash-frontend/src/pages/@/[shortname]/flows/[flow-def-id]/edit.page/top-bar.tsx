@@ -54,9 +54,12 @@ const dialogText = css({ textStyle: "sm" });
 
 const SaveStatus = ({
   status,
+  refused,
   onRetry,
 }: {
   status: FlowSaveStatus;
+  /** Whether the API refused the edits, so that trying again would be refused too. A banner says why. */
+  refused: boolean;
   onRetry: () => void;
 }) => {
   switch (status) {
@@ -73,7 +76,16 @@ const SaveStatus = ({
         </Chip>
       );
     case "failed":
-      return (
+      return refused ? (
+        <Chip
+          size="xs"
+          variant="ghost"
+          color="red"
+          prefix={{ iconName: "error" }}
+        >
+          Can't be saved
+        </Chip>
+      ) : (
         <Chip
           size="xs"
           variant="ghost"
@@ -244,7 +256,11 @@ export const TopBar = ({
         />
       </div>
       <div className={barGroup}>
-        <SaveStatus status={saveStatus} onRetry={onRetrySave} />
+        <SaveStatus
+          status={saveStatus}
+          refused={saveRefusedReason !== null}
+          onRetry={onRetrySave}
+        />
         {flowRunEntityId && (
           <RunTime
             key={flowRunEntityId}

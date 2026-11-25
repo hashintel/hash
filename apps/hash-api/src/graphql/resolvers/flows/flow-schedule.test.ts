@@ -44,6 +44,14 @@ vi.mock("./shared/get-runnable-flow-definition", () => ({
 
 const webId = "00000000-0000-0000-0000-000000000001";
 
+const answerStep = {
+  kind: "action",
+  stepId: "answer",
+  actionDefinitionId: "answerQuestion",
+  description: "",
+  inputs: {},
+};
+
 const graphQLContext = {
   authentication: { actorId: webId },
   temporal: {
@@ -60,7 +68,7 @@ const graphQLContext = {
 
 beforeEach(() => {
   mocks.getRunnableFlowDefinition.mockResolvedValue({
-    flowDefinition: { inputs },
+    flowDefinition: { inputs, steps: [answerStep] },
     flowType: "integration",
   });
 });
@@ -149,6 +157,21 @@ describe("createFlowScheduleResolver", () => {
       expect(mocks.createSchedule).not.toHaveBeenCalled();
     },
   );
+
+  it("refuses to schedule a flow with no steps, which would take another type of flow once it has some", async () => {
+    mocks.getRunnableFlowDefinition.mockResolvedValue({
+      flowDefinition: { inputs, steps: [] },
+      flowType: "integration",
+    });
+
+    await expect(createSchedule({ query })).rejects.toMatchObject({
+      message:
+        "A flow with no steps can't be scheduled. Add a step to it first.",
+      extensions: { code: "BAD_REQUEST" },
+    });
+    expect(mocks.createFlowSchedule).not.toHaveBeenCalled();
+    expect(mocks.createSchedule).not.toHaveBeenCalled();
+  });
 });
 
 describe("resumeFlowScheduleResolver", () => {
@@ -193,7 +216,7 @@ describe("resumeFlowScheduleResolver", () => {
 
     await expect(resume()).rejects.toMatchObject({
       message: expect.stringContaining(
-        '- Flow input "topic" is required, but wasn\'t given',
+        "- the values it gives the flow's inputs don't fit them any more",
       ),
       extensions: { code: "BAD_REQUEST" },
     });

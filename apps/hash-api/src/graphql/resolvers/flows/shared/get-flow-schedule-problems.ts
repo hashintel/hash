@@ -43,13 +43,34 @@ export const getScheduledFlowRun = async (
   }
 };
 
-const describeFlowType = (flowType: string) =>
-  flowType === "ai" ? "an AI flow" : `an ${flowType} flow`;
+/**
+ * Why a schedule can't run the definition because it's another type of flow than the one the schedule was set up to
+ * run, or null if it isn't. Unlike the inputs, this can be checked on a definition that isn't valid yet.
+ *
+ * In practice a schedule added to an empty flow, which has since got a step: every step the editor adds uses AI.
+ */
+export const getFlowTypeProblem = ({
+  flowDefinition,
+  scheduledFlowType,
+}: {
+  flowDefinition: FlowDefinition<string>;
+  scheduledFlowType: string;
+}): string | null => {
+  if (getFlowType(flowDefinition) === scheduledFlowType) {
+    return null;
+  }
+
+  return scheduledFlowType === "ai"
+    ? "it was added when the flow had steps that use AI, so it can only run a flow that does. Delete it and add it again."
+    : "it was added when the flow had no steps that use AI, so it can't run a flow that does. Delete it and add it again.";
+};
 
 /**
- * Why a schedule couldn't start runs of a valid definition: the values it gives the flow's inputs would fail the check
- * a run makes when it starts, or the definition is another type of flow than the one the schedule was set up to run,
- * whose runs go to another task queue and need other arguments (e.g. data sources for an AI flow). Empty if it could.
+ * Why a schedule couldn't start runs of a valid definition, each with what to do about it: the values it gives the
+ * flow's inputs would fail the check a run makes when it starts, or the definition is another type of flow than the one
+ * the schedule was set up to run, whose runs go to another task queue and need other arguments. Empty if it could.
+ *
+ * Pausing fixes neither: resuming makes the same check, and a schedule's inputs and task queue can't be changed.
  */
 export const getFlowScheduleProblems = ({
   flowDefinition,
@@ -70,15 +91,17 @@ export const getFlowScheduleProblems = ({
     }),
   });
 
-  const problems = inputsProblem ? [inputsProblem] : [];
+  const flowTypeProblem = getFlowTypeProblem({
+    flowDefinition,
+    scheduledFlowType,
+  });
 
-  const flowType = getFlowType(flowDefinition);
-
-  if (flowType !== scheduledFlowType) {
-    problems.push(
-      `it was set up to run ${describeFlowType(scheduledFlowType)}, not ${describeFlowType(flowType)}`,
-    );
-  }
-
-  return problems;
+  return [
+    ...(inputsProblem
+      ? [
+          "the values it gives the flow's inputs don't fit them any more, and a schedule's values can't be changed. Change the inputs back, or delete the schedule and add it again.",
+        ]
+      : []),
+    ...(flowTypeProblem ? [flowTypeProblem] : []),
+  ];
 };

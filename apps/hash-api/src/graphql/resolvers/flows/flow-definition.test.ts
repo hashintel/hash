@@ -227,10 +227,20 @@ describe("updateFlowDefinitionResolver", () => {
     payload: { kind: "Text", value: "Why?" },
   };
 
+  /* A schedule's values can't be changed, so pausing it can't help. */
+  const inputsChanged =
+    "the values it gives the flow's inputs don't fit them any more, and a schedule's values can't be changed. Change the inputs back, or delete the schedule and add it again.";
+
   it.each([
-    ["the flow wouldn't be valid", unfinishedDefinition, [questionValue]],
     [
-      'Flow input "topic" must be of kind Text, but is of kind Number',
+      "the flow isn't valid",
+      "it can only run the flow once its problems are fixed. Pause it to save your changes, and resume it once they're fixed.",
+      unfinishedDefinition,
+      [questionValue],
+    ],
+    [
+      "an input it gives a value of another kind",
+      inputsChanged,
       {
         ...validDefinition,
         inputs: [question, { ...question, name: "topic", required: false }],
@@ -241,7 +251,8 @@ describe("updateFlowDefinitionResolver", () => {
       ],
     ],
     [
-      'Flow input "topic" is required, but wasn\'t given',
+      "a required input it doesn't give",
+      inputsChanged,
       {
         ...validDefinition,
         inputs: [question, { ...question, name: "topic" }],
@@ -249,7 +260,8 @@ describe("updateFlowDefinitionResolver", () => {
       [questionValue],
     ],
     [
-      "Flow input \"topic\" isn't one of the flow's inputs",
+      "an input the flow no longer has",
+      inputsChanged,
       validDefinition,
       [
         questionValue,
@@ -257,15 +269,15 @@ describe("updateFlowDefinitionResolver", () => {
       ],
     ],
   ])(
-    "refuses a change to a flow with an active schedule when %s",
-    async (problem, definition, scheduleInputs) => {
+    "refuses a change to a flow with an active schedule when %s, saying what to do",
+    async (_case, advice, definition, scheduleInputs) => {
       mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
         activeSchedule(scheduleInputs),
       ]);
 
       await expect(update(definition)).rejects.toMatchObject({
-        message: expect.stringContaining(`- schedule "Nightly": ${problem}`),
-        extensions: { code: "BAD_REQUEST" },
+        message: expect.stringContaining(`- "Nightly": ${advice}`),
+        extensions: { code: "BAD_REQUEST", blockedBySchedules: true },
       });
       expect(mocks.updateFlowDefinition).not.toHaveBeenCalled();
     },
@@ -281,11 +293,26 @@ describe("updateFlowDefinitionResolver", () => {
 
     await expect(update(validDefinition)).rejects.toMatchObject({
       message: expect.stringContaining(
-        '- schedule "Nightly": it was set up to run an integration flow, not an AI flow',
+        '- "Nightly": it was added when the flow had no steps that use AI, so it can\'t run a flow that does. Delete it and add it again.',
       ),
-      extensions: { code: "BAD_REQUEST" },
+      extensions: { code: "BAD_REQUEST", blockedBySchedules: true },
     });
     expect(mocks.updateFlowDefinition).not.toHaveBeenCalled();
+  });
+
+  it("tells a schedule set up to run another type of flow to be added again, not paused, when the flow isn't valid", async () => {
+    mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
+      activeSchedule([]),
+    ]);
+    mocks.describeSchedule.mockResolvedValue({
+      action: { taskQueue: "integration", args: [{}] },
+    });
+
+    await expect(update(unfinishedDefinition)).rejects.toMatchObject({
+      message: expect.stringContaining(
+        '- "Nightly": it was added when the flow had no steps that use AI, so it can\'t run a flow that does. Delete it and add it again.',
+      ),
+    });
   });
 
   it("saves a change to a flow with an active schedule that still fills its inputs", async () => {
