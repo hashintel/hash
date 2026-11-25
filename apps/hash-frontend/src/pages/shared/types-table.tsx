@@ -256,12 +256,12 @@ export const TypesTable: FunctionComponent<
   const [expandedRows, setExpandedRows] = useState<Set<string>>(
     () => new Set(),
   );
-  const [collapsedSearchRows, setCollapsedSearchRows] = useState<Set<string>>(
+  const [toggledSearchRows, setToggledSearchRows] = useState<Set<string>>(
     () => new Set(),
   );
   const onSearchValueChange = useCallback((value: string) => {
     setSearchValue(value);
-    setCollapsedSearchRows(new Set());
+    setToggledSearchRows(new Set());
   }, []);
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
@@ -601,9 +601,7 @@ export const TypesTable: FunctionComponent<
   const treeSearchValue = kind === "data-type" && showSearch ? searchValue : "";
   const toggleRow = useCallback(
     (rowId: string) => {
-      const setRows = treeSearchValue
-        ? setCollapsedSearchRows
-        : setExpandedRows;
+      const setRows = treeSearchValue ? setToggledSearchRows : setExpandedRows;
       setRows((previous) => {
         const next = new Set(previous);
         if (next.has(rowId)) {
@@ -877,10 +875,10 @@ export const TypesTable: FunctionComponent<
             rows: sortedRows ?? [],
             expandedRows,
             matchingIds,
-            collapsedSearchRows,
+            toggledSearchRows,
           })
         : undefined,
-    [hierarchical, sortedRows, expandedRows, matchingIds, collapsedSearchRows],
+    [hierarchical, sortedRows, expandedRows, matchingIds, toggledSearchRows],
   );
   const visibleRows = useMemo(
     () =>
