@@ -131,7 +131,6 @@ const RowFilter = ({
   rowKey,
   target,
   row,
-  readOnly,
   autoFocus,
   onCommit,
   onRemove,
@@ -139,7 +138,6 @@ const RowFilter = ({
   rowKey: string;
   target: ConditionTarget;
   row: ConditionRow | undefined;
-  readOnly: boolean;
   autoFocus: boolean;
   /** Called with `null` when the value is cleared. */
   onCommit: (row: ConditionRow | null) => void;
@@ -209,9 +207,8 @@ const RowFilter = ({
       )}
       value={value}
       errors={error === undefined ? undefined : [error]}
-      disabled={readOnly}
       autoFocus={autoFocus}
-      removeable={!readOnly && { onRemove }}
+      removeable={{ onRemove }}
       onChange={commit}
     />
   );
@@ -230,7 +227,6 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
     actionDefinition,
     source,
     problems,
-    readOnly,
   } = props;
 
   /* Set from picking under Add filter until the row is complete. */
@@ -282,7 +278,6 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
         note="The rows can't show this condition, so it can't be changed here. The step checks it as it is."
         resetLabel="Build a new condition"
         errors={errors}
-        readOnly={readOnly}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
@@ -338,10 +333,6 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
     }
   };
 
-  if (readOnly && rows.length === 0) {
-    return null;
-  }
-
   return (
     <ConditionRows
       rows={rows.flatMap(({ row, target }, index) =>
@@ -354,7 +345,6 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
                     rowKey={`condition-${getRowKey(index)}`}
                     target={target}
                     row={row}
-                    readOnly={readOnly}
                     autoFocus={row === undefined}
                     onCommit={(next) => commitRow(index, next)}
                     onRemove={() => removeRow(index)}
@@ -365,9 +355,8 @@ export const ConditionField = (props: ComponentProps<typeof InputField>) => {
           : [],
       )}
       join={form.join}
-      readOnly={readOnly}
       add={
-        readOnly || newTarget ? null : (
+        newTarget ? null : (
           <AddFilterMenu
             options={offered.map((target) => ({
               ...target,

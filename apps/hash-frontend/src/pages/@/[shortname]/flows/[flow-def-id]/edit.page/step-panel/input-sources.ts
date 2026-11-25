@@ -22,8 +22,24 @@ import type {
   PayloadKind,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinitionDiagnosticCode } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 export const flowInputsLabel = "Flow inputs";
+
+/** Problems with a value whose source no longer exists. */
+export const goneSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
+  "unknownStep",
+  "unknownFlowInput",
+  "unknownStepOutput",
+]);
+
+/** Problems with where a value comes from, shown as a red chip in place of the value. */
+export const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
+  ...goneSourceCodes,
+  "stepNotInScope",
+  "selfReference",
+  "itemOutsideForEach",
+]);
 
 /**
  * What can feed an input of a step: the kinds it accepts, and whether it's an array and required. An input that takes
