@@ -53,8 +53,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
+      - name: Install Renovate
+        uses: hashintel/actions/.github/actions/install-renovate@06238755f2364521d75a1eaf0b3b397261f46077 # main
+
       - name: Validate Renovate config
-        run: jq empty .github/renovate.json
+        run: renovate-config-validator
 
   renovate:
     name: Dependencies
