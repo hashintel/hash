@@ -36,7 +36,7 @@ describe("describePluginContributions", () => {
       { kind: "top-bar-item", subject: "status", detail: "End of the top bar" },
       { kind: "bottom-panel-view", subject: "Log", detail: "Bottom panel" },
       { kind: "read-only-action", subject: "Make a copy" },
-      { kind: "command", subject: "Mute the assistant", detail: "F2" },
+      { kind: "command", subject: "Mute the assistant", shortcut: "f2" },
       { kind: "command", subject: "Unmute the assistant" },
       { kind: "setting", subject: "Captions", detail: "Labs" },
       { kind: "provides", subject: "test.everything" },

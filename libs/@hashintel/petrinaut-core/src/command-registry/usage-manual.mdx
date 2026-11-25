@@ -158,7 +158,7 @@ const commands = useCommands();
 - `useCommands()` re-renders the palette when the set changes. Run entries
   through `execute(id)` rather than a captured `run`, so the current
   registration runs.
-- `formatShortcutKeys("mod+shift+z")` gives `["⌘", "⇧", "Z"]` on Apple
+- `formatShortcutKeys("mod+shift+z")` gives `["⇧", "⌘", "Z"]` on Apple
   platforms and `["Ctrl", "Shift", "Z"]` elsewhere. Pass `{ apple }` to pin
   the platform.
 - The palette binds its own opener chord (⌘K in the examples), whether the

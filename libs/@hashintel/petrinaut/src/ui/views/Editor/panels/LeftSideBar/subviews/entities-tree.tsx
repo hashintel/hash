@@ -1,7 +1,6 @@
-import { Button } from "@hashintel/ds-components";
+import { Button, Kbd, Tooltip } from "@hashintel/ds-components";
 
 import { useEditorActions } from "../../../../../../react/state/editor-context";
-import { ShortcutTooltip } from "../../../../../shared/keyboard-shortcut";
 import { EntityList } from "./entities-tree/entity-list";
 import { useEntityTreeItems } from "./entities-tree/use-entity-tree-items";
 
@@ -9,7 +8,13 @@ export const EntitiesHeaderAction: React.FC = () => {
   const { setSearchOpen } = useEditorActions();
 
   return (
-    <ShortcutTooltip label="Search list" shortcut="mod+f">
+    <Tooltip
+      content={
+        <>
+          Search list <Kbd keys="mod+f" variant="inherit" />
+        </>
+      }
+    >
       <Button
         aria-label="Search list"
         size="xs"
@@ -17,7 +22,7 @@ export const EntitiesHeaderAction: React.FC = () => {
         iconName="search"
         onClick={() => setSearchOpen(true)}
       />
-    </ShortcutTooltip>
+    </Tooltip>
   );
 };
 

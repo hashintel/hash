@@ -1,6 +1,6 @@
 import { use, useState } from "react";
 
-import { Button, Menu, type MenuItem } from "@hashintel/ds-components";
+import { Button, Kbd, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { MenuIcon } from "@hashintel/ds-icons";
 import {
@@ -16,7 +16,6 @@ import { NetManagementContext } from "../../../../../react/host/net-management-c
 import { usePetrinautNavigate } from "../../../../../react/navigation/navigation";
 import { useEditorActions } from "../../../../../react/state/editor-context";
 import { useCanvasRegistration } from "../../../../plugins/plugin-editor";
-import { KeyboardShortcut } from "../../../../shared/keyboard-shortcut";
 import { exportSDCPN } from "../../shared/file-io/export-sdcpn";
 import { exportTikZ } from "../../shared/file-io/export-tikz";
 import { importSDCPN } from "../../shared/file-io/import-sdcpn";
@@ -171,7 +170,7 @@ export const EditorMenu = ({
           {
             id: "layout",
             text: "Layout",
-            suffix: <KeyboardShortcut shortcut={autoLayoutShortcut} inMenu />,
+            suffix: <Kbd keys={autoLayoutShortcut} />,
             onClick: () => {
               void autoLayoutAndFrame();
             },
@@ -193,7 +192,7 @@ export const EditorMenu = ({
     {
       id: "user-settings",
       text: "User settings",
-      suffix: <KeyboardShortcut shortcut="mod+," inMenu />,
+      suffix: <Kbd keys="mod+," />,
       onClick: () =>
         navigate(
           { overlay: { type: "user-settings", section: "general" } },

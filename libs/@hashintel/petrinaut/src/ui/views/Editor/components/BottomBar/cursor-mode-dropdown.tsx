@@ -1,11 +1,10 @@
-import { Menu, type MenuItem } from "@hashintel/ds-components";
+import { Kbd, Menu, type MenuItem } from "@hashintel/ds-components";
 
 import {
   type CursorMode,
   useEditorActions,
   useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { KeyboardShortcut } from "../../../../shared/keyboard-shortcut";
 import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 /** Picks between the select and pan cursors, and returns to cursor mode. */
@@ -25,7 +24,7 @@ export const CursorModeDropdown = () => {
       id: "select",
       icon: "cursor",
       text: "Select",
-      suffix: <KeyboardShortcut shortcut="v" inMenu />,
+      suffix: <Kbd keys="v" />,
       tone: cursorMode === "select" ? "brand" : "neutral",
       selected: cursorMode === "select",
       onClick: () => handleCursorChange("select"),
@@ -34,7 +33,7 @@ export const CursorModeDropdown = () => {
       id: "pan",
       icon: "hand",
       text: "Pan",
-      suffix: <KeyboardShortcut shortcut="h" inMenu />,
+      suffix: <Kbd keys="h" />,
       tone: cursorMode === "pan" ? "brand" : "neutral",
       selected: cursorMode === "pan",
       onClick: () => handleCursorChange("pan"),

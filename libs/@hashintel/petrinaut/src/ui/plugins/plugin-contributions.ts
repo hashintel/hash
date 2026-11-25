@@ -1,7 +1,5 @@
 /** What a plugin declares, as tags for its row in the Plugins section. */
 
-import { formatShortcutKeys } from "../../react/commands/format-shortcut";
-
 import type {
   PetrinautPluginManifest,
   PluginButtonPlace,
@@ -26,6 +24,8 @@ export interface PluginContributionItem {
   readonly subject: string;
   /** Where it appears or how far it reaches, when the subject does not say. */
   readonly detail?: string;
+  /** The keys that run a command, as its manifest writes them. */
+  readonly shortcut?: string;
 }
 
 const placeText: Record<PluginButtonPlace, string> = {
@@ -74,9 +74,7 @@ export const describePluginContributions = (
   ...Object.values(manifest.commands ?? {}).map((spec) => ({
     kind: "command" as const,
     subject: spec.label,
-    ...(spec.shortcut !== undefined && {
-      detail: formatShortcutKeys(spec.shortcut).join(" "),
-    }),
+    ...(spec.shortcut !== undefined && { shortcut: spec.shortcut }),
   })),
   ...Object.values(manifest.settings ?? {}).map((spec) => ({
     kind: "setting" as const,

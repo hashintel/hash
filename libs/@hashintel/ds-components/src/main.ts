@@ -68,6 +68,12 @@ export {
 export { iconNames } from "./components/Icon/icon-util";
 export { Kbd, type KbdKeyName, type KbdProps } from "./components/Kbd/kbd";
 export {
+  detectPlatform,
+  type KbdKey,
+  type KbdPlatform,
+  resolveKeys,
+} from "./components/Kbd/kbd-util";
+export {
   LoadingSpinner,
   type LoadingSpinnerVariant,
 } from "./components/Loading/loading-spinner";
