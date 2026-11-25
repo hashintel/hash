@@ -6,19 +6,33 @@
 mod capture;
 mod failure;
 mod prepare;
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "Send does not call the requests and the client yet"
+    )
+)]
+mod send;
 #[cfg(test)]
 mod tests;
 
 use error_stack::Report;
 
 use self::failure::{from_run, permanent};
-pub use self::{capture::capture, failure::StageError, prepare::prepare_incremental};
+pub use self::{
+    capture::capture,
+    failure::StageError,
+    prepare::prepare_incremental,
+    send::{GraphClient, GraphError},
+};
 use crate::{
     run::{self, Failure, RunError, RunId, RunRecord, Stage, current},
     storage::{CasVersion, Storage},
 };
 
-/// The longest message the `failure` part of `run.json` keeps, in characters.
+/// The longest message `run.json` keeps, in characters: of a stage's failure, and of the Graph's
+/// answer to a refused request.
 const MAX_MESSAGE: usize = 1024;
 
 /// The record of the run a stage works on, as [`begin`] read it.

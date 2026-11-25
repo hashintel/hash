@@ -30,6 +30,6 @@ mod testing;
 
 pub use self::{
     run::{RunId, Stage, StartError, StartInput, start},
-    stage::{StageError, capture, prepare_incremental},
+    stage::{GraphClient, GraphError, StageError, capture, prepare_incremental},
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };

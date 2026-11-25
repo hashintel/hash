@@ -1,12 +1,16 @@
-// From `engine/src/graph/plan/request.rs:1-28`
-//! The requests that write an operation to the Graph, in the shape its entity API reads.
+//! The bodies of the requests that write a row of the sync table to the Graph, in the shape its
+//! entity API reads.
 //!
 //! The Graph's own request types only deserialize, so these mirror the fields an integration
 //! sends.
 
+#[cfg(test)]
+mod tests;
+
 use alloc::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
+use error_stack::{Report, ResultExt as _};
+use serde::Serialize;
 use serde_json::value::RawValue;
 use type_system::{
     knowledge::{
@@ -20,116 +24,135 @@ use type_system::{
         },
     },
     ontology::{BaseUrl, VersionedUrl},
-    principal::actor_group::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType, SourceProvenance, SourceType},
 };
 
-use super::{
-    super::{Archive, EntityUpsert, GraphOperation, LinkUpsert},
-    Payload,
-};
+use crate::sync_table::{Op, SyncRow};
 
-// From `engine/src/graph/plan/request.rs:47-53`
-    /// The delivery as JSON with every object's keys sorted, so the same operation always
-    /// encodes to the same text.
-    pub(super) fn encode(&self) -> Result<Payload, serde_json::Error> {
-        let mut value = serde_json::to_value(self)?;
-        value.sort_all_objects();
-        serde_json::value::to_raw_value(&value).map(Payload)
-    }
-
-// From `engine/src/graph/plan/request.rs:139-181`
-impl From<GraphOperation> for Delivery {
-    fn from(operation: GraphOperation) -> Self {
-        match operation {
-            GraphOperation::UpsertEntity(EntityUpsert {
-                entity_id,
-                entity_type,
-                properties,
-                provenance,
-            }) => Self::new(
-                entity_id,
-                Request::upsert(entity_id, entity_type, properties, None, provenance),
-            ),
-            GraphOperation::UpsertLink(LinkUpsert {
-                link_id,
-                link_type,
-                left_entity_id,
-                right_entity_id,
-                properties,
-                provenance,
-            }) => Self::new(
-                link_id,
-                Request::upsert(
-                    link_id,
-                    link_type,
-                    properties.unwrap_or_default(),
-                    Some(Link::Directed {
-                        source: endpoint(left_entity_id),
-                        target: endpoint(right_entity_id),
-                    }),
-                    provenance,
-                ),
-            ),
-            GraphOperation::ArchiveLink(archive) | GraphOperation::ArchiveEntity(archive) => {
-                Self::new(
-                    archive.entity_id,
-                    Request::Archive {
-                        archive: archive.into(),
-                    },
-                )
-            }
-        }
-    }
+/// The body of a request for an entity could not be built.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the request for `{entity_id}` could not be built")]
+pub(super) struct RequestError {
+    pub entity_id: EntityId,
 }
 
-// From `engine/src/graph/plan/request.rs:203-247`
-impl Request {
-    fn upsert(
-        entity_id: EntityId,
-        entity_type: VersionedUrl,
-        properties: PropertyObjectWithMetadata,
-        link_data: Option<Link>,
-        provenance: ProvidedEntityEditionProvenance,
-    ) -> Self {
-        // Patches go in base URL order, as the properties themselves are unordered.
-        let patches = properties
-            .value
-            .iter()
-            .collect::<BTreeMap<_, _>>()
-            .into_iter()
-            .map(|(base_url, property)| PropertyPatch::Add {
-                path: [base_url.clone()],
-                property: property.clone(),
+/// The body that creates the entity of `row`, with the ends of a link row.
+///
+/// # Errors
+///
+/// Returns [`RequestError`] if a link row lacks an end, or if the body cannot be encoded.
+pub(super) fn create(
+    row: &SyncRow,
+    provenance: &ProvidedEntityEditionProvenance,
+) -> Result<Box<RawValue>, Report<RequestError>> {
+    let link_data = match row.op {
+        Op::CreateLink | Op::UpdateLink | Op::ArchiveLink => {
+            let (Some(left), Some(right)) = (row.left_entity_id, row.right_entity_id) else {
+                return Err(Report::new(RequestError {
+                    entity_id: row.entity_id,
+                }));
+            };
+            Some(Link::Directed {
+                source: endpoint(left),
+                target: endpoint(right),
             })
-            .collect();
-        Self::Upsert {
-            patch: PatchEntity {
-                entity_id,
-                entity_type_ids: [entity_type.clone()],
-                properties: patches,
-                archived: false,
-                provenance: provenance.clone(),
-            },
-            archive: ArchiveEntity {
-                entity_id,
-                archived: true,
-                provenance: provenance.clone(),
-            },
-            create: CreateEntity {
-                web_id: entity_id.web_id,
-                entity_uuid: entity_id.entity_uuid,
-                entity_type_ids: [entity_type],
-                properties,
-                link_data,
-                draft: false,
-                provenance,
-                read_only: true,
-            },
         }
+        Op::CreateEntity | Op::UpdateEntity | Op::ArchiveEntity => None,
+    };
+    encode(
+        row.entity_id,
+        &CreateEntity {
+            web_id: row.entity_id.web_id,
+            entity_uuid: row.entity_id.entity_uuid,
+            entity_type_ids: [row.entity_type.clone()],
+            properties: row.properties.clone(),
+            link_data,
+            draft: false,
+            provenance: provenance.clone(),
+            read_only: true,
+        },
+    )
+}
+
+/// The body that adds the properties of `row` to its entity and revives it if it was archived.
+///
+/// # Errors
+///
+/// Returns [`RequestError`] if the body cannot be encoded.
+pub(super) fn patch(
+    row: &SyncRow,
+    provenance: &ProvidedEntityEditionProvenance,
+) -> Result<Box<RawValue>, Report<RequestError>> {
+    // Patches go in base URL order, as the properties themselves are unordered.
+    let properties = row
+        .properties
+        .value
+        .iter()
+        .collect::<BTreeMap<_, _>>()
+        .into_iter()
+        .map(|(base_url, property)| PropertyPatch::Add {
+            path: [base_url.clone()],
+            property: property.clone(),
+        })
+        .collect();
+    encode(
+        row.entity_id,
+        &PatchEntity {
+            entity_id: row.entity_id,
+            entity_type_ids: [row.entity_type.clone()],
+            properties,
+            archived: false,
+            provenance: provenance.clone(),
+        },
+    )
+}
+
+/// The body that archives the entity of `row`.
+///
+/// # Errors
+///
+/// Returns [`RequestError`] if the body cannot be encoded.
+pub(super) fn archive(
+    row: &SyncRow,
+    provenance: &ProvidedEntityEditionProvenance,
+) -> Result<Box<RawValue>, Report<RequestError>> {
+    encode(
+        row.entity_id,
+        &ArchiveEntity {
+            entity_id: row.entity_id,
+            archived: true,
+            provenance: provenance.clone(),
+        },
+    )
+}
+
+/// The provenance of an edition an integration writes: a machine writing through the API, with
+/// `source` describing the material it read.
+///
+/// `source` is recorded as an integration, whatever kind it states.
+pub(super) fn integration_provenance(source: SourceProvenance) -> ProvidedEntityEditionProvenance {
+    ProvidedEntityEditionProvenance {
+        sources: vec![SourceProvenance {
+            ty: SourceType::Integration,
+            ..source
+        }],
+        actor_type: ActorType::Machine,
+        origin: OriginProvenance::from_empty_type(OriginType::Api),
     }
 }
 
-// From `engine/src/graph/plan/request.rs:249-255`
+/// `body` as JSON with every object's keys sorted, so the same row always encodes to the same
+/// bytes.
+fn encode(
+    entity_id: EntityId,
+    body: &impl Serialize,
+) -> Result<Box<RawValue>, Report<RequestError>> {
+    let mut value = serde_json::to_value(body).change_context(RequestError { entity_id })?;
+    value.sort_all_objects();
+    serde_json::value::to_raw_value(&value).change_context(RequestError { entity_id })
+}
+
 fn endpoint(entity_id: EntityId) -> LinkEndpoint {
     LinkEndpoint {
         entity_id,
@@ -138,7 +161,6 @@ fn endpoint(entity_id: EntityId) -> LinkEndpoint {
     }
 }
 
-// From `engine/src/graph/plan/request.rs:257-304`
 /// Creates an entity, as `CreateEntityParams` reads it. Integration entities are read-only, so
 /// only the integration changes them.
 #[derive(Debug, Serialize)]
@@ -186,46 +208,4 @@ struct ArchiveEntity {
     entity_id: EntityId,
     archived: bool,
     provenance: ProvidedEntityEditionProvenance,
-}
-
-// From `engine/src/graph/plan/request.rs:306-319`
-impl From<Archive> for ArchiveEntity {
-    fn from(
-        Archive {
-            entity_id,
-            provenance,
-        }: Archive,
-    ) -> Self {
-        Self {
-            entity_id,
-            archived: true,
-            provenance,
-        }
-    }
-}
-
-// From `engine/src/graph/plan/mod.rs:88-94`
-/// Reports an operation whose requests could not be encoded.
-#[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("the requests for `{entity_id}` could not be encoded")]
-pub struct UnencodableRequest {
-    pub entity_id: EntityId,
-    source: serde_json::Error,
-}
-
-// From `engine/src/graph/mod.rs:160-174`
-/// The provenance of an edition an integration writes: a machine writing through the API, with
-/// `source` describing the material it read.
-///
-/// `source` is recorded as an integration, whatever kind it states.
-#[must_use]
-pub fn integration_provenance(source: SourceProvenance) -> ProvidedEntityEditionProvenance {
-    ProvidedEntityEditionProvenance {
-        sources: vec![SourceProvenance {
-            ty: SourceType::Integration,
-            ..source
-        }],
-        actor_type: ActorType::Machine,
-        origin: OriginProvenance::from_empty_type(OriginType::Api),
-    }
 }

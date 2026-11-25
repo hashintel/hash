@@ -19,7 +19,8 @@ time = { workspace = true, public = true, features = ["formatting", "macros", "p
 uuid = { workspace = true, public = true, features = ["serde", "v4", "v5"] }
 
 # Private workspace dependencies
-hash-codec = { workspace = true, features = ["numeric"] }
+hash-codec      = { workspace = true, features = ["numeric"] }
+hash-middleware = { workspace = true }
 
 # Private third-party dependencies
 bytes          = { workspace = true }
@@ -30,9 +31,10 @@ futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc"] }
 object_store   = { workspace = true, features = ["aws"] }
 parquet        = { workspace = true, features = ["arrow"] }
+reqwest        = { workspace = true }
 serde          = { workspace = true, features = ["alloc", "derive"] }
 serde_arrow    = { workspace = true, features = ["arrow-60"] }
-serde_json     = { workspace = true, features = ["float_roundtrip"] }
+serde_json     = { workspace = true, features = ["float_roundtrip", "raw_value"] }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
 tokio          = { workspace = true, features = ["fs", "io-util", "rt"] }
@@ -40,14 +42,17 @@ tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
 
 [dev-dependencies]
+hash-graph-store = { workspace = true }
+
 arrow-array            = { workspace = true }
+axum                   = { workspace = true, features = ["http1", "tokio"] }
 insta                  = { workspace = true }
 pretty_assertions      = { workspace = true }
 proptest               = { workspace = true, features = ["attr-macro", "std"] }
 rstest                 = { workspace = true }
 testcontainers         = { workspace = true }
 testcontainers-modules = { workspace = true, features = ["minio"] }
-tokio                  = { workspace = true, features = ["macros", "rt"] }
+tokio                  = { workspace = true, features = ["macros", "net", "rt"] }
 
 [lints]
 workspace = true

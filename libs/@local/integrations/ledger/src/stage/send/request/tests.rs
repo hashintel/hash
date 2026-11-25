@@ -1,18 +1,16 @@
-// From `engine/src/graph/plan/tests.rs:1-28`
-use core::fmt::Write as _;
 use std::collections::HashMap;
 
-use duckdb::types::Value;
 use hash_graph_store::entity::{CreateEntityParams, PatchEntityParams};
-use hash_integrations_definition::{Action, Definition, EntitySink, LinkPipeline, StepKind};
 use pretty_assertions::assert_eq;
-use rstest::rstest;
-use serde_json::value::RawValue;
+use serde_json::json;
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
         PropertyValue,
-        entity::{id::EntityId, provenance::ProvidedEntityEditionProvenance},
+        entity::{
+            id::{EntityId, EntityUuid},
+            provenance::ProvidedEntityEditionProvenance,
+        },
         property::{PropertyObjectWithMetadata, PropertyValueWithMetadata, PropertyWithMetadata},
         value::metadata::ValueMetadata,
     },
@@ -22,13 +20,14 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{DuplicateWrite, FinishedPlan, GraphPlan, Payload, PlannedWrite, Planner};
+use super::{archive, create, integration_provenance, patch};
 use crate::{
-    Archive, EntityUpsert, GraphOperation, OperationKind, SinkColumns, SinkRow, derive_entity_id,
-    integration_provenance,
+    RunId,
+    sync_table::{Op, SyncRow},
 };
 
-// From `engine/src/graph/plan/tests.rs:72-98`
+const TYPES: &str = "https://example.com/@demo/types";
+
 fn url(path: &str) -> VersionedUrl {
     format!("{TYPES}/{path}/v/1")
         .parse()
@@ -37,6 +36,20 @@ fn url(path: &str) -> VersionedUrl {
 
 fn web_id() -> WebId {
     WebId::new(Uuid::from_u128(0xA2C8_E6C7_485D_4B54_A248_53C9_B9B0_14A2))
+}
+
+/// The id of the entity `name`, a version 5 UUID as Prepare derives one.
+fn entity_id(name: &str) -> EntityId {
+    EntityId {
+        web_id: web_id(),
+        entity_uuid: EntityUuid::new(Uuid::new_v5(&Uuid::NAMESPACE_OID, name.as_bytes())),
+        draft_id: None,
+    }
+}
+
+/// The aircraft `SE-XXX`.
+fn aircraft_id() -> EntityId {
+    entity_id("SE-XXX")
 }
 
 fn provenance() -> ProvidedEntityEditionProvenance {
@@ -55,66 +68,6 @@ fn provenance() -> ProvidedEntityEditionProvenance {
             OffsetDateTime::from_unix_timestamp(1_793_966_400).expect("should be a valid time"),
         ),
     })
-}
-
-// From `engine/src/graph/plan/tests.rs:142-254`
-fn requests(write: &PlannedWrite) -> serde_json::Value {
-    let mut delivery: serde_json::Value =
-        serde_json::from_str(write.payload.as_str()).expect("the payload should be JSON");
-    delivery["request"].take()
-}
-
-#[test]
-fn requests_graph_readable() {
-    let definition = definition();
-    let columns = COLUMNS.into_iter().collect::<SinkColumns>();
-    let rows = rows(&[["SE-XXX", "DC-3", "1946-04-02", "8030", "KG", "ESSA"]]);
-    let plan = planner(&definition)
-        .plan_entities(
-            sink(&definition, "entity-type/aircraft"),
-            rows.iter().map(|values| SinkRow::new(&columns, values)),
-        )
-        .expect("the rows should plan")
-        .finish()
-        .expect("each entity should be written once");
-    let [write] = plan.writes() else {
-        panic!("should plan one write");
-    };
-    let mut requests = requests(write);
-
-    assert_eq!(requests["kind"], "upsert");
-    let create: CreateEntityParams = serde_json::from_value(requests["create"].take())
-        .expect("the Graph should read the create request");
-    assert_eq!(create.web_id, web_id());
-    assert_eq!(create.entity_uuid, Some(aircraft_id("SE-XXX").entity_uuid));
-    assert!(create.read_only, "integration entities should be read-only");
-    assert_eq!(create.properties.value.len(), 3);
-
-    let patch: PatchEntityParams = serde_json::from_value(requests["patch"].take())
-        .expect("the Graph should read the patch request");
-    assert_eq!(patch.entity_id, aircraft_id("SE-XXX"));
-    assert_eq!(
-        patch.archived,
-        Some(false),
-        "a patch should revive the entity"
-    );
-    assert_eq!(patch.properties.len(), 3);
-
-    let archive: PatchEntityParams = serde_json::from_value(requests["archive"].take())
-        .expect("the Graph should read the archive request");
-    assert_eq!(archive.entity_id, aircraft_id("SE-XXX"));
-    assert_eq!(archive.archived, Some(true));
-}
-
-fn upsert(properties: PropertyObjectWithMetadata) -> GraphOperation {
-    GraphOperation::UpsertEntity(EntityUpsert::new(
-        web_id(),
-        NAMESPACE,
-        url("entity-type/aircraft"),
-        "SE-XXX",
-        properties,
-        provenance(),
-    ))
 }
 
 fn properties(names: &[&str]) -> PropertyObjectWithMetadata {
@@ -136,6 +89,96 @@ fn properties(names: &[&str]) -> PropertyObjectWithMetadata {
     }
 }
 
+/// A row of the aircraft `SE-XXX`, or of a link from it to an airfield for a link `op`.
+fn row(op: Op, properties: PropertyObjectWithMetadata) -> SyncRow {
+    let link = matches!(op, Op::CreateLink | Op::UpdateLink | Op::ArchiveLink);
+    SyncRow {
+        run: RunId::new(),
+        seq: 1,
+        op,
+        entity_id: if link {
+            entity_id("SE-XXX based at ESSA")
+        } else {
+            aircraft_id()
+        },
+        entity_type: url(if link {
+            "entity-type/based-at"
+        } else {
+            "entity-type/aircraft"
+        }),
+        left_entity_id: link.then(aircraft_id),
+        right_entity_id: link.then(|| entity_id("ESSA")),
+        properties,
+    }
+}
+
+#[test]
+fn requests_graph_readable() {
+    let aircraft = row(
+        Op::CreateEntity,
+        properties(&["model", "first-flight", "empty-mass"]),
+    );
+
+    let created: CreateEntityParams = serde_json::from_str(
+        create(&aircraft, &provenance())
+            .expect("should build the create")
+            .get(),
+    )
+    .expect("the Graph should read the create request");
+    assert_eq!(created.web_id, web_id());
+    assert_eq!(created.entity_uuid, Some(aircraft_id().entity_uuid));
+    assert!(
+        created.read_only,
+        "integration entities should be read-only"
+    );
+    assert_eq!(created.properties.value.len(), 3);
+    assert!(created.link_data.is_none(), "an entity should have no ends");
+
+    let patched: PatchEntityParams = serde_json::from_str(
+        patch(&aircraft, &provenance())
+            .expect("should build the patch")
+            .get(),
+    )
+    .expect("the Graph should read the patch request");
+    assert_eq!(patched.entity_id, aircraft_id());
+    assert_eq!(
+        patched.archived,
+        Some(false),
+        "a patch should revive the entity"
+    );
+    assert_eq!(patched.properties.len(), 3);
+
+    let archived: PatchEntityParams = serde_json::from_str(
+        archive(&aircraft, &provenance())
+            .expect("should build the archive")
+            .get(),
+    )
+    .expect("the Graph should read the archive request");
+    assert_eq!(archived.entity_id, aircraft_id());
+    assert_eq!(archived.archived, Some(true));
+
+    let link: CreateEntityParams = serde_json::from_str(
+        create(
+            &row(Op::CreateLink, PropertyObjectWithMetadata::default()),
+            &provenance(),
+        )
+        .expect("should build the create")
+        .get(),
+    )
+    .expect("the Graph should read the create request of a link");
+    assert!(link.link_data.is_some(), "a link should name its ends");
+}
+
+#[test]
+fn link_without_ends() {
+    let mut link = row(Op::CreateLink, PropertyObjectWithMetadata::default());
+    link.right_entity_id = None;
+
+    let error = create(&link, &provenance()).expect_err("should refuse a link without an end");
+
+    assert_eq!(error.current_context().entity_id, link.entity_id);
+}
+
 #[test]
 fn payload_property_order() {
     let names = [
@@ -147,32 +190,39 @@ fn payload_property_order() {
     ];
     let mut reversed = names;
     reversed.reverse();
-    let forward = PlannedWrite::try_from(upsert(properties(&names))).expect("should encode");
-    let backward = PlannedWrite::try_from(upsert(properties(&reversed))).expect("should encode");
-    assert_eq!(
-        forward.payload, backward.payload,
-        "the same properties should encode to the same payload"
-    );
+    let forward = row(Op::UpdateEntity, properties(&names));
+    let backward = row(Op::UpdateEntity, properties(&reversed));
+
+    for build in [create, patch] {
+        assert_eq!(
+            build(&forward, &provenance())
+                .expect("should build the body")
+                .get(),
+            build(&backward, &provenance())
+                .expect("should build the body")
+                .get(),
+            "the same properties should encode to the same bytes"
+        );
+    }
 }
 
 #[test]
 fn archive_payload() {
-    let write = PlannedWrite::try_from(GraphOperation::ArchiveEntity(Archive {
-        entity_id: aircraft_id("SE-XXX"),
-        provenance: provenance(),
-    }))
-    .expect("should encode");
+    let body = archive(
+        &row(Op::ArchiveEntity, PropertyObjectWithMetadata::default()),
+        &provenance(),
+    )
+    .expect("should build the archive");
     assert_eq!(
-        write.payload.as_str(),
+        body.get(),
         format!(
-            r#"{{"entityId":"{}","request":{{"archive":{{"archived":true,"entityId":"{0}","provenance":{{"actorType":"machine","origin":{{"type":"api"}},"sources":[{{"loadedAt":"2026-11-06T12:00:00.000000000Z","location":{{"name":"aviation"}},"type":"integration"}}]}}}},"kind":"archive"}},"version":1}}"#,
-            aircraft_id("SE-XXX")
+            r#"{{"archived":true,"entityId":"{}","provenance":{{"actorType":"machine","origin":{{"type":"api"}},"sources":[{{"loadedAt":"2026-11-06T12:00:00.000000000Z","location":{{"name":"aviation"}},"type":"integration"}}]}}}}"#,
+            aircraft_id()
         ),
-        "the archive request should be saved exactly"
+        "the archive request should be built exactly"
     );
 }
 
-// From `engine/src/graph/tests.rs:31-47`
 fn source() -> SourceProvenance {
     SourceProvenance {
         ty: SourceType::Webpage,
@@ -191,7 +241,6 @@ fn source() -> SourceProvenance {
     }
 }
 
-// From `engine/src/graph/tests.rs:173-190`
 #[test]
 fn integration_provenance_wire_shape() {
     assert_eq!(

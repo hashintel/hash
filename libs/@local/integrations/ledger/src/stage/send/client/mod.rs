@@ -1,18 +1,12 @@
-// From `engine/src/graph/client/mod.rs:1-180`
-//! Sends planned writes to the Graph's entity API.
+//! Sends request bodies to the Graph's entity API and says what the Graph answered.
 //!
-//! Each [`PlannedWrite`] is sent as the requests it was planned with, so a retry sends the same
-//! bytes. An upsert creates the entity with its deterministic ID and patches it instead if it
-//! already exists. An archive of an entity the Graph does not have succeeds, as there is nothing
-//! left to archive.
-//!
-//! The client authenticates as a service and acts for the actor each write is sent for, which is
-//! the owner of the run.
+//! The client authenticates as a service and acts for the actor each request is sent for, which
+//! is the owner of the run. It does not retry, and it does not interpret a refusal.
 
 #[cfg(test)]
 mod tests;
 
-use core::{pin::Pin, time::Duration};
+use core::time::Duration;
 
 use error_stack::{Report, ResultExt as _};
 use hash_crypto::Secret;
@@ -27,44 +21,35 @@ use reqwest::{
 use serde_json::value::RawValue;
 use type_system::principal::actor::ActorEntityUuid;
 
-use super::{PlannedWrite, plan::SavedRequests};
+use super::super::MAX_MESSAGE;
 
-/// The longest part of a rejection's body kept for reporting.
-const DIAGNOSTIC_LIMIT: usize = 1024;
-
-/// Why a write could not be sent to the Graph.
+/// Why the Graph client cannot be set up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum GraphError {
     /// The Graph URL or service secret cannot be used.
     #[display("the Graph client is not configured correctly")]
     Configuration,
-    /// The write's payload is not one planning produced.
-    #[display("the write's payload cannot be read")]
-    Payload,
-    /// The request did not reach the Graph, or its response was not received.
-    #[display("the request to the Graph failed")]
-    Request,
-    /// The Graph answered with a status that does not apply the write.
-    #[display("the Graph rejected the request with status {status}")]
-    Status { status: u16 },
 }
 
-/// What the Graph did with a write.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Applied {
-    Created,
-    /// The entity existed, so it was patched instead.
-    Patched,
-    Archived,
-    /// The entity to archive does not exist.
-    Absent,
+/// What the Graph did with a request.
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum Answer {
+    Applied,
+    /// No answer, a timeout, or a status that says to try again later.
+    Unavailable,
+    /// Any other status, with the start of the Graph's message.
+    Refused {
+        status: u16,
+        message: Box<str>,
+    },
 }
 
-/// Sends planned writes to the Graph's entity API.
+/// Sends request bodies to the Graph's entity API.
 #[derive(Debug)]
 pub struct GraphClient {
     entities: Url,
-    service_secret: Pin<Box<Secret<str>>>,
+    bulk: Url,
+    authorization: HeaderValue,
     client: Client,
 }
 
@@ -74,11 +59,8 @@ impl GraphClient {
     /// # Errors
     ///
     /// Returns [`GraphError::Configuration`] if `graph_url` is not an HTTP(S) URL without
-    /// credentials, the secret is empty, or the HTTP client cannot be built.
-    pub fn new(
-        graph_url: &Url,
-        service_secret: Pin<Box<Secret<str>>>,
-    ) -> Result<Self, Report<GraphError>> {
+    /// credentials, the secret is empty or not a header value, or the HTTP client cannot be built.
+    pub fn new(graph_url: &Url, service_secret: &Secret<str>) -> Result<Self, Report<GraphError>> {
         if !matches!(graph_url.scheme(), "http" | "https")
             || !graph_url.username().is_empty()
             || graph_url.password().is_some()
@@ -92,6 +74,16 @@ impl GraphClient {
             .map_err(|()| Report::new(GraphError::Configuration))?
             .pop_if_empty()
             .push("entities");
+        let mut bulk = entities.clone();
+        bulk.path_segments_mut()
+            .map_err(|()| Report::new(GraphError::Configuration))?
+            .push("bulk");
+        let mut authorization = HeaderValue::from_str(&format!(
+            "{SERVICE_AUTH_SCHEME} {}",
+            service_secret.expose()
+        ))
+        .change_context(GraphError::Configuration)?;
+        authorization.set_sensitive(true);
         let client = Client::builder()
             .redirect(Policy::none())
             .no_proxy()
@@ -100,82 +92,85 @@ impl GraphClient {
             .change_context(GraphError::Configuration)?;
         Ok(Self {
             entities,
-            service_secret,
+            bulk,
+            authorization,
             client,
         })
     }
 
-    /// Sends `write` to the Graph, acting for `actor`.
-    ///
-    /// # Errors
-    ///
-    /// - [`GraphError::Payload`] if the write's payload cannot be read
-    /// - [`GraphError::Request`] if a request does not complete
-    /// - [`GraphError::Status`] if the Graph rejects a request, with its response body attached
-    pub async fn send(
-        &self,
-        actor: ActorEntityUuid,
-        write: &PlannedWrite,
-    ) -> Result<Applied, Report<GraphError>> {
-        match write
-            .payload
-            .requests()
-            .change_context(GraphError::Payload)?
-        {
-            SavedRequests::Upsert { create, patch } => {
-                let response = self.request(Method::POST, actor, create).await?;
-                if response.status() != StatusCode::CONFLICT {
-                    return accepted(response, Applied::Created).await;
-                }
-                let response = self.request(Method::PATCH, actor, patch).await?;
-                accepted(response, Applied::Patched).await
-            }
-            SavedRequests::Archive { archive } => {
-                let response = self.request(Method::PATCH, actor, archive).await?;
-                if response.status() == StatusCode::NOT_FOUND {
-                    return Ok(Applied::Absent);
-                }
-                accepted(response, Applied::Archived).await
-            }
-        }
+    /// Creates the entities of `bodies` in one request, acting for `actor`.
+    pub(super) async fn create_bulk(&self, actor: ActorEntityUuid, bodies: &[&RawValue]) -> Answer {
+        self.request(Method::POST, &self.bulk, actor, list(bodies))
+            .await
+    }
+
+    /// Patches the entities of `bodies` in one request, acting for `actor`.
+    pub(super) async fn patch_bulk(&self, actor: ActorEntityUuid, bodies: &[&RawValue]) -> Answer {
+        self.request(Method::PATCH, &self.bulk, actor, list(bodies))
+            .await
+    }
+
+    /// Creates the entity of `body`, acting for `actor`.
+    pub(super) async fn create(&self, actor: ActorEntityUuid, body: &RawValue) -> Answer {
+        self.request(Method::POST, &self.entities, actor, body.get().to_owned())
+            .await
+    }
+
+    /// Patches the entity of `body`, acting for `actor`.
+    pub(super) async fn patch(&self, actor: ActorEntityUuid, body: &RawValue) -> Answer {
+        self.request(Method::PATCH, &self.entities, actor, body.get().to_owned())
+            .await
     }
 
     async fn request(
         &self,
         method: Method,
+        url: &Url,
         actor: ActorEntityUuid,
-        body: &RawValue,
-    ) -> Result<Response, Report<GraphError>> {
-        let mut authorization = HeaderValue::from_str(&format!(
-            "{SERVICE_AUTH_SCHEME} {}",
-            self.service_secret.expose()
-        ))
-        .change_context(GraphError::Configuration)?;
-        authorization.set_sensitive(true);
-        self.client
-            .request(method, self.entities.clone())
-            .header(AUTHORIZATION, authorization)
+        body: String,
+    ) -> Answer {
+        let sent = self
+            .client
+            .request(method, url.clone())
+            .header(AUTHORIZATION, self.authorization.clone())
             .header(ACTOR_ID_HEADER, actor.to_string())
             .header(CONTENT_TYPE, "application/json")
-            .body(body.get().to_owned())
+            .body(body)
             .send()
-            .await
-            .map_err(reqwest::Error::without_url)
-            .change_context(GraphError::Request)
+            .await;
+        match sent {
+            Ok(response) => answer(response).await,
+            Err(error) => {
+                tracing::warn!(error = %error.without_url(), "the Graph did not answer");
+                Answer::Unavailable
+            }
+        }
     }
 }
 
-/// `applied` if the Graph accepted the request, or its status and body otherwise.
-async fn accepted(response: Response, applied: Applied) -> Result<Applied, Report<GraphError>> {
-    let status = response.status();
-    if status.is_success() {
-        return Ok(applied);
+/// What `response` says the Graph did.
+async fn answer(response: Response) -> Answer {
+    match response.status() {
+        status if status.is_success() => Answer::Applied,
+        StatusCode::TOO_MANY_REQUESTS
+        | StatusCode::BAD_GATEWAY
+        | StatusCode::SERVICE_UNAVAILABLE
+        | StatusCode::GATEWAY_TIMEOUT => Answer::Unavailable,
+        status => Answer::Refused {
+            status: status.as_u16(),
+            message: response
+                .text()
+                .await
+                .unwrap_or_default()
+                .chars()
+                .take(MAX_MESSAGE)
+                .collect(),
+        },
     }
-    let error = Report::new(GraphError::Status {
-        status: status.as_u16(),
-    });
-    let Ok(body) = response.text().await else {
-        return Err(error);
-    };
-    Err(error.attach(body.chars().take(DIAGNOSTIC_LIMIT).collect::<String>()))
+}
+
+/// `bodies` as one JSON array, which a bulk route reads.
+fn list(bodies: &[&RawValue]) -> String {
+    let bodies = bodies.iter().map(|body| body.get()).collect::<Vec<_>>();
+    format!("[{}]", bodies.join(","))
 }
