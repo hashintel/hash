@@ -209,10 +209,7 @@ export const getUnfillableInputProblem = (
     : null;
 };
 
-/**
- * Why the user can't run or schedule the flow, or `null` if they can: the API refuses a flow with an AI step to a user
- * without the `ai` feature flag. Every step the editor adds is one.
- */
+/** Why the user can't run or schedule the flow: the API refuses a flow with an AI step without the `ai` flag. */
 export const getAiFlagBlocker = (
   flowDefinition: FlowDefinition<string>,
   { canUseAi }: { canUseAi: boolean },

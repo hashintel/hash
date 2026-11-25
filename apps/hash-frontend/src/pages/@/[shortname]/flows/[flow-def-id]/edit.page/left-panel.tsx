@@ -131,6 +131,8 @@ type StepsSectionProps = {
   collapsedGroupIds: Set<string>;
   onToggleGroup: (stepId: string) => void;
   onCollapseAll: (stepIds: string[]) => void;
+  /** Whether Start is selected, and selects it. Omitted where it can't be selected, as in a run. */
+  start?: { selected: boolean; onClick: () => void };
 };
 
 /** The flow's steps, after Start. In a run, each shows its state, and a group counts its items rather than its steps. */
@@ -143,11 +145,7 @@ const StepsSection = ({
   onCollapseAll,
   run,
   start,
-}: StepsSectionProps & {
-  run: StepsRun | null;
-  /** Whether Start is selected, and selects it. Omitted where it can't be selected, as in a run. */
-  start?: { selected: boolean; onClick: () => void };
-}) => {
+}: StepsSectionProps & { run: StepsRun | null }) => {
   const { steps } = flowDefinition;
   const getItemName = useItemNames(flowDefinition);
   const tree = getStepsTree(steps);
@@ -157,7 +155,7 @@ const StepsSection = ({
     <div className={stepsSection}>
       <div className={stepsHeader}>
         <p className={stepCount}>
-          {/* Start counts as a step, as the design shows, and so does each step inside a for-each step. */}
+          {/* Start counts as a step, as the design shows, and so do steps inside a for-each step. */}
           {countSteps(
             getAllStepDefinitionsInFlowDefinition(flowDefinition).length + 1,
           )}
@@ -197,14 +195,10 @@ const StepsSection = ({
 /** The flow editor's left panel: the flow's steps, and the steps that can be added to it. */
 export const LeftPanel = ({
   onAddStep,
-  startSelected,
-  onStartClick,
   ...stepsSectionProps
 }: StepsSectionProps & {
   /** Adds a step that runs the action, in view. */
   onAddStep: (actionDefinitionId: string) => void;
-  startSelected: boolean;
-  onStartClick: () => void;
 }) => {
   const [tab, setTab] = useState<LeftPanelTab>("steps");
 
@@ -223,11 +217,7 @@ export const LeftPanel = ({
         />
       </div>
       {tab === "steps" ? (
-        <StepsSection
-          {...stepsSectionProps}
-          run={null}
-          start={{ selected: startSelected, onClick: onStartClick }}
-        />
+        <StepsSection {...stepsSectionProps} run={null} />
       ) : (
         <AddTab onAddStep={onAddStep} />
       )}
