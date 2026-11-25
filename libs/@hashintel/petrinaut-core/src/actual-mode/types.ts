@@ -70,14 +70,3 @@ export type ActualModeContextValue =
       timelineNowMs: number | null;
       error: string | null;
     };
-
-export type ActualModeTimelinePointKind =
-  | "initial"
-  | "transition_firing"
-  | "tick";
-
-export type ActualModeTimelinePoint = {
-  kind: ActualModeTimelinePointKind;
-  timeMs: number;
-  transitionFiringIndex: number | null;
-};

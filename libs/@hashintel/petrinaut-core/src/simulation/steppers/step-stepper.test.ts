@@ -8,9 +8,9 @@ import {
 } from "../frames/internal-frame";
 import { createStepStepper } from "./step-stepper";
 
+import type { TraceEvent } from "../../execution-trace/trace-event";
 import type { SDCPN } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
-import type { TraceEvent } from "../event-trace/trace";
 
 type Transition = SDCPN["transitions"][number];
 

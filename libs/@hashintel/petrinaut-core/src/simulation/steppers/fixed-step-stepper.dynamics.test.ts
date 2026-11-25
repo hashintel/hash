@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { createInMemoryEventTraceStore } from "../../execution-trace/trace-store";
 import { compileHirArtifacts } from "../../hir/compile";
-import { createInMemoryEventTraceStore } from "../event-trace/trace-store";
 import { createTraceRecorder } from "../event-trace/worker/trace-recorder";
 import { createFixedStepStepper } from "./fixed-step-stepper";
 

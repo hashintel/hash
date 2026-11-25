@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { createInMemoryEventTraceStore } from "../../execution-trace/trace-store";
 import { compileHirArtifacts } from "../../hir/compile";
-import { createInMemoryEventTraceStore } from "../event-trace/trace-store";
 import { createTraceRecorder } from "../event-trace/worker/trace-recorder";
 import {
   createEngineFrameLayout,
@@ -10,8 +10,8 @@ import {
 import { createAdaptiveStepper } from "./adaptive-stepper";
 import { evaluateHazards } from "./transition-hazards";
 
+import type { TraceEvent } from "../../execution-trace/trace-event";
 import type { SDCPN } from "../../types/sdcpn";
-import type { TraceEvent } from "../event-trace/trace";
 import type {
   TraceRecorder,
   TraceRecording,

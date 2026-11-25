@@ -6,11 +6,11 @@ import type {
   ActualModeTransitionFiring,
 } from "./types";
 
-export const isActualModeTokenColourArray = (
+const isActualModeTokenColourArray = (
   markingValue: number | ActualModeTokenColour[] | undefined,
 ): markingValue is ActualModeTokenColour[] => Array.isArray(markingValue);
 
-export const getActualModePlaceMarkingTokenCount = (
+const getActualModePlaceMarkingTokenCount = (
   markingValue: number | ActualModeTokenColour[] | undefined,
 ): number => {
   if (markingValue === undefined) {
@@ -96,32 +96,4 @@ export const applyActualModeTransitionFiring = (
   }
 
   return next;
-};
-
-export const getActualModeMarkingAtTransitionFiringIndex = (params: {
-  initialState: ActualModeMarking;
-  transitionFirings: readonly ActualModeTransitionFiring[];
-  transitionFiringIndex: number | null;
-}): ActualModeMarking => {
-  const { initialState, transitionFiringIndex, transitionFirings } = params;
-
-  if (transitionFiringIndex === null) {
-    return initialState;
-  }
-
-  let marking = initialState;
-
-  // TODO(actual-mode follow-up): this reconstructs markings by replaying from
-  // the beginning for each requested frame. That is acceptable for short
-  // executions, but large streams need a prefix marking cache or
-  // incremental timeline reader so scrubbing does not become O(n^2).
-  for (let index = 0; index <= transitionFiringIndex; index += 1) {
-    const firing = transitionFirings[index];
-
-    if (firing) {
-      marking = applyActualModeTransitionFiring(marking, firing);
-    }
-  }
-
-  return marking;
 };

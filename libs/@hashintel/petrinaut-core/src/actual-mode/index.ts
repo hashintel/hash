@@ -1,12 +1,11 @@
-export {
-  ACTUAL_MODE_RECORDING_VERSION,
-  ACTUAL_MODE_TIMELINE_TICK_MS,
-} from "./constants";
+export { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 export { unavailableActualMode } from "./context";
 export {
-  applyActualModeTransitionFiring,
-  getActualModeMarkingAtTransitionFiringIndex,
-} from "./marking";
+  createActualModeTrace,
+  getActualModeEpochMs,
+  type ActualModeTrace,
+} from "./execution-trace";
+export { applyActualModeTransitionFiring } from "./marking";
 export {
   createActualModeRecording,
   parseActualModeRecording,
@@ -19,18 +18,11 @@ export {
   actualModeTransitionEffectSchema,
   actualModeTransitionFiringSchema,
 } from "./schemas";
-export {
-  buildActualModeTimelinePoints,
-  createActualModeTimelineFrameReader,
-  getActualModeTransitionFiringTimesMs,
-} from "./timeline";
 export type {
   ActualModeContextValue,
   ActualModeMarking,
   ActualModeRecording,
   ActualModeSource,
-  ActualModeTimelinePoint,
-  ActualModeTimelinePointKind,
   ActualModeTokenColour,
   ActualModeTransitionEffect,
   ActualModeTransitionFiring,

@@ -3,40 +3,30 @@ import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../document/parameter-values";
+import { createExecutionTrace } from "../../execution-trace/execution-trace";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
 } from "../../extensions/extensions";
-import {
-  runClockOf,
-  runContinuityOf,
-  type RunClock,
-  type RunContinuity,
-} from "../../extensions/net-class";
+import { runClockOf, runContinuityOf } from "../../extensions/net-class";
 import { createReadableStore } from "../../store";
 import { createEventStream } from "../monte-carlo/runtime/experiment-stores";
 import { createWorkerTransport } from "../worker-transport";
-import { createInMemoryEventTraceStore } from "./trace-store";
 
 import type { AbortSignalLike } from "../../environment/environment";
+import type { ExecutionTrace } from "../../execution-trace/execution-trace";
 import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirArtifacts } from "../../hir-runtime";
 import type { EventStream, ReadableStore } from "../../store";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
   InitialMarking,
-  SimulationFrameReader,
   SimulationState,
   SimulationTransport,
   WorkerFactory,
 } from "../api";
 import type { StepperSelection } from "../steppers/steppers";
-import type {
-  EventSimulationErrorEvent,
-  EventSimulationEvent,
-  EventTraceSummary,
-  TraceEvent,
-} from "./trace";
+import type { EventSimulationErrorEvent, EventSimulationEvent } from "./trace";
 import type { ToEventMainMessage } from "./worker/messages";
 
 /**
@@ -65,62 +55,35 @@ export type CreateEventSimulationConfig = EventSimulationConfig &
     | { transport: SimulationTransport; createWorker?: never }
   );
 
+/**
+ * A run a simulator computes: the trace its worker writes, and the controls
+ * of the computation. Everything that shows the run reads `trace`.
+ */
 export interface EventSimulation {
   /**
-   * What the run's positions count: simulated seconds, or the steps of an
-   * untimed net. Every `time` of the run is in that unit.
+   * The run as its events, and the state at any time it covers. The worker
+   * computes until the trace covers the time last asked of it through
+   * `trace.demand`.
    */
-  readonly clock: RunClock;
-  /**
-   * What lies between two events of the run: the continuous evolution of a
-   * net with dynamics, or nothing. A viewer of a discrete run has only its
-   * events to view.
-   */
-  readonly continuity: RunContinuity;
+  readonly trace: ExecutionTrace;
   readonly status: ReadableStore<SimulationState>;
-  readonly trace: ReadableStore<EventTraceSummary>;
   readonly events: EventStream<EventSimulationEvent>;
-  /** Frame place index by place id: the order of an event's per-place arrays. */
-  readonly placeIndexById: ReadonlyMap<string, number>;
 
   run(this: void): void;
   pause(this: void): void;
-  /** Lets the worker compute until the trace covers `time`. */
-  demand(this: void, time: number): void;
-
-  getEvent(this: void, index: number): TraceEvent | null;
-  /** Index of the last event at or before `time`, or -1 before the first. */
-  findEventIndexAt(this: void, time: number): number;
-  /**
-   * Index of the last discrete event (the initial state or a firing) at or
-   * before `index`, or null. Reference frames are skipped.
-   */
-  findDiscreteEventAtOrBefore(this: void, index: number): number | null;
-  /** Index of the first discrete event after `index`, or null. */
-  findDiscreteEventAfter(this: void, index: number): number | null;
-  /** The state an event recorded. */
-  getEventState(this: void, index: number): SimulationFrameReader | null;
-  /** The state at any `time` the trace covers, interpolated between events. */
-  getStateAt(this: void, time: number): SimulationFrameReader | null;
 
   dispose(this: void): void;
 }
-
-const EMPTY_SUMMARY: EventTraceSummary = {
-  eventCount: 0,
-  coveredTime: 0,
-  latest: null,
-};
 
 /**
  * Builds an event-driven run. Resolves with the live {@link EventSimulation}
  * once the worker reports `ready`; rejects (and disposes) on an
  * initialization error or when `signal` aborts first.
  *
- * The host side is a transport to the worker, a store that keeps the events
- * the worker sends, and stores that publish status and progress. The host
- * bounds the worker by time: the worker computes until its trace covers the
- * time last passed to `demand`.
+ * The host side is a transport to the worker, the trace that keeps the events
+ * the worker sends, and a store that publishes the status. The host bounds
+ * the worker by time: the worker computes until its trace covers the time
+ * last asked of it.
  */
 export function createEventSimulation(
   config: CreateEventSimulationConfig,
@@ -131,13 +94,11 @@ export function createEventSimulation(
       : createWorkerTransport(config.createWorker);
 
   const status = createReadableStore<SimulationState>("Initializing");
-  const trace = createReadableStore<EventTraceSummary>(EMPTY_SUMMARY);
   const events = createEventStream<EventSimulationEvent>();
   const extensions = config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
   const sanitizedSdcpn = sanitizeSDCPNForExtensions(config.sdcpn, extensions);
 
-  // The store's frame layout has to match the worker's, which flattens
-  // component instances before building the run.
+  // The worker flattens component instances before building the run.
   const rootParameterValues = extensions.parameters
     ? mergeParameterValues(
         config.parameterValues,
@@ -153,9 +114,22 @@ export function createEventSimulation(
   });
 
   let disposed = false;
+  const send = (message: Parameters<SimulationTransport["send"]>[0]) => {
+    if (!disposed) {
+      transport.send(message);
+    }
+  };
+
+  // The trace's frame layout has to match the worker's, which is the
+  // flattened net's. The clock and the continuity are the authored net's.
+  const { trace, writer } = createExecutionTrace({
+    net: flattenedSdcpn,
+    clock: runClockOf(config.sdcpn, extensions),
+    continuity: runContinuityOf(config.sdcpn, extensions),
+    onDemand: (time) => send({ type: "demand", time }),
+  });
 
   return new Promise<EventSimulation>((resolve, reject) => {
-    const store = createInMemoryEventTraceStore(flattenedSdcpn);
     let settled = false;
     let handle: EventSimulation;
 
@@ -170,19 +144,14 @@ export function createEventSimulation(
           }
           break;
         }
-        case "events": {
-          store.append(message.events);
-          trace.set({
-            eventCount: store.count(),
-            coveredTime: message.coveredTime,
-            latest: store.latest(),
-          });
+        case "events":
+          writer.append(message.events, message.coveredTime);
           break;
-        }
         case "paused":
           status.set("Paused");
           break;
         case "complete":
+          writer.end();
           status.set("Complete");
           events.emit({
             type: "complete",
@@ -191,6 +160,7 @@ export function createEventSimulation(
           });
           break;
         case "error": {
+          writer.end();
           status.set("Error");
           const errorEvent: EventSimulationErrorEvent = {
             type: "error",
@@ -220,19 +190,10 @@ export function createEventSimulation(
       handle.dispose();
     };
 
-    const send = (message: Parameters<SimulationTransport["send"]>[0]) => {
-      if (!disposed) {
-        transport.send(message);
-      }
-    };
-
     handle = {
-      clock: runClockOf(config.sdcpn, extensions),
-      continuity: runContinuityOf(config.sdcpn, extensions),
-      status,
       trace,
+      status,
       events,
-      placeIndexById: store.placeIndexById,
 
       run() {
         if (disposed) {
@@ -242,14 +203,6 @@ export function createEventSimulation(
         send({ type: "start" });
       },
       pause: () => send({ type: "pause" }),
-      demand: (time) => send({ type: "demand", time }),
-      getEvent: (index) => store.getEvent(index),
-      findEventIndexAt: (time) => store.findIndexAt(time),
-      findDiscreteEventAtOrBefore: (index) =>
-        store.findDiscreteEventAtOrBefore(index),
-      findDiscreteEventAfter: (index) => store.findDiscreteEventAfter(index),
-      getEventState: (index) => store.getEventState(index),
-      getStateAt: (time) => store.getStateAt(time),
       dispose() {
         if (disposed) {
           return;
