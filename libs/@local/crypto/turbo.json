@@ -44,7 +44,7 @@
     "test:unit": {
       "command": ["mise", "run", "test:unit", "hash-crypto"]
     },
-    "test:ui:bless": {
+    "test:unit:bless": {
       "cache": false,
       "command": [
         "cargo",
