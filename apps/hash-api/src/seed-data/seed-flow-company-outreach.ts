@@ -78,7 +78,7 @@ const pickedCompaniesFlowName = "First-touch email for picked companies";
 const neverContactedFlowName = "Company first-touch email";
 const flowNames = [pickedCompaniesFlowName, neverContactedFlowName];
 
-/** Domains of personal email addresses: a contact at one is a person, not an organisation. */
+/** Domains of personal email addresses: a contact at one is a person, not an organisation. Matched with the `@`. */
 const personalEmailDomains = [
   "gmail.com",
   "outlook.com",
@@ -273,7 +273,7 @@ const isPersonalEmail = (urls: FlowTypeUrls): FilterCondition => ({
       payloadKind: "Text",
     },
     operator: "endsWith",
-    value: { kind: "Text", value: domain },
+    value: { kind: "Text", value: `@${domain}` },
   })),
 });
 
@@ -313,11 +313,23 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
         },
       });
 
+      const firstOrganisations = step(
+        "keepFirstOrganisations",
+        actions.takeFirst,
+        {
+          description: `Keep the first ${maxDraftMessageEntities} organisations`,
+          inputs: {
+            items: split.outputs.nonMatching,
+            count: constant("Number", maxDraftMessageEntities),
+          },
+        },
+      );
+
       const details = step("pickDetails", actions.draftMessage, {
         description: "Pick out the details",
         inputs: {
           instructions: constant("Text", briefInstructions),
-          entities: split.outputs.nonMatching,
+          entities: firstOrganisations.outputs.items,
         },
       });
 
@@ -329,11 +341,19 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
         },
       });
 
+      const firstPeople = step("keepFirstPeople", actions.takeFirst, {
+        description: `Keep the first ${maxDraftMessageEntities} people`,
+        inputs: {
+          items: split.outputs.matching,
+          count: constant("Number", maxDraftMessageEntities),
+        },
+      });
+
       const note = step("personalNote", actions.draftMessage, {
         description: "Personal note",
         inputs: {
           instructions: constant("Text", personalNoteInstructions),
-          entities: split.outputs.matching,
+          entities: firstPeople.outputs.items,
         },
       });
 
@@ -349,9 +369,11 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
   );
 
   return connectSteps(flowDefinition, {
-    pickDetails: [{ stepId: "splitContacts" }],
+    keepFirstOrganisations: [{ stepId: "splitContacts" }],
+    pickDetails: [{ stepId: "keepFirstOrganisations" }],
     writeEmail: [{ stepId: "pickDetails" }],
-    personalNote: [{ stepId: "splitContacts" }],
+    keepFirstPeople: [{ stepId: "splitContacts" }],
+    personalNote: [{ stepId: "keepFirstPeople" }],
   });
 };
 
@@ -462,6 +484,15 @@ const buildNeverContactedFlow = (urls: FlowTypeUrls): FlowDefinition => {
         inputs: { items: biggestFirst.outputs.items, count: inputs.howMany },
       });
 
+      /* Draft email takes at most 20 entities, and the run form's count can be more. */
+      const atMost = step("keepAtMostOrganisations", actions.takeFirst, {
+        description: `Keep at most ${maxDraftMessageEntities}`,
+        inputs: {
+          items: biggest.outputs.items,
+          count: constant("Number", maxDraftMessageEntities),
+        },
+      });
+
       const details = step("pickDetails", actions.draftMessage, {
         description: "Pick out the details",
         inputs: {
@@ -469,7 +500,7 @@ const buildNeverContactedFlow = (urls: FlowTypeUrls): FlowDefinition => {
             "Text",
             `${briefInstructions} If any company given has 500 or more staff, start the subject with "LARGE:"; otherwise, don't.`,
           ),
-          entities: biggest.outputs.items,
+          entities: atMost.outputs.items,
         },
       });
 
@@ -501,7 +532,7 @@ const buildNeverContactedFlow = (urls: FlowTypeUrls): FlowDefinition => {
       });
 
       const firstPeople = step("keepFirstPeople", actions.takeFirst, {
-        description: "Keep the first 20",
+        description: `Keep the first ${maxDraftMessageEntities} people`,
         inputs: {
           items: split.outputs.matching,
           count: constant("Number", maxDraftMessageEntities),
@@ -540,7 +571,8 @@ const buildNeverContactedFlow = (urls: FlowTypeUrls): FlowDefinition => {
     countPeople: [{ stepId: "splitContacts" }],
     biggestFirst: [{ stepId: "splitContacts" }],
     keepBiggest: [{ stepId: "biggestFirst" }],
-    pickDetails: [{ stepId: "keepBiggest" }],
+    keepAtMostOrganisations: [{ stepId: "keepBiggest" }],
+    pickDetails: [{ stepId: "keepAtMostOrganisations" }],
     writeEmail: [{ stepId: "pickDetails" }],
     anyLarge: [{ stepId: "writeEmail" }],
     /* Only on If's Yes path, as the editor connects a step to a path. */
