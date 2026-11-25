@@ -27,6 +27,7 @@ import type {
   EntityTypeWithMetadata,
   PropertyType,
   PropertyTypeWithMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -121,7 +122,35 @@ const getLatestBlockprotocolTypesQuery = {
 const generateRecordTypeString = (
   kind: (DataType | EntityType | PropertyType)["kind"] | "linkEntityType",
 ) =>
-  `Record<string, { ${kind}Id: VersionedUrl; ${kind}BaseUrl: BaseUrl; ${kind === "dataType" ? "title: string; description: string;" : ""} }>`;
+  `Record<string, { ${kind}Id: VersionedUrl; ${kind}BaseUrl: BaseUrl; ${kind === "dataType" ? "title: string; titlePlural?: string; description: string;" : ""} }>`;
+
+/**
+ * Reads every page of a query. The graph returns at most `HASH_GRAPH_QUERY_ONTOLOGY_LIMIT` types per request, 1000 by
+ * default, and a cursor to read the rest from.
+ */
+const queryAllPages = async <Response extends { cursor?: VersionedUrl }, Type>(
+  queryPage: (after: VersionedUrl | undefined) => Promise<Response>,
+  getTypes: (response: Response) => Type[],
+): Promise<Type[]> => {
+  const types: Type[] = [];
+  const cursors = new Set<VersionedUrl>();
+  let after: VersionedUrl | undefined;
+
+  do {
+    const response = await queryPage(after);
+    types.push(...getTypes(response));
+
+    after = response.cursor;
+    if (after) {
+      if (cursors.has(after)) {
+        throw new Error(`Query returned cursor ${after} more than once`);
+      }
+      cursors.add(after);
+    }
+  } while (after);
+
+  return types;
+};
 
 const serializeTypes: ImpureGraphFunction<
   {
@@ -236,72 +265,80 @@ const generateOntologyIds = async () => {
 
   const authentication = { actorId: publicUserAccountId };
 
+  type Query =
+    | ReturnType<typeof getLatestTypesInOrganizationQuery>
+    | typeof getLatestBlockprotocolTypesQuery;
+
+  const queryAllEntityTypes = (query: Query) =>
+    queryAllPages(
+      (after) =>
+        queryEntityTypes(graphContext.graphApi, authentication, {
+          ...query,
+          ...(after ? { after } : {}),
+        }),
+      ({ entityTypes }) => entityTypes,
+    );
+
+  const queryAllPropertyTypes = (query: Query) =>
+    queryAllPages(
+      (after) =>
+        queryPropertyTypes(graphContext.graphApi, authentication, {
+          ...query,
+          ...(after ? { after } : {}),
+        }),
+      ({ propertyTypes }) => propertyTypes,
+    );
+
+  const queryAllDataTypes = (query: Query) =>
+    queryAllPages(
+      (after) =>
+        queryDataTypes(graphContext.graphApi, authentication, {
+          ...query,
+          ...(after ? { after } : {}),
+        }),
+      ({ dataTypes }) => dataTypes,
+    );
+
   const [
-    { entityTypes: hashEntityTypes },
-    { propertyTypes: hashPropertyTypes },
-    { dataTypes: hashDataTypes },
-    { entityTypes: googleEntityTypes },
-    { propertyTypes: googlePropertyTypes },
-    { entityTypes: linearEntityTypes },
-    { propertyTypes: linearPropertyTypes },
-    { entityTypes: blockProtocolEntityTypes },
-    { propertyTypes: blockProtocolPropertyTypes },
-    { dataTypes: blockProtocolDataTypes },
+    hashEntityTypes,
+    hashPropertyTypes,
+    hashDataTypes,
+    googleEntityTypes,
+    googlePropertyTypes,
+    linearEntityTypes,
+    linearPropertyTypes,
+    blockProtocolEntityTypes,
+    blockProtocolPropertyTypes,
+    blockProtocolDataTypes,
   ] = await Promise.all([
     // HASH types
-    queryEntityTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllEntityTypes(
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    queryPropertyTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllPropertyTypes(
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    queryDataTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllDataTypes(
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
     // Google types
-    queryEntityTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllEntityTypes(
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ),
-    queryPropertyTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllPropertyTypes(
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ),
     // Linear types
-    queryEntityTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllEntityTypes(
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
-    queryPropertyTypes(
-      graphContext.graphApi,
-      authentication,
+    queryAllPropertyTypes(
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
     // BlockProtocol types
-    queryEntityTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestBlockprotocolTypesQuery,
-    ),
-    queryPropertyTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestBlockprotocolTypesQuery,
-    ),
-    queryDataTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestBlockprotocolTypesQuery,
-    ),
+    queryAllEntityTypes(getLatestBlockprotocolTypesQuery),
+    queryAllPropertyTypes(getLatestBlockprotocolTypesQuery),
+    queryAllDataTypes(getLatestBlockprotocolTypesQuery),
   ]);
 
   const outputPath = path.join(
@@ -309,8 +346,7 @@ const generateOntologyIds = async () => {
     `../../../libs/@local/hash-isomorphic-utils/src/${outputFileName}`,
   );
 
-  const importStatement = `import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@blockprotocol/type-system";\n\n`;
+  const importStatement = `import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";\n\n`;
 
   const fileText =
     importStatement +
