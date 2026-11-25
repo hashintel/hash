@@ -616,7 +616,7 @@ __metadata:
     vite: "catalog:"
     vitest: "catalog:"
     wait-on: "npm:9.0.1"
-    ws: "npm:8.21.0"
+    ws: "npm:8.23.0"
   languageName: unknown
   linkType: soft
 
@@ -977,7 +977,7 @@ __metadata:
     webpack: "npm:5.107.2"
     webpack-cli: "npm:6.0.1"
     webpack-dev-server: "npm:5.2.6"
-    ws: "npm:8.21.0"
+    ws: "npm:8.23.0"
     zip-webpack-plugin: "npm:4.0.3"
   languageName: unknown
   linkType: soft
@@ -42787,9 +42787,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.21.0":
-  version: 8.21.0
-  resolution: "ws@npm:8.21.0"
+"ws@npm:8.23.0, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.21.0, ws@npm:^8.21.1, ws@npm:^8.21.3, ws@npm:^8.22.0, ws@npm:^8.22.1, ws@npm:^8.5.0":
+  version: 8.23.0
+  resolution: "ws@npm:8.23.0"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -42798,13 +42798,13 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/ef4a243476283fc49bc7550966c4af4aa0eef56273837211e700de3b664e08604a760cdddcb5ba43c049140e74ccfec5b0ee0bb439e08c2adf9138902fdde5f9
+  checksum: 10c0/1de9b70701c03cdb1b22abd17a1488dc6d22b4dc36a8c32b173d955356ea3634e78aea8ec734a78201dbb34f5a402d9603df32ef267bd477228cd54ae158e2f8
   languageName: node
   linkType: hard
 
 "ws@npm:^7.3.1":
-  version: 7.5.11
-  resolution: "ws@npm:7.5.11"
+  version: 7.5.14
+  resolution: "ws@npm:7.5.14"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ^5.0.2
@@ -42813,22 +42813,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/7972670b676fb1ccba73b0899ca3c2e04e8c2075629c2614cced7f556536f96a672bbf4619fc5a06c8b8720bb839a47ca88c69c95dc14c9c61a99fbecba1c866
-  languageName: node
-  linkType: hard
-
-"ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.21.0, ws@npm:^8.21.1, ws@npm:^8.21.3, ws@npm:^8.22.0, ws@npm:^8.22.1, ws@npm:^8.5.0":
-  version: 8.22.1
-  resolution: "ws@npm:8.22.1"
-  peerDependencies:
-    bufferutil: ^4.0.1
-    utf-8-validate: ">=5.0.2"
-  peerDependenciesMeta:
-    bufferutil:
-      optional: true
-    utf-8-validate:
-      optional: true
-  checksum: 10c0/858ccc31e56a7549c25d0bfd522b65c64f7bffdc5460eeb4c29517d34728d34de102d2ebf8296160c8b4594fd45ead6a324acd9a1ea0b0b8742bbed4d52d9a51
+  checksum: 10c0/cdd7bf9a34d35d836c39992bfd22993d33c56c43c8bdbf523958b5517c5654aa500381a41fd71f164996b079fccba67ee60135e87c9c1a1d2fbf30127760e31e
   languageName: node
   linkType: hard
 
