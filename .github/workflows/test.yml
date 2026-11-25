@@ -121,6 +121,8 @@ jobs:
 
       - name: Clean up disk
         uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -228,6 +230,8 @@ jobs:
 
       - name: Clean up disk
         uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -363,6 +367,8 @@ jobs:
 
       - name: Clean up disk
         uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Build package flags
         id: flags
