@@ -651,9 +651,16 @@ const FlowCanvas = ({
   ) => {
     const origin = getBoxOrigin(parentStepId);
     const card = cardBeside(screenToFlowPosition(point), side);
+    const place = { x: card.x - origin.x, y: card.y - origin.y };
 
     return getFreePosition(
-      { x: card.x - origin.x, y: card.y - origin.y },
+      /* In a box, not past its top or left edge, which it doesn't grow to. */
+      parentStepId === null
+        ? place
+        : {
+            x: Math.max(place.x, forEachBoxPadding.side),
+            y: Math.max(place.y, forEachBoxPadding.header),
+          },
       stepCardSize,
       getTakenPlaces(parentStepId),
     );
