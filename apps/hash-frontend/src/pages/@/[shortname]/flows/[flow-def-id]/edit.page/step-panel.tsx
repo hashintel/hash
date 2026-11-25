@@ -28,6 +28,7 @@ import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
 import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
+import { PropertyRowsField } from "./step-panel/property-rows-field";
 import { QueryField } from "./step-panel/query-field";
 import { SortKeyField } from "./step-panel/sort-key-field";
 import { TriggersPanelBody } from "./step-panel/triggers-panel";
@@ -62,8 +63,8 @@ const takesOnly = (input: InputDefinition, kind: PayloadKind) =>
   input.oneOfPayloadKinds[0] === kind;
 
 /**
- * The field for an input: a builder for a query, a condition, a sort or an aggregation, a picker for entity types,
- * otherwise a menu of values.
+ * The field for an input: a builder for a query, a condition, a sort, an aggregation, or an entity's properties or
+ * changes to them, a picker for entity types, otherwise a menu of values.
  */
 const getFieldFor = (input: InputDefinition) =>
   takesKind(input, "EntityQuery")
@@ -74,9 +75,12 @@ const getFieldFor = (input: InputDefinition) =>
         ? SortKeyField
         : takesKind(input, "Aggregation")
           ? AggregationField
-          : takesOnly(input, "VersionedUrl") && input.array
-            ? EntityTypeField
-            : InputField;
+          : takesOnly(input, "PropertyObjectWithMetadata") ||
+              takesOnly(input, "PropertyPatch")
+            ? PropertyRowsField
+            : takesOnly(input, "VersionedUrl") && input.array
+              ? EntityTypeField
+              : InputField;
 
 /** What the panel shows: the flow's triggers, the start step, or one step at any depth. */
 export type StepPanelSubject =
