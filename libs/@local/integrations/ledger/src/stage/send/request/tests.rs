@@ -8,6 +8,7 @@ use type_system::{
     knowledge::{
         PropertyValue,
         entity::{
+            Link,
             id::{EntityId, EntityUuid},
             provenance::ProvidedEntityEditionProvenance,
         },
@@ -157,16 +158,43 @@ fn requests_graph_readable() {
     assert_eq!(archived.entity_id, aircraft_id());
     assert_eq!(archived.archived, Some(true));
 
-    let link: CreateEntityParams = serde_json::from_str(
-        create(
-            &row(Op::CreateLink, PropertyObjectWithMetadata::default()),
+    // Send creates a link that an update did not find, so an update row also names its ends.
+    for op in [Op::CreateLink, Op::UpdateLink] {
+        let link: CreateEntityParams = serde_json::from_str(
+            create(
+                &row(op, PropertyObjectWithMetadata::default()),
+                &provenance(),
+            )
+            .expect("should build the create")
+            .get(),
+        )
+        .expect("the Graph should read the create request of a link");
+        let Some(Link::Directed { source, target }) = link.link_data else {
+            panic!("a link should name its ends");
+        };
+        assert_eq!(
+            source.entity_id,
+            aircraft_id(),
+            "the left end is the source"
+        );
+        assert_eq!(
+            target.entity_id,
+            entity_id("ESSA"),
+            "the right end is the target"
+        );
+    }
+
+    let unchanged: PatchEntityParams = serde_json::from_str(
+        patch(
+            &row(Op::UpdateLink, PropertyObjectWithMetadata::default()),
             &provenance(),
         )
-        .expect("should build the create")
+        .expect("should build the patch")
         .get(),
     )
-    .expect("the Graph should read the create request of a link");
-    assert!(link.link_data.is_some(), "a link should name its ends");
+    .expect("the Graph should read a patch without properties");
+    assert!(unchanged.properties.is_empty(), "should change no property");
+    assert_eq!(unchanged.archived, Some(false));
 }
 
 #[test]

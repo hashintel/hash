@@ -16,6 +16,7 @@ type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
 time = { workspace = true, public = true, features = ["formatting", "macros", "parsing", "serde"] }
+url  = { workspace = true, public = true }
 uuid = { workspace = true, public = true, features = ["serde", "v4", "v5"] }
 
 # Private workspace dependencies
@@ -39,7 +40,6 @@ simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
 tokio          = { workspace = true, features = ["fs", "io-util", "rt"] }
 tracing        = { workspace = true, features = ["attributes"] }
-url            = { workspace = true }
 
 [dev-dependencies]
 hash-graph-store = { workspace = true }

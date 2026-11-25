@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use axum::{
     Router,
     extract::State,
-    http::{HeaderMap, Method, StatusCode, Uri},
+    http::{HeaderMap, Method, StatusCode, Uri, header::CONTENT_TYPE},
     routing::any,
 };
 use hash_crypto::Secret;
@@ -57,6 +57,7 @@ struct Received {
     path: String,
     actor: Option<String>,
     credential: Option<String>,
+    content_type: Option<String>,
     body: String,
 }
 
@@ -112,6 +113,10 @@ async fn record(
                 .and_then(|value| value.to_str().ok())
                 .map(ToOwned::to_owned),
             credential: service_credential(&headers).map(ToOwned::to_owned),
+            content_type: headers
+                .get(CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok())
+                .map(ToOwned::to_owned),
             body,
             method,
         });
@@ -140,7 +145,15 @@ fn received(method: Method, path: &str, body: String) -> Received {
         path: path.to_owned(),
         actor: Some(actor().to_string()),
         credential: Some(SERVICE_SECRET.to_owned()),
+        content_type: Some("application/json".to_owned()),
         body,
+    }
+}
+
+fn refused(status: u16) -> Answer {
+    Answer::Refused {
+        status,
+        message: "graph says no".into(),
     }
 }
 
@@ -163,56 +176,42 @@ async fn create_applied() {
     );
 }
 
-#[rstest]
-#[case::archived(StatusCode::OK, Answer::Applied)]
-#[case::absent(StatusCode::NOT_FOUND, Answer::Refused {
-    status: 404,
-    message: "graph says no".into(),
-})]
 #[tokio::test]
-async fn archive(#[case] status: StatusCode, #[case] expected: Answer) {
-    let graph = Graph::new(status);
+async fn patch_applied() {
+    let graph = Graph::new(StatusCode::OK);
     let server = graph.serve("").await;
 
     let answer = client(&server.url).patch(actor(), &body("a")).await;
 
-    assert_eq!(answer, expected);
+    assert_eq!(answer, Answer::Applied);
     assert_eq!(
         graph.received(),
         [received(
             Method::PATCH,
             "/entities",
             body("a").get().to_owned()
-        )]
+        )],
+        "should send the body as the run's owner"
     );
 }
 
 #[rstest]
-#[case::ok(StatusCode::OK, None)]
-#[case::conflict(StatusCode::CONFLICT, Some(409))]
-#[case::not_found(StatusCode::NOT_FOUND, Some(404))]
-#[case::bad_request(StatusCode::BAD_REQUEST, Some(400))]
-#[case::unprocessable(StatusCode::UNPROCESSABLE_ENTITY, Some(422))]
-#[case::server_error(StatusCode::INTERNAL_SERVER_ERROR, Some(500))]
-#[case::too_many_requests(StatusCode::TOO_MANY_REQUESTS, None)]
-#[case::bad_gateway(StatusCode::BAD_GATEWAY, None)]
-#[case::service_unavailable(StatusCode::SERVICE_UNAVAILABLE, None)]
-#[case::gateway_timeout(StatusCode::GATEWAY_TIMEOUT, None)]
+#[case::conflict(StatusCode::CONFLICT, refused(409))]
+#[case::not_found(StatusCode::NOT_FOUND, refused(404))]
+#[case::bad_request(StatusCode::BAD_REQUEST, refused(400))]
+#[case::unprocessable(StatusCode::UNPROCESSABLE_ENTITY, refused(422))]
+#[case::server_error(StatusCode::INTERNAL_SERVER_ERROR, refused(500))]
+#[case::too_many_requests(StatusCode::TOO_MANY_REQUESTS, Answer::Unavailable)]
+#[case::bad_gateway(StatusCode::BAD_GATEWAY, Answer::Unavailable)]
+#[case::service_unavailable(StatusCode::SERVICE_UNAVAILABLE, Answer::Unavailable)]
+#[case::gateway_timeout(StatusCode::GATEWAY_TIMEOUT, Answer::Unavailable)]
 #[tokio::test]
-async fn answers(#[case] status: StatusCode, #[case] refused: Option<u16>) {
+async fn answers(#[case] status: StatusCode, #[case] expected: Answer) {
     let graph = Graph::new(status);
     let server = graph.serve("").await;
 
     let answer = client(&server.url).create(actor(), &body("a")).await;
 
-    let expected = match refused {
-        Some(status) => Answer::Refused {
-            status,
-            message: "graph says no".into(),
-        },
-        None if status.is_success() => Answer::Applied,
-        None => Answer::Unavailable,
-    };
     assert_eq!(answer, expected);
 }
 

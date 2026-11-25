@@ -1,7 +1,7 @@
 //! Sends request bodies to the Graph's entity API and says what the Graph answered.
 //!
 //! The client authenticates as a service and acts for the actor each request is sent for, which
-//! is the owner of the run. It does not retry, and it does not interpret a refusal.
+//! is the owner of the run.
 
 #[cfg(test)]
 mod tests;
@@ -14,14 +14,15 @@ use hash_middleware::authentication::{
     request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
 };
 use reqwest::{
-    Client, Method, Response, StatusCode, Url,
+    Client, Method, Response, StatusCode,
     header::{AUTHORIZATION, CONTENT_TYPE, HeaderValue},
     redirect::Policy,
 };
 use serde_json::value::RawValue;
 use type_system::principal::actor::ActorEntityUuid;
+use url::Url;
 
-use super::super::MAX_MESSAGE;
+use crate::stage::MAX_MESSAGE;
 
 /// Why the Graph client cannot be set up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]

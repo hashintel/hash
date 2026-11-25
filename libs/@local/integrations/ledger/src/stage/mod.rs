@@ -31,8 +31,7 @@ use crate::{
     storage::{CasVersion, Storage},
 };
 
-/// The longest message `run.json` keeps, in characters: of a stage's failure, and of the Graph's
-/// answer to a refused request.
+/// The longest message the `failure` part of `run.json` keeps, in characters.
 const MAX_MESSAGE: usize = 1024;
 
 /// The record of the run a stage works on, as [`begin`] read it.
