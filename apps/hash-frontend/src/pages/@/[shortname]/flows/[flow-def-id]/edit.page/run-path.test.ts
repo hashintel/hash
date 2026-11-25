@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { generateRunViewPath, parseRunParam } from "./run-path";
+import {
+  generateRunViewPath,
+  parseAsParam,
+  parseRunParam,
+  withAsParam,
+} from "./run-path";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -55,5 +60,25 @@ describe("parseRunParam", () => {
     expect(
       parseRunParam(`not-a-web~${runUuid}`, flowDefinitionEntityId),
     ).toBeNull();
+  });
+});
+
+describe("withAsParam", () => {
+  it("adds the net to the editor's path and to a run's, which read back as the net, and leaves them for the steps", () => {
+    const editorPath = "/@acme/flows/0199a1b2-c3d4-7e5f-8a9b-111111111111/edit";
+    const runPath = generateRunViewPath({
+      shortname: "acme",
+      flowDefinitionEntityId,
+      flowRunEntityId: `${flowWeb}~${runUuid}` as EntityId,
+    });
+    const runParams = new URLSearchParams(
+      withAsParam(runPath, "net").split("?")[1],
+    );
+
+    expect(withAsParam(editorPath, "net")).toBe(`${editorPath}?as=net`);
+    expect(runParams.get("run")).toBe(runUuid);
+    expect(parseAsParam(runParams.get("as") ?? undefined)).toBe("net");
+    expect(withAsParam(runPath, "flow")).toBe(runPath);
+    expect(parseAsParam(undefined)).toBe("flow");
   });
 });

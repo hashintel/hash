@@ -11,6 +11,7 @@ import {
 import { useFlowRunEvents } from "../../../../shared/use-flow-run-events";
 import { flowSectionBorderRadius } from "./shared/styles";
 
+import type { FlowRunEvents } from "../../../../shared/use-flow-run-events";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetrinautPreviewProps } from "@hashintel/petrinaut/preview";
@@ -122,6 +123,8 @@ export type FlowNetViewRun = {
   name: string;
   /** Whether the run is still going, so new events may come. */
   live: boolean;
+  /** The run's events, when the page already reads them and reports their failures. Read here otherwise. */
+  events?: FlowRunEvents;
 };
 
 /**
@@ -140,7 +143,11 @@ const FlowRunNetPreview = ({
   title: string;
 }) => {
   const { flowRunEntityId, name, live } = flowRun;
-  const flowRunEvents = useFlowRunEvents({ flowRunEntityId, live });
+  const eventsReadHere = useFlowRunEvents({
+    flowRunEntityId: flowRun.events ? null : flowRunEntityId,
+    live,
+  });
+  const flowRunEvents = flowRun.events ?? eventsReadHere;
 
   const events =
     flowRunEvents.status === "loaded" ? flowRunEvents.events : null;
@@ -202,6 +209,15 @@ const FlowRunNetPreview = ({
         </Message>
       ) : (
         <>
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <PetrinautPreview
+              actualMode={actualMode}
+              definition={net}
+              documentId={documentId}
+              title={title}
+            />
+          </Box>
+          {/* Below the net, so they don't move its header, which the editor places its switch under. */}
           {replay && replay.problems.length > 0 ? (
             <Typography
               variant="smallTextParagraphs"
@@ -211,7 +227,9 @@ const FlowRunNetPreview = ({
               events, so it may not show where everything is.
             </Typography>
           ) : null}
-          {flowRunEvents.status === "loaded" && flowRunEvents.checkFailure ? (
+          {!flowRun.events &&
+          flowRunEvents.status === "loaded" &&
+          flowRunEvents.checkFailure ? (
             <Typography
               variant="smallTextParagraphs"
               sx={{ color: ({ palette }) => palette.gray[60], px: 2, py: 1 }}
@@ -221,14 +239,6 @@ const FlowRunNetPreview = ({
               Trying again…
             </Typography>
           ) : null}
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            <PetrinautPreview
-              actualMode={actualMode}
-              definition={net}
-              documentId={documentId}
-              title={title}
-            />
-          </Box>
         </>
       )}
     </Stack>
@@ -242,11 +252,14 @@ export const FlowNetView = ({
   flowDefinition,
   flowDefinitionEntityId,
   flowRun,
+  framed = true,
 }: {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   /** Keys the viewport Petrinaut saves, so each flow opens at its own pan and zoom. */
   flowDefinitionEntityId: EntityId;
   flowRun?: FlowNetViewRun;
+  /** Whether it has a border and rounded corners, rather than filling its space edge to edge. */
+  framed?: boolean;
 }) => {
   const compiledNet = useCompiledFlowNet(flowDefinition);
 
@@ -254,9 +267,13 @@ export const FlowNetView = ({
     <Box
       sx={{
         background: ({ palette }) => palette.common.white,
-        border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-        borderRadius: flowSectionBorderRadius,
+        ...(framed && {
+          border: ({ palette }) => `1px solid ${palette.gray[30]}`,
+          borderRadius: flowSectionBorderRadius,
+        }),
         height: "100%",
+        /* Keeps Petrinaut's layers inside, so what a page floats over the net stays on top. */
+        isolation: "isolate",
         overflow: "hidden",
         width: "100%",
       }}

@@ -50,3 +50,15 @@ export const parseRunParam = (
 
   return isEntityId(flowRunEntityId) ? flowRunEntityId : null;
 };
+
+/** Whether the editor or a run shows the flow as its steps, or as the Petri net it compiles to. */
+export type FlowShape = "flow" | "net";
+
+/** An editor path showing the flow in a shape: with an `as=net` parameter for the net, and as it is for the steps. */
+export const withAsParam = (path: string, shape: FlowShape) =>
+  shape === "net" ? `${path}${path.includes("?") ? "&" : "?"}as=net` : path;
+
+/** The shape an `as` parameter of {@link withAsParam} names: the net for `net`, and the steps for anything else. */
+export const parseAsParam = (
+  asParam: string | string[] | undefined,
+): FlowShape => (asParam === "net" ? "net" : "flow");

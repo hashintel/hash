@@ -14,6 +14,7 @@ import type {
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
 } from "../../../../../../../graphql/api-types.gen";
+import type { FlowRunEvents } from "../../../../../../shared/use-flow-run-events";
 import type { StepRunMark } from "../shared/step-states";
 import type { ApolloError } from "@apollo/client";
 import type {
@@ -41,12 +42,14 @@ export type Run =
        * The flow as the run ran it: the edition current when it started. `null` if that couldn't be read, when the
        * run is shown on the flow as it is now.
        */
-      ranDefinition: FlowDefinition<string> | null;
+      ranDefinition: FlowDefinition | null;
       marks: Map<string, StepRunMark>;
       /** The runs of its steps by step run id: a step's id, or for a step inside a for-each step, one per item. */
       stepRuns: Map<string, FlowRunStepRunState>;
       /** When each step run waiting on a person to answer its questions asked them, by step run id. */
       waitingOnPerson: Map<string, string>;
+      /** Its events, read for its steps' runs, and for its tokens on the flow's net. */
+      events: Extract<FlowRunEvents, { status: "loaded" }>;
       /** Whether it's still going, so more of its steps will run. */
       live: boolean;
       /** Why the last check for the run's new events failed, while it keeps checking. */
@@ -211,6 +214,7 @@ export const useRun = ({
     marks: steps.marks,
     stepRuns: steps.stepRuns,
     waitingOnPerson: steps.waitingOnPerson,
+    events,
     live,
     checkFailure: events.checkFailure ?? null,
     flowScheduleId: run.flowScheduleId ?? null,
