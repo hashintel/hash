@@ -1,5 +1,5 @@
 use alloc::rc::Rc;
-use core::alloc::Allocator;
+use core::alloc::{Allocator, AllocatorNightly};
 
 use hashql_core::{intern::InternSet, symbol::Symbol, value::Primitive};
 use hashql_hir::node as hir;
@@ -22,11 +22,11 @@ fn reify_primitive<A: Allocator>(primitive: Primitive<'_>) -> mir::Value<'_, A> 
 fn reify_node<'heap, A, S>(
     node: hir::Node<'heap>,
     symbols: &InternSet<'heap, [Symbol<'heap>]>,
-    alloc: &A,
+    alloc: A,
     scratch: &S,
 ) -> mir::Value<'heap, A>
 where
-    A: Allocator + Clone,
+    A: Allocator + AllocatorNightly + Clone,
     S: Allocator,
 {
     let hir::kind::NodeKind::Data(data) = node.kind else {
@@ -40,9 +40,11 @@ where
         }
         hir::data::Data::Tuple(hir::data::Tuple { fields }) => {
             let mut values = Vec::with_capacity_in(fields.len(), alloc.clone());
+
             for &field in fields {
-                values.push(reify_node(field, symbols, alloc, scratch));
+                values.push(reify_node(field, symbols, alloc.clone(), scratch));
             }
+
             mir::Value::Tuple(mir::Tuple::new_unchecked(Rc::from(values)))
         }
         hir::data::Data::Struct(hir::data::Struct { fields }) => {
@@ -51,29 +53,34 @@ where
 
             for &hir::data::StructField { name, value } in fields {
                 field_names.push(name.value);
-                values.push(reify_node(value, symbols, alloc, scratch));
+                values.push(reify_node(value, symbols, alloc.clone(), scratch));
             }
 
             debug_assert!(field_names.is_sorted());
             let interned_names = symbols.intern_slice(&field_names);
+
             let r#struct = mir::Struct::new(interned_names, values)
                 .expect("HIR struct fields are sorted and match value count");
             mir::Value::Struct(r#struct)
         }
         hir::data::Data::List(hir::data::List { elements }) => {
             let mut list = mir::List::new();
+
             for &element in elements {
-                list.push_back(reify_node(element, symbols, alloc, scratch));
+                list.push_back(reify_node(element, symbols, alloc.clone(), scratch));
             }
+
             mir::Value::List(list)
         }
         hir::data::Data::Dict(hir::data::Dict { fields }) => {
             let mut dict = mir::Dict::new();
+
             for &hir::data::DictField { key, value } in fields {
-                let key = reify_node(key, symbols, alloc, scratch);
-                let value = reify_node(value, symbols, alloc, scratch);
+                let key = reify_node(key, symbols, alloc.clone(), scratch);
+                let value = reify_node(value, symbols, alloc.clone(), scratch);
                 dict.insert(key, value);
             }
+
             mir::Value::Dict(dict)
         }
     }
@@ -92,10 +99,10 @@ pub fn from_hir_value_in<'heap, A, S>(
     scratch: S,
 ) -> mir::Value<'heap, A>
 where
-    A: Allocator + Clone,
+    A: Allocator + AllocatorNightly + Clone,
     S: Allocator,
 {
-    reify_node(value.node(), symbols, &alloc, &scratch)
+    reify_node(value.node(), symbols, alloc, &scratch)
 }
 
 #[cfg(test)]
@@ -138,12 +145,11 @@ mod tests {
         let mir_interner = MirInterner::new(&heap);
         let scratch = Scratch::new();
 
-        let alloc = &heap;
         let reify = |data| {
             reify_node(
                 hir_node(&hir_interner, data),
                 &mir_interner.symbols,
-                &alloc,
+                &heap,
                 &scratch,
             )
         };
@@ -245,8 +251,7 @@ mod tests {
             }),
         );
 
-        let alloc = &heap;
-        let Value::Struct(r#struct) = reify_node(root, &mir_interner.symbols, &alloc, &scratch)
+        let Value::Struct(r#struct) = reify_node(root, &mir_interner.symbols, &heap, &scratch)
         else {
             panic!("expected struct value");
         };
@@ -309,8 +314,7 @@ mod tests {
             }),
         );
 
-        let alloc = &heap;
-        let Value::Dict(dict) = reify_node(dict_node, &mir_interner.symbols, &alloc, &scratch)
+        let Value::Dict(dict) = reify_node(dict_node, &mir_interner.symbols, &heap, &scratch)
         else {
             panic!("expected dict value");
         };
@@ -332,7 +336,7 @@ mod tests {
             }),
         );
 
-        let Value::Struct(r#struct) = reify_node(root, &mir_interner.symbols, &Global, &Global)
+        let Value::Struct(r#struct) = reify_node(root, &mir_interner.symbols, Global, &Global)
         else {
             panic!("expected empty struct value");
         };

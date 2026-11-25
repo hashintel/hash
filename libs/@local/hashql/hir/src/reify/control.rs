@@ -23,8 +23,8 @@ use crate::node::{
     operation::{InputOp, InputOperation, Operation},
 };
 
-pub(super) fn reify_let<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+pub(super) fn reify_let<'heap, 'scratch, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, 'scratch, S>,
     LetExpr {
         id: _,
         span: _,
@@ -33,11 +33,8 @@ pub(super) fn reify_let<'heap, A>(
         r#type,
         body,
     }: LetExpr<'heap>,
-    bindings: Option<&mut Vec<Binding<'heap>, A>>,
-) -> Option<Fold<'heap>>
-where
-    A: Allocator + Clone,
-{
+    bindings: Option<&mut Vec<Binding<'heap>, &'scratch S>>,
+) -> Option<Fold<'heap>> {
     let value_span = value.span;
     let binder = reifier.binders.bind(name, reifier.context);
 
@@ -64,7 +61,7 @@ where
         return body.map(Fold::Promote);
     }
 
-    let mut bindings = Vec::new_in(reifier.scratch.clone());
+    let mut bindings = Vec::new_in(reifier.scratch);
     let mut incomplete = true;
 
     // Delay returning on a failed value so diagnostics in the body are still collected.
@@ -101,15 +98,12 @@ const fn input_node_kind(span: SpanId, name: Ident<'_>, op: InputOp) -> NodeKind
     }))
 }
 
-fn input_node<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+fn input_node<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     span: SpanId,
     name: Ident<'heap>,
     op: InputOp,
-) -> Node<'heap>
-where
-    A: Allocator + Clone,
-{
+) -> Node<'heap> {
     reifier.context.interner.intern_node(NodeData {
         id: reifier.context.counter.hir.next(),
         span,
@@ -117,16 +111,13 @@ where
     })
 }
 
-fn input_expr_default<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+fn input_expr_default<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     span: SpanId,
     name: Ident<'heap>,
     r#type: &Type<'heap>,
     default: Expr<'heap>,
-) -> Option<NodeKind<'heap>>
-where
-    A: Allocator + Clone,
-{
+) -> Option<NodeKind<'heap>> {
     // `input(name, type: type, default: expr)` lowers to
     // `if INPUT_EXISTS(name) then INPUT_LOAD(name) else (default as type)`.
     let default = reifier.reify_expr(default)?;
@@ -142,24 +133,21 @@ where
     })))
 }
 
-fn input_expr_required<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+fn input_expr_required<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     hir_id: HirId,
     span: SpanId,
     r#type: &Type<'heap>,
     name: Ident<'heap>,
-) -> NodeKind<'heap>
-where
-    A: Allocator + Clone,
-{
+) -> NodeKind<'heap> {
     let type_id = reifier.types.anonymous[r#type.id];
     reifier.context.map.insert_type_id(hir_id, type_id);
 
     input_node_kind(span, name, InputOp::Load { required: true })
 }
 
-pub(super) fn reify_input<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+pub(super) fn reify_input<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     hir_id: HirId,
     InputExpr {
         id: _,
@@ -168,10 +156,7 @@ pub(super) fn reify_input<'heap, A>(
         r#type,
         default,
     }: InputExpr<'heap>,
-) -> Option<NodeKind<'heap>>
-where
-    A: Allocator + Clone,
-{
+) -> Option<NodeKind<'heap>> {
     if let Some(default) = default {
         input_expr_default(reifier, span, name, &r#type, *default)
     } else {
@@ -179,8 +164,8 @@ where
     }
 }
 
-pub(super) fn reify_closure<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+pub(super) fn reify_closure<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     hir_id: HirId,
     ClosureExpr {
         id: _,
@@ -188,14 +173,11 @@ pub(super) fn reify_closure<'heap, A>(
         signature,
         body,
     }: ClosureExpr<'heap>,
-) -> Option<NodeKind<'heap>>
-where
-    A: Allocator + Clone,
-{
+) -> Option<NodeKind<'heap>> {
     let signature_def = reifier.types.signatures[signature.id];
     reifier.context.map.insert_type_def(hir_id, signature_def);
 
-    let mut params = Vec::with_capacity_in(signature.inputs.len(), reifier.scratch.clone());
+    let mut params = Vec::with_capacity_in(signature.inputs.len(), reifier.scratch);
     for &hashql_ast::node::expr::closure::ClosureParam {
         id: _,
         span,
@@ -222,13 +204,10 @@ where
     }))
 }
 
-fn if_expr_then_some<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+fn if_expr_then_some<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     node: Node<'heap>,
-) -> Node<'heap>
-where
-    A: Allocator + Clone,
-{
+) -> Node<'heap> {
     let some_path = make_qualified_path(reifier, node.span, &[sym::core, sym::option, sym::Some]);
 
     let node = NodeData {
@@ -250,13 +229,10 @@ where
     reifier.context.interner.intern_node(node)
 }
 
-fn if_expr_else_none<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+fn if_expr_else_none<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     span: SpanId,
-) -> Node<'heap>
-where
-    A: Allocator + Clone,
-{
+) -> Node<'heap> {
     let none_path = make_qualified_path(reifier, span, &[sym::core, sym::option, sym::None]);
 
     let node = NodeData {
@@ -272,8 +248,8 @@ where
     reifier.context.interner.intern_node(node)
 }
 
-pub(super) fn reify_if<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+pub(super) fn reify_if<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     IfExpr {
         id: _,
         span,
@@ -281,10 +257,7 @@ pub(super) fn reify_if<'heap, A>(
         then,
         r#else,
     }: IfExpr<'heap>,
-) -> Option<NodeKind<'heap>>
-where
-    A: Allocator + Clone,
-{
+) -> Option<NodeKind<'heap>> {
     if let Some(r#else) = r#else {
         let test = reifier.reify_expr(*test);
         let then = reifier.reify_expr(*then);

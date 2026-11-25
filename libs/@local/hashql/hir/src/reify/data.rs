@@ -17,10 +17,10 @@ use crate::{
 };
 
 pub(super) trait DataReifier<'heap> {
-    type Alloc: Allocator + Clone;
+    type Scratch: Allocator;
 
     fn interner(&self) -> &Interner<'heap>;
-    fn scratch(&self) -> Self::Alloc;
+    fn scratch(&self) -> Self::Scratch;
     fn reify_child(&mut self, site: EnclosingSite<'heap>, expr: Expr<'heap>)
     -> Option<Node<'heap>>;
     fn finish_data(

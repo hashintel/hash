@@ -61,45 +61,39 @@ impl<'heap> NodeData<'heap> {
     /// Reifies a lowered AST expression into an interned HIR [`Node`].
     ///
     /// Uses `types` from AST lowering for local type definitions, type assertions, and closure
-    /// signatures. Temporary reification state is allocated in `alloc`.
+    /// signatures. Temporary reification state is allocated in `scratch`.
     ///
     /// # Errors
     ///
     /// Fails with a [`ReificationDiagnosticCategory`](self::error::ReificationDiagnosticCategory)
     /// diagnostic if `expr` contains an underscore in expression position, an unlowered AST node,
     /// an error placeholder, or a violated compiler invariant.
-    pub fn from_ast_in<'env, A>(
+    pub fn from_ast_in<'env, S: Allocator>(
         expr: Expr<'heap>,
         context: &mut HirContext<'env, 'heap>,
         types: &ExtractedTypes<'heap>,
-        alloc: A,
-    ) -> ReificationStatus<Node<'heap>>
-    where
-        A: Allocator + Clone,
-    {
-        expr::ExprReifier::new(context, types, alloc).reify(expr)
+        scratch: S,
+    ) -> ReificationStatus<Node<'heap>> {
+        expr::ExprReifier::new(context, types, &scratch).reify(expr)
     }
 }
 
 impl<'heap> Value<'heap> {
     /// Reifies a value-only AST node into an interned HIR [`Value`].
     ///
-    /// Interns the literal and compound data nodes of `value` into `context`, using `alloc` for
-    /// temporary reification scratch buffers.
+    /// Interns the literal and compound data nodes of `value` into `context`, using `scratch` for
+    /// temporary reification buffers.
     ///
     /// # Errors
     ///
     /// Fails with a [`ReificationDiagnosticCategory`](self::error::ReificationDiagnosticCategory)
     /// diagnostic if `value` contains a non-value expression or an error placeholder.
-    pub fn from_ast_in<'env, A>(
+    pub fn from_ast_in<'env, S: Allocator>(
         value: hashql_ast::node::value::Value<'heap>,
         context: &mut HirContext<'env, 'heap>,
-        alloc: A,
-    ) -> ReificationStatus<Self>
-    where
-        A: Allocator + Clone,
-    {
-        value::ValueReifier::new(context, alloc)
+        scratch: S,
+    ) -> ReificationStatus<Self> {
+        value::ValueReifier::new(context, &scratch)
             .reify(value.into_expr())
             .map_value(Self::new_unchecked)
     }

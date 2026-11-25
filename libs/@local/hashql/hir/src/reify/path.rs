@@ -19,15 +19,12 @@ use crate::{
     path::QualifiedPath,
 };
 
-fn path_segment_arguments<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+fn path_segment_arguments<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
-) -> Option<Interned<'heap, [Spanned<TypeId>]>>
-where
-    A: Allocator + Clone,
-{
+) -> Option<Interned<'heap, [Spanned<TypeId>]>> {
     let mut incomplete = false;
-    let mut types = Vec::with_capacity_in(arguments.len(), reifier.scratch.clone());
+    let mut types = Vec::with_capacity_in(arguments.len(), reifier.scratch);
 
     for argument in arguments {
         let span = argument.span();
@@ -61,13 +58,10 @@ where
     }
 }
 
-pub(super) fn reify_path<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+pub(super) fn reify_path<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     path: Path<'heap>,
-) -> Option<NodeKind<'heap>>
-where
-    A: Allocator + Clone,
-{
+) -> Option<NodeKind<'heap>> {
     let span = path.span;
     let variable = match path.into_generic_ident() {
         Ok((ident, args)) => {
@@ -99,7 +93,7 @@ where
                 Vec::new_in(reifier.context.heap), // capacity of 0 does not allocate
             );
 
-            let mut segments = Vec::with_capacity_in(path.segments.len(), reifier.scratch.clone());
+            let mut segments = Vec::with_capacity_in(path.segments.len(), reifier.scratch);
             for segment in path.segments {
                 segments.push(segment.name);
             }
@@ -116,14 +110,11 @@ where
     Some(NodeKind::Variable(variable))
 }
 
-pub(super) fn make_qualified_path<'heap, A>(
-    reifier: &mut ExprReifier<'_, '_, '_, 'heap, A>,
+pub(super) fn make_qualified_path<'heap, S: Allocator>(
+    reifier: &mut ExprReifier<'_, '_, '_, 'heap, '_, S>,
     span: SpanId,
     path: &[Symbol<'heap>],
-) -> Node<'heap>
-where
-    A: Allocator + Clone,
-{
+) -> Node<'heap> {
     let path: Vec<_, _> = path
         .iter()
         .map(|&value| Ident {
@@ -131,7 +122,7 @@ where
             value,
             kind: IdentKind::Lexical,
         })
-        .collect_in(&reifier.scratch);
+        .collect_in(reifier.scratch);
     let path = QualifiedPath::new_unchecked(reifier.context.interner.intern_idents(&path));
 
     let node = NodeData {

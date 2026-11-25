@@ -11,7 +11,7 @@ use hashql_ast::node::{
     value::Value as AstValue,
 };
 use hashql_core::{
-    heap::Heap,
+    heap::{Heap, Scratch},
     module::ModuleRegistry,
     span::{Span as CoreSpan, SpanAncestors, SpanId, SpanTable, TextRange, TextSize},
     symbol::{Ident, IdentKind},
@@ -193,7 +193,7 @@ fn value_all_data_constructors() {
         }),
     });
 
-    let hir_value = Value::from_ast_in(value, &mut context, Global)
+    let hir_value = Value::from_ast_in(value, &mut context, Scratch::new())
         .expect("valid compound value must reify")
         .value;
 
@@ -277,7 +277,7 @@ fn value_call_in_struct_field() {
         }),
     };
 
-    let status = ValueReifier::new(&mut context, Global).reify(expr);
+    let status = ValueReifier::new(&mut context, &Global).reify(expr);
     let (category, count, rendered) = render_failure(status, source, &spans);
     assert_eq!(
         category,
@@ -337,7 +337,7 @@ fn value_as_expression_secondary_label() {
         }),
     };
 
-    let status = ValueReifier::new(&mut context, Global).reify(expr);
+    let status = ValueReifier::new(&mut context, &Global).reify(expr);
     let (category, count, rendered) = render_failure(status, source, &spans);
     assert_eq!(
         category,

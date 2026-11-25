@@ -40,25 +40,24 @@ pub(super) enum Fold<'heap> {
 }
 
 #[derive(Debug)]
-pub(super) struct ExprReifier<'ctx, 'types, 'env, 'heap, A: Allocator> {
+pub(super) struct ExprReifier<'ctx, 'types, 'env, 'heap, 'scratch, S: Allocator> {
     pub context: &'ctx mut HirContext<'env, 'heap>,
     pub types: &'types ExtractedTypes<'heap>,
     pub diagnostics: ReificationDiagnosticIssues,
-    pub binders: BinderScope<'heap, A>,
+    pub binders: BinderScope<'heap, &'scratch S>,
     enclosing: Option<EnclosingSite<'heap>>,
-    pub scratch: A,
+    pub scratch: &'scratch S,
 }
 
-impl<'ctx, 'types, 'env, 'heap, A> ExprReifier<'ctx, 'types, 'env, 'heap, A>
-where
-    A: Allocator + Clone,
+impl<'ctx, 'types, 'env, 'heap, 'scratch, S: Allocator>
+    ExprReifier<'ctx, 'types, 'env, 'heap, 'scratch, S>
 {
     pub(super) fn new(
         context: &'ctx mut HirContext<'env, 'heap>,
         types: &'types ExtractedTypes<'heap>,
-        scratch: A,
+        scratch: &'scratch S,
     ) -> Self {
-        let binders = BinderScope::new_in(types, context, scratch.clone());
+        let binders = BinderScope::new_in(types, context, scratch);
         Self {
             context,
             types,
@@ -103,7 +102,7 @@ where
         args: heap::Vec<'heap, Argument<'heap>>,
     ) -> Option<Interned<'heap, [CallArgument<'heap>]>> {
         let mut incomplete = false;
-        let mut arguments = Vec::with_capacity_in(args.len(), self.scratch.clone());
+        let mut arguments = Vec::with_capacity_in(args.len(), self.scratch);
 
         for argument in args {
             let Some(value) = self.reify_expr(argument.value) else {
@@ -218,7 +217,7 @@ where
     pub(super) fn expr_fold(
         &mut self,
         expr: Expr<'heap>,
-        bindings: Option<&mut Vec<Binding<'heap>, A>>,
+        bindings: Option<&mut Vec<Binding<'heap>, &'scratch S>>,
     ) -> Option<Node<'heap>> {
         let hir_id = self.context.counter.hir.next();
 
@@ -283,18 +282,17 @@ where
     }
 }
 
-impl<'heap, A> DataReifier<'heap> for ExprReifier<'_, '_, '_, 'heap, A>
-where
-    A: Allocator + Clone,
+impl<'heap, 'scratch, S: Allocator> DataReifier<'heap>
+    for ExprReifier<'_, '_, '_, 'heap, 'scratch, S>
 {
-    type Alloc = A;
+    type Scratch = &'scratch S;
 
     fn interner(&self) -> &Interner<'heap> {
         self.context.interner
     }
 
-    fn scratch(&self) -> Self::Alloc {
-        self.scratch.clone()
+    fn scratch(&self) -> Self::Scratch {
+        self.scratch
     }
 
     fn reify_child(

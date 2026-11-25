@@ -22,18 +22,18 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub(super) struct ValueReifier<'ctx, 'env, 'heap, A: Allocator> {
+pub(super) struct ValueReifier<'ctx, 'env, 'heap, 'scratch, S: Allocator> {
     context: &'ctx mut HirContext<'env, 'heap>,
     diagnostics: ReificationDiagnosticIssues,
     enclosing: Option<EnclosingSite<'heap>>,
-    scratch: A,
+    scratch: &'scratch S,
 }
 
-impl<'ctx, 'env, 'heap, A> ValueReifier<'ctx, 'env, 'heap, A>
-where
-    A: Allocator + Clone,
-{
-    pub(super) const fn new(context: &'ctx mut HirContext<'env, 'heap>, scratch: A) -> Self {
+impl<'ctx, 'env, 'heap, 'scratch, S: Allocator> ValueReifier<'ctx, 'env, 'heap, 'scratch, S> {
+    pub(super) const fn new(
+        context: &'ctx mut HirContext<'env, 'heap>,
+        scratch: &'scratch S,
+    ) -> Self {
         Self {
             context,
             diagnostics: DiagnosticIssues::new(),
@@ -97,18 +97,17 @@ where
     }
 }
 
-impl<'heap, A> DataReifier<'heap> for ValueReifier<'_, '_, 'heap, A>
-where
-    A: Allocator + Clone,
+impl<'heap, 'scratch, S: Allocator> DataReifier<'heap>
+    for ValueReifier<'_, '_, 'heap, 'scratch, S>
 {
-    type Alloc = A;
+    type Scratch = &'scratch S;
 
     fn interner(&self) -> &Interner<'heap> {
         self.context.interner
     }
 
-    fn scratch(&self) -> Self::Alloc {
-        self.scratch.clone()
+    fn scratch(&self) -> Self::Scratch {
+        self.scratch
     }
 
     fn reify_child(
