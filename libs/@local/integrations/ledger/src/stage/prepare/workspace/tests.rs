@@ -1,27 +1,19 @@
 use alloc::collections::BTreeMap;
 use core::{assert_matches, num::NonZeroUsize, str::FromStr as _};
-use std::{
-    fs::{self, File},
-    path::Path,
-};
+use std::{fs, path::Path};
 
 use duckdb::types::{TimeUnit, Value};
 use error_stack::Report;
 use hash_integrations_definition::{VariableName, Variables};
-use parquet::{
-    arrow::{ArrowWriter, arrow_reader::ParquetRecordBatchReaderBuilder},
-    basic::Compression,
-    file::properties::WriterProperties,
-};
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
-use super::{ByteSize, StatementError, Workspace, WorkspaceConfig};
+use super::{ByteSize, OpenError, StatementError, Workspace, WorkspaceConfig};
 
 const MIB: u64 = 1024 * 1024;
 
 fn open_with(directory: &TempDir, config: WorkspaceConfig) -> Workspace {
-    Workspace::open(&directory.path().join("workspace.duckdb"), config)
+    Workspace::open(&directory.path().join("workspace.duckdb"), config, &[])
         .expect("the workspace should open")
 }
 
@@ -35,21 +27,15 @@ fn first_value(workspace: &Workspace, sql: &str) -> Result<Value, Report<Stateme
     Ok(row.first().expect("the row should have a value").clone())
 }
 
-/// Writes the rows of `sql` to a Snappy-compressed Parquet file at `path`.
+/// Writes the rows of `sql` to a Parquet file at `path`.
 fn write_parquet(path: &Path, sql: &str) {
-    let duckdb = duckdb::Connection::open_in_memory().expect("should open an in-memory database");
-    let mut statement = duckdb.prepare(sql).expect("the query should parse");
-    let batches = statement.query_arrow([]).expect("the query should run");
-    let properties = WriterProperties::builder()
-        .set_compression(Compression::SNAPPY)
-        .build();
-    let file = File::create(path).expect("should create the Parquet file");
-    let mut writer = ArrowWriter::try_new(file, batches.get_schema(), Some(properties))
-        .expect("should open the Parquet writer");
-    for batch in batches {
-        writer.write(&batch).expect("should write the rows");
-    }
-    writer.close().expect("should finish the Parquet file");
+    duckdb::Connection::open_in_memory()
+        .expect("should open an in-memory database")
+        .execute_batch(&format!(
+            "COPY ({sql}) TO '{}' (FORMAT parquet)",
+            path.display()
+        ))
+        .expect("should write the Parquet file");
 }
 
 #[test]
@@ -404,9 +390,8 @@ fn query_refuses_unknown_parameter() {
 }
 
 #[test]
-fn load_capture_types_and_empty_schema() {
+fn open_loads_captures() {
     let directory = TempDir::new().expect("should create a directory");
-    let workspace = open(&directory);
     let path = directory.path().join("types.parquet");
     write_parquet(
         &path,
@@ -419,13 +404,23 @@ fn load_capture_types_and_empty_schema() {
             FROM range(5000) AS items(i)
             ",
     );
-    assert_eq!(
-        workspace
-            .load_capture(&path, "loaded")
-            .expect("should restore typed rows"),
-        5000,
-        "should return the number of rows"
+    let empty = directory.path().join("empty-load.parquet");
+    write_parquet(
+        &empty,
+        "
+            SELECT
+                1::INTEGER AS id,
+                ''::VARCHAR AS label
+            WHERE false
+            ",
     );
+    let workspace = Workspace::open(
+        &directory.path().join("workspace.duckdb"),
+        WorkspaceConfig::default(),
+        &[("loaded", &path), ("empty_loaded", &empty)],
+    )
+    .expect("should load the captures");
+
     let rows = workspace
         .query(
             "
@@ -451,24 +446,7 @@ fn load_capture_types_and_empty_schema() {
             ]
             .as_slice()
         ),
-        "should preserve types and the order of the rows across multiple Arrow batches"
-    );
-    let empty = directory.path().join("empty-load.parquet");
-    write_parquet(
-        &empty,
-        "
-            SELECT
-                1::INTEGER AS id,
-                ''::VARCHAR AS label
-            WHERE false
-            ",
-    );
-    assert_eq!(
-        workspace
-            .load_capture(&empty, "empty_loaded")
-            .expect("should restore the empty schema"),
-        0,
-        "should load no rows"
+        "should preserve the types and the order of the rows"
     );
     let rows = workspace
         .query(
@@ -479,60 +457,37 @@ fn load_capture_types_and_empty_schema() {
         )
         .expect("should preserve empty columns");
     assert_eq!(rows.iter().len(), 0, "should preserve an empty result");
+
+    let report = workspace
+        .count(&format!(
+            "SELECT count(*) FROM read_parquet('{}')",
+            path.display()
+        ))
+        .expect_err("files should not be readable once the captures are loaded");
+    assert_matches!(
+        report.current_context(),
+        StatementError::Failed,
+        "the refused file access should be reported, not {report:?}"
+    );
 }
 
 #[test]
-fn load_invalid_capture_preserves_table() {
+fn open_refuses_invalid_capture() {
     let directory = TempDir::new().expect("should create a directory");
-    let workspace = open(&directory);
     let path = directory.path().join("corrupt.parquet");
-    workspace
-        .create_table("existing", "SELECT 1 AS id")
-        .expect("should create the original table");
-    write_parquet(&path, "SELECT i AS id FROM range(5000) AS items(i)");
-    // Overwrites the first page and keeps the footer, so the file opens and the load fails
-    // inside its transaction, after the table was replaced.
-    let mut bytes = fs::read(&path).expect("should read the capture");
-    bytes
-        .get_mut(4..20)
-        .expect("the capture should be longer than 20 bytes")
-        .fill(0xFF);
-    fs::write(&path, bytes).expect("should corrupt the capture");
-    ParquetRecordBatchReaderBuilder::try_new(File::open(&path).expect("should open the capture"))
-        .expect("the footer of the corrupt capture should stay readable");
-    let error = workspace
-        .load_capture(&path, "existing")
-        .expect_err("should reject a corrupt capture");
+    fs::write(&path, b"not parquet").expect("should write the corrupt capture");
+
+    let Err(report) = Workspace::open(
+        &directory.path().join("workspace.duckdb"),
+        WorkspaceConfig::default(),
+        &[("flights", &path)],
+    ) else {
+        panic!("a corrupt capture should not be loaded");
+    };
     assert_matches!(
-        error.current_context(),
-        StatementError::Failed,
-        "should report a failed load"
-    );
-    let rows = workspace
-        .query(
-            "
-                SELECT id
-                FROM existing
-                ",
-        )
-        .expect("should preserve the original table");
-    assert_eq!(
-        rows.iter().next(),
-        Some([Value::Int(1)].as_slice()),
-        "should retain the original rows after a failed import"
-    );
-    let error = workspace
-        .query(
-            "
-                SELECT *
-                FROM _capture_schema()
-                ",
-        )
-        .expect_err("should keep internal schema access out of user SQL");
-    assert_matches!(
-        error.current_context(),
-        StatementError::TableFunction { .. },
-        "should reject the internal table function"
+        report.current_context(),
+        OpenError::Load { table } if &**table == "flights",
+        "the table of the corrupt capture should be reported, not {report:?}"
     );
 }
 

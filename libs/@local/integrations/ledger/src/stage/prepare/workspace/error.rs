@@ -38,6 +38,8 @@ pub(crate) enum OpenError {
     Configure { setting: Setting, value: Box<str> },
     #[display("could not open the database at `{}`", path.display())]
     Open { path: PathBuf },
+    #[display("could not load the capture of table `{table}`")]
+    Load { table: Box<str> },
 }
 
 /// Reports why a statement of the [`Workspace`](super::Workspace) failed.

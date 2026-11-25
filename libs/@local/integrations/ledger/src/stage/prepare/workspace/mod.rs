@@ -1,7 +1,6 @@
 //! DuckDB for one run: the database in which Prepare runs a definition's SQL on the captured rows.
 
 mod error;
-mod load;
 mod rows;
 mod select;
 mod sql;
@@ -15,14 +14,11 @@ use duckdb::{Config, Statement, params_from_iter, types::Value};
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::Variables;
 
+use self::select::Select;
 pub(crate) use self::{
     error::{OpenError, Setting, StatementError},
     rows::Rows,
     sql::Identifier,
-};
-use self::{
-    load::{CaptureSchema, SchemaTable},
-    select::Select,
 };
 
 /// An amount of memory or disk space, in bytes.
@@ -58,7 +54,7 @@ pub(crate) struct WorkspaceConfig {
     pub threads: Option<NonZeroUsize>,
 }
 
-/// A DuckDB database file in which a run's queries run.
+/// A DuckDB database file in which a run's queries run on the tables of its captures.
 ///
 /// A query is a single `SELECT` statement, and the only table functions it can call are
 /// `range`, `generate_series` and `unnest`. Queries read [`WorkspaceConfig::variables`] as
@@ -68,21 +64,30 @@ pub(crate) struct WorkspaceConfig {
 pub(crate) struct Workspace {
     duckdb: duckdb::Connection,
     variables: Variables,
-    capture_schema: CaptureSchema,
 }
 
 impl Workspace {
-    /// Opens the database at `path` with the limits in `config` and its settings locked,
-    /// creating it if it does not exist.
+    /// Opens the database at `path` with the limits in `config`, creating it if it does not
+    /// exist, and loads each of `captures`, a table and its Parquet file.
+    ///
+    /// A table keeps the columns, types and row order of its file, also when the file has no
+    /// rows, and replaces a table of the same name. Once the captures are loaded, access to
+    /// files is switched off and the settings are locked.
     ///
     /// # Errors
     ///
     /// - [`Configure`] if DuckDB refuses a setting
     /// - [`Open`] if DuckDB cannot open the database
+    /// - [`Load`] if a capture cannot be read as Parquet or loaded
     ///
     /// [`Configure`]: OpenError::Configure
     /// [`Open`]: OpenError::Open
-    pub(crate) fn open(path: &Path, config: WorkspaceConfig) -> Result<Self, Report<OpenError>> {
+    /// [`Load`]: OpenError::Load
+    pub(crate) fn open(
+        path: &Path,
+        config: WorkspaceConfig,
+        captures: &[(&str, &Path)],
+    ) -> Result<Self, Report<OpenError>> {
         let limits = [
             (
                 Setting::MemoryLimit,
@@ -103,11 +108,9 @@ impl Workspace {
             (Setting::AllowCommunityExtensions, Some("false".into())),
             (Setting::AutoinstallKnownExtensions, Some("false".into())),
             (Setting::AutoloadKnownExtensions, Some("false".into())),
-            (Setting::EnableExternalAccess, Some("false".into())),
         ]
         .into_iter()
-        .chain(limits)
-        .chain([(Setting::LockConfiguration, Some("true".into()))]);
+        .chain(limits);
 
         let mut duckdb_config = Config::default();
         for (setting, value) in settings {
@@ -125,19 +128,34 @@ impl Workspace {
                 }
             })?;
 
-        let capture_schema = CaptureSchema::default();
-        duckdb
-            .register_table_function_with_extra_info::<SchemaTable, _>(
-                "_capture_schema",
-                &capture_schema,
-            )
-            .change_context_lazy(|| OpenError::Open {
-                path: path.to_owned(),
-            })?;
+        for (table, file) in captures {
+            duckdb
+                .execute(
+                    &format!(
+                        "CREATE OR REPLACE TABLE {} AS SELECT * FROM read_parquet(?)",
+                        Identifier::new(table)
+                    ),
+                    [file.to_string_lossy()],
+                )
+                .change_context_lazy(|| OpenError::Load {
+                    table: (*table).into(),
+                })?;
+        }
+        // DuckDB can switch off access to files after it opened the database, but not back on.
+        for (setting, value) in [
+            (Setting::EnableExternalAccess, "false"),
+            (Setting::LockConfiguration, "true"),
+        ] {
+            duckdb
+                .execute_batch(&format!("SET {setting} = {value}"))
+                .change_context_lazy(|| OpenError::Configure {
+                    setting,
+                    value: value.into(),
+                })?;
+        }
         Ok(Self {
             duckdb,
             variables: config.variables,
-            capture_schema,
         })
     }
 

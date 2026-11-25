@@ -22,11 +22,11 @@ uuid = { workspace = true, public = true, features = ["serde", "v4"] }
 bytes          = { workspace = true }
 deltalake-core = { workspace = true, features = ["rustls"] }
 derive_more    = { workspace = true, features = ["display", "error"] }
-duckdb         = { workspace = true, features = ["appender-arrow", "bundled", "json"] }
+duckdb         = { workspace = true, features = ["bundled", "json", "parquet"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc"] }
 object_store   = { workspace = true, features = ["aws"] }
-parquet        = { workspace = true, features = ["arrow", "snap"] }
+parquet        = { workspace = true, features = ["arrow"] }
 serde          = { workspace = true, features = ["alloc", "derive"] }
 serde_arrow    = { workspace = true, features = ["arrow-60"] }
 serde_json     = { workspace = true }
