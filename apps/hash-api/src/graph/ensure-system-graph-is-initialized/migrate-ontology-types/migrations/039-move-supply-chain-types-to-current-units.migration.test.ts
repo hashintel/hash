@@ -20,10 +20,11 @@ import {
 import { archiveDataType } from "../../../ontology/primitive/data-type";
 import * as util from "../util";
 import supplyChainMigration from "./026-add-supply-chain-types.migration";
+import supplyChainSettingsMigration from "./028-add-supply-chain-view-feedback-and-settings.migration";
 import siUnitMigration from "./034-add-si-unit-data-types.migration";
 import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
 import migrate, {
-  archivedLengthGroupKeys,
+  archivedLengthGroupBaseUrls,
   upgradedEntityTypeKeys,
   upgradedPropertyTypeKeys,
   upgradedUnitKeys,
@@ -89,13 +90,13 @@ const nextVersionOf = (typeId: VersionedUrl) => {
 const firstVersionOf = (typeId: VersionedUrl) =>
   versionedUrlFromComponents(extractBaseUrl(typeId), v1);
 
-/** Type definitions from migration 026, which created the supply chain types. */
+/** Type definitions from migrations 026 and 028, which created the supply chain types. */
 type SupplyChainTypes = {
   propertyTypes: Map<VersionedUrl, PropertyType>;
   entityTypes: Map<VersionedUrl, EntityType>;
 };
 
-/** Runs 026 with type creation mocked, to read the types it creates at their first version. */
+/** Runs 026 and 028 with type creation mocked, to read the types they create at their first version. */
 const readSupplyChainTypes = async (): Promise<SupplyChainTypes> => {
   const propertyTypes = new Map<VersionedUrl, PropertyType>();
   const entityTypes = new Map<VersionedUrl, EntityType>();
@@ -154,16 +155,21 @@ const readSupplyChainTypes = async (): Promise<SupplyChainTypes> => {
     },
   );
 
-  await supplyChainMigration({
-    context: {} as Parameters<MigrationFunction>[0]["context"],
-    authentication: {} as Parameters<MigrationFunction>[0]["authentication"],
-    migrationState: {
-      // 026 seeds its currencies' data types in an earlier migration: every data type is at its first version then.
-      dataTypeVersions: new Proxy({}, { get: () => v1 }),
-      propertyTypeVersions: {},
-      entityTypeVersions: {},
-    },
-  });
+  for (const supplyChainTypesMigration of [
+    supplyChainMigration,
+    supplyChainSettingsMigration,
+  ]) {
+    await supplyChainTypesMigration({
+      context: {} as Parameters<MigrationFunction>[0]["context"],
+      authentication: {} as Parameters<MigrationFunction>[0]["authentication"],
+      migrationState: {
+        // The data types they use, and the 026 property types that 028 uses, are at their first version then.
+        dataTypeVersions: new Proxy({}, { get: () => v1 }),
+        propertyTypeVersions: new Proxy({}, { get: () => v1 }),
+        entityTypeVersions: {},
+      },
+    });
+  }
 
   return { propertyTypes, entityTypes };
 };
@@ -197,14 +203,15 @@ const upgradedEntityTypeIds: VersionedUrl[] = upgradedEntityTypeKeys.map(
 
 /** The state 038 leaves: units at the versions 034 created, the supply chain types at their first version. */
 const stateBeforeMigration = (): MigrationState => ({
-  dataTypeVersions: Object.fromEntries(
-    [...archivedLengthGroupKeys, ...upgradedUnitKeys].map((key) => {
+  dataTypeVersions: Object.fromEntries([
+    ...archivedLengthGroupBaseUrls.map((baseUrl) => [baseUrl, v1]),
+    ...upgradedUnitKeys.map((key) => {
       const { baseUrl, version } = componentsFromVersionedUrl(
         systemDataTypes[key].dataTypeId,
       );
       return [baseUrl, version];
     }),
-  ),
+  ]),
   propertyTypeVersions: Object.fromEntries(
     upgradedPropertyTypeIds.map((typeId) => [extractBaseUrl(typeId), v1]),
   ),
@@ -306,7 +313,7 @@ describe("moving supply chain types to current units", () => {
     );
   });
 
-  it("upgrades every 026 property type with a unit that 034 gave a new version", async () => {
+  it("upgrades every 026 and 028 property type with a data type that 034 gave a new version", async () => {
     const seededBy034 = new Set<string>();
     vi.mocked(ensureUnitDataType).mockImplementation(
       async (

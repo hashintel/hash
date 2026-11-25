@@ -25,6 +25,7 @@ import { upgradeEntityTypeDependencies } from "../util/upgrade-entity-type-depen
 
 import type { MigrationFunction } from "../types";
 import type {
+  BaseUrl,
   EntityType,
   PropertyType,
   VersionedUrl,
@@ -35,14 +36,21 @@ import type {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-/** Abstract length groups from migration 000, which 034 replaced with `Length (Metric)` and `Length (Imperial)`. */
-export const archivedLengthGroupKeys = [
-  "metricLength(si)",
-  "imperialLength(uk)",
-  "imperialLength(us)",
-] as const satisfies (keyof typeof systemDataTypes)[];
+/**
+ * Abstract length groups from migration 000, which 034 replaced with `Length (Metric)` and `Length (Imperial)`.
+ *
+ * Archived types are left out of the generated `systemDataTypes`, so these are not looked up there.
+ */
+export const archivedLengthGroupBaseUrls = [
+  "https://hash.ai/@h/types/data-type/metric-length-si/",
+  "https://hash.ai/@h/types/data-type/imperial-length-uk/",
+  "https://hash.ai/@h/types/data-type/imperial-length-us/",
+] as BaseUrl[];
 
-/** Units created before 034, which 034 moved into its unit groups as new versions. */
+/**
+ * Data types created before 034, which 034 gave new versions: units it moved into its unit groups, and `Duration`,
+ * which 034 made the quantity of its time units.
+ */
 export const upgradedUnitKeys = [
   "meters",
   "centimeters",
@@ -65,9 +73,10 @@ export const upgradedUnitKeys = [
   "squareFeet",
   "hours",
   "days",
+  "duration",
 ] as const satisfies (keyof typeof systemDataTypes)[];
 
-/** Supply chain property types from 026 whose values include those units. */
+/** Supply chain property types from 026 and 028 whose values include those data types. */
 export const upgradedPropertyTypeKeys = [
   "grossWeight",
   "netWeight",
@@ -92,6 +101,7 @@ export const upgradedPropertyTypeKeys = [
   "restricted-useStock",
   "blockedStock",
   "valuatedStockQuantity",
+  "timePeriod",
 ] as const satisfies (keyof typeof systemPropertyTypes)[];
 
 type EntityTypeKey =
@@ -125,6 +135,7 @@ export const upgradedEntityTypeKeys = [
   "materialReservation",
   "shipmentItem",
   "shipment",
+  "supplyChainUserPreferences",
 ] as const satisfies EntityTypeKey[];
 
 const isLinkEntityTypeKey = (
@@ -150,8 +161,8 @@ const replaceReferences = <Value>(
   ) as Value;
 
 /**
- * Archives the length groups that 034 left without children, and moves the supply chain property types from 026 onto
- * the versions of their units that 034 created, then the entity types that use them onto those property types.
+ * Archives the length groups that 034 left without children, and moves the supply chain property types from 026 and
+ * 028 onto the versions of their units that 034 created, then the entity types that use them onto those property types.
  *
  * Existing entities keep their values: the v1 units they refer to are not archived.
  */
@@ -167,11 +178,19 @@ const migrate: MigrationFunction = async ({
    * web owns, so there they stay as they are.
    */
   if (!isSelfHostedInstance) {
-    for (const dataTypeKey of archivedLengthGroupKeys) {
-      const dataTypeId = getCurrentHashDataTypeId({
-        dataTypeKey,
-        migrationState,
-      });
+    for (const dataTypeBaseUrl of archivedLengthGroupBaseUrls) {
+      const dataTypeVersion = migrationState.dataTypeVersions[dataTypeBaseUrl];
+
+      if (dataTypeVersion === undefined) {
+        throw new Error(
+          `Expected '${dataTypeBaseUrl}' data type to have been seeded`,
+        );
+      }
+
+      const dataTypeId = versionedUrlFromComponents(
+        dataTypeBaseUrl,
+        dataTypeVersion,
+      );
 
       const liveDataType = await getDataTypeById(
         context.graphApi,

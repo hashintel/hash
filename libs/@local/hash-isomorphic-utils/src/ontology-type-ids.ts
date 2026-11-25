@@ -395,7 +395,7 @@ export const systemEntityTypes = {
   },
   supplyChainUserPreferences: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/v/1",
+      "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/" as BaseUrl,
   },
@@ -2289,7 +2289,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/time-frame/" as BaseUrl,
   },
   timePeriod: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/time-period/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/time-period/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/time-period/" as BaseUrl,
   },
@@ -6290,22 +6290,6 @@ export const systemDataTypes = {
     titlePlural: "Imperial Gills",
     description: "A unit of volume expressed in imperial gills.",
   },
-  "imperialLength(uk)": {
-    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-uk/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/imperial-length-uk/" as BaseUrl,
-    title: "Imperial Length (UK)",
-    description:
-      "A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.",
-  },
-  "imperialLength(us)": {
-    dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-us/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/imperial-length-us/" as BaseUrl,
-    title: "Imperial Length (US)",
-    description:
-      "A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.",
-  },
   imperialPeck: {
     dataTypeId: "https://hash.ai/@h/types/data-type/imperial-peck/v/1",
     dataTypeBaseUrl:
@@ -7519,14 +7503,6 @@ export const systemDataTypes = {
     titlePlural: "Meters per Second",
     description:
       "The SI unit of speed, expressing the number of meters traveled in one second.",
-  },
-  "metricLength(si)": {
-    dataTypeId: "https://hash.ai/@h/types/data-type/metric-length-si/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/metric-length-si/" as BaseUrl,
-    title: "Metric Length (SI)",
-    description:
-      "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
   },
   metricTonnes: {
     dataTypeId: "https://hash.ai/@h/types/data-type/metric-tonnes/v/2",
