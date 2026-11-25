@@ -4,7 +4,8 @@
  * whether their contact uses a personal email address, and draft a first-touch email for the organisations (from a
  * brief of their details) and a personal note for the people.
  *
- *  - "First-touch email for picked companies" writes to the companies picked in its run form.
+ *  - "First-touch email for picked companies" writes to the companies picked in its run form. It drafts one email for
+ *    up to 20 organisations, and in a For each, a note of their own to each of the first 5 people.
  *  - "Company first-touch email" finds the companies never contacted and counts each side. It writes to the biggest
  *    organisations, as many as its run form asks for, and to the first 20 people. If the brief flags a company of 500
  *    or more staff, its "Escalate" path drafts a note to the account lead.
@@ -285,8 +286,16 @@ const briefInstructions =
 const emailInstructions =
   "Write a friendly first-touch email from HASH to the contact at the company in the brief, under 150 words. Mention what the company does, and suggest a short call. If the brief covers more than one company, write one email that suits each of them, with [Company] and [First name] placeholders.";
 
-const personalNoteInstructions =
-  "Write a short, warm note from HASH to the person given, under 100 words. They use a personal email address, so write to them as an individual, not as a company, and avoid corporate language. If several people are given, write one note with a [First name] placeholder.";
+/**
+ * The most people "First-touch email for picked companies" drafts a note to, each their own. Its For each starts every
+ * item at once, and one failed item fails the whole run, so it's kept low.
+ */
+const maxPeoplePerRun = 5;
+
+const notePerPersonInstructions =
+  "Write a short, warm note from HASH to the person given, under 100 words. They use a personal email address, so write to them as an individual, not as a company, and avoid corporate language.";
+
+const personalNoteInstructions = `${notePerPersonInstructions} If several people are given, write one note with a [First name] placeholder.`;
 
 /** Drafts emails to the companies picked in the run form. */
 const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
@@ -304,7 +313,7 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
         }),
       },
     },
-    ({ inputs, step }) => {
+    ({ inputs, step, forEach }) => {
       const split = step("splitContacts", actions.filterList, {
         description: splitDescription,
         inputs: {
@@ -342,27 +351,32 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
       });
 
       const firstPeople = step("keepFirstPeople", actions.takeFirst, {
-        description: `Keep the first ${maxDraftMessageEntities} people`,
+        description: `Keep the first ${maxPeoplePerRun} people`,
         inputs: {
           items: split.outputs.matching,
-          count: constant("Number", maxDraftMessageEntities),
+          count: constant("Number", maxPeoplePerRun),
         },
       });
 
-      const note = step("personalNote", actions.draftMessage, {
-        description: "Personal note",
-        inputs: {
-          instructions: constant("Text", personalNoteInstructions),
-          entities: firstPeople.outputs.items,
-        },
+      // Named as the editor names a collected output, after the output it collects.
+      const notes = forEach("forEachPerson", firstPeople.outputs.items, {
+        description: "For each person",
+        collectAs: "collectedBody",
+        steps: (person, scope) =>
+          scope.step("personalNote", actions.draftMessage, {
+            description: "Personal note",
+            inputs: {
+              instructions: constant("Text", notePerPersonInstructions),
+              entities: person.wrap(),
+            },
+          }).outputs.body,
       });
 
       return {
         outputs: {
           "Email subject": email.outputs.subject,
           "Email body": email.outputs.body,
-          "Personal note subject": note.outputs.subject,
-          "Personal note body": note.outputs.body,
+          "Personal notes": notes,
         },
       };
     },
@@ -373,7 +387,7 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
     pickDetails: [{ stepId: "keepFirstOrganisations" }],
     writeEmail: [{ stepId: "pickDetails" }],
     keepFirstPeople: [{ stepId: "splitContacts" }],
-    personalNote: [{ stepId: "keepFirstPeople" }],
+    forEachPerson: [{ stepId: "keepFirstPeople" }],
   });
 };
 
@@ -650,6 +664,13 @@ const printDryRun = (
       console.log(
         `  - ${flowStep.stepId}: ${flowStep.description}${after.length > 0 ? `, after ${after.join(", ")}` : ""}`,
       );
+      if (flowStep.kind === "for-each") {
+        for (const innerStep of flowStep.steps) {
+          console.log(
+            `    - ${innerStep.stepId}: ${innerStep.description}, for each item`,
+          );
+        }
+      }
     }
     console.log(
       `  - Outputs: ${flow.outputs.map(({ name, stepId, outputName }) => `${name} (${stepId}.${outputName})`).join(", ")}`,
