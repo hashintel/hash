@@ -1,7 +1,7 @@
 import { Form, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { getStepName } from "../shared/find-step";
+import { findStep, getStepName } from "../shared/find-step";
 import { RenameInput } from "../shared/rename-input";
 import { getStepDisplay } from "../shared/step-display";
 import { orderSteps } from "../shared/step-order";
@@ -32,14 +32,6 @@ const fixedName = css({
 });
 const help = css({ textStyle: "sm", color: "fg.subtle" });
 
-const getAllSteps = (
-  steps: StepDefinition<string>[],
-): StepDefinition<string>[] =>
-  steps.flatMap((step) => [
-    step,
-    ...(step.kind === "for-each" ? getAllSteps(step.steps) : []),
-  ]);
-
 /**
  * Each path's name, its condition when it has the step's, and its next step. The next step is the path's connection,
  * as drawn on the canvas: a path with several shows the first, and picking a step makes it the only one.
@@ -50,7 +42,6 @@ export const PathsField = ({
   step,
   paths,
   condition,
-  readOnly,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
@@ -58,14 +49,12 @@ export const PathsField = ({
   paths: StepPath[];
   /** The step's condition field, shown on the path that has it. */
   condition?: ReactNode;
-  /** Inside a for-each step (FE-1915). */
-  readOnly: boolean;
 }) => {
-  const candidates = (
-    readOnly
-      ? getAllSteps(flowDefinition.steps)
-      : orderSteps(flowDefinition.steps)
-  ).filter(({ stepId }) => stepId !== step.stepId);
+  /* A path leads to a step beside this one: in the same for-each step, or at the top level. */
+  const parent = findStep(flowDefinition.steps, step.stepId)?.parent;
+  const candidates = orderSteps(parent?.steps ?? flowDefinition.steps).filter(
+    ({ stepId }) => stepId !== step.stepId,
+  );
   const items = candidates.map((candidate) => ({
     value: candidate.stepId,
     text: getStepName(candidate),
@@ -81,7 +70,7 @@ export const PathsField = ({
 
     return (
       <div key={path.outputName} className={pathGroup}>
-        {path.renamable && !readOnly ? (
+        {path.renamable ? (
           <RenameInput
             value={path.name}
             ariaLabel={`${path.name} path name`}
@@ -101,7 +90,6 @@ export const PathsField = ({
               size="sm"
               aria-label={`${path.name} goes to`}
               placeholder="Ends here"
-              readonly={readOnly}
               items={items}
               value={next?.stepId ?? null}
               prefix={

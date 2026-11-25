@@ -40,8 +40,7 @@ const toMenuDirection = (direction: SortForm["direction"]): SortDirection =>
 
 /** Order by's sort key: the item or a property of its entity, and which way, picked in one menu. */
 export const SortKeyField = (props: ComponentProps<typeof InputField>) => {
-  const { editor, flowDefinition, stepId, input, source, problems, readOnly } =
-    props;
+  const { editor, flowDefinition, stepId, input, source, problems } = props;
 
   const conditionTargets = useConditionTargets({
     flowDefinition,
@@ -85,14 +84,9 @@ export const SortKeyField = (props: ComponentProps<typeof InputField>) => {
         note="This sort can't be shown here, so it can't be changed. The step sorts by it as it is."
         resetLabel="Choose a new sort"
         errors={errors}
-        readOnly={readOnly}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
-  }
-
-  if (readOnly && !form) {
-    return null;
   }
 
   const picked = form ? targetsByKey.get(form.targetKey) : undefined;
@@ -132,7 +126,7 @@ export const SortKeyField = (props: ComponentProps<typeof InputField>) => {
         variant="subtle"
         size="md"
         className={trigger}
-        disabled={readOnly || sorters.length === 0}
+        disabled={sorters.length === 0}
         onChange={(targetKey, direction) => {
           const target = targetsByKey.get(targetKey);
 
