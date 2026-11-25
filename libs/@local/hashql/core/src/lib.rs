@@ -43,7 +43,9 @@
     sync_nonpoison,
     try_trait_v2,
     variant_count,
-    vec_repeat
+    vec_repeat,
+    const_alloc_error,
+    const_closures
 )]
 #![cfg_attr(
     feature = "zerocopy",
@@ -56,6 +58,7 @@ pub mod algorithms;
 pub mod collections;
 pub mod graph;
 pub mod heap;
+mod heap2;
 pub mod id;
 pub mod intern;
 mod macros;
