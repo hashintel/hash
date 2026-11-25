@@ -289,7 +289,9 @@ const SelectedStepPanel = ({
   const { outputNames, availableToFlow } = useMemo(() => {
     const names =
       step.kind === "for-each"
-        ? [step.collect.as]
+        ? step.collect
+          ? [step.collect.as]
+          : []
         : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
 
     return {

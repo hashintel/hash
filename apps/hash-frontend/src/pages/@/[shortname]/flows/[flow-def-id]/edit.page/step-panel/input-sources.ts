@@ -159,7 +159,9 @@ export const getSourceOptions = ({
 
       const outputNames =
         step.kind === "for-each"
-          ? [step.collect.as]
+          ? step.collect
+            ? [step.collect.as]
+            : []
           : (getActionDefinition(step.actionDefinitionId)?.outputs.map(
               ({ name }) => name,
             ) ?? []);

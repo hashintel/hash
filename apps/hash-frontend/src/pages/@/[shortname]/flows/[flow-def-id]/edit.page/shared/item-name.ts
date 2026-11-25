@@ -124,7 +124,7 @@ export const getItemName = ({
   const forEach = findStep(flowDefinition.steps, forEachStepId)?.step;
   const scope = getForEachScope(flowDefinition.steps, forEachStepId);
 
-  if (forEach?.kind !== "for-each" || !scope) {
+  if (forEach?.kind !== "for-each" || !forEach.over || !scope) {
     return "item";
   }
 

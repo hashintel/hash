@@ -82,13 +82,16 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
       kind: z.literal("for-each"),
       ...stepDefinitionBaseShape,
       description: z.string(),
-      over: stepInputSourceSchema,
+      /* Optional so that a for-each step just added saves: `validateFlowDefinition` reports them missing. */
+      over: stepInputSourceSchema.optional(),
       steps: z.array(stepDefinitionSchema),
-      collect: z.strictObject({
-        stepId: stepIdSchema,
-        outputName: z.string(),
-        as: z.string(),
-      }),
+      collect: z
+        .strictObject({
+          stepId: stepIdSchema,
+          outputName: z.string(),
+          as: z.string(),
+        })
+        .optional(),
     }),
   ]),
 );
