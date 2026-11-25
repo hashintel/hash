@@ -41,8 +41,12 @@ struct PreparedTables {
 ///
 /// # Errors
 ///
-/// Returns [`PreparationError`] if a step fails, a table loses its staging columns, or a sink or
-/// a link reads a column its table lacks.
+/// Returns [`PreparationError`] if a step fails, a table loses its staging columns, a sink or a
+/// link reads a column its table lacks, or a pipeline reads a checkpoint no earlier pipeline wrote.
+///
+/// # Panics
+///
+/// Panics if a pipeline's source is a table that `staged` does not hold.
 fn run_pipelines(
     workspace: &Workspace,
     definition: &Definition,

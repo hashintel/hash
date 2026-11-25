@@ -28,11 +28,17 @@ use crate::{
 
 /// The definition does not parse, or a pipeline reads a second table.
 const DEFINITION_INVALID: &str = "prepare_definition_invalid";
-/// A capture file is missing, cannot be loaded, or cannot be staged.
+/// A table has no capture file, a capture file is of no table or cannot be loaded, or it cannot be
+/// staged: it lacks `_change` or a column of the primary key, has a column `_op`, `_key`, `_seq` or
+/// `rowid`, or a row's `_change` is not `insert`, `update` or `delete`.
 const CAPTURE_INVALID: &str = "prepare_capture_invalid";
-/// An SQL step fails, drops a staging column, or lacks a column a sink reads.
+/// An SQL step fails or leaves a staging column unusable, a checkpoint a pipeline reads was not
+/// written, a sink or a link reads a column its table lacks, or a link pipeline with several inputs
+/// has no SQL step.
 const STEP_FAILED: &str = "prepare_step_failed";
-/// A row cannot be turned into a change, or cannot be written to the sync table.
+/// The rows of a sink or a link cannot be turned into changes, as a step changed an `_op` to
+/// something other than `insert`, `update` or `delete`, or the changes cannot be written to the
+/// sync table.
 const ROWS_INVALID: &str = "prepare_rows_invalid";
 
 /// Reports why Prepare refuses the definition or the capture files of a run.
@@ -49,18 +55,18 @@ enum InputError {
     Staging { table: SourceName },
 }
 
-/// A table of the definition and the key of its capture file.
+/// A table of the definition and its capture file in the bucket.
 #[derive(Debug)]
 struct CapturedTable {
     name: SourceName,
     primary_key: PrimaryKey,
-    key: Box<str>,
+    file: Box<str>,
 }
 
 /// Prepares `run`: turns the rows of its capture files into the run's entity changes.
 ///
-/// The changes go to the sync table, the rows that could not be turned as they are to the issues
-/// file, and the `prepare` part to `run.json`.
+/// The changes are written to the sync table, and the `prepare` part to `run.json`. Each row, or
+/// part of one, that cannot be written as captured is listed in the issues file.
 ///
 /// A run that was prepared before is left as it is. Preparing a run again after a retryable error
 /// replaces the rows the earlier attempt wrote to the sync table.
@@ -68,9 +74,10 @@ struct CapturedTable {
 /// # Errors
 ///
 /// - [`StageError::Permanent`] if the definition or the capture files are refused, an SQL step
-///   fails, or a row cannot be turned into a change. The code in the `failure` part of `run.json`
-///   names the step. It is returned without writing if the run cannot be prepared: it is not the
-///   run `current.json` names, it failed before, or its `run.json` is missing or unreadable.
+///   fails, a row cannot be turned into a change, or the sync table cannot hold the rows. The code
+///   in the `failure` part of `run.json` names the step. It is returned without writing if the run
+///   cannot be prepared: it is not the run `current.json` names, it failed before, or its
+///   `run.json` is missing or unreadable.
 /// - [`StageError::NotReady`] if the run has not been captured
 /// - [`StageError::Retryable`] if the bucket or the workspace cannot be used. Nothing is recorded,
 ///   and preparing the run again can succeed.
@@ -106,7 +113,7 @@ async fn prepare(storage: &Storage, record: &RunRecord) -> Result<PreparePart, R
     for table in &tables {
         files.push(
             storage
-                .download(&table.key, scratch.path())
+                .download(&table.file, scratch.path())
                 .await
                 .change_context(retryable(Stage::Prepare))?,
         );
@@ -115,7 +122,7 @@ async fn prepare(storage: &Storage, record: &RunRecord) -> Result<PreparePart, R
     let database = scratch.path().join("prepare.duckdb");
     let input = record.input.clone();
     let changes = tokio::task::spawn_blocking(move || {
-        changes(&database, &definition, &input, &tables, &files)
+        stage_and_collect(&database, &definition, &input, &tables, &files)
     })
     .await
     .change_context(retryable(Stage::Prepare))??;
@@ -140,9 +147,9 @@ async fn prepare(storage: &Storage, record: &RunRecord) -> Result<PreparePart, R
     Ok(part)
 }
 
-/// Stages each captured table in a workspace at `database`, runs the SQL steps of `definition`,
-/// and turns their rows into changes.
-fn changes(
+/// Opens a workspace at `database` with the downloaded capture `files`, stages each table, runs the
+/// SQL steps of `definition`, and turns their rows into changes.
+fn stage_and_collect(
     database: &Path,
     definition: &Definition,
     input: &Input,
@@ -201,7 +208,10 @@ fn one_table_per_pipeline(definition: &Definition) -> Result<(), Report<InputErr
     let link = definition
         .link_pipelines()
         .iter()
-        .find(|link| matches!(&link.input, LinkInput::Inputs(inputs) if inputs.iter().nth(1).is_some()))
+        .find(|link| match &link.input {
+            LinkInput::Inputs(inputs) => inputs.iter().nth(1).is_some(),
+            LinkInput::Checkpoint(_) => false,
+        })
         .map(|link| link.id.to_string());
     entity.or(link).map_or(Ok(()), |pipeline| {
         Err(Report::new(InputError::SecondTable {
@@ -235,7 +245,7 @@ fn captured_tables(
             Ok(CapturedTable {
                 name: name.clone(),
                 primary_key: primary_key.clone(),
-                key: file.key.clone(),
+                file: file.key.clone(),
             })
         })
         .collect::<Result<Vec<_>, Report<InputError>>>()?;

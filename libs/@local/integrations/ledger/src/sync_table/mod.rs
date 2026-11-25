@@ -28,10 +28,7 @@ use url::Url;
 
 #[cfg_attr(
     not(test),
-    expect(
-        unused_imports,
-        reason = "Send is the first caller of `read` and `order_key`"
-    )
+    expect(unused_imports, reason = "only the tests read the sync table")
 )]
 pub(crate) use self::{
     read::read,

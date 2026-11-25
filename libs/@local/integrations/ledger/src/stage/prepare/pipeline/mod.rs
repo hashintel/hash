@@ -21,8 +21,6 @@ pub(crate) enum PreparationError {
     Statement,
     #[display("source column `{column}` is reserved for staging metadata")]
     ReservedColumn { column: Box<str> },
-    #[display("the captured table has no column `_change`")]
-    MissingChange,
     #[display("a row's kind of change is not `insert`, `update` or `delete`")]
     InvalidChange,
     #[display("table has no column `{column}`")]

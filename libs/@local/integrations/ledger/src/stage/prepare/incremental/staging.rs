@@ -11,13 +11,11 @@ use crate::stage::prepare::{
 ///
 /// # Errors
 ///
-/// - [`MissingChange`] if `capture` has no column `_change`
+/// - [`MissingColumn`] if `capture` has no column `_change`, or lacks a column of `primary_key`
 /// - [`ReservedColumn`] if `capture` has a column `_op`, `_key`, `_seq` or `rowid`
-/// - [`MissingColumn`] if `capture` lacks a column of `primary_key`
 /// - [`InvalidChange`] if a row's `_change` is not `insert`, `update` or `delete`
-/// - [`Statement`] if DuckDB cannot copy the table
+/// - [`Statement`] if DuckDB cannot read `capture` or write `table`
 ///
-/// [`MissingChange`]: PreparationError::MissingChange
 /// [`ReservedColumn`]: PreparationError::ReservedColumn
 /// [`MissingColumn`]: PreparationError::MissingColumn
 /// [`InvalidChange`]: PreparationError::InvalidChange
@@ -38,7 +36,9 @@ pub(super) fn stage(
             .any(|(name, _)| name.eq_ignore_ascii_case(column))
     };
     if !has("_change") {
-        return Err(Report::new(PreparationError::MissingChange));
+        return Err(Report::new(PreparationError::MissingColumn {
+            column: "_change".into(),
+        }));
     }
     for (column, _) in &schema {
         // `_seq` is read from DuckDB's `rowid`, which a column of that name would hide.

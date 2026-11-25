@@ -111,7 +111,7 @@ fn changes(aircraft: &[Vec<Value>]) -> Changes {
     changes
 }
 
-/// Every change made from a few aviation rows, and every issue, for review as a whole.
+/// Each row of `changes` with its kind, its ids and its properties sorted by name, then each issue.
 fn render(changes: &Changes) -> String {
     let mut rendered = String::new();
     for row in &changes.rows {
@@ -143,7 +143,8 @@ fn render(changes: &Changes) -> String {
 }
 
 /// Turns aircraft and their links into changes, covering each kind of change, a bad date, a blank
-/// amount, a blank tail and a missing home base. A delete archives without properties.
+/// amount, a blank tail, a missing home base and an updated link. A delete archives without
+/// properties.
 #[test]
 fn aviation_changes() {
     let changes = changes(&rows(&[
@@ -160,14 +161,19 @@ fn aviation_changes() {
             "delete",
             ["G-OLD", "Ju 52", "1932-10-13", "6500", "KG", "ESSB"],
         ),
+        (
+            "update",
+            ["D-AQUI", "Ju 52", "1936-04-06", "6510", "KG", "ESSB"],
+        ),
     ]));
 
     insta::assert_snapshot!(render(&changes));
 }
 
+/// A pipeline whose source is a checkpoint reads the table the checkpoint saved, not a staged
+/// table.
 #[test]
 fn checkpoint_source() {
-    // A source that is the checkpoint another pipeline writes.
     let definition = Definition::from_yaml(include_str!(
         "../../../tests/fixtures/checkpoint-source.yaml"
     ))

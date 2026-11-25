@@ -1,0 +1,15 @@
+connector: aviation
+sources:
+  aircraft:
+    primaryKey: [TAIL]
+    sql: SELECT 1 AS TAIL
+pipelines:
+  entities:
+    - source: aircraft
+      steps:
+        - id: step
+          sql: STEP
+        - id: sink
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/aircraft/v/1
+            entityId: TAIL

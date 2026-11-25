@@ -20,7 +20,10 @@ extern crate alloc;
 mod run;
 mod stage;
 mod storage;
-#[cfg_attr(not(test), expect(dead_code, reason = "Send reads the sync table"))]
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "only the tests read the sync table")
+)]
 mod sync_table;
 #[cfg(test)]
 mod testing;

@@ -107,6 +107,18 @@ fn metadata_columns(columns: &[Box<str>]) -> Result<(usize, usize), Report<Prepa
 }
 
 /// The kind of change and the `_seq` of the row `values`.
+///
+/// # Errors
+///
+/// Returns [`PreparationError::InvalidChange`] if the row's `_op` is not `insert`, `update` or
+/// `delete`.
+///
+/// # Panics
+///
+/// Panics if the row's `_seq` is not a BIGINT, which [`Workspace::check_metadata`] refuses for
+/// every table whose rows become changes.
+///
+/// [`Workspace::check_metadata`]: super::workspace::Workspace::check_metadata
 fn change_of(
     values: &[Value],
     (op_at, seq_at): (usize, usize),
@@ -118,7 +130,7 @@ fn change_of(
         _ => return Err(Report::new(PreparationError::InvalidChange)),
     };
     let Some(&Value::BigInt(seq)) = values.get(seq_at) else {
-        return Err(Report::new(PreparationError::InvalidChange));
+        unreachable!("the table's `_seq` should have been checked to be a non-null BIGINT");
     };
     Ok((change, seq))
 }
@@ -143,6 +155,10 @@ impl Context<'_> {
     ///
     /// - [`MissingColumn`] if `columns` has no `_op` or `_seq`
     /// - [`InvalidChange`] if a row's `_op` is not `insert`, `update` or `delete`
+    ///
+    /// # Panics
+    ///
+    /// Panics if a row's `_seq` is not a BIGINT.
     ///
     /// [`MissingColumn`]: PreparationError::MissingColumn
     /// [`InvalidChange`]: PreparationError::InvalidChange
@@ -202,6 +218,10 @@ impl Context<'_> {
     /// # Errors
     ///
     /// The errors of [`entity_changes`](Self::entity_changes).
+    ///
+    /// # Panics
+    ///
+    /// Panics if a row's `_seq` is not a BIGINT.
     pub(super) fn link_changes<'row>(
         &self,
         changes: &mut Changes,
@@ -211,6 +231,14 @@ impl Context<'_> {
     ) -> Result<(), Report<PreparationError>> {
         let metadata = metadata_columns(columns)?;
         let names = columns.iter().collect::<SinkColumns>();
+        let end = |end: LinkEndpoint<'_>| {
+            derive_entity_id(
+                self.web_id,
+                self.id_namespace,
+                end.entity_type,
+                end.source_id,
+            )
+        };
         for values in rows {
             let (change, seq) = change_of(values, metadata)?;
             let row = SinkRow::new(&names, values);
@@ -241,14 +269,6 @@ impl Context<'_> {
                     changes.resolve(self, row, &link.properties, target),
                 ),
                 Change::Delete => (Op::ArchiveLink, PropertyObjectWithMetadata::default()),
-            };
-            let end = |end: LinkEndpoint<'_>| {
-                derive_entity_id(
-                    self.web_id,
-                    self.id_namespace,
-                    end.entity_type,
-                    end.source_id,
-                )
             };
             changes.rows.push(SyncRow {
                 run: self.run,

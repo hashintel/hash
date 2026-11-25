@@ -1,0 +1,20 @@
+connector: aviation
+sources:
+  aircraft:
+    primaryKey: [TAIL]
+    sql: SELECT 1 AS TAIL
+  airfields:
+    primaryKey: [ICAO]
+    sql: SELECT 1 AS ICAO
+pipelines:
+  entities:
+    - source: airfields
+      steps:
+        - id: save-airfields
+          checkpoint: aviation/airfields
+    - source: aircraft
+      inputs:
+        fields: aviation/airfields
+      steps:
+        - id: join
+          sql: SELECT input.* FROM input CROSS JOIN fields

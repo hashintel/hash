@@ -31,7 +31,7 @@ pub(crate) struct ByteSize(u64);
 impl ByteSize {
     #[cfg_attr(
         not(test),
-        expect(dead_code, reason = "Prepare sets no size limit yet")
+        expect(dead_code, reason = "only the tests set a size limit")
     )]
     #[must_use]
     pub(crate) const fn from_bytes(bytes: u64) -> Self {

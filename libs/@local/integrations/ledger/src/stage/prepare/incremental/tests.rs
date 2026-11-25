@@ -124,7 +124,7 @@ fn staging_invalid_columns() {
     assert_matches!(
         report.current_context(),
         PreparationError::ReservedColumn { column } if column.as_ref() == "RowId",
-        "a column `rowid` would hide the row id `_seq` is read from: {report:?}"
+        "a column `rowid` should be refused, as `_seq` is read from the row id: {report:?}"
     );
     captured(&workspace, "SELECT 'insert' AS _change, 1 AS OTHER");
     let report = stage(&workspace, &["ID"]).expect_err("missing key columns should be refused");
@@ -221,26 +221,9 @@ async fn captured_run(storage: &Storage, run: RunId, directory: &TempDir, tables
 
 const LINKS_OF_TWO_TABLES: &str = include_str!("../../../../tests/fixtures/pipeline-links.yaml");
 
+const ENTITY_INPUTS: &str = include_str!("../../../../tests/fixtures/pipeline-entity-inputs.yaml");
 /// A definition with one table, whose steps are `STEP` and a sink.
-const ONE_STEP: &str = "connector: aviation
-sources:
-  aircraft:
-    primaryKey: [TAIL]
-    sql: SELECT \
-                        1 AS TAIL
-pipelines:
-  entities:
-    - source: aircraft
-      steps:
-        - id: \
-                        step
-          sql: STEP
-        - id: sink
-          sink:
-            entityType: \
-                        https://example.com/@demo/types/entity-type/aircraft/v/1
-            entityId: TAIL
-";
+const ONE_STEP: &str = include_str!("../../../../tests/fixtures/pipeline-one-step.yaml");
 
 const AIRCRAFT_ROW: Table<'static> = ("aircraft", &["_change", "TAIL"], &[&["insert", "SE-XXX"]]);
 const NO_AIRFIELDS: Table<'static> = ("airfields", &AIRFIELDS, &[]);
@@ -253,7 +236,7 @@ const FLIGHTS: Table<'static> = ("flights", &["_change"], &[]);
     None,
     &[NO_CHANGE, NO_AIRFIELDS],
     CAPTURE_INVALID,
-    "the capture file of `aircraft` cannot be staged: the captured table has no column `_change`"
+    "the capture file of `aircraft` cannot be staged: table has no column `_change`"
 )]
 #[case::invalid_change(
     None,
@@ -272,6 +255,12 @@ const FLIGHTS: Table<'static> = ("flights", &["_change"], &[]);
     &[AIRCRAFT_ROW, NO_AIRFIELDS, FLIGHTS],
     CAPTURE_INVALID,
     "the capture file `flights` is of no table"
+)]
+#[case::entity_reads_two_tables(
+    Some(ENTITY_INPUTS.to_owned()),
+    &[AIRCRAFT_ROW, NO_AIRFIELDS],
+    DEFINITION_INVALID,
+    "the pipeline `aircraft` reads a second table"
 )]
 #[case::link_reads_two_tables(
     Some(LINKS_OF_TWO_TABLES.to_owned()),
