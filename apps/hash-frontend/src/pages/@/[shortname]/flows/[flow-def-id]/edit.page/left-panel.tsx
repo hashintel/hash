@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Button, SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 
 import { AddTab } from "./left-panel/add-tab";
 import { RunStatus } from "./left-panel/run-status";
@@ -130,6 +131,8 @@ type StepsSectionProps = {
   collapsedGroupIds: Set<string>;
   onToggleGroup: (stepId: string) => void;
   onCollapseAll: (stepIds: string[]) => void;
+  /** Whether Start is selected, and selects it. Omitted where it can't be selected, as in a run. */
+  start?: { selected: boolean; onClick: () => void };
 };
 
 /** The flow's steps, after Start. In a run, each shows its state, and a group counts its items rather than its steps. */
@@ -141,6 +144,7 @@ const StepsSection = ({
   onToggleGroup,
   onCollapseAll,
   run,
+  start,
 }: StepsSectionProps & { run: StepsRun | null }) => {
   const { steps } = flowDefinition;
   const getItemName = useItemNames(flowDefinition);
@@ -151,8 +155,10 @@ const StepsSection = ({
     <div className={stepsSection}>
       <div className={stepsHeader}>
         <p className={stepCount}>
-          {/* Start counts as a step, as the design shows. */}
-          {countSteps(steps.length + 1)}
+          {/* Start counts as a step, as the design shows, and so do steps inside a for-each step. */}
+          {countSteps(
+            getAllStepDefinitionsInFlowDefinition(flowDefinition).length + 1,
+          )}
         </p>
         <Button
           variant="ghost"
@@ -168,6 +174,8 @@ const StepsSection = ({
         icon={startDisplay.icon}
         tone={startDisplay.tone}
         label={startDisplay.description}
+        selected={start?.selected}
+        onClick={start?.onClick}
         status={run && <RunStatus mark={startMark} live={run.live} />}
       />
       <StepsTree

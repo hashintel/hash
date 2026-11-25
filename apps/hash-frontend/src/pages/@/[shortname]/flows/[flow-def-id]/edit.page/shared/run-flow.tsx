@@ -18,9 +18,9 @@ import {
   getFlowInputValues,
   getFormValuesFromRun,
   getInitialFormValues,
-  getRunBlocker,
   withGivenValues,
 } from "./run-form";
+import { useRunBlocker } from "./use-run-blocker";
 import { getFlowInputLabel, getKindLabel } from "./value-display";
 
 import type { RunFormValue, RunFormValues } from "./run-form";
@@ -390,7 +390,7 @@ export const RunFlow = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [formOpen, setFormOpen] = useState(false);
   const { running, givenValues, run, setValue } = useRunFormState(onRun);
-  const blocker = getRunBlocker(editorState);
+  const blocker = useRunBlocker(editorState);
 
   return (
     <>

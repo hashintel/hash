@@ -501,6 +501,10 @@ const FlowEditor = ({
             flowDefinition={flowDefinition}
             selectedStepIds={selection.stepIds}
             onStepClick={selectAndFocusStep}
+            start={{
+              selected: selection.start,
+              onClick: () => setSelection({ ...noSelection, start: true }),
+            }}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
             onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
