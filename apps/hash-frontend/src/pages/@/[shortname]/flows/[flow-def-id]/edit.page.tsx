@@ -37,7 +37,14 @@ import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
-import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
+import { NetSwitch } from "./edit.page/net-switch";
+import { EditorNetView } from "./edit.page/net-view";
+import {
+  generateRunViewPath,
+  parseAsParam,
+  parseRunParam,
+  withAsParam,
+} from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
 import { toScheduleTriggerRow } from "./edit.page/shared/flow-triggers";
@@ -63,6 +70,7 @@ import type {
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
 import type { CanvasHandle, CanvasSelection } from "./edit.page/canvas";
+import type { FlowShape } from "./edit.page/run-path";
 import type { FlowSchedules } from "./edit.page/shared/flow-triggers";
 import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { FlowEditorView } from "./edit.page/top-bar";
@@ -306,9 +314,28 @@ const FlowEditor = ({
   const getRunPath = (flowRunEntityId: EntityId) =>
     generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
 
-  /* As a run in Logs opens, so Back returns to the run shown before. */
-  const openRun = (flowRunEntityId: EntityId) => {
-    void router.push(getRunPath(flowRunEntityId), undefined, { shallow: true });
+  /* In the URL, so a view or a run can be linked to and Back returns to the one before. */
+  const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
+  const flowRunEntityId =
+    view === "logs"
+      ? parseRunParam(router.query.run, flowDefinitionEntityId)
+      : null;
+  /* The flow's steps or its net. Going between Editor and Logs shows the steps. */
+  const shape = parseAsParam(router.query.as);
+  const showShape = (nextShape: FlowShape) => {
+    const path = flowRunEntityId
+      ? getRunPath(flowRunEntityId)
+      : generateFlowEditorPath({ shortname, flowDefinitionEntityId });
+
+    void router.push(withAsParam(path, nextShape), undefined, {
+      shallow: true,
+    });
+  };
+  /* As a run in Logs opens, so Back returns to the run shown before. It keeps the shape, e.g. to compare runs' nets. */
+  const openRun = (runEntityId: EntityId) => {
+    void router.push(withAsParam(getRunPath(runEntityId), shape), undefined, {
+      shallow: true,
+    });
   };
 
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
@@ -330,9 +357,9 @@ const FlowEditor = ({
       throw new Error("The run didn't start.");
     }
 
-    await router.push(getRunPath(data.startFlow), undefined, {
-      shallow: true,
-    });
+    /* A run started from the net opens on the net. */
+    const runPath = withAsParam(getRunPath(data.startFlow), shape);
+    await router.push(runPath, undefined, { shallow: true });
   };
 
   const archiveFlow = async () => {
@@ -362,12 +389,6 @@ const FlowEditor = ({
     return true;
   };
 
-  /* In the URL, so a view or a run can be linked to and Back returns to the one before. */
-  const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
-  const flowRunEntityId =
-    view === "logs"
-      ? parseRunParam(router.query.run, flowDefinitionEntityId)
-      : null;
   /* One read of the flow's runs for the Logs table and the run switcher, so they agree. */
   const { flowRuns, retry: retryFlowRuns } = useFlowRuns(
     view === "logs" ? flowDefinitionEntityId : null,
@@ -424,6 +445,8 @@ const FlowEditor = ({
             flowDefinitionEntityId={flowDefinitionEntityId}
             currentDefinition={flowDefinition}
             schedules={schedules}
+            shape={shape}
+            onShapeChange={showShape}
             onBackToLogs={() => showView("logs")}
           />
         ) : (
@@ -439,6 +462,16 @@ const FlowEditor = ({
             }}
           />
         )
+      ) : shape === "net" ? (
+        <EditorNetView
+          editorState={editorState}
+          flowDefinitionEntityId={flowDefinitionEntityId}
+          onShapeChange={showShape}
+          onShowStep={(stepId) => {
+            showShape("flow");
+            selectAndFocusStep(stepId);
+          }}
+        />
       ) : (
         <div className={editorBody}>
           <LeftPanel
@@ -500,6 +533,7 @@ const FlowEditor = ({
               coveredRight={panelSubject ? sidePanelWidth : 0}
               schedules={schedules}
             />
+            <NetSwitch shape="flow" onShapeChange={showShape} />
             {panelSubject && (
               <StepPanel
                 editor={editor}
