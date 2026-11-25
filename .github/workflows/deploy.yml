@@ -335,7 +335,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
       # Tag-list assembly. The dynamic matrix already filtered the (service,
       # arch) entries to what should build, so this step only decides whether
@@ -460,7 +461,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
         with:
           # tag-if-newer (the :latest guard) needs full history.
           fetch-depth: 0

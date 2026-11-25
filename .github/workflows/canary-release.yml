@@ -14,7 +14,8 @@ jobs:
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -34,7 +35,8 @@ jobs:
       id-token: write # npm trusted publishing
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
       - name: Install tools
         uses: $/.github/actions/install-tools
