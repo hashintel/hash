@@ -11,7 +11,6 @@ import {
 import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 
-import { useLatestEntityTypesOptional } from "../../../../../../../shared/entity-types-context/hooks";
 import {
   operatorsByKind,
   readQueryForm,
@@ -26,6 +25,7 @@ import {
   ConditionRows,
   UnreadableCondition,
 } from "./shared/condition-rows";
+import { useEntityTypeItems } from "./shared/entity-types";
 import { useConditionOntology } from "./shared/use-condition-ontology";
 import { useRowKeys } from "./shared/use-row-keys";
 
@@ -174,7 +174,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
 
   const { getRowKey, forgetRowKey } = useRowKeys();
 
-  const { latestEntityTypes } = useLatestEntityTypesOptional();
+  const { latestEntityTypes, typeItems } = useEntityTypeItems();
   const ontology = useConditionOntology();
 
   /* By base URL, the properties a condition can be on for entities of any type. */
@@ -201,27 +201,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
       ),
     [ontology],
   );
-
-  const typeItems = useMemo(() => {
-    const types = latestEntityTypes ?? [];
-    const typesByTitle = Map.groupBy(types, ({ schema }) => schema.title);
-
-    return types
-      .map(({ schema, metadata }) => {
-        const { baseUrl } = metadata.recordId;
-        /* Types in different webs may share a title. */
-        const web =
-          (typesByTitle.get(schema.title)?.length ?? 0) > 1
-            ? baseUrl.match(/\/(@[^/]+)/)?.[1]
-            : undefined;
-
-        return {
-          value: baseUrl,
-          text: web ? `${schema.title} (${web})` : schema.title,
-        };
-      })
-      .sort((left, right) => left.text.localeCompare(right.text));
-  }, [latestEntityTypes]);
 
   if (source && source.kind !== "constant") {
     return <InputField {...props} />;

@@ -12,7 +12,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import type { IconName, MenuItem } from "@hashintel/ds-components";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 export type Join = "all" | "any";
 
@@ -108,12 +108,15 @@ export const AddFilterMenu = <Option extends { key: string; title: string }>({
   options,
   getIcon,
   emptyText,
+  trigger = <FilterGroup.AddFilter renderAs="plusLabel" />,
   onPick,
 }: {
   options: Option[];
   getIcon: (option: Option) => IconName;
   /** Shown when there's nothing to check. */
   emptyText: string;
+  /** What opens the menu, Add filter unless given. */
+  trigger?: ReactElement;
   onPick: (option: Option) => void;
 }) => {
   const [query, setQuery] = useState("");
@@ -155,7 +158,7 @@ export const AddFilterMenu = <Option extends { key: string; title: string }>({
           setQuery("");
         }
       }}
-      trigger={<FilterGroup.AddFilter renderAs="plusLabel" />}
+      trigger={trigger}
     />
   );
 };
