@@ -1,6 +1,21 @@
 import { useMemo } from "react";
 
+import { validateVersionedUrl } from "@blockprotocol/type-system";
+
 import { useLatestEntityTypesOptional } from "../../../../../../../../shared/entity-types-context/hooks";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
+
+/** Reads saved entity type IDs back, or `null` if they aren't a list of versioned URLs. */
+export const readEntityTypeIds = (value: unknown): VersionedUrl[] | null =>
+  Array.isArray(value) &&
+  value.every(
+    (entityTypeId): entityTypeId is VersionedUrl =>
+      typeof entityTypeId === "string" &&
+      validateVersionedUrl(entityTypeId).type === "Ok",
+  )
+    ? value
+    : null;
 
 /** The latest version of every entity type, and an item for each to pick it by base URL, sorted by title. */
 export const useEntityTypeItems = () => {
