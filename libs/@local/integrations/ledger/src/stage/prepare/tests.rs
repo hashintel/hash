@@ -1,18 +1,13 @@
+use alloc::collections::BTreeMap;
 use core::fmt::Write as _;
 
 use duckdb::types::Value;
 use hash_integrations_definition::{Action, Definition, EntitySink, LinkPipeline, StepKind};
-use pretty_assertions::assert_eq;
-use type_system::{
-    knowledge::entity::id::EntityId, ontology::VersionedUrl, principal::actor_group::WebId,
-};
+use type_system::{ontology::VersionedUrl, principal::actor_group::WebId};
 use uuid::Uuid;
 
-use super::{
-    changes::{Changes, Context},
-    entity_id::derive_entity_id,
-};
-use crate::{run::RunId, sync_table::Op};
+use super::changes::{Changes, Context};
+use crate::run::RunId;
 
 const NAMESPACE: &str = "aviation";
 const TYPES: &str = "https://example.com/@demo/types";
@@ -66,10 +61,6 @@ fn url(path: &str) -> VersionedUrl {
 
 fn web_id() -> WebId {
     WebId::new(Uuid::from_u128(0xA2C8_E6C7_485D_4B54_A248_53C9_B9B0_14A2))
-}
-
-fn id(entity_type: &str, source_id: &str) -> EntityId {
-    derive_entity_id(web_id(), NAMESPACE, &url(entity_type), source_id)
 }
 
 /// Rows of `COLUMNS`, as a sink table holds them: a kind of change, its `_seq` and text.
@@ -132,10 +123,10 @@ fn render(changes: &Changes) -> String {
         if let (Some(left), Some(right)) = (row.left_entity_id, row.right_entity_id) {
             writeln!(rendered, "{left} -> {right}").expect("writing to a string should succeed");
         }
-        // Through `Value`, whose map sorts its keys: the properties are held in a `HashMap`.
-        let properties = serde_json::to_value(&row.properties)
-            .and_then(|properties| serde_json::to_string_pretty(&properties))
-            .expect("the properties should render");
+        // The properties are held in a `HashMap`, so they are sorted to render the same each time.
+        let properties = row.properties.value.iter().collect::<BTreeMap<_, _>>();
+        let properties =
+            serde_json::to_string_pretty(&properties).expect("the properties should render");
         writeln!(rendered, "{properties}\n").expect("writing to a string should succeed");
     }
     rendered.push_str("issues:\n");
@@ -146,8 +137,8 @@ fn render(changes: &Changes) -> String {
     rendered
 }
 
-/// Turns aircraft and their links into changes, covering a clean row, a bad date, a blank amount,
-/// a blank tail and a missing home base.
+/// Turns aircraft and their links into changes, covering each kind of change, a bad date, a blank
+/// amount, a blank tail and a missing home base. A delete archives without properties.
 #[test]
 fn aviation_changes() {
     let changes = changes(&rows(&[
@@ -160,80 +151,11 @@ fn aviation_changes() {
             "insert",
             ["", "L-1049", "1957-07-15", "69000", "LB", "ESSA"],
         ),
+        (
+            "delete",
+            ["G-OLD", "Ju 52", "1932-10-13", "6500", "KG", "ESSB"],
+        ),
     ]));
 
     insta::assert_snapshot!(render(&changes));
-}
-
-#[test]
-fn changes_follow_the_kind_of_change() {
-    let changes = changes(&rows(&[
-        (
-            "insert",
-            ["SE-XXX", "DC-3", "1946-04-02", "8030", "KG", "ESSA"],
-        ),
-        (
-            "update",
-            ["N100", "L-1049", "1957-07-15", "69000", "LB", "ESSB"],
-        ),
-        (
-            "delete",
-            ["G-OLD", "Ju 52", "1932-10-13", "6500", "KG", "ESSA"],
-        ),
-    ]));
-
-    let aircraft = |tail| id("entity-type/aircraft", tail);
-    let airfield = |icao| id("entity-type/airfield", icao);
-    assert_eq!(
-        changes
-            .rows
-            .iter()
-            .map(|row| (
-                row.op,
-                row.seq,
-                row.left_entity_id,
-                row.right_entity_id,
-                row.properties.value.is_empty()
-            ))
-            .collect::<Vec<_>>(),
-        [
-            (Op::CreateEntity, 0, None, None, false),
-            (Op::UpdateEntity, 1, None, None, false),
-            (Op::ArchiveEntity, 2, None, None, true),
-            (
-                Op::CreateLink,
-                0,
-                Some(aircraft("SE-XXX")),
-                Some(airfield("ESSA")),
-                true
-            ),
-            (
-                Op::UpdateLink,
-                1,
-                Some(aircraft("N100")),
-                Some(airfield("ESSB")),
-                true
-            ),
-            (
-                Op::ArchiveLink,
-                2,
-                Some(aircraft("G-OLD")),
-                Some(airfield("ESSA")),
-                true
-            ),
-        ],
-        "each row should become the change its `_op` names, and an archive should have no \
-         properties"
-    );
-    assert_eq!(
-        changes
-            .rows
-            .iter()
-            .take(3)
-            .map(|row| row.entity_id)
-            .collect::<Vec<_>>(),
-        [aircraft("SE-XXX"), aircraft("N100"), aircraft("G-OLD")],
-        "the left end of each link should be the entity its row changes"
-    );
-    assert_eq!(changes.issues, [], "the rows should convert without issues");
 }

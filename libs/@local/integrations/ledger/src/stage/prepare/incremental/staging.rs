@@ -12,7 +12,7 @@ use crate::stage::prepare::{
 /// # Errors
 ///
 /// - [`MissingChange`] if `capture` has no column `_change`
-/// - [`ReservedColumn`] if `capture` has a column `_op`, `_key` or `_seq`
+/// - [`ReservedColumn`] if `capture` has a column `_op`, `_key`, `_seq` or `rowid`
 /// - [`MissingColumn`] if `capture` lacks a column of `primary_key`
 /// - [`InvalidChange`] if a row's `_change` is not `insert`, `update` or `delete`
 /// - [`Statement`] if DuckDB cannot copy the table
@@ -41,7 +41,8 @@ pub(super) fn stage(
         return Err(Report::new(PreparationError::MissingChange));
     }
     for (column, _) in &schema {
-        if ["_op", "_key", "_seq"]
+        // `_seq` is read from DuckDB's `rowid`, which a column of that name would hide.
+        if ["_op", "_key", "_seq", "rowid"]
             .iter()
             .any(|reserved| column.eq_ignore_ascii_case(reserved))
         {

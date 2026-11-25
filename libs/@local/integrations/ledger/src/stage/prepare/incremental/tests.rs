@@ -11,7 +11,9 @@ use pretty_assertions::assert_eq;
 use rstest::rstest;
 use tempfile::TempDir;
 
-use super::{CAPTURE_INVALID, DEFINITION_INVALID, STEP_FAILED, prepare, prepare_incremental};
+use super::{
+    CAPTURE_INVALID, DEFINITION_INVALID, ROWS_INVALID, STEP_FAILED, prepare, prepare_incremental,
+};
 use crate::{
     run::{self, PreparePart, RunId, Stage},
     stage::{
@@ -89,25 +91,13 @@ fn staging_composite_keys() {
     );
     stage(&workspace, &["NAME", "ID"]).expect("the source should be staged");
     let rows = workspace
-        .query("SELECT _op, _key, _seq, ID FROM \"_source/source\" ORDER BY _seq")
+        .query("SELECT concat_ws(' ', _op, _seq, _key) FROM \"_source/source\" ORDER BY _seq")
         .expect("the metadata should be readable");
     assert_eq!(
-        rows.iter().collect::<Vec<_>>(),
+        rows.iter().map(<[Value]>::to_vec).collect::<Vec<_>>(),
         [
-            [
-                Value::Text("insert".to_owned()),
-                Value::Text("{\"NAME\":\"a\\\"b\",\"ID\":1}".to_owned()),
-                Value::BigInt(0),
-                Value::Int(1)
-            ]
-            .as_slice(),
-            [
-                Value::Text("delete".to_owned()),
-                Value::Text("{\"NAME\":\"c\",\"ID\":2}".to_owned()),
-                Value::BigInt(1),
-                Value::Int(2)
-            ]
-            .as_slice(),
+            [Value::Text(r#"insert 0 {"NAME":"a\"b","ID":1}"#.to_owned())],
+            [Value::Text(r#"delete 1 {"NAME":"c","ID":2}"#.to_owned())],
         ],
         "`_op` should be `_change`, `_seq` the order of the rows, and keys should retain field \
          order and escape source text"
@@ -124,6 +114,16 @@ fn staging_invalid_columns() {
         report.current_context(),
         PreparationError::ReservedColumn { column } if column.as_ref() == "_SeQ",
         "metadata collisions should be case insensitive: {report:?}"
+    );
+    captured(
+        &workspace,
+        "SELECT 'insert' AS _change, 1 AS ID, 2 AS RowId",
+    );
+    let report = stage(&workspace, &["ID"]).expect_err("a column `rowid` should be refused");
+    assert_matches!(
+        report.current_context(),
+        PreparationError::ReservedColumn { column } if column.as_ref() == "RowId",
+        "a column `rowid` would hide the row id `_seq` is read from: {report:?}"
     );
     captured(&workspace, "SELECT 'insert' AS _change, 1 AS OTHER");
     let report = stage(&workspace, &["ID"]).expect_err("missing key columns should be refused");
@@ -220,46 +220,91 @@ async fn captured_run(storage: &Storage, run: RunId, directory: &TempDir, tables
 
 const LINKS_OF_TWO_TABLES: &str = include_str!("../../../../tests/fixtures/pipeline-links.yaml");
 
-const FAILING_STEP: &str = "connector: aviation
+/// A definition with one table, whose steps are `STEP` and a sink.
+const ONE_STEP: &str = "connector: aviation
 sources:
   aircraft:
     primaryKey: [TAIL]
-    sql: SELECT 1 AS TAIL
+    sql: SELECT \
+                        1 AS TAIL
 pipelines:
   entities:
     - source: aircraft
       steps:
-        - id: broken
-          sql: SELECT MISSING FROM input
+        - id: \
+                        step
+          sql: STEP
+        - id: sink
+          sink:
+            entityType: \
+                        https://example.com/@demo/types/entity-type/aircraft/v/1
+            entityId: TAIL
 ";
 
+const AIRCRAFT_ROW: Table<'static> = ("aircraft", &["_change", "TAIL"], &[&["insert", "SE-XXX"]]);
+const NO_AIRFIELDS: Table<'static> = ("airfields", &AIRFIELDS, &[]);
+const NO_CHANGE: Table<'static> = ("aircraft", &["TAIL"], &[&["SE-XXX"]]);
+const UNKNOWN_CHANGE: Table<'static> = ("aircraft", &["_change", "TAIL"], &[&["upsert", "SE-XXX"]]);
+const FLIGHTS: Table<'static> = ("flights", &["_change"], &[]);
+
 #[rstest]
-#[case::missing_change(None, ["MODEL", "DC-3"], CAPTURE_INVALID, "has no column `_change`")]
-#[case::invalid_change(None, ["_change", "upsert"], CAPTURE_INVALID, "kind of change is not")]
-#[case::second_table(Some(LINKS_OF_TWO_TABLES), ["_change", "insert"], DEFINITION_INVALID, "reads a second table")]
-#[case::failing_step(Some(FAILING_STEP), ["_change", "insert"], STEP_FAILED, "pipeline step `broken` failed")]
+#[case::missing_change(
+    None,
+    &[NO_CHANGE, NO_AIRFIELDS],
+    CAPTURE_INVALID,
+    "the capture file of `aircraft` cannot be staged: the captured table has no column `_change`"
+)]
+#[case::invalid_change(
+    None,
+    &[UNKNOWN_CHANGE, NO_AIRFIELDS],
+    CAPTURE_INVALID,
+    "the capture file of `aircraft` cannot be staged: a row's kind of change is not"
+)]
+#[case::missing_file(
+    None,
+    &[AIRCRAFT_ROW],
+    CAPTURE_INVALID,
+    "the table `airfields` has no capture file"
+)]
+#[case::unknown_file(
+    None,
+    &[AIRCRAFT_ROW, NO_AIRFIELDS, FLIGHTS],
+    CAPTURE_INVALID,
+    "the capture file `flights` is of no table"
+)]
+#[case::link_reads_two_tables(
+    Some(LINKS_OF_TWO_TABLES.to_owned()),
+    &[AIRCRAFT_ROW],
+    DEFINITION_INVALID,
+    "the pipeline `joined` reads a second table"
+)]
+#[case::failing_step(
+    Some(ONE_STEP.replace("STEP", "SELECT MISSING FROM input")),
+    &[AIRCRAFT_ROW],
+    STEP_FAILED,
+    "pipeline step `step` failed"
+)]
+#[case::rewritten_change(
+    Some(ONE_STEP.replace("STEP", "SELECT * REPLACE ('upsert' AS _op) FROM input")),
+    &[AIRCRAFT_ROW],
+    ROWS_INVALID,
+    "a row's kind of change is not"
+)]
 #[tokio::test]
 async fn prepare_refused(
-    #[case] definition: Option<&str>,
-    #[case] first_column: [&str; 2],
+    #[case] definition: Option<String>,
+    #[case] tables: &[Table<'static>],
     #[case] code: &'static str,
     #[case] reason: &str,
 ) {
     let storage = Storage::memory();
     let run = RunId::new();
     match definition {
-        Some(definition) => started_with(&storage, run, definition).await,
+        Some(definition) => started_with(&storage, run, &definition).await,
         None => started(&storage, run).await,
     }
     let directory = TempDir::new().expect("should create a directory");
-    let [first, value] = first_column;
-    let (columns, row) = ([first, "TAIL"], [value, "SE-XXX"]);
-    let rows = [row.as_slice()];
-    let mut tables: Vec<Table<'_>> = vec![("aircraft", &columns, &rows)];
-    if definition.is_none() {
-        tables.push(("airfields", &AIRFIELDS, &[]));
-    }
-    captured_run(&storage, run, &directory, &tables).await;
+    captured_run(&storage, run, &directory, tables).await;
 
     let error = prepare_incremental(&storage, run)
         .await
@@ -280,6 +325,43 @@ async fn prepare_refused(
     );
 }
 
+/// Three kinds of change to aircraft, and two to airfields. The date of `N100` does not convert.
+const AVIATION_ROWS: [Table<'static>; 2] = [
+    (
+        "aircraft",
+        &AIRCRAFT,
+        &[
+            &[
+                "insert",
+                "SE-XXX",
+                "DC-3",
+                "1946-04-02",
+                "8030",
+                "KG",
+                "ESSA",
+            ],
+            &["update", "N100", "L-1049", "unknown", "69000", "LB", "ESSB"],
+            &[
+                "delete",
+                "G-OLD",
+                "Ju 52",
+                "1932-10-13",
+                "6500",
+                "KG",
+                "ESSA",
+            ],
+        ],
+    ),
+    (
+        "airfields",
+        &AIRFIELDS,
+        &[
+            &["insert", "ESSA", "Arlanda"],
+            &["update", "ESSB", "Bromma"],
+        ],
+    ),
+];
+
 /// The stage on the aviation example, after an earlier attempt that wrote the sync table but not
 /// `run.json`.
 #[tokio::test]
@@ -289,47 +371,7 @@ async fn prepare_aviation() {
     let run = RunId::new();
     started(&storage, run).await;
     let directory = TempDir::new().expect("should create a directory");
-    captured_run(
-        &storage,
-        run,
-        &directory,
-        &[
-            (
-                "aircraft",
-                &AIRCRAFT,
-                &[
-                    &[
-                        "insert",
-                        "SE-XXX",
-                        "DC-3",
-                        "1946-04-02",
-                        "8030",
-                        "KG",
-                        "ESSA",
-                    ],
-                    &["update", "N100", "L-1049", "unknown", "69000", "LB", "ESSB"],
-                    &[
-                        "delete",
-                        "G-OLD",
-                        "Ju 52",
-                        "1932-10-13",
-                        "6500",
-                        "KG",
-                        "ESSA",
-                    ],
-                ],
-            ),
-            (
-                "airfields",
-                &AIRFIELDS,
-                &[
-                    &["insert", "ESSA", "Arlanda"],
-                    &["update", "ESSB", "Bromma"],
-                ],
-            ),
-        ],
-    )
-    .await;
+    captured_run(&storage, run, &directory, &AVIATION_ROWS).await;
 
     let (record, _) = run::load(&storage, run)
         .await

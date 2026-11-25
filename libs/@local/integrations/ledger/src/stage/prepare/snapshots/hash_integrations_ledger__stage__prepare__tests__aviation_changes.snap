@@ -4,45 +4,46 @@ expression: render(&changes)
 ---
 0 create_entity https://example.com/@demo/types/entity-type/aircraft/v/1 a2c8e6c7-485d-4b54-a248-53c9b9b014a2~468da978-f2fd-52d7-ad32-e319a155c918
 {
-  "value": {
-    "https://example.com/@demo/types/property-type/empty-mass/": {
-      "metadata": {
-        "dataTypeId": "https://example.com/@demo/types/data-type/kilogram/v/1"
-      },
-      "value": 8030.0
-    },
-    "https://example.com/@demo/types/property-type/first-flight/": {
-      "metadata": {
-        "dataTypeId": null
-      },
-      "value": "1935-12-17"
-    },
-    "https://example.com/@demo/types/property-type/model/": {
-      "metadata": {
-        "dataTypeId": null
-      },
-      "value": "DC-3"
+  "https://example.com/@demo/types/property-type/empty-mass/": {
+    "value": 8030.0,
+    "metadata": {
+      "dataTypeId": "https://example.com/@demo/types/data-type/kilogram/v/1"
+    }
+  },
+  "https://example.com/@demo/types/property-type/first-flight/": {
+    "value": "1935-12-17",
+    "metadata": {
+      "dataTypeId": null
+    }
+  },
+  "https://example.com/@demo/types/property-type/model/": {
+    "value": "DC-3",
+    "metadata": {
+      "dataTypeId": null
     }
   }
 }
 
 1 update_entity https://example.com/@demo/types/entity-type/aircraft/v/1 a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309
 {
-  "value": {
-    "https://example.com/@demo/types/property-type/model/": {
-      "metadata": {
-        "dataTypeId": null
-      },
-      "value": "Ju 52"
+  "https://example.com/@demo/types/property-type/model/": {
+    "value": "Ju 52",
+    "metadata": {
+      "dataTypeId": null
     }
   }
 }
 
+3 archive_entity https://example.com/@demo/types/entity-type/aircraft/v/1 a2c8e6c7-485d-4b54-a248-53c9b9b014a2~110695ef-e90a-5a60-b316-25870eb10add
+{}
+
 0 create_link https://example.com/@demo/types/entity-type/based-at/v/1 a2c8e6c7-485d-4b54-a248-53c9b9b014a2~b16436f1-2384-575c-b2d3-e5606539d19e
 a2c8e6c7-485d-4b54-a248-53c9b9b014a2~468da978-f2fd-52d7-ad32-e319a155c918 -> a2c8e6c7-485d-4b54-a248-53c9b9b014a2~9ec2610c-ca36-53f4-b809-e9af4c4b3b68
-{
-  "value": {}
-}
+{}
+
+3 archive_link https://example.com/@demo/types/entity-type/based-at/v/1 a2c8e6c7-485d-4b54-a248-53c9b9b014a2~a73736ad-d228-57e3-98ca-20936eb108d0
+a2c8e6c7-485d-4b54-a248-53c9b9b014a2~110695ef-e90a-5a60-b316-25870eb10add -> a2c8e6c7-485d-4b54-a248-53c9b9b014a2~9a1348a1-6ded-5391-bd06-f2a96b5bffcb
+{}
 
 issues:
   {"seq":1,"kind":"property","entity_type":"https://example.com/@demo/types/entity-type/aircraft/v/1","entity_id":"a2c8e6c7-485d-4b54-a248-53c9b9b014a2~5a1b641c-1583-51f0-909e-51d204835309","name":"https://example.com/@demo/types/property-type/first-flight/v/1","reason":"the value cannot be read as a date","value":"unknown"}

@@ -45,6 +45,8 @@ enum InputError {
     MissingFile { table: SourceName },
     #[display("the capture file `{table}` is of no table of the definition")]
     UnknownFile { table: Box<str> },
+    #[display("the capture file of `{table}` cannot be staged")]
+    Staging { table: SourceName },
 }
 
 /// A table of the definition and the key of its capture file.
@@ -156,10 +158,15 @@ fn changes(
     for (table, file) in tables.iter().zip(files) {
         let capture = format!("_capture/{}", table.name);
         let source = format!("_source/{}", table.name).into_boxed_str();
+        let refused = || InputError::Staging {
+            table: table.name.clone(),
+        };
         workspace
             .load_capture(file, &capture)
+            .change_context_lazy(refused)
             .change_context(failed(CAPTURE_INVALID))?;
         staging::stage(&workspace, &capture, &source, &table.primary_key)
+            .change_context_lazy(refused)
             .change_context(failed(CAPTURE_INVALID))?;
         staged.insert(table.name.clone(), source);
     }
