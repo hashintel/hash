@@ -27,6 +27,7 @@ const card = (
   foldable: true,
   unfolded: false,
   anchorOffset: 0,
+  visualizerHeight: 0,
   ...overrides,
 });
 

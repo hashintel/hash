@@ -75,6 +75,28 @@ describe("groupDiagnosticsByEntity", () => {
     ]);
   });
 
+  it("lists a net's own visualizer under the net: the root net, or a component by name", () => {
+    const groups = groupDiagnosticsByEntity(
+      new Map([
+        [getDocumentUri("net-visualizer", "root"), [diagnostic("first")]],
+        [getDocumentUri("net-visualizer", "c1"), [diagnostic("second")]],
+      ]),
+      { ...net, components: [{ id: "c1", name: "Station" }] },
+    );
+
+    expect(
+      groups.map((group) => [
+        group.entityType,
+        group.entityId,
+        group.label,
+        group.documents.map((codeDocument) => codeDocument.part),
+      ]),
+    ).toEqual([
+      ["net", "root", "Net: Root", ["Visualizer"]],
+      ["net", "c1", "Net: Station", ["Visualizer"]],
+    ]);
+  });
+
   it("falls back to the id of an entity the net does not hold", () => {
     const [group] = groupDiagnosticsByEntity(
       new Map([[getDocumentUri("transition-kernel", "gone"), []]]),

@@ -59,6 +59,7 @@ Kernel, firing rate/predicate, differential equation, visualizer, metric, and sc
 | [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`                     | `true`/`false` (predicate) or a rate (stochastic)       |
 | [Differential equation](#differential-equations-dynamics) | `token` or `tokens`, `parameters`         | one derivative object per coupled token                 |
 | [Visualizer](#visualizer)                                 | `tokens`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
+| [Net visualizer](#net-visualizers)                        | `places`, `parameters`, `width`, `height` | one `<Visualizer.Svg>` element                          |
 | Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`                     | a finite number                                         |
 | Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range`         | tokens or counts, keyed by place name                   |
 
@@ -207,6 +208,40 @@ Types are inferred. The [code editor](code-editor.md) reports errors as you type
 Attribute and style values support CSS colors, gradients, shapes, math, transforms, and local references such as `url(#marker)`. Image-loading functions, escaped external URLs, and unsupported CSS functions are rejected, including values computed from tokens or parameters. Text children are unaffected.
 
 Older `Visualization(...)` wrappers and native `<svg>` remain supported with deprecation hints. See [Migrating older code](#migrating-older-code).
+
+### Net visualizers
+
+A net can have a visualizer of its own, which draws its whole state in one picture: every place of the net, with its tokens. The root net can have one, and so can each [component](composition.md).
+
+Open the **Visualizer** tab of the bottom panel. It belongs to the net that is open: the root net, or the component you opened from the Nets list. Turn the visualizer on with the toggle in the tab's header, and use **Load default template** in the menu beside it to start from one bar per place. The code is on the left and the picture on the right. You can edit it during a simulation.
+
+The code is written as a place's visualizer is, with `places` in scope in place of `tokens`. `places` holds every place of the net by name. Each has a `count`, the number of tokens it holds, and `tokens`, one object per token with the dimensions of the place's type. A place with no type has tokens that carry nothing: read its `count`, or map over its `tokens` to draw one mark each. Write `places["Raw Material"]` for a name that is not a plain identifier.
+
+```jsx
+const queue = places.Queue.tokens;
+return (
+  <Visualizer.Svg viewBox="0 0 200 124">
+    <text x="12" y="18" fontSize="10">
+      {places.Done.count} done
+    </text>
+    {queue.slice(0, 9).map((job, index) => (
+      <circle
+        key={index}
+        cx={20 + index * 20}
+        cy={40}
+        r={job.size / 2}
+        fill="#2563eb"
+      />
+    ))}
+  </Visualizer.Svg>
+);
+```
+
+A component's visualizer is also drawn on the card of each of its instances, under the instance's ports. Each card draws the same code over the state of its own instance, so two instances of one component show different pictures. `places` holds the places of the component as that instance runs them: a port fused with a place of the net around it reads that place's tokens. `parameters` holds the instance's own parameter values. The card's picture is 200 wide and 124 high: give the drawing a `viewBox` of that shape and it fits the card and the tab alike.
+
+While a component is open, the tab's picture shows the state of its first instance, or the component with no token when nothing instantiates it yet. An instance of an interface draws the visualizer of the implementation that runs for it.
+
+Errors in a net's visualizer are underlined in its editor and listed in the Diagnostics tab under **Net**, with the name of the component or **Root**. Clicking one opens the net and its Visualizer tab. They do not stop a simulation.
 
 See [Satellites](examples.md#probabilistic-satellite-launcher) for a centered scene and [Supply Chain](examples.md#supply-chain-with-disruption) for responsive charts.
 

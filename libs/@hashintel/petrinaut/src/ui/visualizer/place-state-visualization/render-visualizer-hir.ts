@@ -13,6 +13,7 @@ import {
   parseVisualizerSvgOptions,
   type HirValue,
   type ViewHir,
+  type ViewPlaces,
   type ViewValue,
 } from "@hashintel/petrinaut-core";
 
@@ -23,6 +24,11 @@ export type VisualizerSize = { width: number; height: number };
 type VisualizerTokens = readonly Readonly<
   Record<string, number | boolean | bigint | string>
 >[];
+
+/** What a visualizer draws: the tokens of a place, or the places of a net. */
+export type VisualizerSubject =
+  | { tokens: VisualizerTokens }
+  | { places: ViewPlaces };
 
 type VisualizerParameters = Readonly<Record<string, number | boolean>>;
 
@@ -149,9 +155,9 @@ const toReactNode = (value: ViewValue): ReactNode => {
 };
 
 /**
- * Draws one frame of a lowered visualizer: interprets the view over the
- * place's tokens and the net's parameters, then turns the element values
- * into React elements.
+ * Draws one frame of a lowered visualizer: interprets the view over what it
+ * draws, a place's tokens or a net's places, and the net's parameters, then
+ * turns the element values into React elements.
  *
  * The lowering already restricted the picture to the allowlisted elements,
  * attributes and style properties, and the checker refused literal remote
@@ -161,11 +167,11 @@ const toReactNode = (value: ViewValue): ReactNode => {
  */
 export const renderVisualizerHir = (
   view: ViewHir,
-  tokens: VisualizerTokens,
+  subject: VisualizerSubject,
   parameters: VisualizerParameters,
   size: VisualizerSize,
 ): ReactNode => {
-  const picture = interpretViewHir(view, { tokens, parameters, ...size });
+  const picture = interpretViewHir(view, { ...subject, parameters, ...size });
   if (
     !(picture instanceof ViewElementValue) ||
     (picture.tag !== visualizerSvgTag && picture.tag !== "svg")

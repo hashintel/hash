@@ -11,6 +11,7 @@ import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { useStore } from "../../../react/shared/use-store";
 import { useEditorFields } from "../../../react/state/editor-context";
 import { useUserSettingsFields } from "../../../react/state/user-settings-context";
+import { usePetrinautPresentation } from "../../presentation/presentation-context";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import {
   buildCanvasScene,
@@ -82,6 +83,7 @@ export const useCanvasScene = (
     "compactNodes",
     "highlightOnHover",
   );
+  const { showCustomVisualizers } = usePetrinautPresentation();
   const { adjacency, severities, lambdaTypes } = useNetIndex(
     petriNetDefinition,
     activeNet,
@@ -160,5 +162,6 @@ export const useCanvasScene = (
       ].filter((id) => id !== null),
     ),
     unfoldedInstanceIds: unfoldedComponentInstanceIds,
+    instanceVisualizers: showCustomVisualizers,
   });
 };

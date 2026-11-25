@@ -1,5 +1,10 @@
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
-import { fusedLineNet, interfacedLineNet, manyPortsNet } from "./story-nets";
+import {
+  fusedLineNet,
+  interfacedLineNet,
+  manyPortsNet,
+  visualizedLineNet,
+} from "./story-nets";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -24,6 +29,19 @@ export const Interfaces: Story = {
   args: {
     initialTitle: "Interfaced line",
     initialDefinition: interfacedLineNet,
+  },
+};
+
+/**
+ * A visualizer at each level: the Visualizer tab of the bottom panel draws
+ * the root net's, and each station's card draws the Station component's over
+ * that instance's own state. Start a simulation to see them move.
+ */
+export const NetVisualizers: Story = {
+  name: "Net visualizers",
+  args: {
+    initialTitle: "Visualized line",
+    initialDefinition: visualizedLineNet,
   },
 };
 

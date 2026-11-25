@@ -1,12 +1,14 @@
 /**
  * @layerRoot ui.visualizer
- * @role Draws a place's tokens through its visualizer code: the lowered HIR interpreted into the elements Core allows
+ * @role Draws a place's tokens, or the state of a whole net, through visualizer code: the lowered HIR interpreted into the elements Core allows
  *
- * `PlaceStateVisualization` is the entry. The canvas loads it with one
- * dynamic import, so the interpreter stays out of the canvas chunk, and shows
- * `VisualizerLoading` until it arrives. The folder beside this file lowers
- * the code through the language client, interprets the result into React
- * elements and gives the SVG a camera.
+ * `PlaceStateVisualization` is the entry for a place, and
+ * `NetStateVisualization` in `net-state-visualization.tsx` the entry for a
+ * net. The canvas loads each with one dynamic import, so the interpreter
+ * stays out of the canvas chunk, and shows `VisualizerLoading` until it
+ * arrives. The folder beside this file lowers the code through the language
+ * client, interprets the result into React elements and gives the SVG a
+ * camera.
  *
  * This is where code a user wrote becomes DOM. The tags, attributes and
  * style properties it may produce are Core's (`VIEW_ELEMENT_TAGS`,
@@ -21,10 +23,6 @@ import { Suspense, use, useDeferredValue } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   buildVisualizerContext,
-  coerceTokenAttributeValue,
-  createUserKeyedRecord,
-  defaultTokenAttributeValue,
-  getOwn,
   mergeParameterValues,
 } from "@hashintel/petrinaut-core";
 
@@ -38,6 +36,7 @@ import {
 } from "./place-state-visualization/render-visualizer-hir";
 import { useVisualizerHir } from "./place-state-visualization/use-visualizer-hir";
 import { VisualizerErrorBoundary } from "./place-state-visualization/visualizer-error-boundary";
+import { maxCountedTokens, readPlaceTokens } from "./place-tokens";
 import { VisualizerLoading } from "./visualizer-loading";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
@@ -61,74 +60,19 @@ interface PlaceStateVisualizationProps {
   size: VisualizerSize;
 }
 
-/** The token of a place with no type: it carries no attribute. */
-const plainToken: TokenRecord = Object.freeze(
-  createUserKeyedRecord<TokenRecord[string]>(),
-);
-
-/**
- * The most tokens a count is drawn from. A count costs the engine nothing to
- * hold, and a visualizer is handed one record per token, so a larger one
- * would freeze the tab. It is the ceiling `range()` has, for the same reason.
- */
-const maxCountedTokens = 1_000_000;
-
-/**
- * The place's tokens for the frame being shown: the current frame of a run,
- * or the initial marking before one. A place whose tokens carry nothing, for
- * want of a type or of an element in it, holds a count, so its tokens are
- * that many records with no attribute: `tokens.length` reads the count, and
- * `tokens.map` draws one mark per token. A count above `maxCountedTokens`
- * gives `null`.
- *
- * Marking records may hold uuid values as at-rest strings; they are coerced
- * to runtime token values (uuid → bigint) as the engine would. Total per
- * element: a stored value that no longer converts (e.g. legacy data
- * predating a schema edit) falls back to the element's default instead of
- * crashing the panel.
- */
+/** The place's tokens for the frame being shown: see `readPlaceTokens`. */
 const useCurrentTokens = (
   place: Place,
   placeType: Color | null,
 ): TokenRecord[] | null => {
   const { initialMarking } = use(SimulationContext);
   const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
-  const frameReader = totalFrames > 0 ? currentFrameReader : null;
-  const marking = initialMarking[place.id];
-
-  // A frame keeps the count of such a place and no token to read.
-  if (!placeType || placeType.elements.length === 0) {
-    const count = frameReader
-      ? frameReader.getPlaceTokenCount(place.id)
-      : Array.isArray(marking)
-        ? marking.length
-        : typeof marking === "number"
-          ? marking
-          : 0;
-    return count > maxCountedTokens
-      ? null
-      : new Array<TokenRecord>(count).fill(plainToken);
-  }
-  if (frameReader) {
-    return frameReader.getPlaceTokens(place);
-  }
-  if (!Array.isArray(marking)) {
-    return [];
-  }
-  return marking.map((token) => {
-    const coerced: TokenRecord = createUserKeyedRecord();
-    for (const element of placeType.elements) {
-      try {
-        coerced[element.name] = coerceTokenAttributeValue(
-          element,
-          getOwn(token, element.name),
-          `Initial marking for place ${place.name}`,
-        );
-      } catch {
-        coerced[element.name] = defaultTokenAttributeValue(element.type);
-      }
-    }
-    return coerced;
+  return readPlaceTokens({
+    place,
+    placeType,
+    stateId: place.id,
+    frameReader: totalFrames > 0 ? currentFrameReader : null,
+    initialMarking,
   });
 };
 
@@ -168,7 +112,7 @@ const VisualizerPicture: React.FC<{
   }
   return renderVisualizerHir(
     hir.view,
-    tokens,
+    { tokens },
     mergeParameterValues(parameterValues, defaultParameterValues),
     size,
   );

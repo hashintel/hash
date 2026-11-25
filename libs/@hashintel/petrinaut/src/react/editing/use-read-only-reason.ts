@@ -113,7 +113,10 @@ const onlyUpdatesVisualizer = (input: unknown): boolean => {
   );
 };
 
-/** Visualizers, scenarios and metrics do not change an active simulation. */
+/**
+ * Visualizers, a place's and a net's, scenarios and metrics do not change an
+ * active simulation.
+ */
 export const mutationBlockedBy = (
   name: keyof PetrinautMutations,
   reason: ReadOnlyReason | null,
@@ -121,6 +124,7 @@ export const mutationBlockedBy = (
 ): ReadOnlyReason | null => {
   if (reason === null || reason.kind === "host-readonly") return reason;
   return simulateModeAllowedMutationNames.has(name) ||
+    name === "setNetVisualizer" ||
     (name === "updatePlace" && onlyUpdatesVisualizer(input))
     ? null
     : reason;

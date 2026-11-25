@@ -33,6 +33,7 @@ export type BottomPanelTab =
   | "compilation"
   | "diagnostics"
   | "simulation-settings"
+  | "net-visualizer"
   | "actual-events"
   | "actual-timeline"
   | "simulation-timeline"

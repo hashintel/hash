@@ -14,6 +14,7 @@ import { logisticsLibrary } from "../../stories/libraries-story-fixtures";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 import {
   buildCanvasScene,
+  instanceVisualizerHeight,
   transitionLambdaTypes,
   type CanvasSceneInput,
 } from "./canvas-scene";
@@ -90,6 +91,7 @@ const input: CanvasSceneInput = {
   }),
   keptOpenVisualizerIds: new Set(),
   unfoldedInstanceIds: new Set(),
+  instanceVisualizers: true,
 };
 
 describe("buildCanvasScene", () => {
@@ -548,6 +550,51 @@ describe("buildCanvasScene", () => {
           y: (foldedBig?.position.y ?? 0) + grown / 2,
         },
       });
+    });
+
+    it("hangs a panel under the card of an instance whose component has a visualizer", () => {
+      const drawn: Component = {
+        ...fast,
+        id: "drawn",
+        name: "Drawn",
+        implements: undefined,
+        visualizerCode: "return <Visualizer.Svg />;",
+      };
+      const withDrawn: SDCPN = {
+        ...sdcpn,
+        components: [drawn, fast],
+        componentInstances: [
+          instance("pictured", "drawn"),
+          instance("plain", "fast"),
+        ],
+      };
+      const net = activeNet(withDrawn);
+      const base = compactNodeDimensions.componentInstance.height;
+
+      const scene = buildCanvasScene({ ...input, sdcpn: withDrawn, net });
+      const plain = scene.nodes.find((node) => node.id === "plain");
+      expect(plain).toMatchObject({ visualizerHeight: 0, height: base });
+      expect(scene.nodes.find((node) => node.id === "pictured")).toMatchObject({
+        visualizerHeight: instanceVisualizerHeight,
+        height: base + instanceVisualizerHeight,
+        // The panel hangs under the card, its header where it was: the
+        // centre moves by half the panel.
+        anchorOffset: instanceVisualizerHeight / 2,
+        position: {
+          y: (plain?.position.y ?? 0) + instanceVisualizerHeight / 2,
+        },
+      });
+
+      // A presentation that draws no visualizer keeps the card as it was.
+      const hidden = buildCanvasScene({
+        ...input,
+        sdcpn: withDrawn,
+        net,
+        instanceVisualizers: false,
+      });
+      expect(hidden.nodes.find((node) => node.id === "pictured")).toMatchObject(
+        { visualizerHeight: 0, height: base, anchorOffset: 0 },
+      );
     });
 
     it("colours an arc by the token type of the place or port at its end", () => {

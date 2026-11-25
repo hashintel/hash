@@ -66,6 +66,7 @@ const instance: CanvasComponentInstanceNode = {
   foldable: true,
   unfolded: true,
   anchorOffset: 0,
+  visualizerHeight: 0,
 };
 
 /**

@@ -1,6 +1,10 @@
 import { ActualEventsContent } from "./subviews/actual-events";
 import { CompilationContent } from "./subviews/compilation";
 import { DiagnosticsPanel } from "./subviews/diagnostics";
+import {
+  NetVisualizerContent,
+  NetVisualizerHeaderAction,
+} from "./subviews/net-visualizer";
 import { SimulationSettingsContent } from "./subviews/simulation-settings";
 import { ActualTimeline } from "./subviews/timeline/actual-timeline";
 import { EventTimeline } from "./subviews/timeline/run-timeline";
@@ -23,6 +27,17 @@ export const simulationSettingsSubView: SubView = {
   title: "Simulation Settings",
   tooltip: "Configure simulation parameters and the computation time step.",
   component: SimulationSettingsContent,
+  noPadding: true,
+};
+
+/** Listed while the net's token types are on: visualizers belong to them. */
+export const netVisualizerSubView: SubView = {
+  id: "net-visualizer",
+  title: "Visualizer",
+  tooltip:
+    "Draw the whole state of the open net in one picture. A component's picture also shows on the cards of its instances.",
+  component: NetVisualizerContent,
+  headerAction: NetVisualizerHeaderAction,
   noPadding: true,
 };
 
