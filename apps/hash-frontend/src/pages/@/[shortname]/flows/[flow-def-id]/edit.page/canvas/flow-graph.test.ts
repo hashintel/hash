@@ -65,7 +65,7 @@ describe("getFlowGraph", () => {
     ).toMatchObject({ deletable: false, selectable: false });
   });
 
-  it("draws a for-each step as a box with its steps inside, which can't be edited, at their laid-out places", () => {
+  it("draws a for-each step as a box sized to the steps inside it, at their saved places, else their laid-out ones", () => {
     const steps: StepDefinition<string>[] = [
       actionStep("list", { position: { x: 0, y: 0 } }),
       {
@@ -78,7 +78,10 @@ describe("getFlowGraph", () => {
           actionStep("inner1", {
             inputs: { entity: { kind: "item" } },
           }),
-          actionStep("inner2", { runAfter: [{ stepId: "inner1" }] }),
+          actionStep("inner2", {
+            runAfter: [{ stepId: "inner1" }],
+            position: { x: 300, y: 60 },
+          }),
         ],
         collect: { stepId: "inner2", outputName: "entities", as: "results" },
       },
@@ -100,20 +103,23 @@ describe("getFlowGraph", () => {
     const box = graph.nodes.find(({ id }) => id === getStepNodeId("forEach"));
     const inner2 = graph.nodes.find(({ id }) => id === getStepNodeId("inner2"));
 
+    /* A card is 200 by 59, with 16 of padding to its right and below: `inner2` reaches furthest both ways. */
     expect(box).toMatchObject({
       type: "forEach",
       position: { x: 300, y: 0 },
-      width: 500,
-      height: 120,
+      width: 300 + 200 + 16,
+      height: 60 + 59 + 16,
     });
-    expect(inner2).toMatchObject({
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("inner1"))?.position,
+    ).toEqual({ x: 16, y: 40 });
+    /* Inside a box, a step is edited as any other, and can be dragged out of it to grow it. */
+    expect(inner2).toEqual({
+      id: getStepNodeId("inner2"),
+      type: "step",
       parentId: getStepNodeId("forEach"),
-      extent: "parent",
-      position: { x: 280, y: 40 },
-      draggable: false,
-      deletable: false,
-      connectable: false,
-      data: { inner: true },
+      position: { x: 300, y: 60 },
+      data: expect.objectContaining({ inner: true }),
     });
     /* A box is drawn before the steps inside it, as React Flow needs. */
     expect(graph.nodes.indexOf(box!)).toBeLessThan(
@@ -124,7 +130,7 @@ describe("getFlowGraph", () => {
       {
         source: getStepNodeId("inner1"),
         target: getStepNodeId("inner2"),
-        kind: "inner",
+        kind: "connection",
       },
       /* The for-each step takes its list from `list`, so runs after it, and no line from Start goes to it. */
       { source: startNodeId, target: getStepNodeId("list"), kind: "start" },
@@ -162,7 +168,7 @@ describe("getFlowGraph", () => {
       {
         source: getStepNodeId("first"),
         target: getStepNodeId("inner"),
-        kind: "inner",
+        kind: "connection",
       },
       { source: startNodeId, target: getStepNodeId("first"), kind: "start" },
     ]);

@@ -62,10 +62,13 @@ export type AddableAction = ActionListing & {
   actionDefinitionId: FlowActionDefinitionId;
 };
 
+/** A For each, which runs the steps inside it rather than an action. */
+type ForEachListing = ActionListing & { forEach: true };
+
 /** In the designs but without a definition yet, so it is listed but can't be added. */
 type UpcomingAction = ActionListing & { upcomingId: string };
 
-export type ListedAction = AddableAction | UpcomingAction;
+export type ListedAction = AddableAction | ForEachListing | UpcomingAction;
 
 /** Shown on an upcoming action's row while it is hovered. */
 export const upcomingNote = "Soon";
@@ -74,18 +77,30 @@ export const isAddableAction = (
   action: ListedAction,
 ): action is AddableAction => "actionDefinitionId" in action;
 
+export const isUpcomingAction = (
+  action: ListedAction,
+): action is UpcomingAction => "upcomingId" in action;
+
+/** What picking For each to add gives, in place of an action definition id. */
+export const forEachAddId = "forEach";
+
+/** What picking a listed action to add gives: its action definition id, or `forEachAddId`. */
+export const getAddId = (action: AddableAction | ForEachListing) =>
+  "forEach" in action ? forEachAddId : action.actionDefinitionId;
+
 /** Also how a for-each step in a flow is shown. */
 const forEachListing = {
-  upcomingId: "forEach",
+  forEach: true,
   label: "For each",
-  description: "Run steps for every item",
+  description:
+    "Run the steps inside once per item of a list, in parallel, and collect one output from every item.",
   groupId: "flowControl",
   icon: "refresh",
-} as const satisfies UpcomingAction;
+} as const satisfies ForEachListing;
 
 /**
- * In the order each group lists them. Ask a person (FE-1987), Send email (FE-1832) and For each (FE-1915) can be added
- * once they have a definition. Wait (FE-2012) and the definitions kept from before the editor aren't listed.
+ * In the order each group lists them. Ask a person (FE-1987) and Send email (FE-1832) can be added once they have a
+ * definition. Wait (FE-2012) and the definitions kept from before the editor aren't listed.
  */
 const listedActions: ListedAction[] = [
   {
@@ -215,21 +230,32 @@ export type ActionGroup = {
   actions: ListedAction[];
 };
 
-/** The groups of actions in the Add tab and the add menu, upcoming actions included. */
-export const listedActionGroups: ActionGroup[] = typedKeys(actionGroups).map(
-  (groupId) => ({
+/**
+ * The groups of actions in the Add tab and the add menu, upcoming actions included. Inside a for-each step, For each
+ * isn't listed, as a flow can't have one inside another.
+ */
+export const getListedActionGroups = ({
+  insideForEach = false,
+} = {}): ActionGroup[] =>
+  typedKeys(actionGroups).map((groupId) => ({
     groupId,
     label: actionGroups[groupId].label,
     icon: actionGroups[groupId].icon,
-    actions: listedActions.filter((action) => action.groupId === groupId),
-  }),
-);
+    actions: listedActions.filter(
+      (action) =>
+        action.groupId === groupId &&
+        !(insideForEach && action === forEachListing),
+    ),
+  }));
 
 /** The listed actions whose name contains `query`, ignoring case, in the order their groups list them. */
-export const searchListedActions = (query: string): ListedAction[] => {
+export const searchListedActions = (
+  query: string,
+  options: { insideForEach?: boolean } = {},
+): ListedAction[] => {
   const needle = query.trim().toLowerCase();
 
-  return listedActionGroups
+  return getListedActionGroups(options)
     .flatMap(({ actions }) => actions)
     .filter(({ label }) => label.toLowerCase().includes(needle));
 };

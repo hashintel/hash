@@ -3,8 +3,8 @@ import type {
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-const getSourceStepIds = (source: StepInputSource) =>
-  source.kind === "step-output" ? [source.stepId] : [];
+const getSourceStepIds = (source: StepInputSource | undefined) =>
+  source?.kind === "step-output" ? [source.stepId] : [];
 
 /** The steps `step` or any step inside it runs after, by connection or data link. */
 const getDependencyStepIds = (step: StepDefinition<string>): string[] => [

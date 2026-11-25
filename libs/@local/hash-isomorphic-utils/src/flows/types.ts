@@ -668,15 +668,25 @@ export type ActionStepDefinition<
  * every item.
  *
  * e.g. for each input entity, do X with that entity in a separate branch.
+ *
+ * `over` and `collect` are optional in an unchecked definition (`string` action ids), which may be unfinished, and
+ * required once validated (see `getValidFlowDefinition`), so nothing that runs or compiles a flow handles them
+ * missing. `string extends ActionDefinitionId` would make the parameter invariant, and a validated definition would
+ * no longer pass as an unchecked one.
  */
 export type ForEachStepDefinition<
   ActionDefinitionId extends string = FlowActionDefinitionId,
 > = StepDefinitionBase & {
   kind: "for-each";
   description: string;
+  steps: StepDefinition<ActionDefinitionId>[];
+} & ([ActionDefinitionId] extends [FlowActionDefinitionId]
+    ? ForEachListAndCollect
+    : Partial<ForEachListAndCollect>);
+
+type ForEachListAndCollect = {
   /** The array whose items each run the nested steps once. */
   over: StepInputSource;
-  steps: StepDefinition<ActionDefinitionId>[];
   /**
    * The output of a nested step, collected from every item into an array: singular outputs are gathered, and
    * array outputs concatenated. It must always be present, and it is the step's only output, called `as`.

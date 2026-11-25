@@ -8,6 +8,7 @@ import {
   addStepIdsToDiagnostics,
   type FlowDefinitionDiagnostic,
   getOutputsAvailableToFlow,
+  getValidFlowDefinition,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
@@ -385,21 +386,27 @@ describe("validateFlowDefinition", () => {
           kind: "for-each",
           stepId: "each",
           description: "",
-          over: overrides.over ?? {
-            kind: "step-output",
-            stepId: "queries",
-            outputName: "queries",
-          },
+          over:
+            "over" in overrides
+              ? overrides.over
+              : {
+                  kind: "step-output",
+                  stepId: "queries",
+                  outputName: "queries",
+                },
           steps: [
             answerStep("answer", {
               question: { kind: "item" },
             }),
           ],
-          collect: overrides.collect ?? {
-            stepId: "answer",
-            outputName: "explanation",
-            as: "explanations",
-          },
+          collect:
+            "collect" in overrides
+              ? overrides.collect
+              : {
+                  stepId: "answer",
+                  outputName: "explanation",
+                  as: "explanations",
+                },
         },
         ...(overrides.after ?? []),
       ],
@@ -423,6 +430,60 @@ describe("validateFlowDefinition", () => {
           path: ["steps", 1, "collect", "as"],
         },
       ]);
+    });
+
+    describe("unfinished", () => {
+      const missingOver = {
+        severity: "error",
+        code: "missingOver",
+        path: ["steps", 1, "over"],
+      };
+      const missingCollect = {
+        severity: "error",
+        code: "missingCollect",
+        path: ["steps", 1, "collect"],
+      };
+
+      it("passes the shape check with no list, nothing collected or neither, reporting each on the step", () => {
+        for (const [overrides, expected] of [
+          [{ over: undefined }, [missingOver]],
+          [{ collect: undefined }, [missingCollect]],
+          [
+            { over: undefined, collect: undefined },
+            [missingOver, missingCollect],
+          ],
+        ] as const) {
+          const input = forEachDefinition(overrides);
+          const validation = validateFlowDefinition(input);
+
+          expect(diagnosticsOf(input)).toEqual(expected);
+          expect(
+            addStepIdsToDiagnostics(input, validation.diagnostics).map(
+              ({ stepId }) => stepId,
+            ),
+          ).toEqual(expected.map(() => "each"));
+          expect(getValidFlowDefinition(validation)).toBeNull();
+        }
+      });
+
+      it("still refuses a collect missing a field or with an unknown one, or a null list", () => {
+        for (const overrides of [
+          { collect: { stepId: "answer", outputName: "explanation" } },
+          { over: null },
+          {
+            collect: {
+              stepId: "answer",
+              outputName: "explanation",
+              as: "explanations",
+              each: true,
+            },
+          },
+        ]) {
+          expect(
+            validateFlowDefinition(forEachDefinition(overrides)).flowDefinition,
+          ).toBeNull();
+        }
+      });
     });
 
     it("only lets steps inside a for-each step run after steps inside it", () => {
