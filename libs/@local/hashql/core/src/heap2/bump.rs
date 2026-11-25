@@ -4,7 +4,11 @@ use bump_scope::BumpBox;
 
 use super::{PhaseAllocator, ResetAllocator, ScopeAllocator, Scoped, macros::delegate_allocator};
 
-/// The allocator of a [`Bump`] or of a scope opened in one.
+/// The arena of a [`Bump`], or of a scope opened in one.
+///
+/// `&BumpScope` allocates, and `&mut BumpScope` has the exclusive access that [`scoped`] takes.
+///
+/// [`scoped`]: ScopeAllocator::scoped
 #[repr(transparent)]
 pub(super) struct BumpScope<'alloc>(bump_scope::BumpScope<'alloc>);
 
@@ -31,13 +35,22 @@ delegate_allocator!(BumpScope<'_>, 0);
 // ownership into the returned reference. A `BumpScope` exists only behind a reference, so safe code
 // cannot drop one. The slices have the requested length, because bump-scope allocates `len`
 // elements and one element for each element of `slice`.
-unsafe impl<'alloc> PhaseAllocator<'alloc> for BumpScope<'alloc> {
+//
+// A `BumpScopeGuard` records the position of the arena at its creation. Its `Drop` releases the
+// memory allocated after that position and nothing before it. Both scope methods drop the guard
+// after `func` returns, which keeps the memory of the scope valid until then. Between the creation
+// of the guard and its drop, only the scope allocates: `scoped` holds `&mut self`, and `scoped_ref`
+// holds a claim, during which bump-scope fails every allocation through `self`. Therefore the guard
+// releases only memory of the scope and of scopes nested in it.
+unsafe impl<'alloc> ScopeAllocator<'alloc> for BumpScope<'alloc> {
+    type Scoped<'scope> = BumpScope<'scope>;
+
     #[inline]
     unsafe fn try_alloc_with_unchecked<T>(
-        &self,
+        this: &Self,
         value: impl FnOnce() -> T,
     ) -> Result<&'alloc mut T, alloc::AllocError> {
-        self.0
+        this.0
             .try_alloc_with(value)
             .map(BumpBox::leak)
             .map_err(|_err| alloc::AllocError)
@@ -45,35 +58,28 @@ unsafe impl<'alloc> PhaseAllocator<'alloc> for BumpScope<'alloc> {
 
     #[inline]
     unsafe fn try_alloc_slice_uninit_unchecked<T>(
-        &self,
+        this: &Self,
         len: usize,
     ) -> Result<&'alloc mut [mem::MaybeUninit<T>], alloc::AllocError> {
-        self.0
+        this.0
             .try_alloc_uninit_slice(len)
             .map(BumpBox::leak)
             .map_err(|_err| alloc::AllocError)
     }
 
     #[inline]
-    fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], alloc::AllocError>
+    fn try_alloc_slice_copy<T>(
+        this: &Self,
+        slice: &[T],
+    ) -> Result<&'alloc mut [T], alloc::AllocError>
     where
         T: Copy,
     {
-        self.0
+        this.0
             .try_alloc_slice_copy(slice)
             .map(BumpBox::leak)
             .map_err(|_err| alloc::AllocError)
     }
-}
-
-// SAFETY: A `BumpScopeGuard` records the position of the arena at its creation. Its `Drop` releases
-// the memory allocated after that position and nothing before it. Both methods drop the guard after
-// `func` returns, which keeps the memory of the scope valid until then. Between the creation of the
-// guard and its drop, only the scope allocates: `scoped` holds `&mut self`, and `scoped_ref` holds
-// a claim, during which bump-scope fails every allocation through `self`. Therefore the guard
-// releases only memory of the scope and of scopes nested in it.
-unsafe impl<'alloc> ScopeAllocator<'alloc> for BumpScope<'alloc> {
-    type Scoped<'scope> = BumpScope<'scope>;
 
     #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Scoped<'_, 'alloc, Self>) -> T) -> T {
@@ -96,11 +102,13 @@ unsafe impl<'alloc> ScopeAllocator<'alloc> for BumpScope<'alloc> {
 
 /// The owner of an arena.
 ///
-/// You allocate from a `Bump` through a borrow of it. `&Bump` is an allocator, and so is the
-/// [`BumpScope`] that [`as_mut_scope`] returns. [`reset`] takes `&mut self`, which the compiler
-/// grants only once those borrows and the allocations made through them are no longer in use.
+/// `&Bump` allocates for as long as it borrows the `Bump`. To open scopes, borrow the arena as a
+/// [`BumpScope`] through [`as_mut_scope`] or [`as_scope`]. [`reset`] takes `&mut self`, which the
+/// compiler grants only once those borrows and the allocations made through them are no longer in
+/// use.
 ///
 /// [`as_mut_scope`]: Self::as_mut_scope
+/// [`as_scope`]: Self::as_scope
 /// [`reset`]: ResetAllocator::reset
 pub(super) struct Bump(bump_scope::Bump);
 
@@ -113,14 +121,19 @@ impl Bump {
         Self(bump_scope::Bump::with_size(capacity))
     }
 
-    fn as_scope(&self) -> &BumpScope<'_> {
+    /// Borrows the arena for code that shares it.
+    ///
+    /// The [`BumpScope`] opens scopes through [`scoped_ref`] alone.
+    ///
+    /// [`scoped_ref`]: ScopeAllocator::scoped_ref
+    pub(super) fn as_scope(&self) -> &BumpScope<'_> {
         BumpScope::from_ref(self.0.as_scope())
     }
 
-    /// Returns the allocator that has exclusive access to the arena.
+    /// Borrows the arena with exclusive access.
     ///
-    /// Its [`scoped`] opens a scope without the restrictions of [`scoped_ref`]. Through `&Bump`,
-    /// both methods open the scope as [`scoped_ref`] does.
+    /// The [`BumpScope`] opens scopes through [`scoped`], which has none of the restrictions of
+    /// [`scoped_ref`].
     ///
     /// [`scoped`]: ScopeAllocator::scoped
     /// [`scoped_ref`]: ScopeAllocator::scoped_ref
@@ -131,59 +144,41 @@ impl Bump {
 
 delegate_allocator!(Bump, 0);
 
-// SAFETY: Every method calls the method of the same name on the `BumpScope<'alloc>` that `as_scope`
-// returns for the `'alloc` borrow of the `Bump`. That borrow keeps the `Bump` from being reset,
-// moved or dropped during `'alloc`.
+// SAFETY: Every method calls the function of the same name on the `BumpScope<'alloc>` that
+// `as_scope` returns for the `'alloc` borrow of the `Bump`. That borrow keeps the `Bump` from being
+// reset, moved or dropped during `'alloc`.
 unsafe impl<'alloc> PhaseAllocator<'alloc> for &'alloc Bump {
     #[inline]
     unsafe fn try_alloc_with_unchecked<T>(
-        &self,
+        self,
         value: impl FnOnce() -> T,
     ) -> Result<&'alloc mut T, alloc::AllocError> {
         // SAFETY: The caller upholds the same requirement.
-        unsafe { self.as_scope().try_alloc_with_unchecked(value) }
+        unsafe { ScopeAllocator::try_alloc_with_unchecked(self.as_scope(), value) }
     }
 
     #[inline]
     unsafe fn try_alloc_slice_uninit_unchecked<T>(
-        &self,
+        self,
         len: usize,
     ) -> Result<&'alloc mut [mem::MaybeUninit<T>], alloc::AllocError> {
         // SAFETY: The caller upholds the same requirement.
-        unsafe { self.as_scope().try_alloc_slice_uninit_unchecked(len) }
+        unsafe { ScopeAllocator::try_alloc_slice_uninit_unchecked(self.as_scope(), len) }
     }
 
     #[inline]
-    fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], alloc::AllocError>
+    fn try_alloc_slice_copy<T>(self, slice: &[T]) -> Result<&'alloc mut [T], alloc::AllocError>
     where
         T: Copy,
     {
-        self.as_scope().try_alloc_slice_copy(slice)
-    }
-}
-
-// SAFETY: Both methods open the scope through `BumpScope::scoped_ref` on the `BumpScope<'alloc>`
-// that `as_scope` returns, which upholds the contract.
-unsafe impl<'alloc> ScopeAllocator<'alloc> for &'alloc Bump {
-    type Scoped<'scope> = BumpScope<'scope>;
-
-    // `BumpScope::scoped` takes `&mut BumpScope`, which a shared borrow of the `Bump` cannot
-    // provide.
-    #[inline]
-    fn scoped<T>(&mut self, func: impl FnOnce(Scoped<'_, 'alloc, Self>) -> T) -> T {
-        BumpScope::scoped_ref(self.as_scope(), |scope| func(scope.rebind()))
-    }
-
-    #[inline]
-    fn scoped_ref<T>(&self, func: impl FnOnce(Scoped<'_, 'alloc, Self>) -> T) -> T {
-        BumpScope::scoped_ref(self.as_scope(), |scope| func(scope.rebind()))
+        ScopeAllocator::try_alloc_slice_copy(self.as_scope(), slice)
     }
 }
 
 // SAFETY: Every allocator of the arena borrows the `Bump`: `&Bump` is that borrow, and `as_scope`
 // and `as_mut_scope` return a `BumpScope` whose lifetime is the lifetime of the borrow. The
 // allocations of those allocators live no longer than that lifetime, and `Bump` itself implements
-// no `PhaseAllocator`. `reset` takes `&mut self`. Therefore no memory of the arena is reachable
+// no `ScopeAllocator`. `reset` takes `&mut self`. Therefore no memory of the arena is reachable
 // when it runs.
 unsafe impl ResetAllocator for Bump {
     #[inline]
@@ -198,7 +193,7 @@ mod tests {
     use core::{alloc::AllocError, assert_matches, ptr};
 
     use super::Bump;
-    use crate::heap2::{PhaseAllocator as _, ResetAllocator as _, ScopeAllocator};
+    use crate::heap2::{PhaseAllocator, ResetAllocator as _, ScopeAllocator};
 
     #[derive(Debug, PartialEq, Eq)]
     struct Token(u32);
@@ -229,14 +224,25 @@ mod tests {
         })
     }
 
-    // Takes its allocator by value, as a type that stores one does.
-    fn sum_in<'alloc, S>(mut alloc: S, values: &[u32]) -> u32
+    // Uses its allocator for two allocations, as a type that stores one does.
+    fn sum_in<'alloc, A>(alloc: A, values: &[u32]) -> u32
     where
-        S: ScopeAllocator<'alloc>,
+        A: PhaseAllocator<'alloc>,
     {
         let kept = alloc.alloc_slice_copy(values);
+        let sum = alloc.alloc(kept.iter().sum::<u32>());
 
-        alloc.scoped(|scope| scope.alloc_slice_copy(kept).iter().sum())
+        *sum
+    }
+
+    #[test]
+    fn alloc_on_owned_bump() {
+        let bump = Bump::new();
+
+        let first = bump.alloc(1_u32);
+        let second = bump.alloc_slice_copy(&[*first, 2]);
+
+        assert_eq!((*first, &*second), (1, &[1, 2][..]));
     }
 
     #[test]
@@ -255,10 +261,11 @@ mod tests {
     #[test]
     fn scoped_ref_fails_outer_allocation() {
         let bump = Bump::new();
-        let alloc = &bump;
+        let alloc = bump.as_scope();
 
         alloc.scoped_ref(|scope| {
             assert_matches!(alloc.try_alloc(1_u32), Err(AllocError));
+            assert_matches!((&bump).try_alloc(1_u32), Err(AllocError));
             assert_eq!(*scope.alloc(2_u32), 2);
         });
 
@@ -266,21 +273,9 @@ mod tests {
     }
 
     #[test]
-    fn scoped_on_shared_reference_claims() {
-        let bump = Bump::new();
-        let mut alloc = &bump;
-        let other = alloc;
-
-        alloc.scoped(|scope| {
-            assert_matches!(other.try_alloc(1_u32), Err(AllocError));
-            assert_eq!(*scope.alloc(2_u32), 2);
-        });
-    }
-
-    #[test]
     fn scoped_ref_beside_collection() {
         let bump = Bump::new();
-        let alloc = &bump;
+        let alloc = bump.as_scope();
         let mut sums = Vec::new_in(alloc);
 
         for pair in [[1_u32, 2], [3, 4]] {
@@ -303,19 +298,21 @@ mod tests {
         let names = ["a", owned.as_str()];
 
         let mut bump = Bump::new();
-        assert_eq!(total_len(&mut &bump, &names), 4);
+        assert_eq!(total_len(bump.as_mut_scope(), &names), 4);
 
         bump.reset();
-        assert_eq!(total_len(&mut *bump.as_mut_scope(), &names), 4);
+        assert_eq!(total_len(bump.as_mut_scope(), &names), 4);
     }
 
     #[test]
-    fn scoped_through_references() {
+    fn alloc_through_pointers() {
         let mut bump = Bump::new();
 
-        assert_eq!(sum_in(&&bump, &[1, 2]), 3);
-        assert_eq!(sum_in(&mut &bump, &[3, 4]), 7);
-        assert_eq!(sum_in(bump.as_mut_scope(), &[5, 6]), 11);
+        assert_eq!(sum_in(&bump, &[1, 2]), 3);
+        assert_eq!(sum_in(bump.as_scope(), &[3, 4]), 7);
+
+        let nested = bump.as_mut_scope().scoped(|scope| sum_in(&*scope, &[5, 6]));
+        assert_eq!(nested, 11);
     }
 
     #[test]

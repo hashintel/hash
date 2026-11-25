@@ -1,9 +1,22 @@
 use alloc::alloc::handle_alloc_error;
 use core::{
-    alloc::{AllocError, Allocator, Layout},
+    alloc::{AllocError, Allocator, AllocatorClone, AllocatorNightly, Layout},
     marker::Destruct,
     mem,
 };
+
+/// A shared reference to an allocator.
+///
+/// Every `&A` whose `A` is an [`Allocator`] implements this trait, and no other type can. The
+/// traits of this module that take `self` by value have it as their supertrait. An implementor of
+/// one of them is therefore a reference, and every copy of it allocates from the same allocator,
+/// which is the guarantee of [`AllocatorClone`].
+pub impl(self) trait AllocatorPointer:
+    Allocator + AllocatorClone + AllocatorNightly + Copy
+{
+}
+
+impl<A> AllocatorPointer for &A where A: Allocator + ?Sized {}
 
 /// An arena allocator whose allocations live for `'alloc`.
 ///
@@ -18,6 +31,10 @@ use core::{
 /// do not borrow the allocator. An earlier allocation stays usable while you allocate more, open a
 /// [scope] or hand the allocator to another function.
 ///
+/// A `PhaseAllocator` is an [`AllocatorPointer`], a shared reference to the type that holds the
+/// arena. Pass it by value, as you would pass any shared reference. Every copy allocates from the
+/// same arena.
+///
 /// # Safety
 ///
 /// Implementors must ensure that the memory behind every reference a method of this trait returns:
@@ -31,7 +48,7 @@ use core::{
 /// A returned slice must have exactly the requested length.
 ///
 /// [scope]: super::ScopeAllocator
-pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
+pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     /// Allocates the result of calling `value`, without checking that `T` needs no destructor.
     ///
     /// # Errors
@@ -43,7 +60,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`mem::needs_drop`] must return `false` for `T`. The arena releases the value without
     /// running its destructor.
     unsafe fn try_alloc_with_unchecked<T>(
-        &self,
+        self,
         value: impl [const] FnOnce() -> T + [const] Destruct,
     ) -> Result<&'alloc mut T, AllocError>;
 
@@ -54,7 +71,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// Returns [`AllocError`] if the arena cannot provide the memory.
     #[inline]
     fn try_alloc_with<T>(
-        &self,
+        self,
         value: impl [const] FnOnce() -> T + [const] Destruct,
     ) -> Result<&'alloc mut T, AllocError> {
         const { assert!(!mem::needs_drop::<T>()) };
@@ -68,7 +85,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     ///
     /// Returns [`AllocError`] if the arena cannot provide the memory.
     #[inline]
-    fn try_alloc<T>(&self, value: T) -> Result<&'alloc mut T, AllocError>
+    fn try_alloc<T>(self, value: T) -> Result<&'alloc mut T, AllocError>
     where
         T: [const] Destruct,
     {
@@ -85,7 +102,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc_with`]: Self::try_alloc_with
     #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc_with<T>(&self, value: impl [const] FnOnce() -> T + [const] Destruct) -> &'alloc mut T {
+    fn alloc_with<T>(self, value: impl [const] FnOnce() -> T + [const] Destruct) -> &'alloc mut T {
         match self.try_alloc_with(value) {
             Ok(value) => value,
             Err(_) => {
@@ -103,7 +120,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc`]: Self::try_alloc
     #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc<T>(&self, value: T) -> &'alloc mut T
+    fn alloc<T>(self, value: T) -> &'alloc mut T
     where
         T: [const] Destruct,
     {
@@ -127,7 +144,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`mem::needs_drop`] must return `false` for `T`. The arena releases the values without
     /// running their destructors.
     unsafe fn try_alloc_slice_uninit_unchecked<T>(
-        &self,
+        self,
         len: usize,
     ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError>;
 
@@ -143,7 +160,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
     #[inline]
     fn try_alloc_slice_uninit<T>(
-        &self,
+        self,
         len: usize,
     ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
         const { assert!(!mem::needs_drop::<T>()) };
@@ -168,7 +185,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc_slice_uninit`]: Self::try_alloc_slice_uninit
     #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc_slice_uninit<T>(&self, len: usize) -> &'alloc mut [mem::MaybeUninit<T>] {
+    fn alloc_slice_uninit<T>(self, len: usize) -> &'alloc mut [mem::MaybeUninit<T>] {
         match self.try_alloc_slice_uninit(len) {
             Ok(slice) => slice,
             Err(_) => {
@@ -186,7 +203,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// # Errors
     ///
     /// Returns [`AllocError`] if the arena cannot provide the memory.
-    fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+    fn try_alloc_slice_copy<T>(self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
     where
         T: Copy;
 
@@ -198,7 +215,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
     #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc_slice_copy<T>(&self, slice: &[T]) -> &'alloc mut [T]
+    fn alloc_slice_copy<T>(self, slice: &[T]) -> &'alloc mut [T]
     where
         T: Copy,
     {
@@ -225,7 +242,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     ///
     /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
     #[inline]
-    fn try_alloc_slice_clone<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
+    fn try_alloc_slice_clone<T>(self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
     where
         T: [const] Clone,
     {
@@ -257,7 +274,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
     /// [`try_alloc_slice_clone`]: Self::try_alloc_slice_clone
     #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc_slice_clone<T>(&self, slice: &[T]) -> &'alloc mut [T]
+    fn alloc_slice_clone<T>(self, slice: &[T]) -> &'alloc mut [T]
     where
         T: [const] Clone,
     {
@@ -273,113 +290,3 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
         }
     }
 }
-
-macro_rules! forward_to_referent {
-    ($($reference:tt)+) => {
-        // SAFETY: Every method calls the method of the same name on `A`, whose implementation
-        // upholds the contract for `'alloc`. A reference to `A` adds no way to release memory that
-        // `A` handed out.
-        const unsafe impl<'alloc, A> PhaseAllocator<'alloc> for $($reference)+
-        where
-            A: [const] PhaseAllocator<'alloc> + ?Sized,
-        {
-            #[inline]
-            unsafe fn try_alloc_with_unchecked<T>(
-                &self,
-                value: impl [const] FnOnce() -> T + [const] Destruct,
-            ) -> Result<&'alloc mut T, AllocError> {
-                // SAFETY: The caller upholds the same requirement.
-                unsafe { (**self).try_alloc_with_unchecked(value) }
-            }
-
-            #[inline]
-            fn try_alloc_with<T>(
-                &self,
-                value: impl [const] FnOnce() -> T + [const] Destruct,
-            ) -> Result<&'alloc mut T, AllocError> {
-                (**self).try_alloc_with(value)
-            }
-
-            #[inline]
-            fn try_alloc<T>(&self, value: T) -> Result<&'alloc mut T, AllocError>
-            where
-                T: [const] Destruct,
-            {
-                (**self).try_alloc(value)
-            }
-
-            #[inline]
-            fn alloc_with<T>(
-                &self,
-                value: impl [const] FnOnce() -> T + [const] Destruct,
-            ) -> &'alloc mut T {
-                (**self).alloc_with(value)
-            }
-
-            #[inline]
-            fn alloc<T>(&self, value: T) -> &'alloc mut T
-            where
-                T: [const] Destruct,
-            {
-                (**self).alloc(value)
-            }
-
-            #[inline]
-            unsafe fn try_alloc_slice_uninit_unchecked<T>(
-                &self,
-                len: usize,
-            ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
-                // SAFETY: The caller upholds the same requirement.
-                unsafe { (**self).try_alloc_slice_uninit_unchecked(len) }
-            }
-
-            #[inline]
-            fn try_alloc_slice_uninit<T>(
-                &self,
-                len: usize,
-            ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
-                (**self).try_alloc_slice_uninit(len)
-            }
-
-            #[inline]
-            fn alloc_slice_uninit<T>(&self, len: usize) -> &'alloc mut [mem::MaybeUninit<T>] {
-                (**self).alloc_slice_uninit(len)
-            }
-
-            #[inline]
-            fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
-            where
-                T: Copy,
-            {
-                (**self).try_alloc_slice_copy(slice)
-            }
-
-            #[inline]
-            fn alloc_slice_copy<T>(&self, slice: &[T]) -> &'alloc mut [T]
-            where
-                T: Copy,
-            {
-                (**self).alloc_slice_copy(slice)
-            }
-
-            #[inline]
-            fn try_alloc_slice_clone<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
-            where
-                T: [const] Clone,
-            {
-                (**self).try_alloc_slice_clone(slice)
-            }
-
-            #[inline]
-            fn alloc_slice_clone<T>(&self, slice: &[T]) -> &'alloc mut [T]
-            where
-                T: [const] Clone,
-            {
-                (**self).alloc_slice_clone(slice)
-            }
-        }
-    };
-}
-
-forward_to_referent!(&A);
-forward_to_referent!(&mut A);

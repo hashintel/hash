@@ -1,5 +1,7 @@
-use core::alloc::AllocError;
+use alloc::alloc::handle_alloc_error;
+use core::alloc::{AllocError, Layout};
 
+use super::AllocatorPointer;
 use crate::symbol::Symbol;
 
 /// An allocator that interns strings as [`Symbol`]s.
@@ -12,21 +14,28 @@ use crate::symbol::Symbol;
 ///
 /// Implementors must ensure that the string a returned [`Symbol`] refers to stays valid and
 /// unchanged for all of `'alloc`.
-pub const unsafe trait SymbolAllocator<'alloc> {
+pub const unsafe trait SymbolAllocator<'alloc>: AllocatorPointer {
     /// Interns `name` and returns its [`Symbol`].
     ///
     /// # Errors
     ///
     /// Returns [`AllocError`] if the arena cannot provide the memory.
-    fn try_alloc_symbol(&self, name: &str) -> Result<Symbol<'alloc>, AllocError>;
+    fn try_alloc_symbol(self, name: &str) -> Result<Symbol<'alloc>, AllocError>;
 
     /// Interns `name` and returns its [`Symbol`].
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
+    /// [`try_alloc_symbol`] to handle that failure yourself.
+    ///
+    /// [`try_alloc_symbol`]: Self::try_alloc_symbol
+    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
-    fn alloc_symbol(&self, name: &str) -> Symbol<'alloc> {
+    fn alloc_symbol(self, name: &str) -> Symbol<'alloc> {
         match self.try_alloc_symbol(name) {
             Ok(symbol) => symbol,
             Err(_) => {
-                todo!()
+                let layout = Layout::for_value(name);
+                handle_alloc_error(layout)
             }
         }
     }

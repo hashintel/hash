@@ -10,11 +10,11 @@
 /// must ensure that no memory allocated from the arena is reachable while an exclusive borrow of
 /// the implementor exists.
 ///
-/// An implementor must not also implement [`PhaseAllocator`]. A reference that a `PhaseAllocator`
-/// returns does not borrow the allocator, and it would stay usable after a `reset`.
+/// An implementor must not also implement [`ScopeAllocator`]. A reference that a `ScopeAllocator`
+/// returns does not borrow it, and it would stay usable after a `reset`.
 ///
 /// [`reset`]: Self::reset
-/// [`PhaseAllocator`]: super::PhaseAllocator
+/// [`ScopeAllocator`]: super::ScopeAllocator
 pub const unsafe trait ResetAllocator {
     /// Releases every allocation made from the arena.
     ///

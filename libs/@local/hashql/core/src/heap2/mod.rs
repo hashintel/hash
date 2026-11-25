@@ -5,8 +5,10 @@
 //! `'alloc`. Write code that allocates as generic over its allocator, and bound the parameter by
 //! the capability the code needs:
 //!
-//! - [`PhaseAllocator`] allocates values and slices that live for `'alloc`.
-//! - [`ScopeAllocator`] also opens scopes, which release their memory when they end.
+//! - [`PhaseAllocator`] allocates values and slices that live for `'alloc`. An implementor is an
+//!   [`AllocatorPointer`], a shared reference that you take by value.
+//! - [`ScopeAllocator`] is an arena that also opens scopes, which release their memory when they
+//!   end. Take one as `&mut S` to open scopes with exclusive access. `&S` is a [`PhaseAllocator`].
 //! - [`SymbolAllocator`] interns strings as [`Symbol`]s that live for `'alloc`.
 //! - [`ResetAllocator`] releases every allocation of an arena at once.
 //!
@@ -21,7 +23,7 @@ mod scope;
 mod symbol;
 
 pub use self::{
-    phase::PhaseAllocator,
+    phase::{AllocatorPointer, PhaseAllocator},
     reset::ResetAllocator,
     scope::{ScopeAllocator, Scoped},
     symbol::SymbolAllocator,
