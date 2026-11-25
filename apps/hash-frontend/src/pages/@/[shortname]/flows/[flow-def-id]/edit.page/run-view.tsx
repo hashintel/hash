@@ -262,7 +262,10 @@ export const RunView = ({
             </div>
           </div>
         )}
-        <CanvasNotices overNet={!!netDefinition}>{noticeBanners}</CanvasNotices>
+        {/* Without a net, its message says why, which the banners would contradict. */}
+        {netDefinition ? (
+          <CanvasNotices overNet>{noticeBanners}</CanvasNotices>
+        ) : null}
         <NetSwitch
           shape="net"
           overNet={!!netDefinition}
