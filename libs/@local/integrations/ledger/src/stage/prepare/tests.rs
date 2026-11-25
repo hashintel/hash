@@ -3,10 +3,15 @@ use core::fmt::Write as _;
 
 use duckdb::types::Value;
 use hash_integrations_definition::{Action, Definition, EntitySink, LinkPipeline, StepKind};
+use tempfile::TempDir;
 use type_system::{ontology::VersionedUrl, principal::actor_group::WebId};
 use uuid::Uuid;
 
-use super::changes::{Changes, Context};
+use super::{
+    changes::{Changes, Context},
+    run_pipelines,
+    workspace::{Workspace, WorkspaceConfig},
+};
 use crate::run::RunId;
 
 const NAMESPACE: &str = "aviation";
@@ -158,4 +163,45 @@ fn aviation_changes() {
     ]));
 
     insta::assert_snapshot!(render(&changes));
+}
+
+#[test]
+fn checkpoint_source() {
+    // A source that is the checkpoint another pipeline writes.
+    let definition = Definition::from_yaml(include_str!(
+        "../../../tests/fixtures/checkpoint-source.yaml"
+    ))
+    .expect("the definition should be valid");
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = Workspace::open(
+        &directory.path().join("workspace.duckdb"),
+        WorkspaceConfig::default(),
+        &[],
+    )
+    .expect("the workspace should open");
+    workspace
+        .create_table(
+            "_source/orders",
+            "SELECT 'insert' AS _op, '{}' AS _key, 0::BIGINT AS _seq, 7 AS id",
+        )
+        .expect("the staged table should be created");
+    let staged = BTreeMap::from([(
+        "orders".parse().expect("should be a source name"),
+        Box::from("_source/orders"),
+    )]);
+
+    let tables = run_pipelines(&workspace, &definition, &staged)
+        .expect("the pipelines should run without a staged table for the checkpoint source");
+
+    let [sink] = tables.sinks.as_slice() else {
+        panic!("the definition should have one sink");
+    };
+    let rows = workspace
+        .query(&format!("SELECT id FROM \"{}\"", sink.table))
+        .expect("the sink's rows should be readable");
+    assert_eq!(
+        rows.iter().collect::<Vec<_>>(),
+        [[Value::Int(7)].as_slice()],
+        "the sink of the checkpoint source should read the rows the checkpoint saved"
+    );
 }
