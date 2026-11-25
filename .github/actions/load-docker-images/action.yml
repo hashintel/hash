@@ -40,7 +40,7 @@ runs:
         fi
 
         set -x
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
 
     - name: Clean docker system
       shell: bash
