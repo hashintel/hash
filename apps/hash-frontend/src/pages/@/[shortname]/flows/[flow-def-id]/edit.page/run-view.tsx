@@ -25,10 +25,11 @@ import type { TriggerCard } from "./canvas/flow-graph";
 import type { FlowSchedules } from "./shared/flow-triggers";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { ReactElement } from "react";
 
 const body = css({ display: "flex", flex: "1", minHeight: "0" });
 const canvasArea = css({ position: "relative", flex: "1" });
-const notices = css({
+const noticeList = css({
   position: "absolute",
   zIndex: "docked",
   top: "4",
@@ -83,6 +84,7 @@ export const RunView = ({
   flowDefinitionEntityId,
   currentDefinition,
   schedules,
+  notices,
   onBackToLogs,
 }: {
   flowRunEntityId: EntityId;
@@ -91,6 +93,8 @@ export const RunView = ({
   currentDefinition: FlowDefinition<string>;
   /** The flow's schedules, to name the one that started the run. */
   schedules: FlowSchedules;
+  /** Banners shown over the canvas before the run's own, e.g. why the latest edits weren't saved. */
+  notices?: ReactElement | null;
   onBackToLogs: () => void;
 }) => {
   const run = useRun({
@@ -226,9 +230,10 @@ export const RunView = ({
       />
       <div className={canvasArea}>
         <div
-          className={notices}
+          className={noticeList}
           style={coveredRight ? { right: coveredRight + 16 } : undefined}
         >
+          {notices}
           {ranDefinition === null ? (
             <Banner tone="warning">
               <Banner.Title>Shown on the flow as it is now</Banner.Title>

@@ -15,6 +15,14 @@ export class FlowChangedElsewhereError extends Error {
 /** Thrown by a save the API refused, with why as its message. The same definition is refused again until it changes. */
 export class FlowSaveRefusedError extends Error {
   override readonly name = "FlowSaveRefusedError";
+
+  /** Whether it was refused because it would stop the flow's schedules from running it. */
+  readonly blockedBySchedules: boolean;
+
+  constructor(message: string, { blockedBySchedules = false } = {}) {
+    super(message);
+    this.blockedBySchedules = blockedBySchedules;
+  }
 }
 
 export type FlowSaveStatus = "saving" | "saved" | "failed";
@@ -54,6 +62,8 @@ export const useAutosavedFlowEditor = ({
 }): {
   editor: FlowEditor;
   status: FlowSaveStatus;
+  /** The API's refusal of the last save, if it refused it. */
+  saveRefusal: FlowSaveRefusedError | null;
   /** Why the API refused the last save, if it did. */
   saveRefusedReason: string | null;
   changedElsewhere: boolean;
@@ -71,7 +81,7 @@ export const useAutosavedFlowEditor = ({
     createFlowEditor(flow.flowDefinition),
   );
   const [status, setStatus] = useState<FlowSaveStatus>("saved");
-  const [saveRefusedReason, setSaveRefusedReason] = useState<string | null>(
+  const [saveRefusal, setSaveRefusal] = useState<FlowSaveRefusedError | null>(
     null,
   );
   const [changedElsewhere, setChangedElsewhere] = useState(false);
@@ -107,15 +117,13 @@ export const useAutosavedFlowEditor = ({
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- edits made while the save was in flight set it
       setStatus(unsavedRef.current ? "saving" : "saved");
-      setSaveRefusedReason(null);
+      setSaveRefusal(null);
     } catch (error) {
       if (!(error instanceof FlowChangedElsewhereError)) {
         unsavedRef.current = true;
         refusedRef.current = error instanceof FlowSaveRefusedError;
         setStatus("failed");
-        setSaveRefusedReason(
-          error instanceof FlowSaveRefusedError ? error.message : null,
-        );
+        setSaveRefusal(error instanceof FlowSaveRefusedError ? error : null);
         return;
       }
 
@@ -138,7 +146,7 @@ export const useAutosavedFlowEditor = ({
       setEditor(reloadedEditor);
       setChangedElsewhere(true);
       setStatus("saved");
-      setSaveRefusedReason(null);
+      setSaveRefusal(null);
     }
   }, []);
 
@@ -231,7 +239,8 @@ export const useAutosavedFlowEditor = ({
   return {
     editor,
     status,
-    saveRefusedReason,
+    saveRefusal,
+    saveRefusedReason: saveRefusal?.message ?? null,
     changedElsewhere,
     dismissChangedElsewhere,
     flush,

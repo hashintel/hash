@@ -12,7 +12,7 @@ import {
   entityIdFromComponents,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { Banner, LoadingSpinner } from "@hashintel/ds-components";
+import { LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { generateFlowEditorPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
@@ -39,6 +39,7 @@ import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
 import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
+import { SaveBanners } from "./edit.page/save-banners";
 import { findStep } from "./edit.page/shared/find-step";
 import { toScheduleTriggerRow } from "./edit.page/shared/flow-triggers";
 import { editorRunDataSources } from "./edit.page/shared/run-form";
@@ -112,12 +113,12 @@ const isConflictError = (error: unknown) =>
   error instanceof ApolloError &&
   error.graphQLErrors.some(({ extensions }) => extensions.code === "CONFLICT");
 
-/** The API's reason for refusing a definition, e.g. because it would stop the flow's active schedules from running. */
-const getRefusalReason = (error: unknown) =>
+/** The API's refusal of a definition, e.g. because it would stop the flow's active schedules from running. */
+const getRefusal = (error: unknown) =>
   error instanceof ApolloError
     ? error.graphQLErrors.find(
         ({ extensions }) => extensions.code === "BAD_REQUEST",
-      )?.message
+      )
     : undefined;
 
 const noSelection: CanvasSelection = {
@@ -159,6 +160,7 @@ const FlowEditor = ({
   const {
     editor,
     status,
+    saveRefusal,
     saveRefusedReason,
     changedElsewhere,
     dismissChangedElsewhere,
@@ -187,11 +189,14 @@ const FlowEditor = ({
           throw new FlowChangedElsewhereError();
         }
 
-        const refusalReason = getRefusalReason(error);
+        const refusal = getRefusal(error);
 
-        throw refusalReason === undefined
+        throw refusal === undefined
           ? error
-          : new FlowSaveRefusedError(refusalReason);
+          : new FlowSaveRefusedError(refusal.message, {
+              blockedBySchedules:
+                refusal.extensions.blockedBySchedules === true,
+            });
       }
     },
     reloadFlow,
@@ -390,6 +395,20 @@ const FlowEditor = ({
     void router.push("/flows");
   };
 
+  /* In every view, as an edit made in one can be refused, or overwritten, after another opens. */
+  const saveBanners =
+    saveRefusal !== null || changedElsewhere ? (
+      <SaveBanners
+        flowDefinitionEntityId={flowDefinitionEntityId}
+        saveRefusal={saveRefusal}
+        onSaveAgain={() => {
+          void flush();
+        }}
+        changedElsewhere={changedElsewhere}
+        onDismissChangedElsewhere={dismissChangedElsewhere}
+      />
+    ) : null;
+
   return (
     <DsComponentsScope
       sx={{ display: "flex", flexDirection: "column", height: editorHeight }}
@@ -424,11 +443,13 @@ const FlowEditor = ({
             flowDefinitionEntityId={flowDefinitionEntityId}
             currentDefinition={flowDefinition}
             schedules={schedules}
+            notices={saveBanners}
             onBackToLogs={() => showView("logs")}
           />
         ) : (
           <LogsView
             flowRuns={flowRuns}
+            notices={saveBanners}
             onRetry={retryFlowRuns}
             getRunPath={getRunPath}
             runner={{
@@ -453,37 +474,14 @@ const FlowEditor = ({
             }
           />
           <div className={canvasArea}>
-            {(saveRefusedReason !== null || changedElsewhere) && (
+            {saveBanners && (
               <div
                 className={notices}
                 style={
                   panelSubject ? { right: sidePanelWidth + 16 } : undefined
                 }
               >
-                {saveRefusedReason !== null && (
-                  <Banner tone="error">
-                    <Banner.Title>
-                      Your latest edits can't be saved
-                    </Banner.Title>
-                    <Banner.Description as="div">
-                      {saveRefusedReason.split("\n").map((line) => (
-                        <div key={line}>{line}</div>
-                      ))}
-                    </Banner.Description>
-                  </Banner>
-                )}
-                {changedElsewhere && (
-                  <Banner
-                    tone="warning"
-                    dismissible={{ onDismiss: dismissChangedElsewhere }}
-                  >
-                    <Banner.Title>This flow changed elsewhere</Banner.Title>
-                    <Banner.Description>
-                      It was saved from somewhere else, so it now shows the
-                      latest version. Your latest edits weren't saved.
-                    </Banner.Description>
-                  </Banner>
-                )}
+                {saveBanners}
               </div>
             )}
             <Canvas

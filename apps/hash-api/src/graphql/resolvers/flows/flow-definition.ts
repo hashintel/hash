@@ -139,16 +139,20 @@ export const updateFlowDefinitionResolver: ResolverFn<
                 await getScheduledFlowRun(graphQLContext, schedule)
               ).taskQueue,
             })
-          : ["the flow wouldn't be valid"];
+          : [
+              "it can only run the flow once its problems are fixed. Pause it to save your changes, and resume it once they're fixed.",
+            ];
 
-        return problems.map((problem) => `- schedule "${name}": ${problem}`);
+        return problems.map((problem) => `- "${name}": ${problem}`);
       }),
     )
   ).flat();
 
   if (scheduleProblems.length > 0) {
+    /* `blockedBySchedules` lets the editor link to the flow's schedules, where they can be paused or deleted. */
     throw GraphQLError.badRequest(
-      `This change would stop the flow's active schedules from running it. Pause them first to make it.\n${scheduleProblems.join("\n")}`,
+      `This change would stop the flow's schedules from running it:\n${scheduleProblems.join("\n")}`,
+      { blockedBySchedules: true },
     );
   }
 
