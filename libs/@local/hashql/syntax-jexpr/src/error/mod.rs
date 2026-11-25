@@ -368,6 +368,9 @@ pub(crate) enum UnexpectedTokenContext {
     MissingColon {
         key: TextRange,
     },
+    MissingFieldValue {
+        key: TextRange,
+    },
     BarePrimitiveInExpr {
         text: String,
     },

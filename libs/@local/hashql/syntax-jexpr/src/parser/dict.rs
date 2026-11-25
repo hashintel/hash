@@ -30,9 +30,11 @@ where
         key.start_node(SyntaxKind::DictObjectEntry);
         let key_range = key.range();
         let parser = key.commit();
-        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
+
+        recovery::parse_object_field_value(parser, key_range, |parser| {
             parser.nested(G::parse_item);
-        }
+        });
+
         parser.finish_node();
     }
 

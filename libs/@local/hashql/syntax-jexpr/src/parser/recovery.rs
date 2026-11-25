@@ -608,6 +608,43 @@ where
     }
 }
 
+pub(crate) fn parse_object_field_value<G, A>(
+    parser: &mut Parser<'_, G, A>,
+    key_range: TextRange,
+    parse_value: impl FnOnce(&mut Parser<'_, G, A>),
+) where
+    G: Grammar,
+    A: Allocator + Clone,
+{
+    match expect_colon(parser, key_range) {
+        ControlFlow::Continue(FieldValue::Token(_)) => parse_value(parser),
+        ControlFlow::Continue(FieldValue::Eof) => {
+            parser.record_eof(
+                G::ITEM_FIRST,
+                EofContext::FieldValue {
+                    key: key_range,
+                    field: None,
+                },
+            );
+        }
+        ControlFlow::Continue(FieldValue::Missing(boundary)) => {
+            let Some(token) = parser.peek() else {
+                unreachable!("FieldValue::Missing guarantees a buffered boundary token");
+            };
+
+            let found = token.kind();
+            report_unexpected(
+                parser,
+                boundary,
+                found,
+                G::ITEM_FIRST,
+                UnexpectedTokenContext::MissingFieldValue { key: key_range },
+            );
+        }
+        ControlFlow::Break(()) => {}
+    }
+}
+
 pub(crate) fn recover_unexpected_item<G, A>(parser: &mut Parser<'_, G, A>)
 where
     G: Grammar,

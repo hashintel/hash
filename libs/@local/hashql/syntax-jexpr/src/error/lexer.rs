@@ -378,6 +378,31 @@ fn unexpected_token_general(
     diagnostic
 }
 
+fn missing_field_value(
+    span: SpanId,
+    found: SyntaxKind,
+    expected: SyntaxKindSet,
+    key: TextRange,
+    spans: &mut SpanTable<Span>,
+) -> LexerDiagnostic {
+    let label = if expected.is_empty() || expected.is_complete() {
+        format!("expected a value for this field, found {found}")
+    } else {
+        format!(
+            "expected {}, found {found}",
+            expected.display(Some(Conjunction::Or))
+        )
+    };
+
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Critical::ERROR)
+        .primary(Label::new(span, label));
+
+    let key_span = insert_range(spans, key);
+    diagnostic.add_label(Label::new(key_span, "after this key"));
+    diagnostic.add_message(Message::help("add a value for this field"));
+    diagnostic
+}
+
 pub(crate) fn unexpected_token(
     span: SpanId,
     found: SyntaxKind,
@@ -450,6 +475,9 @@ pub(crate) fn unexpected_token(
                 Message::help("insert `:` between the key and value").with_suggestions(suggestion),
             );
             diagnostic
+        }
+        UnexpectedTokenContext::MissingFieldValue { key } => {
+            missing_field_value(span, found, expected, *key, spans)
         }
         UnexpectedTokenContext::BarePrimitiveInExpr { text } => {
             let mut diagnostic =

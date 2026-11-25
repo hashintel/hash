@@ -71,9 +71,7 @@ fn parse_labeled_arg_after_open<A>(
             all_prefixed = false;
         }
 
-        if let ControlFlow::Continue(_) = recovery::expect_colon(parser, key_range) {
-            parse_expr(parser);
-        }
+        recovery::parse_object_field_value(parser, key_range, parse_expr);
 
         let entry_range = TextRange::new(key_range.start(), parser.last_token_end());
         entry_ranges.push(entry_range);

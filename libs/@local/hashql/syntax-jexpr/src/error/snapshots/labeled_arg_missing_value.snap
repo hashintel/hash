@@ -5,6 +5,8 @@ expression: "[\"f\", {\":a\": }]"
 error[jexpr::lexer::unexpected-token]: Unexpected token
   ╭▸ 
 1 │ ["f", {":a": }]
-  │              ━ expected string, `{`, or `[`, found `}`
+  │        ┬───  ━ expected string, `{`, or `[`, found `}`
+  │        │
+  │        after this key
   │
-  ╰ help: provide a J-Expr expression such as `"x"`, `["f", "x"]`, or `{"#literal": 42}`
+  ╰ help: add a value for this field
