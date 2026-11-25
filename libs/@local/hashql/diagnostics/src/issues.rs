@@ -301,7 +301,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// assert_eq!(issues.critical(), 1);
     /// ```
     #[must_use]
-    pub fn advisory(&self) -> usize {
+    pub const fn advisory(&self) -> usize {
         self.len() - self.critical
     }
 
@@ -327,7 +327,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// assert_eq!(issues.len(), 2);
     /// ```
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.diagnostics.len()
     }
 
@@ -351,7 +351,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// assert!(!issues.is_empty());
     /// ```
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.diagnostics.is_empty()
     }
 

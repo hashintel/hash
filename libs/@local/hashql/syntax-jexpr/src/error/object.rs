@@ -373,8 +373,8 @@ pub(crate) fn unknown_key(
 
     if expected.is_empty() {
         diagnostic.add_message(Message::help(format!("remove the `{escaped_key}` key")));
-        let note = primary_context.map_or_else(
-            || Cow::Borrowed("no additional keys are allowed in this J-Expr object"),
+        let note = primary_context.map_or(
+            Cow::Borrowed("no additional keys are allowed in this J-Expr object"),
             |(ctor, _)| {
                 Cow::Owned(format!(
                     "a `{}` object accepts no additional keys",

@@ -86,10 +86,11 @@ fn expected_low_surrogate<A: Allocator>(
 ) -> LexerDiagnostic {
     let mut diagnostic = context.high_surrogate.map_or_else(
         || {
-            let label = context.invalid_unit.map_or_else(
-                || Cow::Borrowed("unpaired high surrogate escape"),
-                |unit| Cow::Owned(format!(r"unpaired high surrogate `\u{unit:04X}`")),
-            );
+            let label = context
+                .invalid_unit
+                .map_or(Cow::Borrowed("unpaired high surrogate escape"), |unit| {
+                    Cow::Owned(format!(r"unpaired high surrogate `\u{unit:04X}`"))
+                });
             let mut diagnostic =
                 Diagnostic::new(LexerDiagnosticCategory::InvalidString, Critical::ERROR)
                     .primary(Label::new(span, label));
@@ -99,8 +100,8 @@ fn expected_low_surrogate<A: Allocator>(
             diagnostic
         },
         |high_range| {
-            let found = context.invalid_unit.map_or_else(
-                || Cow::Borrowed(r"expected low surrogate (`\uDC00`..`\uDFFF`)"),
+            let found = context.invalid_unit.map_or(
+                Cow::Borrowed(r"expected low surrogate (`\uDC00`..`\uDFFF`)"),
                 |unit| {
                     Cow::Owned(format!(
                         r"expected low surrogate (`\uDC00`..`\uDFFF`), found `\u{unit:04X}`"

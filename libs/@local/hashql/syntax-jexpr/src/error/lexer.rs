@@ -278,10 +278,9 @@ pub(crate) fn unexpected_eof<A: Allocator>(
                 Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Critical::ERROR)
                     .primary(Label::new(span, label));
             let key_span = insert_range(spans, *key);
-            let secondary = field.map_or_else(
-                || Cow::Borrowed("after this key"),
-                |field| Cow::Owned(format!("value required by `{}`", field.key())),
-            );
+            let secondary = field.map_or(Cow::Borrowed("after this key"), |field| {
+                Cow::Owned(format!("value required by `{}`", field.key()))
+            });
             diagnostic.add_label(Label::new(key_span, secondary));
             diagnostic.add_message(Message::help(field_value_eof_help(*field)));
             diagnostic
@@ -291,15 +290,12 @@ pub(crate) fn unexpected_eof<A: Allocator>(
             ordered.sort_by_key(|(_, range)| range.start());
 
             let innermost = ordered.last().map(|(delim, _)| *delim);
-            let label = innermost.map_or_else(
-                || Cow::Borrowed("unexpected end of input"),
-                |delim| {
-                    Cow::Owned(format!(
-                        "unexpected end of input, expected `{}`",
-                        delim.close_str()
-                    ))
-                },
-            );
+            let label = innermost.map_or(Cow::Borrowed("unexpected end of input"), |delim| {
+                Cow::Owned(format!(
+                    "unexpected end of input, expected `{}`",
+                    delim.close_str()
+                ))
+            });
 
             let mut diagnostic =
                 Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Critical::ERROR)

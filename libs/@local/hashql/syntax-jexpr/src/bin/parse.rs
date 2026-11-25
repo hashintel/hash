@@ -10,10 +10,10 @@
 //! [`Expr`]: hashql_ast::node::expr::Expr
 //! [`SyntaxDump`]: hashql_ast::format::SyntaxDump
 
-use std::{
-    alloc::Global,
-    io::{IsTerminal as _, Read as _, Write as _},
-};
+extern crate alloc;
+
+use alloc::alloc::Global;
+use std::io::{IsTerminal as _, Read as _, Write as _};
 
 use hashql_ast::format::SyntaxDump as _;
 use hashql_core::{heap::Heap, span::SpanTable};

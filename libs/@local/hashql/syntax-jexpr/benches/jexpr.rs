@@ -3,8 +3,10 @@
     reason = "criterion_group! owns the Criterion instance"
 )]
 
+extern crate alloc;
+
+use alloc::alloc::Global;
 use core::hint::black_box;
-use std::alloc::Global;
 
 use codspeed_criterion_compat::{Criterion, Throughput, criterion_group, criterion_main};
 use hashql_core::{heap::Heap, span::SpanTable};
