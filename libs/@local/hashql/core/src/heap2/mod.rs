@@ -12,19 +12,28 @@
 //! - [`SymbolAllocator`] interns strings as [`Symbol`]s that live for `'alloc`.
 //! - [`ResetAllocator`] releases every allocation of an arena at once.
 //!
+//! [`Scratch`] and [`Heap`] are the arenas of this module. A shared reference to either is a
+//! [`PhaseAllocator`], and `&Heap` is also a [`SymbolAllocator`]. Both are a [`ResetAllocator`],
+//! and both return their arena as a [`ScopeAllocator`] from `as_scope`. A `Scratch` also returns
+//! it from `as_mut_scope`, for scopes with exclusive access.
+//!
 //! [`Symbol`]: crate::symbol::Symbol
 #![expect(unsafe_code)]
 
 mod bump;
+mod heap;
 mod macros;
 mod phase;
 mod reset;
 mod scope;
+mod scratch;
 mod symbol;
 
 pub use self::{
+    heap::Heap,
     phase::{AllocatorPointer, PhaseAllocator},
     reset::ResetAllocator,
     scope::{ScopeAllocator, Scoped},
+    scratch::Scratch,
     symbol::SymbolAllocator,
 };

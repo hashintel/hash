@@ -37,7 +37,10 @@
 //! [`sym::SYMBOLS`]: super::sym::SYMBOLS
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, hash::BuildHasher as _};
+use core::{
+    alloc::{AllocError, Allocator},
+    hash::BuildHasher as _,
+};
 
 use foldhash::fast::RandomState;
 use hashbrown::{HashTable, hash_table::Entry};
@@ -258,6 +261,40 @@ impl<A: Allocator> SymbolTable<A> {
             Entry::Vacant(entry) => {
                 let repr = Repr::runtime(RuntimeRepr::alloc(alloc, value));
                 *entry.insert(repr).get()
+            }
+        }
+    }
+
+    /// Interns a string as [`intern`] does, and reports an allocation failure to the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if `alloc` cannot provide the memory for a new runtime symbol. A
+    /// failed call adds no entry to the table.
+    ///
+    /// # Safety
+    ///
+    /// The caller must uphold the requirements of [`intern`].
+    ///
+    /// [`intern`]: Self::intern
+    pub(crate) unsafe fn try_intern<B: Allocator>(
+        &mut self,
+        alloc: &B,
+        value: &str,
+    ) -> Result<Repr, AllocError> {
+        let hash = self.hasher.hash_one(value);
+
+        match self.inner.entry(
+            hash,
+            // SAFETY: The caller guarantees that the table holds no dangling runtime pointers.
+            |repr| unsafe { repr.as_str() } == value,
+            // SAFETY: The caller guarantees that the table holds no dangling runtime pointers.
+            |repr| self.hasher.hash_one(unsafe { repr.as_str() }),
+        ) {
+            Entry::Occupied(entry) => Ok(*entry.get()),
+            Entry::Vacant(entry) => {
+                let repr = Repr::runtime(RuntimeRepr::try_alloc(alloc, value)?);
+                Ok(*entry.insert(repr).get())
             }
         }
     }

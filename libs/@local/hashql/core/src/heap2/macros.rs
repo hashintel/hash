@@ -1,5 +1,8 @@
 macro_rules! delegate_allocator {
     ($wrapper:ty, $field:tt $(,)?) => {
+        $crate::heap2::macros::delegate_allocator!($wrapper, $field, ::core::alloc::Allocator);
+    };
+    ($wrapper:ty, $field:tt, $inner:path $(,)?) => {
         // SAFETY: Every operation uses the same inner allocator and preserves its contract.
         unsafe impl ::core::alloc::Allocator for $wrapper {
             #[inline]
@@ -7,8 +10,7 @@ macro_rules! delegate_allocator {
                 &self,
                 layout: ::core::alloc::Layout,
             ) -> Result<::core::ptr::NonNull<[u8]>, ::core::alloc::AllocError> {
-                ::bump_scope::alloc::Allocator::allocate(&self.$field, layout)
-                    .map_err(|_| ::core::alloc::AllocError)
+                <_ as $inner>::allocate(&self.$field, layout).map_err(|_| ::core::alloc::AllocError)
             }
 
             #[inline]
@@ -16,7 +18,7 @@ macro_rules! delegate_allocator {
                 &self,
                 layout: ::core::alloc::Layout,
             ) -> Result<::core::ptr::NonNull<[u8]>, ::core::alloc::AllocError> {
-                ::bump_scope::alloc::Allocator::allocate_zeroed(&self.$field, layout)
+                <_ as $inner>::allocate_zeroed(&self.$field, layout)
                     .map_err(|_| ::core::alloc::AllocError)
             }
 
@@ -27,7 +29,7 @@ macro_rules! delegate_allocator {
                 layout: ::core::alloc::Layout,
             ) {
                 // SAFETY: The caller upholds the same requirements for the inner allocator.
-                unsafe { ::bump_scope::alloc::Allocator::deallocate(&self.$field, ptr, layout) }
+                unsafe { <_ as $inner>::deallocate(&self.$field, ptr, layout) }
             }
 
             #[inline]
@@ -38,10 +40,8 @@ macro_rules! delegate_allocator {
                 new_layout: ::core::alloc::Layout,
             ) -> Result<::core::ptr::NonNull<[u8]>, ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner allocator.
-                unsafe {
-                    ::bump_scope::alloc::Allocator::grow(&self.$field, ptr, old_layout, new_layout)
-                }
-                .map_err(|_| ::core::alloc::AllocError)
+                unsafe { <_ as $inner>::grow(&self.$field, ptr, old_layout, new_layout) }
+                    .map_err(|_| ::core::alloc::AllocError)
             }
 
             #[inline]
@@ -52,15 +52,8 @@ macro_rules! delegate_allocator {
                 new_layout: ::core::alloc::Layout,
             ) -> Result<::core::ptr::NonNull<[u8]>, ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner allocator.
-                unsafe {
-                    ::bump_scope::alloc::Allocator::grow_zeroed(
-                        &self.$field,
-                        ptr,
-                        old_layout,
-                        new_layout,
-                    )
-                }
-                .map_err(|_| ::core::alloc::AllocError)
+                unsafe { <_ as $inner>::grow_zeroed(&self.$field, ptr, old_layout, new_layout) }
+                    .map_err(|_| ::core::alloc::AllocError)
             }
 
             #[inline]
@@ -71,15 +64,8 @@ macro_rules! delegate_allocator {
                 new_layout: ::core::alloc::Layout,
             ) -> Result<::core::ptr::NonNull<[u8]>, ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner allocator.
-                unsafe {
-                    ::bump_scope::alloc::Allocator::shrink(
-                        &self.$field,
-                        ptr,
-                        old_layout,
-                        new_layout,
-                    )
-                }
-                .map_err(|_| ::core::alloc::AllocError)
+                unsafe { <_ as $inner>::shrink(&self.$field, ptr, old_layout, new_layout) }
+                    .map_err(|_| ::core::alloc::AllocError)
             }
         }
 

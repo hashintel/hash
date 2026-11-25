@@ -28,7 +28,7 @@
 
 use alloc::alloc::handle_alloc_error;
 use core::{
-    alloc::{AllocError, Layout},
+    alloc::{AllocError, Allocator, Layout},
     num::NonZero,
     ptr::{self, NonNull},
 };
@@ -106,7 +106,10 @@ impl RuntimeRepr {
     ///
     /// Returns [`AllocError`] if the allocator cannot satisfy the request.
     #[expect(clippy::cast_ptr_alignment)]
-    fn try_alloc<A: BumpAllocator>(alloc: &A, value: &str) -> Result<NonNull<Self>, AllocError> {
+    pub(crate) fn try_alloc<A: Allocator>(
+        alloc: &A,
+        value: &str,
+    ) -> Result<NonNull<Self>, AllocError> {
         let len = value.len();
 
         let layout = Self::layout(value.len());

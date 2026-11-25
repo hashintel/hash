@@ -10,7 +10,7 @@ use super::{PhaseAllocator, ResetAllocator, ScopeAllocator, Scoped, macros::dele
 ///
 /// [`scoped`]: ScopeAllocator::scoped
 #[repr(transparent)]
-pub(super) struct BumpScope<'alloc>(bump_scope::BumpScope<'alloc>);
+pub struct BumpScope<'alloc>(bump_scope::BumpScope<'alloc>);
 
 impl<'alloc> BumpScope<'alloc> {
     fn from_mut<'scope>(scope: &'scope mut bump_scope::BumpScope<'alloc>) -> &'scope mut Self {
@@ -28,7 +28,7 @@ impl<'alloc> BumpScope<'alloc> {
     }
 }
 
-delegate_allocator!(BumpScope<'_>, 0);
+delegate_allocator!(BumpScope<'_>, 0, ::bump_scope::alloc::Allocator);
 
 // SAFETY: bump-scope hands out an allocation of a `bump_scope::BumpScope<'alloc>` as a
 // `BumpBox<'alloc, _>`, which owns its memory for all of `'alloc`. `BumpBox::leak` turns that
@@ -110,6 +110,7 @@ unsafe impl<'alloc> ScopeAllocator<'alloc> for BumpScope<'alloc> {
 /// [`as_mut_scope`]: Self::as_mut_scope
 /// [`as_scope`]: Self::as_scope
 /// [`reset`]: ResetAllocator::reset
+#[derive(Debug)]
 pub(super) struct Bump(bump_scope::Bump);
 
 impl Bump {
@@ -142,7 +143,7 @@ impl Bump {
     }
 }
 
-delegate_allocator!(Bump, 0);
+delegate_allocator!(Bump, 0, ::bump_scope::alloc::Allocator);
 
 // SAFETY: Every method calls the function of the same name on the `BumpScope<'alloc>` that
 // `as_scope` returns for the `'alloc` borrow of the `Bump`. That borrow keeps the `Bump` from being
