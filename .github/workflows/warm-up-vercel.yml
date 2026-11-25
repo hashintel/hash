@@ -14,9 +14,10 @@ concurrency:
 jobs:
   warm_up_production_site:
     name: Warm up Vercel lambdas
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
-      - uses: $/.github/actions/warm-up-vercel
+      - name: Warm up Vercel lambdas
+        uses: $/.github/actions/warm-up-vercel
         with:
           deployment-base-url: "https://app.hash.ai"

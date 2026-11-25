@@ -29,13 +29,14 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
   rows,
   expandedRows,
   matchingIds,
-  collapsedSearchRows,
+  toggledSearchRows,
 }: {
   rows: readonly Row[];
   expandedRows: ReadonlySet<string>;
   /** Undefined means browsing; an empty set means a search with no matches. */
   matchingIds?: ReadonlySet<VersionedUrl>;
-  collapsedSearchRows: ReadonlySet<string>;
+  /** Rows the user has expanded or collapsed during a search, inverting their default. */
+  toggledSearchRows: ReadonlySet<string>;
 }): {
   rows: (Row & { hierarchy: DataTypeTreePosition })[];
   isFlat: boolean;
@@ -84,15 +85,31 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
       ? value.typeId
       : undefined;
 
+  // A search shows its matches, their ancestors and their descendants.
+  // Only rows that lead to a match start expanded.
+  const ancestorIds = new Set<VersionedUrl>();
   const includedIds = matchingIds ? new Set(matchingIds) : undefined;
-  if (includedIds) {
-    const pending = [...includedIds];
-    while (pending.length) {
-      const id = pending.pop()!;
+  if (matchingIds && includedIds) {
+    const pendingAncestors = [...matchingIds];
+    while (pendingAncestors.length) {
+      const id = pendingAncestors.pop()!;
       for (const parentId of parents.get(id) ?? []) {
-        if (!includedIds.has(parentId)) {
+        if (!ancestorIds.has(parentId)) {
+          ancestorIds.add(parentId);
           includedIds.add(parentId);
-          pending.push(parentId);
+          pendingAncestors.push(parentId);
+        }
+      }
+    }
+    const descendantIds = new Set(matchingIds);
+    const pendingDescendants = [...matchingIds];
+    while (pendingDescendants.length) {
+      const id = pendingDescendants.pop()!;
+      for (const childId of children.get(id) ?? []) {
+        if (!descendantIds.has(childId)) {
+          descendantIds.add(childId);
+          includedIds.add(childId);
+          pendingDescendants.push(childId);
         }
       }
     }
@@ -161,7 +178,9 @@ export const buildDataTypeTree = <Row extends DataTypeRow>({
     const hasChildren = childIds.length > 0;
     const expanded =
       hasChildren &&
-      (matchingIds ? !collapsedSearchRows.has(rowId) : expandedRows.has(rowId));
+      (matchingIds
+        ? ancestorIds.has(row.typeId) !== toggledSearchRows.has(rowId)
+        : expandedRows.has(rowId));
     result.push({
       ...row,
       rowId,

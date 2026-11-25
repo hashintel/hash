@@ -188,13 +188,6 @@ url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-darwin-arm64.tar.gz"
 checksum = "sha256:c53383238206b9ae4db23c5d8a63645e2e753bec8ab51a49cc81939aa64e9422"
 url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-darwin-x64.tar.gz"
 
-[[tools."npm:renovate"]]
-version = "44.251.0"
-backend = "npm:renovate"
-
-[tools."npm:renovate".options]
-trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
-
 [[tools."npm:turbo"]]
 version = "2.11.12"
 backend = "npm:turbo"

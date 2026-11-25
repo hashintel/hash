@@ -2,9 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>hashintel/actions:renovate-config"],
   "description": "HASH public monorepo (hashintel/hash) Renovate configuration",
-  "dependencyDashboard": {
-    "osvVulnerabilitySummary": "none"
-  },
+  "dependencyDashboard": { "osvVulnerabilitySummary": "none" },
   "packageRules": [
     {
       "matchManagers": ["cargo"],
