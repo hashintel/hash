@@ -68,8 +68,8 @@ runs:
     - name: Setup environment
       shell: bash
       run: |
-        echo MISE_ENV=ci >> $GITHUB_ENV
-        echo PROTOC="$(mise which protoc)" >> $GITHUB_ENV
+        echo MISE_ENV=ci >> "$GITHUB_ENV"
+        echo PROTOC="$(mise which protoc)" >> "$GITHUB_ENV"
         mise ls
 
     - name: "Install Rust"

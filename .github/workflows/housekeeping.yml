@@ -46,18 +46,18 @@ jobs:
   validate:
     name: Validate
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
-      - name: Validate Renovate config
-        run: jq empty .github/renovate.json
+      - name: Install Renovate
+        uses: hashintel/actions/.github/actions/install-renovate@main
 
-      - name: Validate workflow
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/housekeeping.yml
+      - name: Validate Renovate config
+        run: renovate-config-validator --strict
 
   renovate:
     name: Dependencies
@@ -65,7 +65,7 @@ jobs:
       actions: read
       contents: read
       id-token: write
-    uses: hashintel/actions/.github/workflows/housekeeping-dependencies.yml@9fc63f47619ed1486820b29c62a78a3396a7e46f # main
+    uses: hashintel/actions/.github/workflows/housekeeping-dependencies.yml@06238755f2364521d75a1eaf0b3b397261f46077 # main
     with:
       repoCache: ${{ inputs.repoCache || 'enabled' }}
       logLevel: ${{ inputs.logLevel || 'info' }}
