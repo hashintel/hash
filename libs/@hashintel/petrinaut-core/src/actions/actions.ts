@@ -1880,6 +1880,7 @@ export function createPetrinautActions(
         const typeIds = new Set<string>();
         const equationIds = new Set<string>();
         const parameterIds = new Set<string>();
+        const metricIds = new Set<string>();
 
         for (const item of parsed.items) {
           const { id } = item;
@@ -1907,6 +1908,9 @@ export function createPetrinautActions(
               break;
             case "parameter":
               parameterIds.add(id);
+              break;
+            case "metric":
+              metricIds.add(id);
               break;
           }
         }
@@ -1991,6 +1995,11 @@ export function createPetrinautActions(
         }
 
         removeWhere(net.parameters, ({ id }) => parameterIds.has(id));
+
+        // Metrics belong to the document, whichever net the delete aims at.
+        if (metricIds.size > 0) {
+          removeWhere(sdcpn.metrics ?? [], ({ id }) => metricIds.has(id));
+        }
 
         if (hasCanvasDeletes || typeIds.size > 0) {
           sanitizeAllTransitions(sdcpn);

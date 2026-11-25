@@ -257,6 +257,7 @@ export const itemTypeAndIdSchema = z
     z.strictObject({ type: z.literal("type"), id: idSchema }),
     z.strictObject({ type: z.literal("differentialEquation"), id: idSchema }),
     z.strictObject({ type: z.literal("parameter"), id: idSchema }),
+    z.strictObject({ type: z.literal("metric"), id: idSchema }),
   ])
   .meta({
     description:

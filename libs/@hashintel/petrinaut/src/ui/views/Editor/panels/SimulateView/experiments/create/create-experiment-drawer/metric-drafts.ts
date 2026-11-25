@@ -2,28 +2,13 @@
  * A metric of the Create Experiment form as plain data: the draft a row
  * edits, its labels, and the specs the experiment is created with.
  */
+import { DEFAULT_METRIC_CODE } from "@hashintel/petrinaut-core";
+
 import { summarizeMetricLspErrors } from "../../../metrics/metric-lsp";
 import { MODEL_METRIC_VALUE_PREFIX } from "../../../metrics/metric-picker-options";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../../../react/experiments/context";
 import type { MonteCarloMetricSpec, SDCPN } from "@hashintel/petrinaut-core";
-
-const DEFAULT_METRIC_CODE = `/**
-* Custom metric code that will be run on each frame.
-* It must \`return\` a single finite number.
-*
-* The only thing in scope is \`state\`, a snapshot of the current frame:
-*   state.places["Place Name"].count   -> number of tokens in a place
-*   state.places["Place Name"].tokens  -> array of token objects (for colored places)
-*
-* Reference places by their exact name. Use bracket access for names
-* with spaces, e.g. state.places["Work In Progress"].
-*
-* --- Example: the sum of tokens in two places ---
-* return state.places["Susceptible"].count + state.places["Infected"].count;
-*/
-
-return 0;`;
 
 type ExperimentMetricKind =
   | "placeTokenCountMean"

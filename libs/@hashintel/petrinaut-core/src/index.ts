@@ -226,6 +226,7 @@ export type {
 export { mutationActionInputSchemas } from "./actions/action-schemas";
 export {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+  DEFAULT_METRIC_CODE,
   DEFAULT_TRANSITION_KERNEL_CODE,
   DEFAULT_VISUALIZER_CODE,
   generateDefaultDifferentialEquationCode,
