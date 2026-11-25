@@ -46,7 +46,8 @@
     variant_count,
     vec_repeat,
     const_alloc_error,
-    const_closures
+    const_closures,
+    impl_restriction
 )]
 #![cfg_attr(
     feature = "zerocopy",
