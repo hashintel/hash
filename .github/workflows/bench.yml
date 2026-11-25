@@ -26,7 +26,7 @@ jobs:
     if: >-
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -66,7 +66,7 @@ jobs:
     if: >-
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write
@@ -95,7 +95,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
     if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Show selection reason
         env:
@@ -222,7 +222,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
     if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Show selection reason
         env:
@@ -454,7 +454,7 @@ jobs:
     name: Benches passed
     needs: [setup, sccache-credentials, unit-benches, integration-benches]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       pull-requests: write
     steps:

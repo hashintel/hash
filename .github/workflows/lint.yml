@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -52,7 +52,7 @@ jobs:
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write
@@ -81,7 +81,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
     if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Show selection reason
         env:
@@ -257,7 +257,7 @@ jobs:
       checks: write
       pull-requests: write
     needs: [sccache-credentials]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -460,7 +460,7 @@ jobs:
     name: Linting passed
     needs: [setup, sccache-credentials, package, global]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check setup script
         run: |

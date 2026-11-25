@@ -40,7 +40,7 @@ jobs:
     if: >-
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -230,7 +230,7 @@ jobs:
     if: >-
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write
@@ -258,7 +258,7 @@ jobs:
     # Fork-only check applies to PRs — the Vault role for SENTRY_AUTH_TOKEN
     # isn't reachable from forks.
     if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # The environment lands in the OIDC token as a claim the Vault role binds,
     # and `main` only accepts the main branch. Picking the tier here is
     # therefore not self-asserted.
@@ -321,7 +321,7 @@ jobs:
 
   build:
     name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     needs: [setup]
     if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
     # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
@@ -445,7 +445,7 @@ jobs:
 
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [setup, build]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
     # Serialize the `:latest` multi-arch manifest per service so a newer push's
@@ -519,7 +519,7 @@ jobs:
   # run, which reports its own outcome.
   promote:
     name: Promote to staging
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [setup, build]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-images).include[0] != null
     # The Vault role binds this environment, which accepts only the main branch.
@@ -550,7 +550,7 @@ jobs:
     name: Deployments passed
     needs: [setup, sccache-credentials, sourcemaps, build, manifest, promote]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check setup
         run: |
