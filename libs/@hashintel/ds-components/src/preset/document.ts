@@ -9,17 +9,8 @@
  * `--global-font-body` and `--global-font-mono` reference the Panda token vars
  * (`--fonts-body`, `--fonts-mono`), so they automatically reflect whatever the
  * consumer sets for `fonts.body` / `fonts.mono` — no separate override needed.
- *
- * `--font-inter` / `--font-inter-tight` are the raw variable-font stacks that
- * the token definitions reference (`fonts.body` = `var(--font-inter), …`).
- * Consumers must import the corresponding `@fontsource-variable/*` packages
- * so the `@font-face` rules exist.
  */
 export const fontPipelineCssVars = {
-  "--font-inter":
-    '"Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif',
-  "--font-inter-tight":
-    '"Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif',
   "--global-font-body": "var(--fonts-body)",
   "--global-font-mono": "var(--fonts-mono)",
 } as const;

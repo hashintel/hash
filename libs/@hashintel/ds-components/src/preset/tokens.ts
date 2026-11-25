@@ -66,22 +66,29 @@ const scaledLineHeights = scaleTokenValues(
   "--leading-factor",
 );
 
+/**
+ * Each font token reads a `--salt-font-*` variable, which a host sets at or
+ * above the element the theme is applied to in order to use its own font. Only
+ * a host declares these variables, so no rule of the preset competes with the
+ * host's value in the cascade.
+ *
+ * Unset, `body` resolves to the system font and `mono` to the system
+ * monospace font.
+ */
+const fonts = {
+  body: {
+    value: "var(--salt-font-body, ui-sans-serif), system-ui, sans-serif",
+  },
+  mono: {
+    value:
+      "var(--salt-font-mono, ui-monospace), SFMono-Regular, Menlo, Consolas, monospace",
+  },
+};
+
 export const tokens = {
   fontSizes,
   fontWeights,
-  fonts: {
-    display: {
-      value:
-        "var(--font-inter-tight), Inter Tight, ui-sans-serif, system-ui, sans-serif",
-    },
-    body: {
-      value: "var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif",
-    },
-    mono: {
-      value:
-        "var(--font-geist-mono), Geist Mono, ui-monospace, SFMono-Regular, monospace",
-    },
-  },
+  fonts,
   sizes: pandaPreset.theme.tokens.sizes,
   shadows: pandaPreset.theme.tokens.shadows,
   spacing: scaledSpacing,

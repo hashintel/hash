@@ -1,6 +1,4 @@
-// Code font, used by the Panda preset (fonts.mono token) and by Monaco editor
-// which needs the actual font name (can't resolve CSS variables).
-//
-// Panda loads the preset in Node when it builds a stylesheet, so this file
-// imports nothing.
+// The Monaco editor's font, which Petrinaut's stylesheet bundles. Monaco needs
+// the font by name and cannot resolve a CSS variable, so the editor does not
+// follow the `mono` token that sets the rest of Petrinaut's monospaced text.
 export const CODE_FONT_FAMILY = "'JetBrains Mono Variable', monospace";

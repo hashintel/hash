@@ -156,6 +156,21 @@ and inside them the design-system `Icon` draws from the same set. A host
 or a plugin that needs an icon imports it from that package, whose README
 describes the components and their props.
 
+## Fonts
+
+The editor and `PetrinautPreview` use the system fonts by default: the system font for the interface, and the system monospace font for monospaced text such as table cells. The code editor is the exception. It is set in JetBrains Mono, which Petrinaut's stylesheet includes.
+
+To use your own fonts, load them and set `--salt-font-body` for the interface and `--salt-font-mono` for monospaced text, on `:root` or on any ancestor of the editor:
+
+```css
+:root {
+  --salt-font-body: "My Sans";
+  --salt-font-mono: "My Mono";
+}
+```
+
+Each value goes at the front of its font stack, and the system font follows it for any glyph your font lacks. The code editor's font is fixed. To set all monospaced text in that font, set `--salt-font-mono` to `"JetBrains Mono Variable"`.
+
 ## Storybook
 
 Run the Storybook from the repository root:

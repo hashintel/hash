@@ -8,6 +8,7 @@ import {
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
+import { hostFontFamily } from "../../../shared/host-font-family";
 import { BrowserOptimizationProvider } from "../optimization-demo/browser-optimization-provider";
 import { AssistantChat } from "../plugins/petrinaut-ai/chat/assistant-chat";
 import { createExperimentDemoTransport } from "./create-experiment-demo-transport";
@@ -73,7 +74,7 @@ export const AiExperimentsDemo = () => {
           background: "#eaf5ff",
           color: "#174368",
           fontSize: 14,
-          fontFamily: "Inter Variable, system-ui, sans-serif",
+          fontFamily: hostFontFamily,
         }}
       >
         <strong>SIR model demo.</strong> Scripted conversation · live simulation

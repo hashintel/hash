@@ -35,7 +35,7 @@ const entryBlock = css({
   },
 });
 const entryTitle = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "base",
   fontWeight: "medium",
   color: "fg.heading",

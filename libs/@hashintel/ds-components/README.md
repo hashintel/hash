@@ -69,6 +69,33 @@ yarn build
 authoring runtime, and the demo loops rely on Vite/PostCSS for CSS extraction
 while the server is running.
 
+## Fonts
+
+The package ships no font files. The font tokens use the system fonts until the host sets fonts of its own.
+
+| Token        | Default               | Variable that sets it |
+| ------------ | --------------------- | --------------------- |
+| `fonts.body` | system font           | `--salt-font-body`    |
+| `fonts.mono` | system monospace font | `--salt-font-mono`    |
+
+To use your own font, load it and set the variable on `:root`, or on any ancestor of the element the theme is scoped to:
+
+```css
+@font-face {
+  font-family: "My Sans";
+  font-weight: 100 900;
+  src: url("./my-sans.woff2") format("woff2");
+}
+
+:root {
+  --salt-font-body: "My Sans";
+}
+```
+
+The value goes at the front of the token's font stack, and the system fonts follow it for any glyph your font lacks. To have another font cover those glyphs, load it and list it second in the value: `"My Sans", "My Fallback"`.
+
+This repository's Storybooks set the variables to HASH's brand typefaces, which live in `libs/@local/brand-fonts`. Their license forbids redistributing them, so nothing under `src` or `docs` may import them: see that package's README.
+
 ## Published Component Docs (MDX)
 
 Each component's `src/components/*/*.docs.mdx` page is published as portable MDX at `dist/docs/mdx/<slug>.mdx` during `yarn build`, so an external documentation site with its own MDX pipeline (e.g. fumadocs) can render the design-system docs without Storybook. Per page: the `meta` is duplicated into YAML frontmatter (`title`, `description`, `alternativeNames`, `links`, `referenceLinks`, `related`); the Storybook-only `<Meta>` registration is stripped; the leading `# Title` heading and description paragraph are removed (frontmatter-driven sites render those themselves); each `<Stage>`'s Code tab source is baked in as a literal `code` attribute; and every import references a published entry point (`@hashintel/ds-components/<component>`, `@hashintel/ds-components/docs/blocks/<block>`), so the files work from any location. Copy or sync them into the site's content directory:
@@ -127,7 +154,7 @@ The published pages are **React Server Components-compatible** (verified on fuma
    });
    ```
 
-3. **Fonts** — the preset's token stack expects Inter, Inter Tight, and Geist Mono (e.g. via `@fontsource-variable/inter`, `@fontsource-variable/inter-tight`, `@fontsource-variable/geist-mono`); without them the pages fall back to system fonts.
+3. **Fonts** — the pages use the system fonts until you set your own: see [Fonts](#fonts).
 4. **Color scheme** — add a `light` or `dark` class to the root element to pin the theme; with neither class the preset follows the system preference.
 
 ## Contributor Docs

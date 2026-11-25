@@ -189,6 +189,12 @@ css({
 elevation.{drop,lift,raise,float}.{macro,micro}
 ```
 
+## Fonts
+
+The font tokens in `src/preset/tokens.ts` default to the system fonts and read `--salt-font-body` and `--salt-font-mono`, which a host sets to use its own fonts. The README's "Fonts" section is the consumer-facing description.
+
+HASH's brand typefaces, HASH Sans and HASH Mono, live in `libs/@local/brand-fonts`, and their license forbids redistributing them. Storybook loads them in `.storybook/preview.tsx`. Never import them from `src/**` or `docs/**`, and never copy their files into this package: anything there can end up in `dist`. `build:pack` runs that package's `check-package-fonts.mjs`, which fails the pack when a brand font is in the files about to be published.
+
 ## Component Patterns
 
 ### Recipe Definition

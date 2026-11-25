@@ -1,6 +1,4 @@
-import "@fontsource-variable/geist-mono";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/inter-tight";
+import "@local/brand-fonts/hash-sans.css";
 import "./preview.css";
 import "./docs.css";
 import { DocsContainer } from "@storybook/addon-docs/blocks";

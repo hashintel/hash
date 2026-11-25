@@ -126,7 +126,7 @@ const titleRow = css({
   mt: "2",
 });
 const titleStyles = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "2xl",
   fontWeight: "medium",
   color: "fg.heading",

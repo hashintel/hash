@@ -15,13 +15,9 @@ const scopedConfig = scopedThemeConfig(".petrinaut-root");
 
 /**
  * The Petrinaut preset is deliberately untyped (see its doc comment); checked
- * against Panda's `Preset` here, as in Petrinaut's own config. Listed last so
- * its token overrides (`fonts.mono` = JetBrains) win the deep-merge: this
- * app's tokens layer writes `--fonts-mono` onto the same `.petrinaut-root`
- * scope as the library's `styles.css`, and the two values must agree or
- * whichever stylesheet loads last silently wins — without the preset, the
- * ds-components default dangles on an undefined `--font-geist-mono` and the
- * form's mono cells fall back to the inherited sans face.
+ * against Panda's `Preset` here, as in Petrinaut's own config. Listed last,
+ * as it is there, so that this app's stylesheet and the library's
+ * `styles.css` are generated from one theme.
  */
 const checkedPetrinautPandaPreset: Preset = petrinautPandaPreset as Preset;
 

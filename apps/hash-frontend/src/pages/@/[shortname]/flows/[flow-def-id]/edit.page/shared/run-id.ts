@@ -12,10 +12,7 @@ export const getShortRunId = (flowRunEntityId: EntityId) =>
     .slice(-runIdLength)
     .toUpperCase();
 
-/**
- * How a short run ID is set wherever it shows, in JetBrains Mono from `globals.scss`. Not the `mono` token, whose Geist
- * Mono the frontend doesn't load.
- */
+/** How a short run ID is set wherever it shows, in JetBrains Mono from `globals.scss`. */
 export const shortRunIdFont = css({
   fontFamily: "['JetBrains Mono', ui-monospace, SFMono-Regular, monospace]",
   fontSize: "[13px]",

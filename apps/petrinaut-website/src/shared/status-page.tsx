@@ -1,3 +1,5 @@
+import { hostFontFamily } from "./host-font-family";
+
 import type { CSSProperties, ReactNode } from "react";
 
 const pageStyle: CSSProperties = {
@@ -5,7 +7,7 @@ const pageStyle: CSSProperties = {
   background: "#f6f7f8",
   color: "#1f2933",
   display: "flex",
-  fontFamily: "Inter, system-ui, sans-serif",
+  fontFamily: hostFontFamily,
   height: "100vh",
   justifyContent: "center",
   padding: 24,

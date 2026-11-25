@@ -6,6 +6,7 @@
     "@hashintel/ds-icons",
     "@hashintel/petrinaut-core",
     "@hashintel/refractive",
+    "@local/brand-fonts",
     "@local/tsconfig"
   ],
   "tasks": {

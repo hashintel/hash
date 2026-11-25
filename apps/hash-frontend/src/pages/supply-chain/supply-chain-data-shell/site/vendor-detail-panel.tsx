@@ -39,7 +39,7 @@ const headerMain = css({ flex: "1", minW: "0" });
 // Bottom spacing only — the back control itself is now a ds `Button` (linkSubtle).
 const backLink = css({ mb: "2" });
 const title = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "2xl",
   fontWeight: "medium",
   color: "fg.heading",

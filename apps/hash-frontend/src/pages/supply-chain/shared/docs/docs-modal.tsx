@@ -53,7 +53,7 @@ const headerBar = css({
   flexShrink: "0",
 });
 const headerTitle = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "lg",
   fontWeight: "medium",
   color: "fg.heading",
@@ -119,7 +119,7 @@ const content = css({
   py: "5",
 });
 const sectionHeading = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "2xl",
   fontWeight: "medium",
   color: "fg.heading",

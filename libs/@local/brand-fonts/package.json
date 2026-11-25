@@ -1,0 +1,10 @@
+{
+  "name": "@local/brand-fonts",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "HASH's brand typefaces for this repository's own apps and Storybooks. Proprietary: never published, and never bundled into a published package.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "exports": {
+    "./hash-sans.css": "./hash-sans.css"
+  }
+}

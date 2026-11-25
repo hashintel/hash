@@ -1,5 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { hostFontFamily } from "../shared/host-font-family";
+
 // This panel replaces the embed when there is no Petrinaut to render, so it
 // sits outside `.petrinaut-root`, where the design-system tokens are declared
 // (`cssVarRoot` in `scopedThemeConfig`). Token values would not resolve, so
@@ -12,7 +14,6 @@ const panelStyle = css({
   justifyContent: "center",
   padding: "[24px]",
   backgroundColor: "[#f6f7f8]",
-  fontFamily: "[Inter, system-ui, sans-serif]",
   textAlign: "center",
 });
 
@@ -40,7 +41,8 @@ export const EmbedStatusPanel = ({
   body: string;
   title: string;
 }) => (
-  <div className={panelStyle}>
+  // Panda emits no rule for an imported value in `css()`, so this is inline.
+  <div className={panelStyle} style={{ fontFamily: hostFontFamily }}>
     <div>
       <p className={titleStyle}>{title}</p>
       <p className={bodyStyle}>{body}</p>

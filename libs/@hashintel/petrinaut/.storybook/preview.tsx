@@ -1,3 +1,4 @@
+import "@local/brand-fonts/hash-sans.css";
 import "../src/ui/index.css";
 import { useRef } from "react";
 
