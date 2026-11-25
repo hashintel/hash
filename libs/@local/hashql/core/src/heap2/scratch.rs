@@ -1,5 +1,5 @@
 use super::{
-    bump::{Bump, BumpScope, BumpScopeMut},
+    bump::{Bump, BumpScope},
     macros::{delegate_allocator, delegate_phase_allocator, delegate_reset_allocator},
 };
 
@@ -54,7 +54,7 @@ impl Scratch {
     /// [`scoped_ref`]: super::ScopeAllocator::scoped_ref
     #[inline]
     #[must_use]
-    pub fn as_mut_scope(&mut self) -> BumpScopeMut<'_> {
+    pub fn as_mut_scope(&mut self) -> &mut BumpScope<'_> {
         self.0.as_mut_scope()
     }
 }
@@ -120,7 +120,7 @@ mod tests {
     fn scopes_on_owned_scratch() {
         let mut scratch = Scratch::new();
 
-        assert_eq!(sum_scoped(&mut scratch.as_mut_scope(), &[1, 2, 3]), 6);
+        assert_eq!(sum_scoped(scratch.as_mut_scope(), &[1, 2, 3]), 6);
 
         let kept = scratch.alloc(4_u32);
         let sum = scratch

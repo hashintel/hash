@@ -43,9 +43,10 @@ mod symbol;
 mod transfer;
 
 pub use self::{
+    bump::BumpScope,
     clone::CloneIn,
     convert::{FromIn, IntoIn},
-    heap::Heap,
+    heap::{Heap, HeapScope},
     iter::{CollectIn, FromIteratorIn},
     phase::{AllocatorPointer, PhaseAllocator},
     pool::{Pool, PoolGuard},

@@ -3,8 +3,13 @@ macro_rules! delegate_allocator {
         $crate::heap2::macros::delegate_allocator!($wrapper, $field, ::core::alloc::Allocator);
     };
     ($wrapper:ty, $field:tt, $inner:path $(,)?) => {
+        $crate::heap2::macros::delegate_allocator!($wrapper, $field, $inner, []);
+    };
+    ($wrapper:ty, $field:tt, $inner:path, [$($generics:tt)*] $(where $($bounds:tt)+)?) => {
         // SAFETY: Every operation uses the same inner allocator and preserves its contract.
-        unsafe impl ::core::alloc::Allocator for $wrapper {
+        unsafe impl<$($generics)*> ::core::alloc::Allocator for $wrapper
+        $(where $($bounds)+)?
+        {
             #[inline]
             fn allocate(
                 &self,
@@ -69,7 +74,10 @@ macro_rules! delegate_allocator {
             }
         }
 
-        impl ::core::alloc::AllocatorNightly for $wrapper {}
+        impl<$($generics)*> ::core::alloc::AllocatorNightly for $wrapper
+        $(where $($bounds)+)?
+        {
+        }
     };
 }
 
@@ -181,10 +189,19 @@ macro_rules! delegate_reset_allocator {
 
 macro_rules! delegate_scope_allocator {
     ($alloc:lifetime, $wrapper:ty, $field:tt, $inner:ty $(,)?) => {
+        $crate::heap2::macros::delegate_scope_allocator!($alloc, $wrapper, $field, $inner, []);
+    };
+    (
+        $alloc:lifetime, $wrapper:ty, $field:tt, $inner:ty,
+        [$($generics:tt)*] $(where $($bounds:tt)+)?
+    ) => {
         // SAFETY: The selected arena supplies the allocations for the same lifetime, and both scope
-        // methods run the callback inside a scope of that arena.
-        unsafe impl<$alloc> $crate::heap2::ScopeAllocator<$alloc> for $wrapper {
-            type Scoped<'scope> = <$inner as $crate::heap2::ScopeAllocator<$alloc>>::Scoped<'scope>;
+        // methods pass `func` to the method of the same name on that arena.
+        unsafe impl<$alloc, $($generics)*> $crate::heap2::ScopeAllocator<$alloc> for $wrapper
+        $(where $($bounds)+)?
+        {
+            type Scoped<'nested> =
+                <$inner as $crate::heap2::ScopeAllocator<$alloc>>::Scoped<'nested>;
 
             #[inline]
             unsafe fn try_alloc_with_unchecked<T>(
@@ -193,7 +210,10 @@ macro_rules! delegate_scope_allocator {
             ) -> Result<&$alloc mut T, ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner arena.
                 unsafe {
-                    $crate::heap2::ScopeAllocator::try_alloc_with_unchecked(&this.$field, value)
+                    <$inner as $crate::heap2::ScopeAllocator<$alloc>>::try_alloc_with_unchecked(
+                        &this.$field,
+                        value,
+                    )
                 }
             }
 
@@ -204,10 +224,8 @@ macro_rules! delegate_scope_allocator {
             ) -> Result<&$alloc mut [::core::mem::MaybeUninit<T>], ::core::alloc::AllocError> {
                 // SAFETY: The caller upholds the same requirements for the inner arena.
                 unsafe {
-                    $crate::heap2::ScopeAllocator::try_alloc_slice_uninit_unchecked(
-                        &this.$field,
-                        len,
-                    )
+                    <$inner as $crate::heap2::ScopeAllocator<$alloc>>
+                        ::try_alloc_slice_uninit_unchecked(&this.$field, len)
                 }
             }
 
@@ -216,27 +234,34 @@ macro_rules! delegate_scope_allocator {
                 this: &Self,
                 slice: &[T],
             ) -> Result<&$alloc mut [T], ::core::alloc::AllocError> {
-                $crate::heap2::ScopeAllocator::try_alloc_slice_copy(&this.$field, slice)
+                <$inner as $crate::heap2::ScopeAllocator<$alloc>>::try_alloc_slice_copy(
+                    &this.$field,
+                    slice,
+                )
             }
 
             #[inline]
             fn scoped<T>(
                 &mut self,
-                func: impl FnOnce($crate::heap2::Scoped<'_, $alloc, Self>) -> T,
+                func: impl for<'nested> FnOnce(
+                    $crate::heap2::Scoped<'nested, $alloc, Self::Scoped<'nested>>,
+                ) -> T,
             ) -> T {
-                $crate::heap2::ScopeAllocator::scoped(&mut self.$field, |scope| {
-                    func(scope.rebind())
-                })
+                use $crate::heap2::ScopeAllocator as _;
+
+                // The method call reborrows a field that holds a reference to the arena, and
+                // borrows a field that holds the arena itself.
+                self.$field.scoped(func)
             }
 
             #[inline]
             fn scoped_ref<T>(
                 &self,
-                func: impl FnOnce($crate::heap2::Scoped<'_, $alloc, Self>) -> T,
+                func: impl for<'nested> FnOnce(
+                    $crate::heap2::Scoped<'nested, $alloc, Self::Scoped<'nested>>,
+                ) -> T,
             ) -> T {
-                $crate::heap2::ScopeAllocator::scoped_ref(&self.$field, |scope| {
-                    func(scope.rebind())
-                })
+                <$inner as $crate::heap2::ScopeAllocator<$alloc>>::scoped_ref(&self.$field, func)
             }
         }
     };

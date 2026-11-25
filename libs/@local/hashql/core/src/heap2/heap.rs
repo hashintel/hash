@@ -2,7 +2,7 @@ use core::alloc::AllocError;
 
 use super::{
     ResetAllocator, SymbolAllocator,
-    bump::{Bump, BumpScope, BumpScopeMut},
+    bump::{Bump, BumpScope},
     macros::{delegate_allocator, delegate_phase_allocator, delegate_scope_allocator},
 };
 use crate::{
@@ -161,14 +161,15 @@ unsafe impl ResetAllocator for Heap {
 /// [`ScopeAllocator`]: super::ScopeAllocator
 /// [`scoped`]: super::ScopeAllocator::scoped
 pub struct HeapScope<'alloc> {
-    // Both fields borrow one `Heap`, and no method returns a `&mut` reference to `bump`.
-    // `mem::swap` on two `HeapScope`s therefore exchanges each arena together with its table.
-    bump: BumpScopeMut<'alloc>,
+    // Both fields borrow one `Heap`, and no method returns the reference in `bump`: `mem::swap` on
+    // the arenas of two heaps separates each table from its memory. `mem::swap` on two
+    // `HeapScope`s exchanges each arena together with its table.
+    bump: &'alloc mut BumpScope<'alloc>,
     symbols: &'alloc LocalLock<SymbolTable>,
 }
 
 delegate_allocator!(HeapScope<'_>, bump);
-delegate_scope_allocator!('alloc, HeapScope<'alloc>, bump, BumpScopeMut<'alloc>);
+delegate_scope_allocator!('alloc, HeapScope<'alloc>, bump, BumpScope<'alloc>);
 
 // SAFETY: The string of a predefined symbol is static. The string of every other symbol is in
 // memory that `try_intern` allocated from `self.bump`, the arena of the `Heap` that owns
@@ -192,7 +193,7 @@ unsafe impl<'alloc> SymbolAllocator<'alloc> for &HeapScope<'alloc> {
 
         // SAFETY: The table holds no dangling symbol, as the comment in the implementation for
         // `&Heap` shows. `self.bump` is the arena of the `Heap` that owns the table.
-        let repr = unsafe { symbols.try_intern(&self.bump, name) }?;
+        let repr = unsafe { symbols.try_intern(&*self.bump, name) }?;
 
         // SAFETY: `try_intern` returned `repr` from the one table of the `Heap`, and the comment
         // on this implementation shows that its string is valid for `'alloc`.

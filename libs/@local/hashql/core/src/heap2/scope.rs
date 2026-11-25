@@ -1,74 +1,60 @@
 use core::{
     alloc::{AllocError, Allocator},
-    marker::Destruct,
+    marker::{Destruct, PhantomData},
     mem,
-    ops::{Deref, DerefMut},
 };
 
-use super::PhaseAllocator;
+use super::{
+    PhaseAllocator,
+    macros::{delegate_allocator, delegate_scope_allocator},
+};
 
-/// A scope opened on the arena `A`.
+/// The arena of a scope, borrowed with exclusive access.
 ///
-/// A `Scoped` is a `&'scope mut` reference to the arena of the scope, [`A::Scoped<'scope>`],
-/// together with the bound `'alloc: 'scope`. [`ScopeAllocator::scoped`] and
-/// [`ScopeAllocator::scoped_ref`] pass one to their closure. Allocations made through it live for
-/// `'scope`, and `'alloc` is the lifetime of `A`'s own allocations. Call the allocation methods on
-/// it directly. Pass `&*scope` to code that takes a [`PhaseAllocator`], and `&mut *scope` to code
+/// [`ScopeAllocator::scoped`] and [`ScopeAllocator::scoped_ref`] pass a `Scoped` to their closure.
+/// It is a [`ScopeAllocator`] whose allocations live for `'scope`. Call the allocation methods on
+/// it directly. Pass `&scope` to code that takes a [`PhaseAllocator`], and `&mut scope` to code
 /// that opens scopes of its own.
 ///
-/// [`A::Scoped<'scope>`]: ScopeAllocator::Scoped
+/// `S` is the [`ScopeAllocator::Scoped`] type of the arena that opened the scope, and `'alloc` is
+/// the lifetime of that arena's allocations.
 // A closure that is higher-ranked over `'scope` may assume only the bounds on `'scope` that the
 // types in its signature imply. `Scoped` requires `'alloc: 'scope`, as `std::thread::Scope`
 // requires `'env: 'scope`. With that bound an allocation in the scope can hold data that lives for
 // `'alloc`.
-pub struct Scoped<'scope, 'alloc, A>
+pub struct Scoped<'scope, 'alloc, S>
 where
     'alloc: 'scope,
-    A: ScopeAllocator<'alloc> + ?Sized,
 {
-    scope: &'scope mut A::Scoped<'scope>,
+    // No method returns this reference, and an implementor of `ScopeAllocator` may rely on that.
+    // Safe code cannot exchange the arena of an open scope for another one with `mem::swap`.
+    scope: &'scope mut S,
+    _marker: PhantomData<&'alloc ()>,
 }
 
-impl<'scope, 'alloc, A> Scoped<'scope, 'alloc, A>
-where
-    A: ScopeAllocator<'alloc> + ?Sized,
-{
+impl<'scope, S> Scoped<'scope, '_, S> {
     #[inline]
-    pub(super) const fn new(scope: &'scope mut A::Scoped<'scope>) -> Self {
-        Self { scope }
-    }
-
-    // Transfer the original borrow without shortening it through `DerefMut`.
-    #[inline]
-    pub(super) const fn rebind<B>(self) -> Scoped<'scope, 'alloc, B>
-    where
-        B: ScopeAllocator<'alloc, Scoped<'scope> = A::Scoped<'scope>> + ?Sized,
-    {
-        Scoped::new(self.scope)
+    pub(super) const fn new(scope: &'scope mut S) -> Self {
+        Self {
+            scope,
+            _marker: PhantomData,
+        }
     }
 }
 
-const impl<'scope, 'alloc, A> Deref for Scoped<'scope, 'alloc, A>
-where
-    A: ScopeAllocator<'alloc> + ?Sized,
-{
-    type Target = A::Scoped<'scope>;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        self.scope
-    }
-}
-
-const impl<'alloc, A> DerefMut for Scoped<'_, 'alloc, A>
-where
-    A: ScopeAllocator<'alloc> + ?Sized,
-{
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.scope
-    }
-}
+delegate_allocator!(
+    Scoped<'scope, 'alloc, S>,
+    scope,
+    Allocator,
+    ['scope, 'alloc, S] where S: Allocator
+);
+delegate_scope_allocator!(
+    'scope,
+    Scoped<'scope, 'alloc, S>,
+    scope,
+    S,
+    ['alloc, S] where S: ScopeAllocator<'scope>
+);
 
 /// An arena whose allocations live for `'alloc` and that can open scopes.
 ///
@@ -164,7 +150,10 @@ pub const unsafe trait ScopeAllocator<'alloc>: Allocator {
         T: Copy;
 
     /// Runs `func` with a new scope and releases the scope's memory when `func` returns.
-    fn scoped<T>(&mut self, func: impl FnOnce(Scoped<'_, 'alloc, Self>) -> T) -> T;
+    fn scoped<T>(
+        &mut self,
+        func: impl for<'scope> FnOnce(Scoped<'scope, 'alloc, Self::Scoped<'scope>>) -> T,
+    ) -> T;
 
     /// Runs `func` with a new scope, as [`scoped`] does, through a shared reference.
     ///
@@ -182,7 +171,10 @@ pub const unsafe trait ScopeAllocator<'alloc>: Allocator {
     ///
     /// [`scoped`]: Self::scoped
     /// [`handle_alloc_error`]: alloc::alloc::handle_alloc_error
-    fn scoped_ref<T>(&self, func: impl FnOnce(Scoped<'_, 'alloc, Self>) -> T) -> T;
+    fn scoped_ref<T>(
+        &self,
+        func: impl for<'scope> FnOnce(Scoped<'scope, 'alloc, Self::Scoped<'scope>>) -> T,
+    ) -> T;
 }
 
 // SAFETY: Every method calls the function of the same name on `A`. `ScopeAllocator` requires of
