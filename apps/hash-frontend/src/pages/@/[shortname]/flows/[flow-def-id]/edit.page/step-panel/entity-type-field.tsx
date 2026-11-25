@@ -56,7 +56,6 @@ export const EntityTypeField = (props: ComponentProps<typeof InputField>) => {
     actionDefinition,
     source,
     problems,
-    readOnly,
   } = props;
 
   const { latestEntityTypes, typeItems } = useEntityTypeItems();
@@ -99,7 +98,6 @@ export const EntityTypeField = (props: ComponentProps<typeof InputField>) => {
         note="These types can't be shown here, so they can't be changed here. The step uses them as they are."
         resetLabel="Choose new types"
         errors={errors}
-        readOnly={readOnly}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
@@ -158,7 +156,6 @@ export const EntityTypeField = (props: ComponentProps<typeof InputField>) => {
         items={typeItems}
         value={entityTypeIds.map(extractBaseUrl)}
         placeholder={settings?.placeholder ?? "Choose…"}
-        disabled={readOnly}
         aria-label={label}
         onChange={save}
       />
