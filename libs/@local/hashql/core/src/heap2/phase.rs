@@ -5,32 +5,86 @@ use core::{
     mem,
 };
 
+/// An arena allocator whose allocations live for `'alloc`.
+///
+/// This is phase-oriented allocation: a program allocates a group of values during one phase and
+/// releases them together when the phase ends. The arena releases its memory without running
+/// destructors. The safe methods of this trait compile only for a `T` for which [`mem::needs_drop`]
+/// returns `false`. To keep a value with a destructor in the arena, put it in a collection that
+/// allocates from this allocator, such as a [`Box`] or a [`Vec`]. The collection drops the value
+/// itself.
+///
+/// The references these methods return live for `'alloc`, which is a parameter of the trait. They
+/// do not borrow the allocator. An earlier allocation stays usable while you allocate more, open a
+/// [scope] or hand the allocator to another function.
+///
+/// # Safety
+///
+/// Implementors must ensure that the memory behind every reference a method of this trait returns:
+///
+/// - stays allocated at the same address for all of `'alloc`
+/// - is not handed out again during `'alloc` by any allocator of the same arena
+///
+/// Both conditions must hold whatever safe code does with the allocator in the meantime, which
+/// includes dropping it.
+///
+/// A returned slice must have exactly the requested length.
+///
+/// [scope]: super::ScopeAllocator
 pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
+    /// Allocates the result of calling `value`, without checking that `T` needs no destructor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
+    ///
+    /// # Safety
+    ///
+    /// [`mem::needs_drop`] must return `false` for `T`. The arena releases the value without
+    /// running its destructor.
     unsafe fn try_alloc_with_unchecked<T>(
         &self,
         value: impl [const] FnOnce() -> T + [const] Destruct,
-    ) -> Result<&'alloc T, AllocError>;
+    ) -> Result<&'alloc mut T, AllocError>;
 
+    /// Allocates the result of calling `value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
     #[inline]
     fn try_alloc_with<T>(
         &self,
         value: impl [const] FnOnce() -> T + [const] Destruct,
-    ) -> Result<&'alloc T, AllocError> {
+    ) -> Result<&'alloc mut T, AllocError> {
         const { assert!(!mem::needs_drop::<T>()) };
+        // SAFETY: The assertion above compiles only if `mem::needs_drop::<T>()` is `false`.
         unsafe { self.try_alloc_with_unchecked(value) }
     }
 
+    /// Moves `value` into the arena.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
     #[inline]
-    fn try_alloc<T>(&self, value: T) -> Result<&'alloc T, AllocError>
+    fn try_alloc<T>(&self, value: T) -> Result<&'alloc mut T, AllocError>
     where
         T: [const] Destruct,
     {
         const { assert!(!mem::needs_drop::<T>()) };
+        // SAFETY: The assertion above compiles only if `mem::needs_drop::<T>()` is `false`.
         unsafe { self.try_alloc_with_unchecked(const || value) }
     }
 
+    /// Allocates the result of calling `value`.
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
+    /// [`try_alloc_with`] to handle that failure yourself.
+    ///
+    /// [`try_alloc_with`]: Self::try_alloc_with
     #[inline]
-    fn alloc_with<T>(&self, value: impl [const] FnOnce() -> T + [const] Destruct) -> &'alloc T {
+    fn alloc_with<T>(&self, value: impl [const] FnOnce() -> T + [const] Destruct) -> &'alloc mut T {
         match self.try_alloc_with(value) {
             Ok(value) => value,
             Err(_) => {
@@ -40,8 +94,14 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
         }
     }
 
+    /// Moves `value` into the arena.
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use [`try_alloc`]
+    /// to handle that failure yourself.
+    ///
+    /// [`try_alloc`]: Self::try_alloc
     #[inline]
-    fn alloc<T>(&self, value: T) -> &'alloc T
+    fn alloc<T>(&self, value: T) -> &'alloc mut T
     where
         T: [const] Destruct,
     {
@@ -54,20 +114,56 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
         }
     }
 
+    /// Allocates `len` uninitialized values, without checking that `T` needs no destructor.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
+    ///
+    /// # Safety
+    ///
+    /// [`mem::needs_drop`] must return `false` for `T`. The arena releases the values without
+    /// running their destructors.
     unsafe fn try_alloc_slice_uninit_unchecked<T>(
         &self,
         len: usize,
     ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError>;
 
+    /// Allocates a slice of `len` uninitialized values.
+    ///
+    /// Use this to build a slice one element at a time, for example from an iterator. To copy a
+    /// slice that already exists, use [`try_alloc_slice`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
+    ///
+    /// [`try_alloc_slice`]: Self::try_alloc_slice
     #[inline]
     fn try_alloc_slice_uninit<T>(
         &self,
         len: usize,
     ) -> Result<&'alloc mut [mem::MaybeUninit<T>], AllocError> {
         const { assert!(!mem::needs_drop::<T>()) };
+        // SAFETY: The assertion above compiles only if `mem::needs_drop::<T>()` is `false`.
         unsafe { self.try_alloc_slice_uninit_unchecked(len) }
     }
 
+    /// Allocates a slice of `len` uninitialized values.
+    ///
+    /// Use this to build a slice one element at a time, for example from an iterator. To copy a
+    /// slice that already exists, use [`alloc_slice`].
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
+    /// [`try_alloc_slice_uninit`] to handle that failure yourself.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a slice of `len` values of `T` would take more than [`isize::MAX`] bytes.
+    /// [`try_alloc_slice_uninit`] returns an error in that case.
+    ///
+    /// [`alloc_slice`]: Self::alloc_slice
+    /// [`try_alloc_slice_uninit`]: Self::try_alloc_slice_uninit
     #[inline]
     fn alloc_slice_uninit<T>(&self, len: usize) -> &'alloc mut [mem::MaybeUninit<T>] {
         match self.try_alloc_slice_uninit(len) {
@@ -82,10 +178,21 @@ pub const unsafe trait PhaseAllocator<'alloc>: Allocator {
         }
     }
 
+    /// Copies `slice` into the arena.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
     fn try_alloc_slice<T>(&self, slice: &[T]) -> Result<&'alloc mut [T], AllocError>
     where
         T: Copy;
 
+    /// Copies `slice` into the arena.
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
+    /// [`try_alloc_slice`] to handle that failure yourself.
+    ///
+    /// [`try_alloc_slice`]: Self::try_alloc_slice
     #[inline]
     fn alloc_slice<T>(&self, slice: &[T]) -> &'alloc mut [T]
     where
