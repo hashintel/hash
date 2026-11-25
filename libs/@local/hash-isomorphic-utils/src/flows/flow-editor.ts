@@ -8,6 +8,7 @@ import type {
   ActionStepDefinition,
   FlowDefinition,
   FlowInputDefinition,
+  ForEachStepDefinition,
   StepDefinition,
   StepInputSource,
 } from "./types.js";
@@ -33,12 +34,13 @@ const isEntryFor =
 
 /**
  * Where a new step goes: after a step or one of its paths, into a connection (`from` → new step → `to`), or on its
- * own.
+ * own, inside the for-each step `inside` if given. After a step or into a connection, it goes in that step's for-each
+ * step, if any.
  */
 export type NewStepPlacement =
   | { after: string; outputName?: string; position?: StepPosition }
   | { into: FlowConnection; position?: StepPosition }
-  | { position: StepPosition };
+  | { position: StepPosition; inside?: string };
 
 export type FlowEditorState = {
   flowDefinition: FlowDefinition<string>;
@@ -157,38 +159,101 @@ const setRunAfter = (step: StepDefinition<string>, runAfter: RunAfter) => {
   return updated;
 };
 
+/** Applies `update` to every step at any depth, keeping the arrays and steps it leaves as they were. */
+const mapSteps = (
+  steps: StepDefinition<string>[],
+  update: (step: StepDefinition<string>) => StepDefinition<string>,
+): StepDefinition<string>[] => {
+  const mapped = steps.map((step) => {
+    let updated = update(step);
+
+    if (updated.kind === "for-each") {
+      const inner = mapSteps(updated.steps, update);
+
+      if (inner !== updated.steps) {
+        updated = { ...updated, steps: inner };
+      }
+    }
+
+    return updated;
+  });
+
+  return mapped.every((step, index) => step === steps[index]) ? steps : mapped;
+};
+
 /** Removes the connections from the given steps, at any depth. */
 const removeConnectionsFrom = (
   steps: StepDefinition<string>[],
   stepIds: Set<string>,
 ): StepDefinition<string>[] =>
-  steps.map((step) => {
+  mapSteps(steps, (step) => {
     const runAfter = step.runAfter?.filter(
       ({ stepId }) => !stepIds.has(stepId),
     );
 
-    const updated =
-      runAfter && runAfter.length !== step.runAfter?.length
-        ? setRunAfter(step, runAfter)
-        : step;
-
-    return updated.kind === "for-each"
-      ? { ...updated, steps: removeConnectionsFrom(updated.steps, stepIds) }
-      : updated;
+    return runAfter && runAfter.length !== step.runAfter?.length
+      ? setRunAfter(step, runAfter)
+      : step;
   });
 
 const replaceStep = (
   steps: StepDefinition<string>[],
   updated: StepDefinition<string>,
-) => steps.map((step) => (step.stepId === updated.stepId ? updated : step));
+) =>
+  mapSteps(steps, (step) => (step.stepId === updated.stepId ? updated : step));
+
+/** A step, and the for-each step it's directly inside, if any. */
+type StepEntry = {
+  step: StepDefinition<string>;
+  parent: ForEachStepDefinition<string> | null;
+};
+
+const findStepEntry = (
+  steps: StepDefinition<string>[],
+  stepId: string,
+  parent: ForEachStepDefinition<string> | null = null,
+): StepEntry | undefined => {
+  for (const step of steps) {
+    if (step.stepId === stepId) {
+      return { step, parent };
+    }
+
+    if (step.kind === "for-each") {
+      const found = findStepEntry(step.steps, stepId, step);
+
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return undefined;
+};
+
+/** The name a for-each step's collected output takes, from the output it collects: `body` gives `collectedBody`. */
+const getCollectedOutputName = (outputName: string) =>
+  `collected${outputName.charAt(0).toUpperCase()}${outputName.slice(1)}`;
+
+/** `source` reading the for-each step's output by `as`, if it reads that step's output by another name. */
+const repointToCollected = (
+  source: StepInputSource,
+  forEachStepId: string,
+  as: string,
+): StepInputSource =>
+  source.kind === "step-output" &&
+  source.stepId === forEachStepId &&
+  source.outputName !== as
+    ? { ...source, outputName: as }
+    : source;
 
 /**
  * Holds a flow definition being edited and applies edits to it, checking it after each one, so that a canvas and
- * panels only draw it and send edits. Each edit replaces the state rather than changing it. Edits apply to the flow's top-level steps, and leave the steps inside for-each
- * steps as they were, except for connections to a step that's removed or disconnected.
+ * panels only draw it and send edits. Each edit replaces the state rather than changing it. Edits apply to steps at
+ * any depth, except flow outputs, which only top-level steps give.
  *
- * Edits never fail because a step is half-built: its problems are listed instead. They throw only when what they
- * name isn't there: a top-level step, the connection to insert a step into, an action step's inputs, or a flow input.
+ * Edits never fail because a step is half-built, such as a for-each step with no list: its problems are listed
+ * instead. They throw only when what they name isn't there: a step, the connection to insert a step into, an action
+ * step's inputs, a for-each step's list, or a flow input.
  */
 export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
   let state = checkFlowDefinition(flowDefinition);
@@ -210,13 +275,23 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     change: FlowEditorChange = { edited: true },
   ) => setFlowDefinition({ ...state.flowDefinition, steps }, change);
 
-  const getStep = (stepId: string) => {
-    const step = state.flowDefinition.steps.find(
-      (candidate) => candidate.stepId === stepId,
-    );
+  const getStepEntry = (stepId: string) => {
+    const entry = findStepEntry(state.flowDefinition.steps, stepId);
 
-    if (!step) {
-      throw new Error(`The flow has no top-level step "${stepId}"`);
+    if (!entry) {
+      throw new Error(`The flow has no step "${stepId}"`);
+    }
+
+    return entry;
+  };
+
+  const getStep = (stepId: string) => getStepEntry(stepId).step;
+
+  const getForEachStep = (stepId: string) => {
+    const step = getStep(stepId);
+
+    if (step.kind !== "for-each") {
+      throw new Error(`Step "${stepId}" isn't a for-each step`);
     }
 
     return step;
@@ -232,6 +307,66 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     }
 
     return input;
+  };
+
+  /** Adds the step `createStep` makes where `placement` says, returning its id. */
+  const insertStep = (
+    idBase: string,
+    createStep: (stepId: string) => StepDefinition<string>,
+    placement: NewStepPlacement,
+  ) => {
+    const stepId = newStepId(state.flowDefinition, idBase);
+    let steps = state.flowDefinition.steps;
+    let runAfter: RunAfter = [];
+    let parent: ForEachStepDefinition<string> | null = null;
+
+    if ("after" in placement) {
+      ({ parent } = getStepEntry(placement.after));
+      runAfter = [runAfterEntry(placement.after, placement.outputName)];
+    } else if ("into" in placement) {
+      const { from, to, outputName } = placement.into;
+      const toEntry = getStepEntry(to);
+      const toRunAfter = toEntry.step.runAfter ?? [];
+      const index = toRunAfter.findIndex(isEntryFor(from, outputName));
+
+      if (index === -1) {
+        throw new Error(`Step "${to}" doesn't run after step "${from}"`);
+      }
+
+      /* The new step takes over the path; `to` follows the new step. */
+      ({ parent } = toEntry);
+      runAfter = [runAfterEntry(from, outputName)];
+      steps = replaceStep(
+        steps,
+        setRunAfter(toEntry.step, toRunAfter.with(index, { stepId })),
+      );
+    } else if (placement.inside !== undefined) {
+      parent = getForEachStep(placement.inside);
+    }
+
+    const step = setRunAfter(
+      {
+        ...createStep(stepId),
+        ...(placement.position && { position: placement.position }),
+      },
+      runAfter,
+    );
+
+    if (parent) {
+      const parentId = parent.stepId;
+
+      steps = mapSteps(steps, (candidate) =>
+        candidate.stepId === parentId && candidate.kind === "for-each"
+          ? { ...candidate, steps: [...candidate.steps, step] }
+          : candidate,
+      );
+    } else {
+      steps = [...steps, step];
+    }
+
+    setSteps(steps);
+
+    return stepId;
   };
 
   return {
@@ -256,45 +391,31 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /** Adds a step that runs an action, with no inputs yet, returning its id. */
-    addStep: (actionDefinitionId: string, placement: NewStepPlacement) => {
-      const stepId = newStepId(state.flowDefinition, actionDefinitionId);
-      let steps = state.flowDefinition.steps;
-      let runAfter: RunAfter = [];
-
-      if ("after" in placement) {
-        getStep(placement.after);
-        runAfter = [runAfterEntry(placement.after, placement.outputName)];
-      } else if ("into" in placement) {
-        const { from, to, outputName } = placement.into;
-        const toStep = getStep(to);
-        const toRunAfter = toStep.runAfter ?? [];
-        const index = toRunAfter.findIndex(isEntryFor(from, outputName));
-
-        if (index === -1) {
-          throw new Error(`Step "${to}" doesn't run after step "${from}"`);
-        }
-
-        /* The new step takes over the path; `to` follows the new step. */
-        runAfter = [runAfterEntry(from, outputName)];
-        steps = replaceStep(
-          steps,
-          setRunAfter(toStep, toRunAfter.with(index, { stepId })),
-        );
-      }
-
-      const step: ActionStepDefinition<string> = {
-        kind: "action",
-        stepId,
+    addStep: (actionDefinitionId: string, placement: NewStepPlacement) =>
+      insertStep(
         actionDefinitionId,
-        description: "",
-        inputs: {},
-        ...(placement.position && { position: placement.position }),
-      };
+        (stepId): ActionStepDefinition<string> => ({
+          kind: "action",
+          stepId,
+          actionDefinitionId,
+          description: "",
+          inputs: {},
+        }),
+        placement,
+      ),
 
-      setSteps([...steps, setRunAfter(step, runAfter)]);
-
-      return stepId;
-    },
+    /** Adds a for-each step with no list, no steps inside and nothing collected yet, returning its id. */
+    addForEach: (placement: NewStepPlacement) =>
+      insertStep(
+        "forEach",
+        (stepId): ForEachStepDefinition<string> => ({
+          kind: "for-each",
+          stepId,
+          description: "",
+          steps: [],
+        }),
+        placement,
+      ),
 
     setStepDescription: (stepId: string, description: string) => {
       setSteps(
@@ -350,8 +471,8 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /**
-     * Gives top-level steps the positions they're drawn at, e.g. steps with none when the flow is opened. This isn't an
-     * edit: the positions are saved with the next edit.
+     * Gives steps the positions they're drawn at, e.g. steps with none when the flow is opened. This isn't an edit:
+     * the positions are saved with the next edit.
      */
     placeSteps: (positions: Map<string, StepPosition>) => {
       if (positions.size === 0) {
@@ -363,7 +484,7 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       }
 
       setSteps(
-        state.flowDefinition.steps.map((step) => {
+        mapSteps(state.flowDefinition.steps, (step) => {
           const position = positions.get(step.stepId);
 
           return position ? { ...step, position } : step;
@@ -373,20 +494,111 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /**
-     * Removes a step, with every connection to and from it and every flow output it or a step inside it gives. Inputs
-     * that take a value from it keep their source, which is then a problem.
+     * Removes a step, with the steps inside it, every connection to and from them, and every flow output they give. A
+     * for-each step that collected the output of a removed step collects nothing. Inputs that take a value from a
+     * removed step keep their source, which is then a problem.
      */
     removeStep: (stepId: string) => {
-      const removedStepIds = new Set(getStepIds(getStep(stepId)));
+      const { step: removed, parent } = getStepEntry(stepId);
+      const removedStepIds = new Set(getStepIds(removed));
+      const withoutStep = (steps: StepDefinition<string>[]) =>
+        steps.filter((step) => step.stepId !== stepId);
+
+      const steps = parent
+        ? mapSteps(state.flowDefinition.steps, (step) =>
+            step.stepId === parent.stepId && step.kind === "for-each"
+              ? { ...step, steps: withoutStep(step.steps) }
+              : step,
+          )
+        : withoutStep(state.flowDefinition.steps);
 
       setFlowDefinition({
         ...state.flowDefinition,
-        steps: removeConnectionsFrom(
-          state.flowDefinition.steps.filter((step) => step.stepId !== stepId),
-          removedStepIds,
+        steps: mapSteps(
+          removeConnectionsFrom(steps, removedStepIds),
+          (step) => {
+            if (
+              step.kind !== "for-each" ||
+              !step.collect ||
+              !removedStepIds.has(step.collect.stepId)
+            ) {
+              return step;
+            }
+
+            const { collect: _collect, ...collectingNothing } = step;
+
+            return collectingNothing;
+          },
         ),
         outputs: state.flowDefinition.outputs.filter(
           (output) => !removedStepIds.has(output.stepId),
+        ),
+      });
+    },
+
+    /** Sets the list a for-each step runs its steps once per item of, or clears it if `source` is `null`. */
+    setForEachList: (stepId: string, source: StepInputSource | null) => {
+      const { over: _over, ...step } = getForEachStep(stepId);
+
+      setSteps(
+        replaceStep(
+          state.flowDefinition.steps,
+          source ? { ...step, over: source } : step,
+        ),
+      );
+    },
+
+    /**
+     * Sets the output a for-each step collects from every item, named after it (`body` gives `collectedBody`), and
+     * points everything that read the step's output to it. Clearing it, with `null`, leaves those as problems.
+     */
+    setForEachCollect: (
+      stepId: string,
+      collected: { stepId: string; outputName: string } | null,
+    ) => {
+      const { collect: _collect, ...step } = getForEachStep(stepId);
+
+      if (!collected) {
+        setSteps(replaceStep(state.flowDefinition.steps, step));
+        return;
+      }
+
+      const as = getCollectedOutputName(collected.outputName);
+      const repoint = (source: StepInputSource) =>
+        repointToCollected(source, stepId, as);
+
+      setFlowDefinition({
+        ...state.flowDefinition,
+        steps: mapSteps(
+          replaceStep(state.flowDefinition.steps, {
+            ...step,
+            collect: { ...collected, as },
+          }),
+          (candidate) => {
+            if (candidate.kind === "for-each") {
+              const over = candidate.over && repoint(candidate.over);
+
+              return over === candidate.over
+                ? candidate
+                : { ...candidate, over };
+            }
+
+            const inputs = Object.entries(candidate.inputs);
+            const repointed = inputs.map(
+              ([name, source]) => [name, repoint(source)] as const,
+            );
+
+            return repointed.every(
+              ([, source], index) => source === inputs[index]?.[1],
+            )
+              ? candidate
+              : { ...candidate, inputs: Object.fromEntries(repointed) };
+          },
+        ),
+        outputs: state.flowDefinition.outputs.map((output) =>
+          output.stepId === stepId && output.outputName !== as
+            ? { ...output, outputName: as }
+            : output,
         ),
       });
     },
@@ -397,7 +609,12 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
      * nothing if the output is already a flow output.
      */
     markFlowOutput: (stepId: string, outputName: string) => {
-      getStep(stepId);
+      if (getStepEntry(stepId).parent) {
+        throw new Error(
+          `Step "${stepId}" is inside a for-each step, so its outputs can't be flow outputs`,
+        );
+      }
+
       const { outputs } = state.flowDefinition;
 
       if (
@@ -446,7 +663,9 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       const step = getStep(stepId);
 
       if (step.kind !== "action") {
-        throw new Error(`Step "${stepId}" is a for-each step, with no inputs`);
+        throw new Error(
+          `Step "${stepId}" is a for-each step: set its list instead`,
+        );
       }
 
       setSteps(
@@ -503,8 +722,8 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /**
-     * Makes `to` the only top-level step on `stepId`'s `outputName` path, or ends the path if `to` is `null`. A `to`
-     * on another of the step's paths moves to this one.
+     * Makes `to` the only step on `stepId`'s `outputName` path, or ends the path if `to` is `null`. A `to` on another
+     * of the step's paths moves to this one.
      */
     setPathTarget: (stepId: string, outputName: string, to: string | null) => {
       getStep(stepId);
@@ -516,7 +735,7 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       const isOnPath = isEntryFor(stepId, outputName);
 
       setSteps(
-        state.flowDefinition.steps.map((step) => {
+        mapSteps(state.flowDefinition.steps, (step) => {
           if (step.stepId === to) {
             return setRunAfter(step, [
               ...(step.runAfter ?? []).filter(
