@@ -26,17 +26,17 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/airport/" as BaseUrl,
   },
   batch: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/batch/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/batch/v/2",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/batch/" as BaseUrl,
   },
   billOfMaterials: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/bill-of-materials/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/bill-of-materials/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/bill-of-materials/" as BaseUrl,
   },
   billOfMaterialsItem: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/1",
+      "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/bill-of-materials-item/" as BaseUrl,
   },
@@ -100,12 +100,12 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/dashboard-item/" as BaseUrl,
   },
   delivery: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/delivery/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/delivery/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/delivery/" as BaseUrl,
   },
   deliveryItem: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/delivery-item/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/delivery-item/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/delivery-item/" as BaseUrl,
   },
@@ -231,23 +231,23 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/machine/" as BaseUrl,
   },
   material: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/material/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/material/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/material/" as BaseUrl,
   },
   materialDocument: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/material-document/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/material-document/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/material-document/" as BaseUrl,
   },
   materialReservation: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/material-reservation/v/1",
+      "https://hash.ai/@h/types/entity-type/material-reservation/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/material-reservation/" as BaseUrl,
   },
   materialValuation: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/material-valuation/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/material-valuation/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/material-valuation/" as BaseUrl,
   },
@@ -307,13 +307,13 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/presentation-file/" as BaseUrl,
   },
   productionOrder: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/production-order/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/production-order/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/production-order/" as BaseUrl,
   },
   productionOrderItem: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/production-order-item/v/1",
+      "https://hash.ai/@h/types/entity-type/production-order-item/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/production-order-item/" as BaseUrl,
   },
@@ -328,29 +328,29 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/prospective-user/" as BaseUrl,
   },
   purchaseOrder: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/purchase-order/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/purchase-order/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/purchase-order/" as BaseUrl,
   },
   purchaseOrderItem: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/purchase-order-item/v/1",
+      "https://hash.ai/@h/types/entity-type/purchase-order-item/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/purchase-order-item/" as BaseUrl,
   },
   purchaseOrderScheduleLine: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/purchase-order-schedule-line/v/1",
+      "https://hash.ai/@h/types/entity-type/purchase-order-schedule-line/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/purchase-order-schedule-line/" as BaseUrl,
   },
   salesOrder: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/sales-order/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/sales-order/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/sales-order/" as BaseUrl,
   },
   salesOrderItem: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/sales-order-item/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/sales-order-item/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/sales-order-item/" as BaseUrl,
   },
@@ -365,12 +365,12 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/service-feature/" as BaseUrl,
   },
   shipment: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/shipment/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/shipment/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/shipment/" as BaseUrl,
   },
   shipmentItem: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/shipment-item/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/shipment-item/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/shipment-item/" as BaseUrl,
   },
@@ -379,7 +379,7 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/site/" as BaseUrl,
   },
   siteMaterialData: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/site-material-data/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/site-material-data/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/site-material-data/" as BaseUrl,
   },
@@ -688,7 +688,7 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/sponsored-by/" as BaseUrl,
   },
   storedAt: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/stored-at/v/1",
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/stored-at/v/2",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/stored-at/" as BaseUrl,
   },
@@ -884,7 +884,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/baggage-claim/" as BaseUrl,
   },
   baseQuantity: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/base-quantity/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/base-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/base-quantity/" as BaseUrl,
   },
@@ -894,7 +894,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/batch-number/" as BaseUrl,
   },
   blockedStock: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/blocked-stock/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/blocked-stock/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/blocked-stock/" as BaseUrl,
   },
@@ -957,7 +957,7 @@ export const systemPropertyTypes = {
   },
   componentQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/component-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/component-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/component-quantity/" as BaseUrl,
   },
@@ -1047,7 +1047,7 @@ export const systemPropertyTypes = {
   },
   deliveredQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/delivered-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/delivered-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/delivered-quantity/" as BaseUrl,
   },
@@ -1253,7 +1253,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/fiscal-year/" as BaseUrl,
   },
   fixedLotSize: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/fixed-lot-size/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/fixed-lot-size/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/fixed-lot-size/" as BaseUrl,
   },
@@ -1329,7 +1329,7 @@ export const systemPropertyTypes = {
   },
   goodsReceiptQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/goods-receipt-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/goods-receipt-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/goods-receipt-quantity/" as BaseUrl,
   },
@@ -1350,7 +1350,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/grid-position/" as BaseUrl,
   },
   grossWeight: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/gross-weight/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/gross-weight/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/gross-weight/" as BaseUrl,
   },
@@ -1578,7 +1578,7 @@ export const systemPropertyTypes = {
   },
   maximumLotSize: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/maximum-lot-size/v/1",
+      "https://hash.ai/@h/types/property-type/maximum-lot-size/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/maximum-lot-size/" as BaseUrl,
   },
@@ -1607,7 +1607,7 @@ export const systemPropertyTypes = {
   },
   minimumLotSize: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/minimum-lot-size/v/1",
+      "https://hash.ai/@h/types/property-type/minimum-lot-size/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/minimum-lot-size/" as BaseUrl,
   },
@@ -1619,7 +1619,7 @@ export const systemPropertyTypes = {
   },
   movementQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/movement-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/movement-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/movement-quantity/" as BaseUrl,
   },
@@ -1655,7 +1655,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/net-value/" as BaseUrl,
   },
   netWeight: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/net-weight/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/net-weight/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/net-weight/" as BaseUrl,
   },
@@ -1693,7 +1693,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/order-date/" as BaseUrl,
   },
   orderQuantity: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/order-quantity/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/order-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/order-quantity/" as BaseUrl,
   },
@@ -1865,7 +1865,7 @@ export const systemPropertyTypes = {
   },
   productionQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/production-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/production-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/production-quantity/" as BaseUrl,
   },
@@ -1917,7 +1917,7 @@ export const systemPropertyTypes = {
   },
   qualityInspectionStock: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/quality-inspection-stock/v/1",
+      "https://hash.ai/@h/types/property-type/quality-inspection-stock/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/quality-inspection-stock/" as BaseUrl,
   },
@@ -1960,7 +1960,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/release-date/" as BaseUrl,
   },
   reorderPoint: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/reorder-point/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/reorder-point/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/reorder-point/" as BaseUrl,
   },
@@ -1972,7 +1972,7 @@ export const systemPropertyTypes = {
   },
   requirementQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/requirement-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/requirement-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/requirement-quantity/" as BaseUrl,
   },
@@ -1983,7 +1983,7 @@ export const systemPropertyTypes = {
   },
   "restricted-useStock": {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/restricted-use-stock/v/1",
+      "https://hash.ai/@h/types/property-type/restricted-use-stock/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/restricted-use-stock/" as BaseUrl,
   },
@@ -1999,7 +1999,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/rotation-in-rads/" as BaseUrl,
   },
   roundingValue: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/rounding-value/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/rounding-value/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/rounding-value/" as BaseUrl,
   },
@@ -2014,7 +2014,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/runway/" as BaseUrl,
   },
   safetyStock: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/safety-stock/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/safety-stock/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/safety-stock/" as BaseUrl,
   },
@@ -2091,7 +2091,7 @@ export const systemPropertyTypes = {
   },
   scheduledQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/scheduled-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/scheduled-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/scheduled-quantity/" as BaseUrl,
   },
@@ -2222,7 +2222,7 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/stock-direction/" as BaseUrl,
   },
   stockQuantity: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/stock-quantity/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/stock-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/stock-quantity/" as BaseUrl,
   },
@@ -2362,7 +2362,7 @@ export const systemPropertyTypes = {
   },
   valuatedStockQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/valuated-stock-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/valuated-stock-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/valuated-stock-quantity/" as BaseUrl,
   },
@@ -2421,7 +2421,7 @@ export const systemPropertyTypes = {
   },
   withdrawnQuantity: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/withdrawn-quantity/v/1",
+      "https://hash.ai/@h/types/property-type/withdrawn-quantity/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/withdrawn-quantity/" as BaseUrl,
   },
