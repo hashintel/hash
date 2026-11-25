@@ -490,7 +490,7 @@ export const StepPanel = ({
       problemsByStepId={problemsByStepId}
       usesOf={usesOf}
       step={found.step}
-      inner={found.inner}
+      inner={found.parent !== null}
       onSelectStart={onSelectStart}
       onSelectStep={onSelectStep}
     />
