@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Install Renovate
-        uses: hashintel/actions/.github/actions/install-renovate@06238755f2364521d75a1eaf0b3b397261f46077 # main
+        uses: hashintel/actions/.github/actions/install-renovate@main
 
       - name: Validate Renovate config
         run: renovate-config-validator

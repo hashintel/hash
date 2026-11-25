@@ -53,7 +53,7 @@ workflows:
         - 'rtcamp/action-slack-notify@v2.4.0'
     '.github/workflows/housekeeping.yml':
         - 'actions/checkout@v6.0.2'
-        - 'hashintel/actions@06238755f2364521d75a1eaf0b3b397261f46077'
+        - 'hashintel/actions@main'
     '.github/workflows/lint.yml':
         - 'actions/cache@v4.3.0'
         - 'actions/checkout@v6.0.2'
@@ -207,19 +207,13 @@ dependencies:
         commit: 'sha1-892a26828f195e65540a40b4768ae4571f51ebfc'
         owner_id: 761456
         repo_id: 209846629
-    'hashintel/actions@06238755f2364521d75a1eaf0b3b397261f46077':
-        ref: 'main'
-        commit: 'sha1-06238755f2364521d75a1eaf0b3b397261f46077'
-        owner_id: 22116112
-        repo_id: 1389230708
-        uses:
-            - 'actions/setup-node@v7.1.0'
     'hashintel/actions@main':
         ref: 'main'
         commit: 'sha1-06238755f2364521d75a1eaf0b3b397261f46077'
         owner_id: 22116112
         repo_id: 1389230708
         uses:
+            - 'actions/setup-node@v7.1.0'
             - 'hashicorp/vault-action@v4.0.0'
     'jdx/mise-action@v4.3.0':
         ref: 'v4.3.0'
