@@ -192,13 +192,6 @@ url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-x64.tar.gz"
 version = "3.7.0"
 backend = "npm:@napi-rs/cli"
 
-[[tools."npm:renovate"]]
-version = "43.212.4"
-backend = "npm:renovate"
-
-[tools."npm:renovate".options]
-trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
-
 [[tools."npm:turbo"]]
 version = "2.11.5"
 backend = "npm:turbo"
