@@ -4,12 +4,15 @@
 use std::path::Path;
 
 use error_stack::{Report, ResultExt as _};
+use hash_integrations_definition::ColumnName;
 use serde::Serialize;
 use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 
+use super::property::ConversionFailure;
 use crate::{
     run::{self, RunId},
     storage::{Storage, StorageError},
+    sync_table::SyncRow,
 };
 
 /// A row, or part of one, that is not written as captured. It is one line of the issues file.
@@ -30,6 +33,38 @@ pub(super) struct Issue {
     pub reason: Option<Box<str>>,
     /// The value that could not be converted.
     pub value: Option<Box<str>>,
+}
+
+impl Issue {
+    /// The row `seq` has no value in `column` to identify the `entity_type` it describes.
+    pub(super) fn missing_source_id(
+        seq: i64,
+        entity_type: &VersionedUrl,
+        column: &ColumnName,
+    ) -> Self {
+        Self {
+            seq,
+            kind: IssueKind::MissingSourceId,
+            entity_type: entity_type.clone(),
+            entity_id: None,
+            name: column.as_ref().into(),
+            reason: None,
+            value: None,
+        }
+    }
+
+    /// `row` is written without a property, as its value could not be converted.
+    pub(super) fn property(row: &SyncRow, failure: ConversionFailure) -> Self {
+        Self {
+            seq: row.seq,
+            kind: IssueKind::Property,
+            entity_type: row.entity_type.clone(),
+            entity_id: Some(row.entity_id),
+            name: failure.property.to_string().into_boxed_str(),
+            reason: Some(failure.reason.to_string().into_boxed_str()),
+            value: failure.value.map(String::into_boxed_str),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

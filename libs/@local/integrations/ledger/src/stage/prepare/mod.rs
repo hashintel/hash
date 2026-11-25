@@ -17,14 +17,14 @@ mod workspace;
 
 use alloc::collections::BTreeMap;
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::Report;
 use hash_integrations_definition::{Definition, SourceKind, SourceName};
 
 pub use self::incremental::prepare_incremental;
 use self::{
-    changes::{Changes, Context},
+    changes::{ChangeTable, Changes, Context},
     pipeline::{PreparationError, PreparedLink, PreparedSink},
-    workspace::{Identifier, Workspace},
+    workspace::Workspace,
 };
 
 /// The tables the SQL steps of a definition leave for its sinks and its link pipelines.
@@ -89,28 +89,20 @@ fn run_pipelines(
 ///
 /// # Errors
 ///
-/// - [`Statement`] if a table cannot be read
-/// - the errors of [`Context::entity_changes`]
-///
-/// [`Statement`]: PreparationError::Statement
+/// The errors of [`ChangeTable::read`] and [`ChangeTable::rows`].
 fn collect_changes(
     workspace: &Workspace,
     tables: &PreparedTables,
     context: &Context<'_>,
 ) -> Result<Changes, Report<PreparationError>> {
-    let read = |table: &str| {
-        workspace
-            .query(&format!("SELECT * FROM {}", Identifier::new(table)))
-            .change_context(PreparationError::Statement)
-    };
     let mut changes = Changes::default();
     for sink in &tables.sinks {
-        let rows = read(&sink.table)?;
-        context.entity_changes(&mut changes, &sink.sink, rows.columns(), rows.iter())?;
+        let table = ChangeTable::read(workspace, &sink.table)?;
+        context.entity_changes(&mut changes, &sink.sink, table.rows()?);
     }
     for link in &tables.links {
-        let rows = read(&link.table)?;
-        context.link_changes(&mut changes, &link.pipeline, rows.columns(), rows.iter())?;
+        let table = ChangeTable::read(workspace, &link.table)?;
+        context.link_changes(&mut changes, &link.pipeline, table.rows()?);
     }
     Ok(changes)
 }

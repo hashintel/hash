@@ -1,29 +1,159 @@
-//! Turns each row of a sink or link table into a row of the sync table, by the kind of change its
-//! `_op` holds. What cannot be turned into a change as it is becomes an [`Issue`].
+//! Turns each row of a sink or link table into a row of the sync table, by its kind of change.
+//! What cannot be turned into a change as it is becomes an [`Issue`].
 
 use alloc::collections::BTreeMap;
+use core::str::FromStr;
 
 use duckdb::types::Value;
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{
     ColumnName, EntitySink, LinkPipeline, Properties, UnitMap, UnitMapName,
 };
 use type_system::{
-    knowledge::{entity::id::EntityId, property::PropertyObjectWithMetadata},
-    ontology::VersionedUrl,
-    principal::actor_group::WebId,
+    knowledge::entity::id::EntityId, ontology::VersionedUrl, principal::actor_group::WebId,
 };
 
 use super::{
     entity_id::{LinkEndpoint, derive_entity_id, derive_link_id},
-    issues::{Issue, IssueKind},
+    issues::Issue,
     pipeline::PreparationError,
-    property::{ResolvedProperties, SinkColumns, SinkRow},
+    property::{ConversionFailure, ResolvedProperties, SinkColumns, SinkRow},
+    workspace::{Identifier, Rows, Workspace},
 };
 use crate::{
     run::RunId,
     sync_table::{Op, SyncRow},
 };
+
+/// The kind of change of a row: the `_change` of a captured row, and the `_op` of a staged one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Change {
+    Insert,
+    Update,
+    Delete,
+}
+
+impl Change {
+    pub(super) const ALL: [Self; 3] = [Self::Insert, Self::Update, Self::Delete];
+
+    /// The text `_change` and `_op` hold for this kind of change.
+    pub(super) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Insert => "insert",
+            Self::Update => "update",
+            Self::Delete => "delete",
+        }
+    }
+
+    const fn entity_op(self) -> Op {
+        match self {
+            Self::Insert => Op::CreateEntity,
+            Self::Update => Op::UpdateEntity,
+            Self::Delete => Op::ArchiveEntity,
+        }
+    }
+
+    const fn link_op(self) -> Op {
+        match self {
+            Self::Insert => Op::CreateLink,
+            Self::Update => Op::UpdateLink,
+            Self::Delete => Op::ArchiveLink,
+        }
+    }
+}
+
+impl FromStr for Change {
+    type Err = Report<PreparationError>;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        Self::ALL
+            .into_iter()
+            .find(|change| change.as_str() == text)
+            .ok_or_else(|| Report::new(PreparationError::InvalidChange))
+    }
+}
+
+/// The rows of a sink or link table, with `_op` and `_seq` as their first two values.
+pub(super) struct ChangeTable {
+    columns: SinkColumns,
+    rows: Rows,
+}
+
+impl ChangeTable {
+    /// Reads all rows of `table`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError::Statement`] if the table cannot be read.
+    pub(super) fn read(
+        workspace: &Workspace,
+        table: &str,
+    ) -> Result<Self, Report<PreparationError>> {
+        let rows = workspace
+            .query(&format!(
+                "SELECT _op, _seq, * EXCLUDE (_op, _seq) FROM {}",
+                Identifier::new(table)
+            ))
+            .change_context(PreparationError::Statement)?;
+        let columns = rows.columns().iter().collect();
+        Ok(Self { columns, rows })
+    }
+
+    /// Each row with its kind of change.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError::InvalidChange`] if a row's `_op` is not `insert`, `update` or
+    /// `delete`.
+    pub(super) fn rows(&self) -> Result<Vec<ChangeRow<'_>>, Report<PreparationError>> {
+        self.rows
+            .iter()
+            .map(|values| ChangeRow::new(&self.columns, values))
+            .collect()
+    }
+}
+
+/// A row of a sink or link table: its kind of change, its `_seq` and its values by column name.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct ChangeRow<'a> {
+    pub change: Change,
+    pub seq: i64,
+    pub values: SinkRow<'a>,
+}
+
+impl<'a> ChangeRow<'a> {
+    /// Reads the row `values`, whose first two values are `_op` and `_seq`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError::InvalidChange`] if `_op` is not `insert`, `update` or `delete`.
+    pub(super) fn new(
+        columns: &'a SinkColumns,
+        values: &'a [Value],
+    ) -> Result<Self, Report<PreparationError>> {
+        // `check_metadata` refuses a table whose `_op` is not text or whose `_seq` is not a number.
+        let [Value::Text(op), Value::BigInt(seq), ..] = values else {
+            unreachable!("`_op` should be text and `_seq` a BIGINT");
+        };
+        Ok(Self {
+            change: op.parse()?,
+            seq: *seq,
+            values: SinkRow::new(columns, values),
+        })
+    }
+
+    /// The row's values of `properties`. A delete has none.
+    fn properties(
+        &self,
+        properties: &Properties,
+        unit_maps: &BTreeMap<UnitMapName, UnitMap>,
+    ) -> ResolvedProperties {
+        match self.change {
+            Change::Insert | Change::Update => self.values.resolve(properties, unit_maps),
+            Change::Delete => ResolvedProperties::default(),
+        }
+    }
+}
 
 /// The rows of the sync table a run's tables give, and the issues found on the way.
 #[derive(Debug, Default)]
@@ -33,106 +163,31 @@ pub(super) struct Changes {
 }
 
 impl Changes {
-    /// The text identifying the record `row` describes as an `entity_type`, or `None` after
-    /// reporting that the row has none.
+    /// The text in `column` that identifies what `row` describes, or `None` after reporting that
+    /// it has none.
     fn source_id(
         &mut self,
+        row: &ChangeRow<'_>,
         entity_type: &VersionedUrl,
-        seq: i64,
-        row: SinkRow<'_>,
         column: &ColumnName,
     ) -> Option<String> {
-        let source_id = row.text(column);
+        let source_id = row.values.text(column);
         if source_id.is_none() {
-            self.issues.push(Issue {
-                seq,
-                kind: IssueKind::MissingSourceId,
-                entity_type: entity_type.clone(),
-                entity_id: None,
-                name: column.as_ref().into(),
-                reason: None,
-                value: None,
-            });
+            self.issues
+                .push(Issue::missing_source_id(row.seq, entity_type, column));
         }
         source_id
     }
 
-    /// The properties of `row`, after reporting each value that could not be converted.
-    fn resolve(
-        &mut self,
-        context: &Context<'_>,
-        row: SinkRow<'_>,
-        properties: &Properties,
-        (entity_type, entity_id, seq): (&VersionedUrl, EntityId, i64),
-    ) -> PropertyObjectWithMetadata {
-        let ResolvedProperties {
-            properties,
-            failures,
-        } = row.resolve(properties, context.unit_maps);
-        self.issues
-            .extend(failures.into_iter().map(|failure| Issue {
-                seq,
-                kind: IssueKind::Property,
-                entity_type: entity_type.clone(),
-                entity_id: Some(entity_id),
-                name: failure.property.to_string().into_boxed_str(),
-                reason: Some(failure.reason.to_string().into_boxed_str()),
-                value: failure.value.map(String::into_boxed_str),
-            }));
-        properties
+    /// Adds `row`, and an issue for each property left out of it.
+    fn add(&mut self, row: SyncRow, failures: Vec<ConversionFailure>) {
+        self.issues.extend(
+            failures
+                .into_iter()
+                .map(|failure| Issue::property(&row, failure)),
+        );
+        self.rows.push(row);
     }
-}
-
-/// The kind of change of a row, as its `_op` holds it.
-#[derive(Debug, Clone, Copy)]
-enum Change {
-    Insert,
-    Update,
-    Delete,
-}
-
-/// The positions of `_op` and `_seq` in `columns`.
-fn metadata_columns(columns: &[Box<str>]) -> Result<(usize, usize), Report<PreparationError>> {
-    let position = |name: &str| {
-        columns
-            .iter()
-            .position(|column| column.eq_ignore_ascii_case(name))
-            .ok_or_else(|| {
-                Report::new(PreparationError::MissingColumn {
-                    column: name.into(),
-                })
-            })
-    };
-    Ok((position("_op")?, position("_seq")?))
-}
-
-/// The kind of change and the `_seq` of the row `values`.
-///
-/// # Errors
-///
-/// Returns [`PreparationError::InvalidChange`] if the row's `_op` is not `insert`, `update` or
-/// `delete`.
-///
-/// # Panics
-///
-/// Panics if the row's `_seq` is not a BIGINT, which [`Workspace::check_metadata`] refuses for
-/// every table whose rows become changes.
-///
-/// [`Workspace::check_metadata`]: super::workspace::Workspace::check_metadata
-fn change_of(
-    values: &[Value],
-    (op_at, seq_at): (usize, usize),
-) -> Result<(Change, i64), Report<PreparationError>> {
-    let change = match values.get(op_at) {
-        Some(Value::Text(op)) if op == "insert" => Change::Insert,
-        Some(Value::Text(op)) if op == "update" => Change::Update,
-        Some(Value::Text(op)) if op == "delete" => Change::Delete,
-        _ => return Err(Report::new(PreparationError::InvalidChange)),
-    };
-    let Some(&Value::BigInt(seq)) = values.get(seq_at) else {
-        unreachable!("the table's `_seq` should have been checked to be a non-null BIGINT");
-    };
-    Ok((change, seq))
 }
 
 /// What the rows of a run are turned into changes with.
@@ -146,141 +201,90 @@ pub(super) struct Context<'a> {
 }
 
 impl Context<'_> {
-    /// Adds the change of each of `rows` to the entity it describes in `sink`.
-    ///
-    /// An insert creates the entity, an update updates it, and a delete archives it without
-    /// properties.
-    ///
-    /// # Errors
-    ///
-    /// - [`MissingColumn`] if `columns` has no `_op` or `_seq`
-    /// - [`InvalidChange`] if a row's `_op` is not `insert`, `update` or `delete`
-    ///
-    /// # Panics
-    ///
-    /// Panics if a row's `_seq` is not a BIGINT.
-    ///
-    /// [`MissingColumn`]: PreparationError::MissingColumn
-    /// [`InvalidChange`]: PreparationError::InvalidChange
+    /// Adds a change of the entity each of `rows` describes in `sink`: an insert creates it, an
+    /// update updates it, and a delete archives it.
     pub(super) fn entity_changes<'row>(
         &self,
         changes: &mut Changes,
         sink: &EntitySink,
-        columns: &[Box<str>],
-        rows: impl IntoIterator<Item = &'row [Value]>,
-    ) -> Result<(), Report<PreparationError>> {
-        let metadata = metadata_columns(columns)?;
-        let names = columns.iter().collect::<SinkColumns>();
-        for values in rows {
-            let (change, seq) = change_of(values, metadata)?;
-            let row = SinkRow::new(&names, values);
-            let Some(source_id) = changes.source_id(&sink.entity_type, seq, row, &sink.entity_id)
+        rows: impl IntoIterator<Item = ChangeRow<'row>>,
+    ) {
+        for row in rows {
+            let Some(source_id) = changes.source_id(&row, &sink.entity_type, &sink.entity_id)
             else {
                 continue;
             };
-            let entity_id = derive_entity_id(
-                self.web_id,
-                self.id_namespace,
-                &sink.entity_type,
-                &source_id,
-            );
-            let target = (&sink.entity_type, entity_id, seq);
-            let (op, properties) = match change {
-                Change::Insert => (
-                    Op::CreateEntity,
-                    changes.resolve(self, row, &sink.properties, target),
-                ),
-                Change::Update => (
-                    Op::UpdateEntity,
-                    changes.resolve(self, row, &sink.properties, target),
-                ),
-                Change::Delete => (Op::ArchiveEntity, PropertyObjectWithMetadata::default()),
-            };
-            changes.rows.push(SyncRow {
-                run: self.run,
-                seq,
-                op,
-                entity_id,
-                entity_type: sink.entity_type.clone(),
-                left_entity_id: None,
-                right_entity_id: None,
+            let ResolvedProperties {
                 properties,
-            });
+                failures,
+            } = row.properties(&sink.properties, self.unit_maps);
+            changes.add(
+                SyncRow {
+                    run: self.run,
+                    seq: row.seq,
+                    op: row.change.entity_op(),
+                    entity_id: self.entity_id(&sink.entity_type, &source_id),
+                    entity_type: sink.entity_type.clone(),
+                    left_entity_id: None,
+                    right_entity_id: None,
+                    properties,
+                },
+                failures,
+            );
         }
-        Ok(())
     }
 
-    /// Adds the change of each of `rows` to the link it describes in `link`.
-    ///
-    /// The kinds are those of [`entity_changes`](Self::entity_changes). The two ends of a link are
-    /// the ids of the entities the same source values give.
-    ///
-    /// # Errors
-    ///
-    /// The errors of [`entity_changes`](Self::entity_changes).
-    ///
-    /// # Panics
-    ///
-    /// Panics if a row's `_seq` is not a BIGINT.
+    /// Adds a change of the link each of `rows` describes in `link`, as
+    /// [`entity_changes`](Self::entity_changes) does for an entity. Each end of the link is the
+    /// entity its source id gives.
     pub(super) fn link_changes<'row>(
         &self,
         changes: &mut Changes,
         link: &LinkPipeline,
-        columns: &[Box<str>],
-        rows: impl IntoIterator<Item = &'row [Value]>,
-    ) -> Result<(), Report<PreparationError>> {
-        let metadata = metadata_columns(columns)?;
-        let names = columns.iter().collect::<SinkColumns>();
-        let end = |end: LinkEndpoint<'_>| {
-            derive_entity_id(
-                self.web_id,
-                self.id_namespace,
-                end.entity_type,
-                end.source_id,
-            )
-        };
-        for values in rows {
-            let (change, seq) = change_of(values, metadata)?;
-            let row = SinkRow::new(&names, values);
-            let Some(left) = changes.source_id(&link.link_type, seq, row, &link.from.column) else {
+        rows: impl IntoIterator<Item = ChangeRow<'row>>,
+    ) {
+        for row in rows {
+            let Some(from) = changes.source_id(&row, &link.link_type, &link.from.column) else {
                 continue;
             };
-            let Some(right) = changes.source_id(&link.link_type, seq, row, &link.to.column) else {
+            let Some(to) = changes.source_id(&row, &link.link_type, &link.to.column) else {
                 continue;
             };
             let left = LinkEndpoint {
                 entity_type: &link.from.entity_type,
-                source_id: &left,
+                source_id: &from,
             };
             let right = LinkEndpoint {
                 entity_type: &link.to.entity_type,
-                source_id: &right,
+                source_id: &to,
             };
-            let entity_id =
-                derive_link_id(self.web_id, self.id_namespace, &link.link_type, left, right);
-            let target = (&link.link_type, entity_id, seq);
-            let (op, properties) = match change {
-                Change::Insert => (
-                    Op::CreateLink,
-                    changes.resolve(self, row, &link.properties, target),
-                ),
-                Change::Update => (
-                    Op::UpdateLink,
-                    changes.resolve(self, row, &link.properties, target),
-                ),
-                Change::Delete => (Op::ArchiveLink, PropertyObjectWithMetadata::default()),
-            };
-            changes.rows.push(SyncRow {
-                run: self.run,
-                seq,
-                op,
-                entity_id,
-                entity_type: link.link_type.clone(),
-                left_entity_id: Some(end(left)),
-                right_entity_id: Some(end(right)),
+            let ResolvedProperties {
                 properties,
-            });
+                failures,
+            } = row.properties(&link.properties, self.unit_maps);
+            changes.add(
+                SyncRow {
+                    run: self.run,
+                    seq: row.seq,
+                    op: row.change.link_op(),
+                    entity_id: derive_link_id(
+                        self.web_id,
+                        self.id_namespace,
+                        &link.link_type,
+                        left,
+                        right,
+                    ),
+                    entity_type: link.link_type.clone(),
+                    left_entity_id: Some(self.entity_id(left.entity_type, &from)),
+                    right_entity_id: Some(self.entity_id(right.entity_type, &to)),
+                    properties,
+                },
+                failures,
+            );
         }
-        Ok(())
+    }
+
+    fn entity_id(&self, entity_type: &VersionedUrl, source_id: &str) -> EntityId {
+        derive_entity_id(self.web_id, self.id_namespace, entity_type, source_id)
     }
 }

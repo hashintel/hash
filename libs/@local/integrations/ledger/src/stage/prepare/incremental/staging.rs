@@ -2,9 +2,14 @@ use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::PrimaryKey;
 
 use crate::stage::prepare::{
+    changes::Change,
     pipeline::PreparationError,
     workspace::{Identifier, Workspace},
 };
+
+/// The columns staging adds. `_seq` is read from DuckDB's `rowid`, which a column of that name
+/// would hide.
+const RESERVED: [&str; 4] = ["_op", "_key", "_seq", "rowid"];
 
 /// Copies the captured table `capture` to `table` with the staging columns: `_op` is the row's
 /// `_change`, `_key` its primary key as JSON, and `_seq` its position in the captured file.
@@ -16,8 +21,8 @@ use crate::stage::prepare::{
 /// - [`InvalidChange`] if a row's `_change` is not `insert`, `update` or `delete`
 /// - [`Statement`] if DuckDB cannot read `capture` or write `table`
 ///
-/// [`ReservedColumn`]: PreparationError::ReservedColumn
 /// [`MissingColumn`]: PreparationError::MissingColumn
+/// [`ReservedColumn`]: PreparationError::ReservedColumn
 /// [`InvalidChange`]: PreparationError::InvalidChange
 /// [`Statement`]: PreparationError::Statement
 pub(super) fn stage(
@@ -26,39 +31,16 @@ pub(super) fn stage(
     table: &str,
     primary_key: &PrimaryKey,
 ) -> Result<(), Report<PreparationError>> {
-    let source = Identifier::new(capture);
-    let schema = workspace
-        .describe(&format!("SELECT * FROM {source}"))
-        .change_context(PreparationError::Statement)?;
-    let has = |column: &str| {
-        schema
-            .iter()
-            .any(|(name, _)| name.eq_ignore_ascii_case(column))
-    };
-    if !has("_change") {
-        return Err(Report::new(PreparationError::MissingColumn {
-            column: "_change".into(),
-        }));
-    }
-    for (column, _) in &schema {
-        // `_seq` is read from DuckDB's `rowid`, which a column of that name would hide.
-        if ["_op", "_key", "_seq", "rowid"]
-            .iter()
-            .any(|reserved| column.eq_ignore_ascii_case(reserved))
-        {
-            return Err(Report::new(PreparationError::ReservedColumn {
-                column: column.clone().into_boxed_str(),
-            }));
-        }
-    }
-    for column in primary_key.columns() {
-        if !has(column.as_ref()) {
-            return Err(Report::new(PreparationError::MissingColumn {
-                column: column.to_string().into_boxed_str(),
-            }));
-        }
-    }
-    let keys = primary_key
+    let capture = Identifier::new(capture);
+    let columns = workspace
+        .describe(&format!("SELECT * FROM {capture}"))
+        .change_context(PreparationError::Statement)?
+        .into_iter()
+        .map(|(column, _)| column)
+        .collect::<Vec<_>>();
+    check_columns(&columns, primary_key)?;
+
+    let key = primary_key
         .columns()
         .iter()
         .map(|column| {
@@ -75,20 +57,52 @@ pub(super) fn stage(
         .create_table(
             table,
             &format!(
-                "SELECT source._change::VARCHAR AS _op, to_json(struct_pack({keys}))::VARCHAR AS \
-                 _key, source.rowid AS _seq, source.* EXCLUDE (_change) FROM {source} AS source"
+                "SELECT _change::VARCHAR AS _op, to_json(struct_pack({key}))::VARCHAR AS _key, \
+                 rowid AS _seq, * EXCLUDE (_change) FROM {capture}"
             ),
         )
         .change_context(PreparationError::Statement)?;
+
+    let changes = Change::ALL
+        .map(|change| format!("'{}'", change.as_str()))
+        .join(", ");
     let invalid = workspace
         .count(&format!(
-            "SELECT count(*) FROM {} WHERE _op IS NULL OR _op NOT IN ('insert', 'update', \
-             'delete')",
+            "SELECT count(*) FROM {} WHERE _op IS NULL OR _op NOT IN ({changes})",
             Identifier::new(table)
         ))
         .change_context(PreparationError::Statement)?;
     if invalid > 0 {
         return Err(Report::new(PreparationError::InvalidChange));
+    }
+    Ok(())
+}
+
+/// Checks that `columns` hold `_change` and the columns of `primary_key`, and no staging column.
+fn check_columns(
+    columns: &[String],
+    primary_key: &PrimaryKey,
+) -> Result<(), Report<PreparationError>> {
+    let has = |name: &str| {
+        columns
+            .iter()
+            .any(|column| column.eq_ignore_ascii_case(name))
+    };
+    let mut required =
+        core::iter::once("_change").chain(primary_key.columns().iter().map(AsRef::as_ref));
+    if let Some(missing) = required.find(|column| !has(column)) {
+        return Err(Report::new(PreparationError::MissingColumn {
+            column: missing.into(),
+        }));
+    }
+    if let Some(reserved) = columns.iter().find(|column| {
+        RESERVED
+            .iter()
+            .any(|name| column.eq_ignore_ascii_case(name))
+    }) {
+        return Err(Report::new(PreparationError::ReservedColumn {
+            column: reserved.as_str().into(),
+        }));
     }
     Ok(())
 }

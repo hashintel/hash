@@ -8,7 +8,8 @@ use type_system::{ontology::VersionedUrl, principal::actor_group::WebId};
 use uuid::Uuid;
 
 use super::{
-    changes::{Changes, Context},
+    changes::{ChangeRow, Changes, Context},
+    property::SinkColumns,
     run_pipelines,
     workspace::{Workspace, WorkspaceConfig},
 };
@@ -90,24 +91,20 @@ fn changes(aircraft: &[Vec<Value>]) -> Changes {
         id_namespace: NAMESPACE,
         unit_maps: definition.unit_maps(),
     };
-    let columns = COLUMNS.map(Box::from);
+    let columns = COLUMNS.iter().collect::<SinkColumns>();
+    let rows = aircraft
+        .iter()
+        .map(|values| {
+            ChangeRow::new(&columns, values).expect("the row should have a kind of change")
+        })
+        .collect::<Vec<_>>();
     let mut changes = Changes::default();
-    context
-        .entity_changes(
-            &mut changes,
-            sink(&definition, "entity-type/aircraft"),
-            &columns,
-            aircraft.iter().map(Vec::as_slice),
-        )
-        .expect("the aircraft should become changes");
-    context
-        .link_changes(
-            &mut changes,
-            based_at(&definition),
-            &columns,
-            aircraft.iter().map(Vec::as_slice),
-        )
-        .expect("the links should become changes");
+    context.entity_changes(
+        &mut changes,
+        sink(&definition, "entity-type/aircraft"),
+        rows.iter().copied(),
+    );
+    context.link_changes(&mut changes, based_at(&definition), rows);
     changes
 }
 
