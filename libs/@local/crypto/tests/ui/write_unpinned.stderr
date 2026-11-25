@@ -1,20 +1,22 @@
 error[E0599]: no method named `expose_mut` found for struct `Secret<[u8; 4]>` in the current scope
- --> tests/ui/write_unpinned.rs:5:12
-  |
-5 |     secret.expose_mut()[0] = 0xFF;
-  |            ^^^^^^^^^^
-  |
- ::: src/secret.rs
-  |
-  |     pub fn expose_mut(self: Pin<&mut Self>) -> &mut T::View {
-  |            ---------- the method is available for `Pin<&mut Secret<[u8; 4]>>` here
-  |
+  --> tests/ui/write_unpinned.rs:5:12
+   |
+LL |     secret.expose_mut()[0] = 0xFF;
+   |            ^^^^^^^^^^
+   |
+  --> libs/@local/crypto/src/secret.rs:310:11
+   |
+   = note: the method is available for `Pin<&mut Secret<[u8; 4]>>` here
 help: consider wrapping the receiver expression with the appropriate type
-  |
-5 |     Pin::new(&mut secret).expose_mut()[0] = 0xFF;
-  |     +++++++++++++       +
+   |
+LL |     Pin::new(&mut secret).expose_mut()[0] = 0xFF;
+   |     +++++++++++++       +
 help: there is a method `expose` with a similar name
-  |
-5 -     secret.expose_mut()[0] = 0xFF;
-5 +     secret.expose()[0] = 0xFF;
-  |
+   |
+LL -     secret.expose_mut()[0] = 0xFF;
+LL +     secret.expose()[0] = 0xFF;
+   |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0599`.

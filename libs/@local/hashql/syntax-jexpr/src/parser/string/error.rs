@@ -64,10 +64,9 @@ pub(crate) fn convert_parse_error(
         StrContext::Expected(_) | _ => None,
     });
 
-    let message = expression.map_or_else(
-        || Cow::Borrowed("Syntax error"),
-        |expr| Cow::Owned(format!("Invalid {expr}")),
-    );
+    let message = expression.map_or(Cow::Borrowed("Syntax error"), |expr| {
+        Cow::Owned(format!("Invalid {expr}"))
+    });
 
     let label = Label::new(span, message);
 

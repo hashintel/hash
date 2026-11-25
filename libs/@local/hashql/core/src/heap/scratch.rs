@@ -157,3 +157,5 @@ unsafe impl alloc::Allocator for Scratch {
         unsafe { self.inner.deallocate(ptr, layout) }
     }
 }
+
+impl alloc::AllocatorNightly for Scratch {}

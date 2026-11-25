@@ -21,6 +21,7 @@
     get_mut_unchecked,
     iter_array_chunks,
     iter_collect_into,
+    iterator_try_reduce,
     maybe_uninit_fill,
     maybe_uninit_uninit_array_transpose,
     option_into_flat_iter,
@@ -28,7 +29,7 @@
     temporary_niche_types,
     try_trait_v2,
     variant_count,
-    iterator_try_reduce
+    vec_repeat
 )]
 #![cfg_attr(test, feature(
     // Library Features

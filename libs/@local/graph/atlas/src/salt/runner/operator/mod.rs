@@ -98,6 +98,7 @@ pub enum Placement {
 
 /// Options of one production run.
 #[derive(Debug, Clone)]
+#[expect(unevaluated_default_field_value)]
 pub struct Options<P> {
     /// Fit seed, also used to derive the admission probe's generator.
     ///

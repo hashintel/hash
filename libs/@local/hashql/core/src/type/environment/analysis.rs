@@ -25,10 +25,6 @@ use crate::r#type::{
 };
 
 #[derive(Debug)]
-#[expect(
-    dead_code,
-    reason = "used during benchmarking to delay signficiant drop"
-)]
 pub struct AnalysisEnvironmentSkeleton<'heap> {
     boundary: RecursionBoundary<'heap>,
     variables: Option<VariableLookup>,

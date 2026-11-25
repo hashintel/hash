@@ -136,7 +136,6 @@ macro_rules! impl_syntax_dump {
     (@dump child; $this:ident; $fmt:ident; $depth:ident;) => {};
 
     (struct $name:ident($($properties:ident),*); $($fields:tt)*) => {
-        #[expect(clippy::allow_attributes)]
         #[allow(unused_mut)]
         impl SyntaxDump for $name<'_> {
             fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {

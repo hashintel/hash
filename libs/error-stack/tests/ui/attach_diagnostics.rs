@@ -17,5 +17,5 @@ impl Error for RootError {}
 struct NotDisplay;
 
 fn main() {
-    let _ = Report::new(RootError).attach(NotDisplay);
+    let _ = Report::new(RootError).attach(NotDisplay); //~ E0277
 }

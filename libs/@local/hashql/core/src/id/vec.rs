@@ -1,4 +1,7 @@
-use alloc::{alloc::Global, vec};
+use alloc::{
+    alloc::{AllocatorNightly, Global},
+    vec,
+};
 use core::{
     alloc::{AllocError, Allocator},
     borrow::{Borrow, BorrowMut},
@@ -221,7 +224,7 @@ where
     where
         T: Clone,
     {
-        Self::from_raw(alloc::vec::from_elem_in(elem, size, alloc))
+        Self::from_raw(Vec::repeat_in(elem, size, alloc))
     }
 
     /// Creates an `IdVec` with the same length as `domain`, with each element initialized to
@@ -286,7 +289,7 @@ where
     where
         T: Clone,
     {
-        Self::from_raw(alloc::vec::from_elem_in(elem, domain.len(), alloc))
+        Self::from_raw(Vec::repeat_in(elem, domain.len(), alloc))
     }
 
     /// Creates an `IdVec` with the same length as `domain`, deriving each element from the
@@ -560,7 +563,10 @@ where
     ///
     /// An iterator over the drained elements.
     #[inline]
-    pub fn drain(&mut self, range: impl RangeBounds<I>) -> alloc::vec::Drain<'_, T, A> {
+    pub fn drain(&mut self, range: impl RangeBounds<I>) -> alloc::vec::Drain<'_, T, A>
+    where
+        A: AllocatorNightly,
+    {
         let start = range.start_bound().copied().map(Id::as_usize);
         let end = range.end_bound().copied().map(Id::as_usize);
 

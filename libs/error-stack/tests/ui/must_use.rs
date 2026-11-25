@@ -16,5 +16,5 @@ impl fmt::Display for RootError {
 impl Error for RootError {}
 
 fn main() {
-    Report::new(RootError);
+    Report::new(RootError); //~ unused_must_use
 }

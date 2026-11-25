@@ -30,7 +30,7 @@ impl<T, A: Allocator> BlockPartitionedVec<T, A> {
         A: Clone,
     {
         let (offsets, length) = Self::build_offsets(counts, alloc.clone());
-        let data = alloc::vec::from_elem_in(value, length, alloc);
+        let data = Vec::repeat_in(value, length, alloc);
 
         Self { offsets, data }
     }
