@@ -50,23 +50,41 @@ export const PathsField = ({
   /** The step's condition field, shown on the path that has it. */
   condition?: ReactNode;
 }) => {
-  /* A path leads to a step beside this one: in the same for-each step, or at the top level. */
+  /*
+   * A path leads to a step beside this one, in the same for-each step or at the top level. From the top level, it can
+   * also lead into a for-each step, to a step inside it, as on the canvas.
+   */
   const parent = findStep(flowDefinition.steps, step.stepId)?.parent;
-  const candidates = orderSteps(parent?.steps ?? flowDefinition.steps).filter(
-    ({ stepId }) => stepId !== step.stepId,
-  );
-  const items = candidates.map((candidate) => ({
+  const candidates = (
+    parent
+      ? orderSteps(parent.steps).map((candidate) => ({
+          candidate,
+          forEach: null,
+        }))
+      : orderSteps(flowDefinition.steps).flatMap((candidate) => [
+          { candidate, forEach: null },
+          ...(candidate.kind === "for-each"
+            ? orderSteps(candidate.steps).map((inner) => ({
+                candidate: inner,
+                forEach: candidate,
+              }))
+            : []),
+        ])
+  ).filter(({ candidate }) => candidate.stepId !== step.stepId);
+  const items = candidates.map(({ candidate, forEach }) => ({
     value: candidate.stepId,
-    text: getStepName(candidate),
+    text: forEach
+      ? `${getStepName(forEach)} › ${getStepName(candidate)}`
+      : getStepName(candidate),
   }));
 
   return paths.map((path) => {
-    const next = candidates.find(({ runAfter }) =>
-      runAfter?.some(
+    const next = candidates.find(({ candidate }) =>
+      candidate.runAfter?.some(
         (entry) =>
           entry.stepId === step.stepId && entry.outputName === path.outputName,
       ),
-    );
+    )?.candidate;
 
     return (
       <div key={path.outputName} className={pathGroup}>
