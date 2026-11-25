@@ -44,13 +44,11 @@ export const getScheduledFlowRun = async (
 };
 
 /**
- * Why a schedule couldn't start runs of a valid definition, each with what the user can do about it: the values it
- * gives the flow's inputs would fail the check a run makes when it starts, or the definition is another type of flow
- * than the one the schedule was set up to run, whose runs go to another task queue and need other arguments (e.g. data
- * sources for an AI flow). Empty if it could.
+ * Why a schedule couldn't start runs of a valid definition, each with what to do about it: the values it gives the
+ * flow's inputs would fail the check a run makes when it starts, or the definition is another type of flow than the one
+ * the schedule was set up to run, whose runs go to another task queue and need other arguments. Empty if it could.
  *
- * Neither can be fixed by pausing the schedule, as resuming it makes the same check, and neither its inputs nor its
- * task queue can be changed once it's created.
+ * Pausing fixes neither: resuming makes the same check, and a schedule's inputs and task queue can't be changed.
  */
 export const getFlowScheduleProblems = ({
   flowDefinition,
@@ -77,7 +75,7 @@ export const getFlowScheduleProblems = ({
       ]
     : [];
 
-  /* In practice an integration schedule of a flow that now has an AI step: every step the editor adds is one. */
+  /* In practice a schedule added to an empty flow, which has since got a step: every step the editor adds uses AI. */
   if (getFlowType(flowDefinition) !== scheduledFlowType) {
     problems.push(
       scheduledFlowType === "ai"

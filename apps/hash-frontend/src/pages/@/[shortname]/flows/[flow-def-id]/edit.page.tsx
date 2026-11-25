@@ -87,6 +87,17 @@ const notices = css({
   maxWidth: "[560px]",
   mx: "auto",
 });
+/* Above the runs, lined up with their page's padding. */
+const logsNotices = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  width: "full",
+  maxWidth: "[608px]",
+  mx: "auto",
+  px: "6",
+  pt: "6",
+});
 
 /**
  * Collapses the app sidebar while the editor is open, and opens it again on leaving if it was open before. The
@@ -161,7 +172,6 @@ const FlowEditor = ({
     editor,
     status,
     saveRefusal,
-    saveRefusedReason,
     changedElsewhere,
     dismissChangedElsewhere,
     flush,
@@ -395,6 +405,7 @@ const FlowEditor = ({
     void router.push("/flows");
   };
 
+  const saveRefusedReason = saveRefusal?.message ?? null;
   /* In every view, as an edit made in one can be refused, or overwritten, after another opens. */
   const saveBanners =
     saveRefusal !== null || changedElsewhere ? (
@@ -447,18 +458,20 @@ const FlowEditor = ({
             onBackToLogs={() => showView("logs")}
           />
         ) : (
-          <LogsView
-            flowRuns={flowRuns}
-            notices={saveBanners}
-            onRetry={retryFlowRuns}
-            getRunPath={getRunPath}
-            runner={{
-              webId,
-              editorState,
-              saveRefusedReason,
-              onRun: runFlow,
-            }}
-          />
+          <>
+            {saveBanners && <div className={logsNotices}>{saveBanners}</div>}
+            <LogsView
+              flowRuns={flowRuns}
+              onRetry={retryFlowRuns}
+              getRunPath={getRunPath}
+              runner={{
+                webId,
+                editorState,
+                saveRefusedReason,
+                onRun: runFlow,
+              }}
+            />
+          </>
         )
       ) : (
         <div className={editorBody}>

@@ -243,7 +243,7 @@ describe("useAutosavedFlowEditor", () => {
     addStep("first");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
     expect(result.current.status).toBe("failed");
-    expect(result.current.saveRefusedReason).toBe(reason);
+    expect(result.current.saveRefusal?.message).toBe(reason);
 
     addStep("second");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
@@ -252,7 +252,7 @@ describe("useAutosavedFlowEditor", () => {
       "second",
     ]);
     expect(result.current.status).toBe("saved");
-    expect(result.current.saveRefusedReason).toBeNull();
+    expect(result.current.saveRefusal).toBeNull();
   });
 
   it("counts refused edits as saved when flushing with acceptRefusedEdits, still retries them, and stops once they're discarded", async () => {

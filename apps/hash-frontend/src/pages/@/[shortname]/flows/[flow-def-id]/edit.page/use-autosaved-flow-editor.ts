@@ -35,7 +35,7 @@ export const autosaveDelayMs = 800;
  * edition the previous one created. If the flow was saved elsewhere meanwhile, the editor is replaced by one holding
  * the flow as it is now, and `changedElsewhere` is set.
  *
- * A failed save is tried again with the next edit, or by calling `flush`. If the API refused it, `saveRefusedReason`
+ * A failed save is tried again with the next edit, or by calling `flush`. If the API refused it, `saveRefusal`
  * says why until a save succeeds.
  */
 export const useAutosavedFlowEditor = ({
@@ -62,10 +62,8 @@ export const useAutosavedFlowEditor = ({
 }): {
   editor: FlowEditor;
   status: FlowSaveStatus;
-  /** The API's refusal of the last save, if it refused it. */
+  /** The API's refusal of the last save, if it refused it, with why as its message. */
   saveRefusal: FlowSaveRefusedError | null;
-  /** Why the API refused the last save, if it did. */
-  saveRefusedReason: string | null;
   changedElsewhere: boolean;
   dismissChangedElsewhere: () => void;
   /**
@@ -240,7 +238,6 @@ export const useAutosavedFlowEditor = ({
     editor,
     status,
     saveRefusal,
-    saveRefusedReason: saveRefusal?.message ?? null,
     changedElsewhere,
     dismissChangedElsewhere,
     flush,

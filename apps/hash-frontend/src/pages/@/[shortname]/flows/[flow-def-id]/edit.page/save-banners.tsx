@@ -4,10 +4,7 @@ import { generateFlowTriggersPath } from "@local/hash-isomorphic-utils/flows/fro
 import type { FlowSaveRefusedError } from "./use-autosaved-flow-editor";
 import type { EntityId } from "@blockprotocol/type-system";
 
-/**
- * Why the latest edits weren't saved, if the API refused them or the flow changed elsewhere, shown in every view of the
- * editor, as an edit can be made in one view and refused after another opens.
- */
+/** Why the latest edits weren't saved: the API refused them, or the flow changed elsewhere. */
 export const SaveBanners = ({
   flowDefinitionEntityId,
   saveRefusal,
@@ -17,7 +14,7 @@ export const SaveBanners = ({
 }: {
   flowDefinitionEntityId: EntityId;
   saveRefusal: FlowSaveRefusedError | null;
-  /** Saves the refused edits again, e.g. once the schedules that stopped them are paused or deleted. */
+  /** E.g. once the schedules that stopped the edits are paused or deleted. */
   onSaveAgain: () => void;
   changedElsewhere: boolean;
   onDismissChangedElsewhere: () => void;
@@ -33,7 +30,7 @@ export const SaveBanners = ({
         </Banner.Description>
         {saveRefusal.blockedBySchedules && (
           <Banner.Actions>
-            {/* In a new tab, so that the edits are still here to save once the schedules are sorted out. */}
+            {/* In a new tab, so the refused edits stay here to save again. */}
             <Banner.ActionButton
               href={generateFlowTriggersPath({ flowDefinitionEntityId })}
               target="_blank"

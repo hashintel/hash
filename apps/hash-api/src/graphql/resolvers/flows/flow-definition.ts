@@ -149,7 +149,7 @@ export const updateFlowDefinitionResolver: ResolverFn<
   ).flat();
 
   if (scheduleProblems.length > 0) {
-    /* `blockedBySchedules` lets the editor link to the flow's schedules, where they can be paused or deleted. */
+    /* Lets the editor link to the flow's triggers. */
     throw GraphQLError.badRequest(
       `This change would stop the flow's schedules from running it:\n${scheduleProblems.join("\n")}`,
       { blockedBySchedules: true },
