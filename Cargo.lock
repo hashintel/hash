@@ -7523,7 +7523,6 @@ dependencies = [
 name = "hashql-mir"
 version = "0.0.0"
 dependencies = [
- "anstyle-svg",
  "bstr",
  "codspeed-criterion-compat",
  "hashql-compiletest",
