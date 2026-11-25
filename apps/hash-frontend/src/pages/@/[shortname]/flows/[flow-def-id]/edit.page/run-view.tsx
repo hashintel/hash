@@ -2,7 +2,7 @@ import { isEqual } from "lodash";
 import { useCallback, useMemo, useState } from "react";
 
 import { Banner, Button, LoadingSpinner } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   getValidFlowDefinition,
@@ -13,7 +13,7 @@ import { useGetOwnerForEntity } from "../../../../../../components/hooks/use-get
 import { FlowNetView } from "../../../shared/flow-visualizer/flow-net-view";
 import { RunCanvas } from "./canvas";
 import { RunLeftPanel } from "./left-panel";
-import { NetSwitch, NetSwitchHost } from "./net-switch";
+import { CanvasNotices, NetSwitch, NetSwitchHost } from "./net-switch";
 import { flowChangedBetween } from "./run-view/flow-changed";
 import { OutputViewer } from "./run-view/output-viewer";
 import {
@@ -36,21 +36,6 @@ import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const body = css({ display: "flex", flex: "1", minHeight: "0" });
 const canvasArea = css({ position: "relative", flex: "1" });
-const notices = cva({
-  base: {
-    position: "absolute",
-    zIndex: "docked",
-    left: "4",
-    right: "4",
-    display: "flex",
-    flexDirection: "column",
-    gap: "2",
-    maxWidth: "[560px]",
-    mx: "auto",
-  },
-  /* Below Petrinaut's 48px header over the net. */
-  variants: { overNet: { false: { top: "4" }, true: { top: "16" } } },
-});
 const centered = css({
   display: "flex",
   flex: "1",
@@ -277,9 +262,7 @@ export const RunView = ({
             </div>
           </div>
         )}
-        <div className={notices({ overNet: !!netDefinition })}>
-          {noticeBanners}
-        </div>
+        <CanvasNotices overNet={!!netDefinition}>{noticeBanners}</CanvasNotices>
         <NetSwitch
           shape="net"
           overNet={!!netDefinition}
@@ -329,12 +312,9 @@ export const RunView = ({
         onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
       />
       <div className={canvasArea}>
-        <div
-          className={notices({ overNet: false })}
-          style={coveredRight ? { right: coveredRight + 16 } : undefined}
-        >
+        <CanvasNotices coveredRight={coveredRight}>
           {noticeBanners}
-        </div>
+        </CanvasNotices>
         <RunCanvas
           flowDefinition={flowDefinition}
           marks={marks}

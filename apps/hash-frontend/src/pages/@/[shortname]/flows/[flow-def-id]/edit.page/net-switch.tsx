@@ -33,6 +33,41 @@ const floating = cva({
   variants: { overNet: { false: { top: "4" }, true: { top: "16" } } },
 });
 
+const notices = cva({
+  base: {
+    position: "absolute",
+    zIndex: "docked",
+    left: "4",
+    right: "4",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2",
+    maxWidth: "[560px]",
+    mx: "auto",
+  },
+  variants: { overNet: { false: { top: "4" }, true: { top: "16" } } },
+});
+
+/** Banners floating over the top of the canvas or the net, as the switch does. */
+export const CanvasNotices = ({
+  overNet = false,
+  coveredRight = 0,
+  children,
+}: {
+  /** Whether they float over Petrinaut's net, below its header. */
+  overNet?: boolean;
+  /** How much of the canvas's right a panel covers. */
+  coveredRight?: number;
+  children: ReactNode;
+}) => (
+  <div
+    className={notices({ overNet })}
+    style={coveredRight ? { right: coveredRight + 16 } : undefined}
+  >
+    {children}
+  </div>
+);
+
 /** Fills the editor's body with the net, or why there's none, for {@link NetSwitch} to float over. */
 export const NetSwitchHost = ({ children }: { children: ReactNode }) => (
   <div className={host}>{children}</div>

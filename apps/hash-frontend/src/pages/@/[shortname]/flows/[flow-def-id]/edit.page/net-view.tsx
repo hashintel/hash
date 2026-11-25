@@ -2,20 +2,22 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { FlowNetView } from "../../../shared/flow-visualizer/flow-net-view";
-import { NetSwitch, NetSwitchHost } from "./net-switch";
+import { CanvasNotices, NetSwitch, NetSwitchHost } from "./net-switch";
 import { findStep, getStepName } from "./shared/find-step";
 
 import type { FlowShape } from "./run-path";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-editor";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { ReactNode } from "react";
 
+/* Scrolls a long list, centred when it fits, below the switch. */
 const centered = css({
   display: "flex",
   flex: "1",
-  alignItems: "center",
-  justifyContent: "center",
+  overflowY: "auto",
   p: "6",
+  pt: "16",
 });
 const content = css({
   display: "flex",
@@ -23,6 +25,7 @@ const content = css({
   gap: "3",
   width: "full",
   maxWidth: "[480px]",
+  m: "auto",
 });
 const title = css({ fontWeight: "medium", color: "fg.heading" });
 const text = css({ textStyle: "sm", color: "fg.muted" });
@@ -49,11 +52,14 @@ const problemText = css({ flex: "1" });
 export const EditorNetView = ({
   editorState: { flowDefinition, flowProblems, problemsByStepId },
   flowDefinitionEntityId,
+  notices,
   onShapeChange,
   onShowStep,
 }: {
   editorState: FlowEditorState;
   flowDefinitionEntityId: EntityId;
+  /** Banners to float over it, e.g. that an autosave was refused. */
+  notices: ReactNode;
   onShapeChange: (shape: FlowShape) => void;
   /** Shows the flow with this step selected. */
   onShowStep: (stepId: string) => void;
@@ -120,6 +126,7 @@ export const EditorNetView = ({
           </div>
         </div>
       )}
+      <CanvasNotices overNet={compilable}>{notices}</CanvasNotices>
       <NetSwitch
         shape="net"
         overNet={compilable}
