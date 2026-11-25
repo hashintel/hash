@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   setup:
+    name: Setup
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -39,6 +40,7 @@ jobs:
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
+    name: Sccache credentials
     runs-on: ubuntu-26.04
     permissions:
       contents: read

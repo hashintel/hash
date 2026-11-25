@@ -56,6 +56,7 @@ jobs:
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   release:
+    name: Release
     runs-on: ubuntu-26.04
     needs: mint-token
     environment: main
