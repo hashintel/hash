@@ -4,6 +4,7 @@ import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
 import { compileFlowDefinition } from "@local/flow-petri-net/compile-flow-definition";
+import { isSameFlowNetPath } from "@local/flow-petri-net/interpret-flow-net";
 import { replayFlowRunEvents } from "@local/flow-petri-net/replay-flow-run-events";
 import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
@@ -16,7 +17,7 @@ import { getFlowRunRecordFromHistory } from "./run-record.js";
 import type { FlowRunHistoryRecord } from "./run-record.js";
 import type { FlowNetMetadata } from "@local/flow-petri-net/flow-net-metadata";
 import type {
-  FlowNetPosition,
+  FlowNetPath,
   FlowNetStepRun,
 } from "@local/flow-petri-net/interpret-flow-net";
 import type { FlowRunReplay } from "@local/flow-petri-net/replay-flow-run-events";
@@ -129,8 +130,10 @@ const stepRunsFromNet = (replay: FlowRunReplay) => {
     }
   >();
 
-  for (const { role, stepRun, componentInstanceId } of replay.firings) {
+  for (const { role, stepRun, transitionPath } of replay.firings) {
     const stepRunId = stepRunIdOf(stepRun);
+    const componentInstanceId =
+      transitionPath.length > 1 ? transitionPath[0] : undefined;
     const current = stepRuns.get(stepRunId) ?? {
       stepRun,
       status: "pending",
@@ -188,14 +191,15 @@ const netStatusOf = (status: FlowStepStatus): NetStepRunStatus => {
 
 /** Whether a token is at a flow output's endpoint: a place of the root net, or a port of a step's instance. */
 const isAt = (
-  position: FlowNetPosition,
+  path: FlowNetPath,
   endpoint: FlowNetMetadata["flowOutputs"][string],
 ) =>
-  endpoint.kind === "place"
-    ? position.kind === "place" && position.placeId === endpoint.placeId
-    : position.kind === "instancePlace" &&
-      position.componentInstanceId === endpoint.componentInstanceId &&
-      position.placeId === endpoint.portPlaceId;
+  isSameFlowNetPath(
+    path,
+    endpoint.kind === "place"
+      ? [endpoint.placeId]
+      : [endpoint.componentInstanceId, endpoint.portPlaceId],
+  );
 
 const replayFixture = async (fixtureName: string) => {
   const fixture = loadFixture(fixtureName);
@@ -286,10 +290,10 @@ describe("replayFlowRunEvents on recorded runs", () => {
 
       for (const [stepRunId, fromNet] of stepRunsFromNet(replay)) {
         const attemptTokens = replay.marking.filter(
-          ({ position, token }) =>
+          ({ path, token }) =>
             token.kind === "attempt" &&
-            position.kind === "instancePlace" &&
-            position.componentInstanceId === fromNet.componentInstanceId &&
+            path.length > 1 &&
+            path[0] === fromNet.componentInstanceId &&
             stepRunIdOf({ ...fromNet.stepRun, itemPath: token.itemPath }) ===
               stepRunId,
         );
@@ -312,9 +316,9 @@ describe("replayFlowRunEvents on recorded runs", () => {
         const endpoint = flowOutputs[outputName];
 
         return replay.marking.some(
-          ({ position, token }) =>
+          ({ path, token }) =>
             endpoint &&
-            isAt(position, endpoint) &&
+            isAt(path, endpoint) &&
             token.kind === "value" &&
             token.present,
         );
