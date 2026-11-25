@@ -72,15 +72,21 @@ editor-view/
 
 Do not import directly from another file's implementation folder.
 
-<!-- prettier-ignore -->
+Avoid reaching into another file's private subtree:
+
 ```typescript
-// Avoid: reaches into another file's private subtree
 import { SimulateView } from "../editor-view/panels/simulate-view";
+```
 
-// Prefer (1): import from a public mini-library (if it is conceptually part of editor-view)
+Prefer importing from a public mini-library (if it is conceptually part of `editor-view`):
+
+```typescript
 import { EditorView } from "../editor-view";
+```
 
-// Prefer (2): move shared code to a shared folder (if it is NOT conceptually part of editor-view)
+Or move shared code to a shared folder (if it is not conceptually part of `editor-view`):
+
+```typescript
 import { Button } from "../shared/button";
 ```
 
