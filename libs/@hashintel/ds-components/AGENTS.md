@@ -241,6 +241,7 @@ Components wrap Ark UI primitives with Panda styling:
 
 ```tsx
 import { Checkbox as ArkCheckbox } from "@ark-ui/react/checkbox";
+
 import { css } from "@hashintel/ds-helpers/css";
 
 export const Checkbox = (props) => (

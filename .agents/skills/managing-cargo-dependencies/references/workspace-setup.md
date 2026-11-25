@@ -39,7 +39,10 @@ regex = { version = "1.11.1", default-features = false }
 ```toml
 [workspace.dependencies]
 # When you need features enabled everywhere
-derive_more = { version = "1.0.0", default-features = false, features = ["debug", "from"] }
+derive_more = { version = "1.0.0", default-features = false, features = [
+  "debug",
+  "from",
+] }
 ```
 
 **Note:** Usually better to enable features at package level for granular control.
@@ -61,8 +64,8 @@ tokio = { version = "1.47.1", default-features = false }
 
 ```toml
 serde = { version = "=1.0.228", default-features = false } # Exact pinning (not needed)
-tokio = "1.47"                                              # No shorthand
-serde = { version = "1.0", default-features = false }      # Too vague
+tokio = "1.47" # No shorthand
+serde = { version = "1.0", default-features = false } # Too vague
 ```
 
 ---
@@ -167,7 +170,10 @@ tracing = { version = "0.1.41", default-features = false }
 ```toml
 [workspace.dependencies]
 # When all packages need the same features
-uuid = { version = "1.11.0", default-features = false, features = ["v4", "serde"] }
+uuid = { version = "1.11.0", default-features = false, features = [
+  "v4",
+  "serde",
+] }
 ```
 
 ### Adding Workspace Member

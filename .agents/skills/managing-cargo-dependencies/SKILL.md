@@ -40,19 +40,19 @@ Every package `Cargo.toml` must organize dependencies into these sections:
 [dependencies]
 # Public workspace dependencies
 hash-graph-types = { workspace = true, public = true }
-hashql-core      = { workspace = true, public = true }
+hashql-core = { workspace = true, public = true }
 
 # Public third-party dependencies
-serde     = { workspace = true, public = true, features = ["derive"] }
-tokio     = { workspace = true, public = true }
+serde = { workspace = true, public = true, features = ["derive"] }
+tokio = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }
-hash-codec  = { workspace = true }
+hash-codec = { workspace = true }
 
 # Private third-party dependencies
-tracing     = { workspace = true }
-regex       = { workspace = true }
+tracing = { workspace = true }
+regex = { workspace = true }
 ```
 
 **Keep all 4 section comments even if a section is empty.**

@@ -88,6 +88,7 @@ Example:
 
 ```tsx
 import { Checkbox as ArkCheckbox } from "@ark-ui/react/checkbox";
+
 import { css } from "@hashintel/ds-helpers/css";
 
 export const Example = () => (

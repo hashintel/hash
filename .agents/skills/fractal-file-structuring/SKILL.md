@@ -72,6 +72,7 @@ editor-view/
 
 Do not import directly from another file's implementation folder.
 
+<!-- prettier-ignore -->
 ```typescript
 // Avoid: reaches into another file's private subtree
 import { SimulateView } from "../editor-view/panels/simulate-view";
