@@ -67,6 +67,10 @@ pub(super) fn stage(
         })
         .collect::<Vec<_>>()
         .join(", ");
+    // Every row is read three times: when the capture file is loaded, when it is copied here, and
+    // when the invalid kinds of change are counted. This is fine for small captures, but its
+    // performance has to be watched as captures grow. Checking `_change` while copying would save
+    // one of the reads.
     workspace
         .create_table(
             table,
