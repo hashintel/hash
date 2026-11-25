@@ -150,8 +150,9 @@ fn pipeline_metadata_loss() {
             &BTreeMap::new(),
         )
         .expect_err("steps should preserve metadata");
-    assert!(
-        matches!(report.current_context(), PreparationError::Step { step } if step.as_ref() == "lose-metadata"),
+    assert_matches!(
+        report.current_context(),
+        PreparationError::Step { step } if step.as_ref() == "lose-metadata",
         "the failing step should be named: {report:?}"
     );
     assert!(
@@ -190,11 +191,9 @@ fn pipeline_named_inputs() {
     let report = workspace
         .prepare_pipeline(&pipeline, "source", &BTreeMap::new())
         .expect_err("a missing input should be reported");
-    assert!(
-        matches!(
-            report.current_context(),
-            PreparationError::MissingCheckpoint { .. }
-        ),
+    assert_matches!(
+        report.current_context(),
+        PreparationError::MissingCheckpoint { .. },
         "the missing checkpoint should be reported: {report:?}"
     );
     let checkpoints = BTreeMap::from([(
@@ -235,8 +234,9 @@ fn pipeline_sql_sandbox() {
             &BTreeMap::new(),
         )
         .expect_err("pipeline SQL should obey the workspace sandbox");
-    assert!(
-        matches!(report.downcast_ref::<StatementError>(), Some(StatementError::TableFunction { name }) if name.as_ref() == "read_csv"),
+    assert_matches!(
+        report.downcast_ref::<StatementError>(),
+        Some(StatementError::TableFunction { name }) if name.as_ref() == "read_csv",
         "the forbidden table function should be reported: {report:?}"
     );
     let prepared = workspace
