@@ -1,9 +1,13 @@
 /**
- * Seeds a web of a deployed HASH, such as staging, with what the "Company first-touch email" flow needs: a Company
- * entity type and its properties, the companies in `flow-company-outreach/companies.json`, and the flow itself. The
- * flow takes the companies picked in its run form, splits them by whether their contact uses a personal email address,
- * and drafts a first-touch email for the organisations (from a brief of their details) and a personal note for the
- * people.
+ * Seeds a web of a deployed HASH, such as staging, with two company outreach flows and what they need: a Company entity
+ * type and its properties, and the companies in `flow-company-outreach/companies.json`. Both flows split companies by
+ * whether their contact uses a personal email address, and draft a first-touch email for the organisations (from a
+ * brief of their details) and a personal note for the people.
+ *
+ *  - "First-touch email for picked companies" writes to the companies picked in its run form.
+ *  - "Company first-touch email" finds the companies never contacted and counts each side. It writes to the biggest
+ *    organisations, as many as its run form asks for, and to the first 20 people. If the brief flags a company of 500
+ *    or more staff, its "Escalate" path drafts a note to the account lead.
  *
  * It only uses the GraphQL API, as the signed-in user, so it needs no access to the graph. Sign in to the deployment in
  * a browser, copy the value of its `ory_kratos_session` cookie, and enter it without echoing it or saving it in your
@@ -20,12 +24,13 @@
  *  - `HASH_API_URL`: the API to seed. Required: there is no default, and production is refused.
  *  - `--dry-run`: print what would be created, and make no requests at all. Needs neither variable.
  *  - `--web-id <uuid>`: an org's web to seed instead of your own. Flows only find entities in the web they run in.
- *  - `--replace-flow`: replace the definition of the flow if the web already has it, discarding edits made to it.
+ *  - `--only <names>`: seed only the flows named, separated by commas. The types and companies are seeded either way.
+ *  - `--replace-flow`: replace the definitions of flows the web already has, discarding edits made to them.
  *  - `--pause-ms <ms>`: how long to wait after each thing created, 2500 by default and at least 1000.
  *  - `--data <file>`: a JSON file of companies to seed instead of the committed ones, in the same shape.
  *
- * Types, companies (by name) and the flow (by name) are each only created if the web doesn't have them yet, so the
- * script can be run again, for example after it stopped part way.
+ * Types, companies (by name) and flows (by name) are each only created if the web doesn't have them yet, so the script
+ * can be run again, for example after it stopped part way. It never starts a run or adds a schedule.
  *
  * Why it's slow: on 13 Nov 2026 an earlier seed script made about 100 writes to staging in under a minute, six at a
  * time. The graph starts an embeddings workflow on the AI worker for every entity and type created, the jobs arrived
@@ -48,6 +53,7 @@ import {
   defineFlow,
   flowInput,
 } from "@local/hash-isomorphic-utils/flows/define-flow";
+import { maxDraftMessageEntities } from "@local/hash-isomorphic-utils/flows/limits";
 import { assertValidFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import {
   currentTimeInstantTemporalAxes,
@@ -63,11 +69,14 @@ import {
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
+  EntityQuery,
   FlowDefinition,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-const flowName = "Company first-touch email";
+const pickedCompaniesFlowName = "First-touch email for picked companies";
+const neverContactedFlowName = "Company first-touch email";
+const flowNames = [pickedCompaniesFlowName, neverContactedFlowName];
 
 /** Domains of personal email addresses: a contact at one is a person, not an organisation. */
 const personalEmailDomains = [
@@ -101,7 +110,7 @@ const getFlagValue = (flag: string) => {
   return value;
 };
 
-const valueFlags = ["--web-id", "--pause-ms", "--data"];
+const valueFlags = ["--web-id", "--pause-ms", "--data", "--only"];
 const booleanFlags = ["--dry-run", "--replace-flow"];
 
 type Company = {
@@ -226,31 +235,67 @@ const nameBaseUrl = blockProtocolPropertyTypes.name.propertyTypeBaseUrl;
 const descriptionBaseUrl =
   blockProtocolPropertyTypes.description.propertyTypeBaseUrl;
 
-/**
- * The flow, connected the way the editor connects steps: each step runs after the steps it reads from, and every
- * condition is in the shape the condition rows save and read back, so the flow can be edited in the UI.
- */
-const buildFlow = (contactEmailBaseUrl: BaseUrl): FlowDefinition => {
-  const isPersonalEmail: FilterCondition = {
-    kind: "any",
-    conditions: personalEmailDomains.map((domain) => ({
-      kind: "condition",
-      subject: {
-        kind: "entityProperty",
-        propertyTypeBaseUrl: contactEmailBaseUrl,
-        payloadKind: "Text",
-      },
-      operator: "endsWith",
-      value: { kind: "Text", value: domain },
-    })),
-  };
+/** The types and properties the flows read, by base URL. */
+type FlowTypeUrls = {
+  company: BaseUrl;
+  contactEmail: BaseUrl;
+  lastContacted: BaseUrl;
+  size: BaseUrl;
+};
 
+type RunAfter = NonNullable<StepDefinition<string>["runAfter"]>;
+
+/**
+ * Sets the steps each step runs after, which the editor draws as the lines between them: `defineFlow` only sets the
+ * outputs a step reads. Then validates the definition, so a mistake stops the script before it writes anything.
+ */
+const connectSteps = (
+  flowDefinition: FlowDefinition,
+  runAfter: Record<string, RunAfter>,
+): FlowDefinition =>
+  assertValidFlowDefinition({
+    ...flowDefinition,
+    steps: flowDefinition.steps.map((flowStep) =>
+      runAfter[flowStep.stepId]
+        ? { ...flowStep, runAfter: runAfter[flowStep.stepId] }
+        : flowStep,
+    ),
+  });
+
+/** Whether a company's contact uses a personal email address, as the condition rows save it. */
+const isPersonalEmail = (urls: FlowTypeUrls): FilterCondition => ({
+  kind: "any",
+  conditions: personalEmailDomains.map((domain) => ({
+    kind: "condition",
+    subject: {
+      kind: "entityProperty",
+      propertyTypeBaseUrl: urls.contactEmail,
+      payloadKind: "Text",
+    },
+    operator: "endsWith",
+    value: { kind: "Text", value: domain },
+  })),
+});
+
+const splitDescription = "Organisation or person?";
+
+const briefInstructions =
+  "Write a short brief for someone about to write a first-touch email to each company given. For each one, say who the contact is, what the company does, its industry and size, and when we last contacted it, or that we never have. Use a few bullet points per company. This is notes for the writer, not the email itself.";
+
+const emailInstructions =
+  "Write a friendly first-touch email from HASH to the contact at the company in the brief, under 150 words. Mention what the company does, and suggest a short call. If the brief covers more than one company, write one email that suits each of them, with [Company] and [First name] placeholders.";
+
+const personalNoteInstructions =
+  "Write a short, warm note from HASH to the person given, under 100 words. They use a personal email address, so write to them as an individual, not as a company, and avoid corporate language. If several people are given, write one note with a [First name] placeholder.";
+
+/** Drafts emails to the companies picked in the run form. */
+const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
   const { flowDefinition } = defineFlow(
     {
       flowDefinitionId: crypto.randomUUID(),
-      name: flowName,
+      name: pickedCompaniesFlowName,
       description:
-        "Split companies by whether their contact is a person or an organisation, and draft a first-touch email to each",
+        "Split the companies picked by whether their contact is a person or an organisation, and draft a first-touch email to each",
       inputs: {
         companies: flowInput("EntityId", {
           array: true,
@@ -261,20 +306,17 @@ const buildFlow = (contactEmailBaseUrl: BaseUrl): FlowDefinition => {
     },
     ({ inputs, step }) => {
       const split = step("splitContacts", actions.filterList, {
-        description: "Organisation or person?",
+        description: splitDescription,
         inputs: {
           items: inputs.companies,
-          condition: constant("FilterCondition", isPersonalEmail),
+          condition: constant("FilterCondition", isPersonalEmail(urls)),
         },
       });
 
       const details = step("pickDetails", actions.draftMessage, {
         description: "Pick out the details",
         inputs: {
-          instructions: constant(
-            "Text",
-            "Write a short brief for someone about to write a first-touch email to each company given. For each one, say who the contact is, what the company does, its industry and size, and when we last contacted it, or that we never have. Use a few bullet points per company. This is notes for the writer, not the email itself.",
-          ),
+          instructions: constant("Text", briefInstructions),
           entities: split.outputs.nonMatching,
         },
       });
@@ -282,10 +324,7 @@ const buildFlow = (contactEmailBaseUrl: BaseUrl): FlowDefinition => {
       const email = step("writeEmail", actions.draftMessage, {
         description: "Write the email",
         inputs: {
-          instructions: constant(
-            "Text",
-            "Write a friendly first-touch email from HASH to the contact at the company in the brief, under 150 words. Mention what the company does, and suggest a short call. If the brief covers more than one company, write one email that suits each of them, with [Company] and [First name] placeholders.",
-          ),
+          instructions: constant("Text", emailInstructions),
           context: details.outputs.body,
         },
       });
@@ -293,10 +332,7 @@ const buildFlow = (contactEmailBaseUrl: BaseUrl): FlowDefinition => {
       const note = step("personalNote", actions.draftMessage, {
         description: "Personal note",
         inputs: {
-          instructions: constant(
-            "Text",
-            "Write a short, warm note from HASH to the person given, under 100 words. They use a personal email address, so write to them as an individual, not as a company, and avoid corporate language. If several people are given, write one note with a [First name] placeholder.",
-          ),
+          instructions: constant("Text", personalNoteInstructions),
           entities: split.outputs.matching,
         },
       });
@@ -312,26 +348,213 @@ const buildFlow = (contactEmailBaseUrl: BaseUrl): FlowDefinition => {
     },
   );
 
-  /* `defineFlow` only sets the outputs a step reads; the editor draws a line for each step a step runs after. */
-  return assertValidFlowDefinition({
-    ...flowDefinition,
-    steps: flowDefinition.steps.map((flowStep): StepDefinition<string> => {
-      const sourceStepIds =
-        flowStep.kind === "action"
-          ? Object.values(flowStep.inputs).flatMap((source) =>
-              source.kind === "step-output" ? [source.stepId] : [],
-            )
-          : [];
-
-      return sourceStepIds.length === 0
-        ? flowStep
-        : {
-            ...flowStep,
-            runAfter: [...new Set(sourceStepIds)].map((stepId) => ({ stepId })),
-          };
-    }),
+  return connectSteps(flowDefinition, {
+    pickDetails: [{ stepId: "splitContacts" }],
+    writeEmail: [{ stepId: "pickDetails" }],
+    personalNote: [{ stepId: "splitContacts" }],
   });
 };
+
+/**
+ * Finds the companies never contacted and drafts emails to the biggest organisations among them, flagging a large one
+ * for the account lead, and a note to the people.
+ */
+const buildNeverContactedFlow = (urls: FlowTypeUrls): FlowDefinition => {
+  /* In the shape Find entities' query builder writes: `{ all: [types, conditions] }`. */
+  const neverContacted: EntityQuery = {
+    filter: {
+      all: [
+        {
+          any: [
+            {
+              equal: [
+                { path: ["type", "baseUrl"] },
+                { parameter: urls.company },
+              ],
+            },
+          ],
+        },
+        {
+          all: [
+            {
+              not: {
+                exists: { path: ["properties", urls.lastContacted] },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const startsWithLarge: FilterCondition = {
+    kind: "all",
+    conditions: [
+      {
+        kind: "condition",
+        subject: { kind: "input", payloadKind: "Text" },
+        operator: "startsWith",
+        value: { kind: "Text", value: "LARGE" },
+      },
+    ],
+  };
+
+  const { flowDefinition } = defineFlow(
+    {
+      flowDefinitionId: crypto.randomUUID(),
+      name: neverContactedFlowName,
+      description:
+        "Find the companies we've never contacted, and draft a first-touch email to the biggest organisations and a note to the people",
+      inputs: {
+        howMany: flowInput("Number", {
+          label: "How many organisations?",
+          description: "How many of the biggest organisations to write to",
+        }),
+      },
+    },
+    ({ inputs, step }) => {
+      const found = step("findNeverContacted", actions.queryEntities, {
+        description: "Companies never contacted",
+        inputs: { query: constant("EntityQuery", neverContacted) },
+      });
+
+      const split = step("splitContacts", actions.filterList, {
+        description: splitDescription,
+        inputs: {
+          items: found.outputs.entities,
+          condition: constant("FilterCondition", isPersonalEmail(urls)),
+        },
+      });
+
+      const organisationCount = step("countOrganisations", actions.aggregate, {
+        description: "Count organisations",
+        inputs: {
+          items: split.outputs.nonMatching,
+          aggregation: constant("Aggregation", { operation: "count" }),
+        },
+      });
+
+      const peopleCount = step("countPeople", actions.aggregate, {
+        description: "Count people",
+        inputs: {
+          items: split.outputs.matching,
+          aggregation: constant("Aggregation", { operation: "count" }),
+        },
+      });
+
+      const biggestFirst = step("biggestFirst", actions.orderBy, {
+        description: "Biggest first",
+        inputs: {
+          items: split.outputs.nonMatching,
+          sortBy: constant("SortKey", {
+            subject: {
+              kind: "entityProperty",
+              propertyTypeBaseUrl: urls.size,
+              payloadKind: "Number",
+            },
+            direction: "descending",
+          }),
+        },
+      });
+
+      const biggest = step("keepBiggest", actions.takeFirst, {
+        description: "Keep the biggest",
+        inputs: { items: biggestFirst.outputs.items, count: inputs.howMany },
+      });
+
+      const details = step("pickDetails", actions.draftMessage, {
+        description: "Pick out the details",
+        inputs: {
+          instructions: constant(
+            "Text",
+            `${briefInstructions} If any company given has 500 or more staff, start the subject with "LARGE:"; otherwise, don't.`,
+          ),
+          entities: biggest.outputs.items,
+        },
+      });
+
+      step("writeEmail", actions.draftMessage, {
+        description: "Write the email",
+        inputs: {
+          instructions: constant("Text", emailInstructions),
+          context: details.outputs.body,
+        },
+      });
+
+      step("anyLarge", actions.if, {
+        description: "Any large company?",
+        inputs: {
+          value: details.outputs.subject,
+          condition: constant("FilterCondition", startsWithLarge),
+        },
+      });
+
+      step("noteToLead", actions.draftMessage, {
+        description: "Note to the account lead",
+        inputs: {
+          instructions: constant(
+            "Text",
+            "Write a short note to our account lead about the large companies in the brief: who they are, why they're worth a careful first touch, and a request to review the first-touch email before it goes out. Under 120 words.",
+          ),
+          context: details.outputs.body,
+        },
+      });
+
+      const firstPeople = step("keepFirstPeople", actions.takeFirst, {
+        description: "Keep the first 20",
+        inputs: {
+          items: split.outputs.matching,
+          count: constant("Number", maxDraftMessageEntities),
+        },
+      });
+
+      step("personalNote", actions.draftMessage, {
+        description: "Personal note",
+        inputs: {
+          instructions: constant("Text", personalNoteInstructions),
+          entities: firstPeople.outputs.items,
+        },
+      });
+
+      return {
+        outputs: {
+          "Organisations never contacted": organisationCount.outputs.result,
+          "People never contacted": peopleCount.outputs.result,
+        },
+      };
+    },
+  );
+
+  const withPaths = {
+    ...flowDefinition,
+    steps: flowDefinition.steps.map((flowStep) =>
+      flowStep.stepId === "anyLarge" && flowStep.kind === "action"
+        ? { ...flowStep, pathNames: { true: "Escalate" } }
+        : flowStep,
+    ),
+  };
+
+  return connectSteps(withPaths, {
+    splitContacts: [{ stepId: "findNeverContacted" }],
+    countOrganisations: [{ stepId: "splitContacts" }],
+    countPeople: [{ stepId: "splitContacts" }],
+    biggestFirst: [{ stepId: "splitContacts" }],
+    keepBiggest: [{ stepId: "biggestFirst" }],
+    pickDetails: [{ stepId: "keepBiggest" }],
+    writeEmail: [{ stepId: "pickDetails" }],
+    anyLarge: [{ stepId: "writeEmail" }],
+    /* Only on If's Yes path, as the editor connects a step to a path. */
+    noteToLead: [{ stepId: "anyLarge", outputName: "true" }],
+    keepFirstPeople: [{ stepId: "splitContacts" }],
+    personalNote: [{ stepId: "keepFirstPeople" }],
+  });
+};
+
+/** The flows named, in the order they're seeded. */
+const buildFlows = (urls: FlowTypeUrls, names: string[]) =>
+  [buildPickedCompaniesFlow(urls), buildNeverContactedFlow(urls)].filter(
+    ({ name }) => names.includes(name),
+  );
 
 const describeCompany = (company: Company) =>
   `${company.name} (${company.industry}, size ${company.size}, ${company.contactName} <${company.contactEmail}>, ${
@@ -340,12 +563,27 @@ const describeCompany = (company: Company) =>
       : "never contacted"
   })`;
 
-const printDryRun = (companies: Company[], pauseMs: number) => {
-  const flow = buildFlow(
-    "https://hash.example/@you/types/property-type/contact-email/" as BaseUrl,
+const printDryRun = (
+  companies: Company[],
+  pauseMs: number,
+  names: string[],
+) => {
+  const placeholder = (kind: string, title: string) =>
+    `https://hash.example/@you/types/${kind}/${title}/` as BaseUrl;
+  const flows = buildFlows(
+    {
+      company: placeholder("entity-type", "company"),
+      contactEmail: placeholder("property-type", "contact-email"),
+      lastContacted: placeholder("property-type", "last-contacted"),
+      size: placeholder("property-type", "size"),
+    },
+    names,
   );
   const writes =
-    Object.keys(propertyTypeDefinitions).length + 1 + companies.length + 1;
+    Object.keys(propertyTypeDefinitions).length +
+    1 +
+    companies.length +
+    flows.length;
 
   console.log(
     "Dry run: no requests are made. In a web that has none of these yet, the script would create:",
@@ -365,26 +603,28 @@ const printDryRun = (companies: Company[], pauseMs: number) => {
   for (const company of companies) {
     console.log(`  - ${describeCompany(company)}`);
   }
-  console.log(
-    `\n1 flow, "${flow.name}", only if the web has none of that name (or its definition replaced, with --replace-flow):`,
-  );
-  console.log(
-    `  - Input: ${flow.inputs.map(({ label, name }) => label ?? name).join(", ")}`,
-  );
-  for (const flowStep of flow.steps) {
+  for (const flow of flows) {
     console.log(
-      `  - ${flowStep.stepId}: ${flowStep.description}${
-        flowStep.runAfter
-          ? `, after ${flowStep.runAfter.map(({ stepId }) => stepId).join(", ")}`
-          : ""
-      }`,
+      `\nFlow "${flow.name}", only if the web has none of that name (or its definition replaced, with --replace-flow):`,
+    );
+    console.log(
+      `  - Input: ${flow.inputs.map(({ label, name }) => label ?? name).join(", ")}`,
+    );
+    for (const flowStep of flow.steps) {
+      const after = (flowStep.runAfter ?? []).map(({ stepId, outputName }) =>
+        outputName ? `${stepId} (${outputName})` : stepId,
+      );
+
+      console.log(
+        `  - ${flowStep.stepId}: ${flowStep.description}${after.length > 0 ? `, after ${after.join(", ")}` : ""}`,
+      );
+    }
+    console.log(
+      `  - Outputs: ${flow.outputs.map(({ name, stepId, outputName }) => `${name} (${stepId}.${outputName})`).join(", ")}`,
     );
   }
   console.log(
-    `  - Outputs: ${flow.outputs.map(({ name, stepId, outputName }) => `${name} (${stepId}.${outputName})`).join(", ")}`,
-  );
-  console.log(
-    `\nThe flow definition passed local validation. That's at most ${writes} writes, one at a time, with a ${pauseMs} ms pause after each: about ${Math.ceil(
+    `\nThe flow definitions passed local validation. That's at most ${writes} writes, one at a time, with a ${pauseMs} ms pause after each: about ${Math.ceil(
       (writes * pauseMs) / 1000,
     )} seconds of pauses.`,
   );
@@ -439,11 +679,13 @@ const seed = async ({
   pauseMs,
   webIdFlag,
   replaceFlow,
+  names,
 }: {
   companies: Company[];
   pauseMs: number;
   webIdFlag: string | undefined;
   replaceFlow: boolean;
+  names: string[];
 }) => {
   const apiUrl = getApiUrl();
   const sessionCookie = process.env.HASH_SESSION_COOKIE;
@@ -575,7 +817,7 @@ const seed = async ({
   const webId = webIdFlag ?? sessionAccount.webId;
 
   console.log(
-    `Seeding the company outreach flow into web ${webId} on ${apiUrl}, pausing ${pauseMs} ms after each write…`,
+    `Seeding the company outreach flows into web ${webId} on ${apiUrl}, pausing ${pauseMs} ms after each write…`,
   );
 
   const existingPropertyTypes = await queryLatestTypes("propertyTypes", webId);
@@ -725,84 +967,92 @@ const seed = async ({
     await wrote(`Created company ${company.name}.`);
   }
 
-  const definition = buildFlow(url("contactEmail"));
-
-  const [existingFlow] = await queryEntitiesInWeb(
-    webId,
-    systemEntityTypes.flowDefinition.entityTypeBaseUrl,
-    [
-      {
-        equal: [{ path: ["properties", nameBaseUrl] }, { parameter: flowName }],
-      },
-    ],
-  );
-
   const saveResultFields = "flowDefinitionEntityId isRunnable diagnostics";
-  let saved: FlowSaveResult | undefined;
 
-  if (!existingFlow) {
-    saved = (
-      await graphql<{ createFlowDefinition: FlowSaveResult }>(
-        `
-          mutation ($webId: WebId!, $definition: JSONObject!) {
-            createFlowDefinition(webId: $webId, definition: $definition) {
-              ${saveResultFields}
+  for (const definition of buildFlows(
+    {
+      company: companyType.metadata.recordId.baseUrl,
+      contactEmail: url("contactEmail"),
+      lastContacted: url("lastContacted"),
+      size: url("size"),
+    },
+    names,
+  )) {
+    const { name } = definition;
+    const [existingFlow] = await queryEntitiesInWeb(
+      webId,
+      systemEntityTypes.flowDefinition.entityTypeBaseUrl,
+      [{ equal: [{ path: ["properties", nameBaseUrl] }, { parameter: name }] }],
+    );
+
+    let saved: FlowSaveResult | undefined;
+
+    if (!existingFlow) {
+      saved = (
+        await graphql<{ createFlowDefinition: FlowSaveResult }>(
+          `
+            mutation ($webId: WebId!, $definition: JSONObject!) {
+              createFlowDefinition(webId: $webId, definition: $definition) {
+                ${saveResultFields}
+              }
             }
-          }
-        `,
-        { webId, definition },
-      )
-    ).createFlowDefinition;
+          `,
+          { webId, definition },
+        )
+      ).createFlowDefinition;
 
-    await wrote(`Created flow "${flowName}".`);
-  } else if (replaceFlow) {
-    saved = (
-      await graphql<{ updateFlowDefinition: FlowSaveResult }>(
-        `
-          mutation (
-            $flowDefinitionEntityId: EntityId!
-            $expectedEditionId: EntityEditionId!
-            $definition: JSONObject!
-          ) {
-            updateFlowDefinition(
-              flowDefinitionEntityId: $flowDefinitionEntityId
-              expectedEditionId: $expectedEditionId
-              definition: $definition
+      await wrote(`Created flow "${name}".`);
+    } else if (replaceFlow) {
+      saved = (
+        await graphql<{ updateFlowDefinition: FlowSaveResult }>(
+          `
+            mutation (
+              $flowDefinitionEntityId: EntityId!
+              $expectedEditionId: EntityEditionId!
+              $definition: JSONObject!
             ) {
-              ${saveResultFields}
+              updateFlowDefinition(
+                flowDefinitionEntityId: $flowDefinitionEntityId
+                expectedEditionId: $expectedEditionId
+                definition: $definition
+              ) {
+                ${saveResultFields}
+              }
             }
-          }
-        `,
-        {
-          flowDefinitionEntityId: existingFlow.metadata.recordId.entityId,
-          expectedEditionId: existingFlow.metadata.recordId.editionId,
-          definition,
-        },
-      )
-    ).updateFlowDefinition;
+          `,
+          {
+            flowDefinitionEntityId: existingFlow.metadata.recordId.entityId,
+            expectedEditionId: existingFlow.metadata.recordId.editionId,
+            definition,
+          },
+        )
+      ).updateFlowDefinition;
 
-    await wrote(`Replaced the definition of flow "${flowName}".`);
-  } else {
+      await wrote(`Replaced the definition of flow "${name}".`);
+    } else {
+      console.log(
+        `The web already has flow "${name}": pass --replace-flow to replace its definition.`,
+      );
+    }
+
+    if (saved && !saved.isRunnable) {
+      console.warn(
+        `Warning: flow "${name}" was saved, but the API says it can't run:\n${saved.diagnostics
+          .filter(({ severity }) => severity === "error")
+          .map(({ message }) => `  - ${message}`)
+          .join("\n")}`,
+      );
+    }
+
+    const flowEntityId =
+      existingFlow?.metadata.recordId.entityId ?? saved?.flowDefinitionEntityId;
+
     console.log(
-      `The web already has flow "${flowName}": pass --replace-flow to replace its definition.`,
+      `  Open it from the Flows page, or at /@<shortname>/flows/${flowEntityId?.split("~")[1]}/edit.`,
     );
   }
 
-  if (saved && !saved.isRunnable) {
-    console.warn(
-      `Warning: the flow was saved, but the API says it can't run:\n${saved.diagnostics
-        .filter(({ severity }) => severity === "error")
-        .map(({ message }) => `  - ${message}`)
-        .join("\n")}`,
-    );
-  }
-
-  const flowEntityId =
-    existingFlow?.metadata.recordId.entityId ?? saved?.flowDefinitionEntityId;
-
-  console.log(
-    `Done, with ${writes} writes. Open the flow from the Flows page, or at /@<shortname>/flows/${flowEntityId?.split("~")[1]}/edit.`,
-  );
+  console.log(`Done, with ${writes} writes.`);
 };
 
 const main = async () => {
@@ -856,8 +1106,21 @@ const main = async () => {
         ),
   );
 
+  const onlyFlag = getFlagValue("--only");
+  const names =
+    onlyFlag === undefined
+      ? flowNames
+      : onlyFlag.split(",").map((name) => name.trim());
+  const unknownNames = names.filter((name) => !flowNames.includes(name));
+
+  if (unknownNames.length > 0) {
+    throw new Error(
+      `--only names flows this script doesn't have: ${unknownNames.join(", ")}. It has "${flowNames.join('" and "')}".`,
+    );
+  }
+
   if (args.includes("--dry-run")) {
-    printDryRun(companies, pauseMs);
+    printDryRun(companies, pauseMs, names);
     return;
   }
 
@@ -866,6 +1129,7 @@ const main = async () => {
     pauseMs,
     webIdFlag,
     replaceFlow: args.includes("--replace-flow"),
+    names,
   });
 };
 

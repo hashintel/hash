@@ -119,5 +119,61 @@
     "contactName": "Ruth Adeyemi",
     "contactEmail": "ruth.adeyemi@corvid-security.example",
     "lastContacted": "2026-05-18"
+  },
+  {
+    "name": "Saltmarsh Seafoods",
+    "industry": "Food and drink",
+    "size": 760,
+    "description": "Catches, processes and freezes fish for restaurants and supermarkets.",
+    "contactName": "Ivan Brooks",
+    "contactEmail": "trade@saltmarsh-seafoods.example"
+  },
+  {
+    "name": "Pebble Tea House",
+    "industry": "Food and drink",
+    "size": 12,
+    "description": "A tea room and loose-leaf tea shop with a small online store.",
+    "contactName": "Nadia Hussain",
+    "contactEmail": "hello@pebble-tea.example"
+  },
+  {
+    "name": "Ann's Allotment Veg",
+    "industry": "Food and drink",
+    "size": 2,
+    "description": "Sells vegetable boxes grown on two allotments.",
+    "contactName": "Ann Example",
+    "contactEmail": "ann.example@yahoo.com"
+  },
+  {
+    "name": "Ironbridge Rail Freight",
+    "industry": "Logistics",
+    "size": 1500,
+    "description": "Runs freight trains between inland terminals and the ports.",
+    "contactName": "Peter Novak",
+    "contactEmail": "commercial@ironbridge-rail.example"
+  },
+  {
+    "name": "Harbourside Storage",
+    "industry": "Logistics",
+    "size": 60,
+    "description": "Rents warehouse space and handles pick-and-pack for online shops.",
+    "contactName": "Lucy Grant",
+    "contactEmail": "enquiries@harbourside-storage.example"
+  },
+  {
+    "name": "Fieldnote Apps",
+    "industry": "Software",
+    "size": 38,
+    "description": "Builds mobile apps for surveyors and field engineers.",
+    "contactName": "Tariq Shah",
+    "contactEmail": "tariq.shah@fieldnote-apps.example"
+  },
+  {
+    "name": "Pixel Patch",
+    "industry": "Software",
+    "size": 1,
+    "description": "A freelance web designer who builds sites for local shops.",
+    "contactName": "Test Persona",
+    "contactEmail": "test.persona@icloud.com"
   }
 ]
