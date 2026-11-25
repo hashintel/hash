@@ -450,8 +450,8 @@ describe("moving supply chain types to current units", () => {
       calls.map(([, , { currentEntityTypeId }]) => currentEntityTypeId),
     ).toEqual(upgradedEntityTypeIds.map(firstVersionOf));
 
-    const upgradedPropertyTypes = new Set<VersionedUrl>(
-      upgradedPropertyTypeIds,
+    const previousPropertyTypeIds = new Set<VersionedUrl>(
+      upgradedPropertyTypeIds.map(firstVersionOf),
     );
     const previousEntityTypeIds = new Set<VersionedUrl>(
       upgradedEntityTypeIds.map(firstVersionOf),
@@ -462,13 +462,13 @@ describe("moving supply chain types to current units", () => {
       expect(Object.keys(newSchema.properties)).toEqual(
         Object.keys(previous.properties),
       );
-      for (const typeId of propertyReferences(newSchema)) {
-        expect(
-          upgradedPropertyTypes.has(firstVersionOf(typeId)) &&
-            !upgradedPropertyTypes.has(typeId),
-          typeId,
-        ).toBe(false);
-      }
+      expect(propertyReferences(newSchema), currentEntityTypeId).toEqual(
+        propertyReferences(previous).map((reference) =>
+          previousPropertyTypeIds.has(reference)
+            ? nextVersionOf(reference)
+            : reference,
+        ),
+      );
       expect(entityTypeReferences(newSchema)).toEqual(
         entityTypeReferences(previous).map((reference) =>
           previousEntityTypeIds.has(reference)
