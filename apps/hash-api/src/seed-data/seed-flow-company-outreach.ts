@@ -96,8 +96,19 @@ const personalEmailDomains = [
 const defaultPauseMs = 2500;
 const minPauseMs = 1000;
 
-/** Hosts of the production deployment, which this script refuses to write to. */
-const productionHosts = new Set(["hash.ai", "app.hash.ai", "api.hash.ai"]);
+/**
+ * Whether a host belongs to the production deployment, which this script refuses to write to: `hash.ai` and every
+ * subdomain except staging's, so production hosts not listed anywhere here (such as `app-api.hash.ai`) are refused too.
+ * A trailing dot names the same host.
+ */
+const isProductionHost = (hostname: string) => {
+  const host = hostname.replace(/\.$/, "");
+
+  const isUnder = (domain: string) =>
+    host === domain || host.endsWith(`.${domain}`);
+
+  return isUnder("hash.ai") && !isUnder("stage.hash.ai");
+};
 
 const args = process.argv.slice(2);
 
@@ -827,7 +838,7 @@ const getApiUrl = () => {
   const url = new URL(value);
   const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
 
-  if (productionHosts.has(url.hostname)) {
+  if (isProductionHost(url.hostname)) {
     throw new Error(
       `${url.hostname} is production, which this script doesn't seed.`,
     );
