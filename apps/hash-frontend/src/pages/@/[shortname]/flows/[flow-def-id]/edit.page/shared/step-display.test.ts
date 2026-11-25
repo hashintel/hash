@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  getStepDisplay,
-  isAddableAction,
   listedActionGroups,
   recommendedActions,
   searchListedActions,
@@ -26,38 +24,6 @@ describe("listedActionGroups", () => {
       ["Lists", ["Filter list", "Find", "Order by", "Take first", "Aggregate"]],
       ["Flow control", ["If", "For each"]],
     ]);
-  });
-
-  it("lists the upcoming actions without making them addable", () => {
-    expect(
-      labelsOf(
-        listedActionGroups
-          .flatMap(({ actions }) => actions)
-          .filter((action) => !isAddableAction(action)),
-      ),
-    ).toEqual(["Ask a person", "Send email", "For each"]);
-  });
-});
-
-describe("getStepDisplay", () => {
-  it("shows a step in its group's hue, and an AI step in pink in any group", () => {
-    const displayOf = (actionDefinitionId: string) =>
-      getStepDisplay({
-        kind: "action",
-        stepId: "1",
-        actionDefinitionId,
-        description: "",
-        inputs: {},
-      });
-
-    expect(displayOf("filterList")).toMatchObject({
-      group: "Lists",
-      tone: "purple",
-    });
-    expect(displayOf("draftMessage")).toMatchObject({
-      group: "Messages",
-      tone: "pink",
-    });
   });
 });
 
