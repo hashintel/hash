@@ -124,8 +124,12 @@ const newStepId = (
           addSource(source);
         }
       } else {
-        addSource(step.over);
-        usedStepIds.add(step.collect.stepId);
+        if (step.over) {
+          addSource(step.over);
+        }
+        if (step.collect) {
+          usedStepIds.add(step.collect.stepId);
+        }
         addSteps(step.steps);
       }
     }

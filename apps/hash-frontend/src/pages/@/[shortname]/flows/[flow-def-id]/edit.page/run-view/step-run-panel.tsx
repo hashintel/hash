@@ -297,7 +297,9 @@ export const StepRunPanel = ({
   /* An action this version of the app doesn't know still shows the outputs it gave. */
   const outputNames =
     step.kind === "for-each"
-      ? [step.collect.as]
+      ? step.collect
+        ? [step.collect.as]
+        : []
       : (actionDefinition?.outputs.map((output) => output.name) ??
         onlyRun?.stepRun.outputs?.map((output) => output.outputName) ??
         []);
