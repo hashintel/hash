@@ -64,6 +64,14 @@ const upgradedUnits = new Set(
     "Millilitres",
     "Cubic Metres",
     "Cubic Feet",
+    // Quantities seeded before 034 without a plural title
+    "Length",
+    "Mass",
+    "Duration",
+    "Frequency",
+    "Power",
+    "Area",
+    "Volume",
   ].map(
     (title) => `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/`,
   ),

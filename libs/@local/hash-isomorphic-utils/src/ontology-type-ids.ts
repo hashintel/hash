@@ -2723,7 +2723,7 @@ export const systemDataTypes = {
     description: "An amount denominated in Kwanza (ISO 4217 AOA).",
   },
   area: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/area/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/area/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/area/" as BaseUrl,
     title: "Area",
     titlePlural: "Areas",
@@ -4514,6 +4514,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/doi/" as BaseUrl,
     title: "DOI",
+    titlePlural: "DOIs",
     description:
       "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
   },
@@ -4542,7 +4543,7 @@ export const systemDataTypes = {
       "Dose Equivalent expressed in metric units, including SI units and their accepted companions.",
   },
   duration: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/duration/" as BaseUrl,
     title: "Duration",
     titlePlural: "Durations",
@@ -5492,7 +5493,7 @@ export const systemDataTypes = {
       "Force expressed in metric units, including SI units and their accepted companions.",
   },
   frequency: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/frequency/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/frequency/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/frequency/" as BaseUrl,
     title: "Frequency",
     titlePlural: "Frequencies",
@@ -6416,6 +6417,7 @@ export const systemDataTypes = {
     dataTypeId: "https://hash.ai/@h/types/data-type/isbn/v/1",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/isbn/" as BaseUrl,
     title: "ISBN",
+    titlePlural: "ISBNs",
     description:
       "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
   },
@@ -6906,7 +6908,7 @@ export const systemDataTypes = {
     description: "An amount denominated in Lebanese Pound (ISO 4217 LBP).",
   },
   length: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/length/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/length/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/length/" as BaseUrl,
     title: "Length",
     titlePlural: "Lengths",
@@ -7171,7 +7173,7 @@ export const systemDataTypes = {
       "Magnetic Permeability expressed in metric units, including SI units and their accepted companions.",
   },
   mass: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/mass/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/mass/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/mass/" as BaseUrl,
     title: "Mass",
     titlePlural: "Masses",
@@ -9338,7 +9340,7 @@ export const systemDataTypes = {
     description: "A unit of mass expressed in pounds. Uses avoirdupois mass.",
   },
   power: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/power/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/power/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/power/" as BaseUrl,
     title: "Power",
     titlePlural: "Powers",
@@ -11782,7 +11784,7 @@ export const systemDataTypes = {
       "The coherent SI unit used to express electric field strength.",
   },
   volume: {
-    dataTypeId: "https://hash.ai/@h/types/data-type/volume/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/volume/v/2",
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/volume/" as BaseUrl,
     title: "Volume",
     titlePlural: "Volumes",
