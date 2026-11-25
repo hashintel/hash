@@ -1,6 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { RunGlyph } from "../shared/run-marks";
+import { getShownState } from "../shared/step-states";
 
 import type { StepRunMark } from "../shared/step-states";
 
@@ -26,8 +27,10 @@ const count = css({ display: "flex", alignItems: "center" });
  */
 export const RunStatus = ({
   mark: { state, items },
+  live,
 }: {
   mark: StepRunMark;
+  live: boolean;
 }) => (
   <span className={status}>
     {items && items.done + items.failed > 0 && (
@@ -44,6 +47,6 @@ export const RunStatus = ({
         )}
       </span>
     )}
-    <RunGlyph state={state} />
+    <RunGlyph state={getShownState(state, live)} />
   </span>
 );

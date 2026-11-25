@@ -1,6 +1,6 @@
 import { Component, type ContextType, type ReactNode, Suspense } from "react";
 
-import { ErrorTrackerContext } from "../../react/error-tracker-context";
+import { ErrorTrackerContext } from "../../react/host/error-tracker-context";
 
 import type { PluginButtonPlace } from "./define-petrinaut-plugin";
 

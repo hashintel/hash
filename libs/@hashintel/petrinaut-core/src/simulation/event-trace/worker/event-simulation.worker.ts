@@ -1,21 +1,26 @@
 /**
- * Event simulation worker: advances one run off the main thread with the
- * stepper of the simulator the host selected, and streams the events it
- * records, computing only as far as the host has demanded.
+ * @layerRoot core.simulation.event-trace.worker
+ * @role Advances one run off the main thread and streams the events it records, only as far as the host has demanded
+ *
+ * The worker builds the stepper of the simulator the host selected and lets
+ * a trace recorder turn the states that stepper keeps into events.
+ * `messages.ts` is the protocol: the host demands a time, and the worker
+ * posts batches of events with the time its trace covers. `flush-policy.ts`
+ * decides when a batch leaves.
  */
 
-import { createWorkerThreadRuntime } from "../../../environment";
+import { createWorkerThreadRuntime } from "../../../environment/environment";
+import { createRunStepper } from "../../steppers/steppers";
 import {
   COMPUTE_SLICE_MS,
   FLUSH_ADVANCES,
   FLUSH_EVENTS,
   shouldFlush,
 } from "./flush-policy";
-import { createRunStepper } from "./steppers";
 import { createTraceRecorder, type TraceRecorder } from "./trace-recorder";
 
-import type { StringPool } from "../../engine/string-pool";
-import type { SimulationFrameNewStrings } from "../../worker/frame-payload";
+import type { StringPool } from "../../../tokens/string-pool";
+import type { SimulationFrameNewStrings } from "../../frames/frame-payload";
 import type { TraceEvent } from "../trace";
 import type { ToEventMainMessage, ToEventWorkerMessage } from "./messages";
 

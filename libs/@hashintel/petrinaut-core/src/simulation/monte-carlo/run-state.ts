@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign -- Monte Carlo run state owns mutable frame buffers. */
-import { netTimeOf } from "../../net-class";
+import { netTimeOf } from "../../extensions/net-class";
 import { buildSimulation } from "../engine/build-simulation";
 import { readEngineFrame } from "../frames/internal-frame";
 import {

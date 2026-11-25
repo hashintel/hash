@@ -1,16 +1,17 @@
-import { use } from "react";
-
 import { Button } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
+import { SettingsIcon } from "@hashintel/ds-icons";
 
-import { usePetrinautNavigation } from "../../../../react/navigation";
-import { EditorContext } from "../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
-import { SettingsIcon } from "../../../experimental-icons";
-import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import {
+  usePetrinautNavigate,
+  usePetrinautNavigationState,
+} from "../../../../react/navigation/navigation";
+import { useEditorActions } from "../../../../react/state/editor-context";
 import { PluginToolbarItems } from "../../../plugins/plugin-outlets";
-import { usePetrinautPresentation } from "../../shared/presentation-context";
+import { usePetrinautPresentation } from "../../../presentation/presentation-context";
+import { styleRef } from "../../../shared/readings";
+import { VIEWPORT_CONTROLS_OFFSET } from "../../../shared/ui-constants";
+import { useCanvasInsetsReader } from "../../../shared/use-canvas-insets";
 import { useCanvasController } from "../canvas-renderer";
 
 const containerStyle = css({
@@ -21,26 +22,16 @@ const containerStyle = css({
   zIndex: "[900]",
 });
 
-const animatingStyle = cva({
-  base: {},
-  variants: {
-    animating: {
-      true: {
-        transition: "[right 150ms ease-in-out, bottom 150ms ease-in-out]",
-      },
-    },
-  },
-});
-
 const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 
 export const ViewportControls: React.FC = () => {
   const presentation = usePetrinautPresentation();
-  const navigation = usePetrinautNavigation();
-  const { enableExperimentalIconPack } = use(UserSettingsContext);
-  const isSettingsOpen =
-    navigation.state.overlay?.type === "user-settings" ||
-    navigation.state.overlay?.type === "viewport-settings";
+  const navigate = usePetrinautNavigate();
+  const isSettingsOpen = usePetrinautNavigationState(
+    ({ overlay }) =>
+      overlay?.type === "user-settings" ||
+      overlay?.type === "viewport-settings",
+  );
   const chromeBackground = presentation.blurredChrome
     ? blurredBackground
     : undefined;
@@ -48,19 +39,17 @@ export const ViewportControls: React.FC = () => {
   // controls sit above the renderer contract and must not reach for a
   // renderer's own API.
   const { fitView, zoomIn, zoomOut } = useCanvasController();
-  const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
+  const { collapseAllPanels } = useEditorActions();
 
-  // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
-  const insets = useCanvasInsets({ aboveCollapsedDock: true });
-  const rightOffset = VIEWPORT_CONTROLS_OFFSET + insets.right;
-  const bottomOffset = VIEWPORT_CONTROLS_OFFSET + insets.bottom;
+  const readInsets = useCanvasInsetsReader();
 
   return (
     <div
-      className={`${containerStyle} ${animatingStyle({
-        animating: isPanelAnimating,
-      })}`}
-      style={{ right: rightOffset, bottom: bottomOffset }}
+      className={containerStyle}
+      ref={styleRef({
+        right: () => VIEWPORT_CONTROLS_OFFSET + readInsets().right,
+        bottom: () => VIEWPORT_CONTROLS_OFFSET + readInsets().bottom,
+      })}
     >
       <Button
         size="xs"
@@ -124,20 +113,12 @@ export const ViewportControls: React.FC = () => {
             aria-label="Viewport settings"
             tooltip="Viewport settings"
             tooltipOptions={{ position: "left" }}
-            {...(enableExperimentalIconPack
-              ? {
-                  prefix: (
-                    <SettingsIcon
-                      size={12}
-                      open={isSettingsOpen}
-                      duration={240}
-                    />
-                  ),
-                }
-              : { iconName: "gear" })}
+            prefix={
+              <SettingsIcon size={12} open={isSettingsOpen} duration={240} />
+            }
             className={chromeBackground}
             onClick={() =>
-              navigation.navigate(
+              navigate(
                 { overlay: { type: "user-settings", section: "viewport" } },
                 { cause: "user", action: "overlay" },
               )

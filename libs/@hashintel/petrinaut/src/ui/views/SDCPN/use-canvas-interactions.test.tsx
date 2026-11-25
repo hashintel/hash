@@ -5,17 +5,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveLibrary } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../react/instance-context";
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { CompositionContext } from "../../../react/document/composition-context";
+import { PetrinautInstanceContext } from "../../../react/document/instance-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
 import { NotificationsContext } from "../../../react/notifications/context";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
-import { CompositionContext } from "../../../react/state/composition-context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { logisticsLibrary } from "../../libraries-story-fixtures";
+import { logisticsLibrary } from "../../stories/libraries-story-fixtures";
+import { CanvasPointerContext, createCanvasPointer } from "./canvas-pointer";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
-import type { CanvasScene } from "./canvas-scene";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type {
   CanvasConnection,
   CanvasLinkRewire,
@@ -59,23 +60,16 @@ const itemTypes: Record<
 };
 const [beltLink] = fusionLinks(belt);
 
-const scene = {
-  nodes: Object.entries(itemTypes)
-    .filter(([, kind]) => kind !== "fusion")
-    .map(([id, kind]) => ({ id, kind })),
-  arcs: [],
-  // Buffer on the left, M1's port on the right.
-  fusions: [
-    {
-      id: beltLink!.id,
-      fusionId: belt.id,
-      sourceId: "buffer",
-      sourcePortId: null,
-      targetId: "m1",
-      targetPortId: "in",
-    },
-  ],
-} as unknown as CanvasScene;
+const idsOf = (type: string) =>
+  Object.entries(itemTypes)
+    .filter(([, itemType]) => itemType === type)
+    .map(([id]) => ({ id }));
+const net = {
+  places: idsOf("place"),
+  transitions: idsOf("transition"),
+  componentInstances: idsOf("componentInstance"),
+  fusions: [belt],
+} as unknown as ActiveNetDefinition;
 
 const connection = (
   sourceId: string,
@@ -97,8 +91,8 @@ const dropPortEnd = (
   nodeId?: string,
   portId: string | null = null,
 ): CanvasLinkRewire => ({
-  linkId: beltLink!.id,
-  end: "target",
+  fusionId: belt.id,
+  from: { nodeId: "m1", portId: "in" },
   onto: nodeId === undefined ? null : { nodeId, portId },
 });
 const addNotification = vi.fn();
@@ -137,13 +131,12 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
       value={{
         ...use(SDCPNContext),
         readonly: false,
-        getItemType: (id) => itemTypes[id] ?? null,
       }}
     >
       <ActiveNetContext
         value={{
           ...use(ActiveNetContext),
-          activeNet: { ...use(ActiveNetContext).activeNet, fusions: [belt] },
+          activeNet: { ...use(ActiveNetContext).activeNet, ...net },
         }}
       >
         <NotificationsContext
@@ -180,11 +173,97 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
   </PetrinautInstanceContext>
 );
 
-const renderInteractions = () => ({
-  interactions: renderHook(() => useCanvasInteractions(scene), {
-    wrapper: Wrapper,
-  }).result.current,
-  selectedIds: () => [...editor.selection.keys()],
+const renderInteractions = () => {
+  const pointer = createCanvasPointer();
+  const WithPointer = ({ children }: { children: ReactNode }) => (
+    <CanvasPointerContext value={pointer}>
+      <Wrapper>{children}</Wrapper>
+    </CanvasPointerContext>
+  );
+  return {
+    interactions: renderHook(() => useCanvasInteractions(), {
+      wrapper: WithPointer,
+    }).result.current,
+    selectedIds: () => [...editor.selection.keys()],
+    hoveredId: () => pointer.hoveredId.get(),
+  };
+};
+
+const free = { pressed: false, connecting: false };
+const pressed = { pressed: true, connecting: false };
+const connecting = { pressed: true, connecting: true };
+
+describe("the hover of what the pointer comes onto", () => {
+  it("is the item, with no button down", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("store", free);
+    expect(hoveredId()).toBe("store");
+
+    interactions.clearHover();
+    expect(hoveredId()).toBeNull();
+  });
+
+  it("waits for the release while a button is down", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    // What a pan reports as it carries a node, then an arc, under the pointer.
+    interactions.enter("store", pressed);
+    interactions.clearHover();
+    interactions.enter("t", pressed);
+    expect(hoveredId()).toBeNull();
+
+    interactions.releasePointer();
+    expect(hoveredId()).toBe("t");
+  });
+
+  it("is nothing after a release on the empty canvas", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("store", pressed);
+    interactions.clearHover();
+    interactions.releasePointer();
+
+    expect(hoveredId()).toBeNull();
+  });
+
+  it("leaves an item hovered before the press as it is at the release", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("store", free);
+    interactions.releasePointer();
+
+    expect(hoveredId()).toBe("store");
+  });
+
+  it("forgets the item that waited once another one is hovered", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    // A release the canvas did not hear, then the pointer back on another item.
+    interactions.enter("store", pressed);
+    interactions.enter("t", free);
+    interactions.releasePointer();
+
+    expect(hoveredId()).toBe("t");
+  });
+
+  it("is the node a connection is drawn onto, at once", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    interactions.enter("t", connecting);
+
+    expect(hoveredId()).toBe("t");
+  });
+
+  it("stays the dragged node, whatever the drag carries it over", () => {
+    const { interactions, hoveredId } = renderInteractions();
+
+    // A drag starts with the button down and hovers its node at once.
+    interactions.hover("store");
+    interactions.enter("t", pressed);
+
+    expect(hoveredId()).toBe("store");
+  });
 });
 
 describe("useCanvasInteractions", () => {
@@ -271,7 +350,7 @@ describe("useCanvasInteractions", () => {
     expect(interactions.canRewireLink(dropPortEnd("m2"))).toBe(false);
     expect(interactions.canRewireLink(dropPortEnd("buffer"))).toBe(false);
     expect(
-      interactions.canRewireLink({ ...dropPortEnd("m2", "in"), linkId: "x" }),
+      interactions.canRewireLink({ ...dropPortEnd("m2", "in"), fusionId: "x" }),
     ).toBe(false);
   });
 
@@ -289,7 +368,10 @@ describe("useCanvasInteractions", () => {
     expect(selectedIds()).toEqual(["belt"]);
 
     // The other end is the place: it gives way to another place.
-    interactions.rewireLink({ ...dropPortEnd("store"), end: "source" });
+    interactions.rewireLink({
+      ...dropPortEnd("store"),
+      from: { nodeId: "buffer", portId: null },
+    });
     expect(mutations.replaceFusionMember).toHaveBeenLastCalledWith(
       expect.objectContaining({
         member: place("buffer"),

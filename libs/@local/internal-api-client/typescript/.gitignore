@@ -1,4 +1,2 @@
-wwwroot/*.js
-node_modules
-typings
 dist
+src/api.gen.ts

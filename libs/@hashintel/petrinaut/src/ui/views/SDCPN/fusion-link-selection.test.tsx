@@ -5,20 +5,21 @@ import { afterEach, expect, it } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../react/instance-context";
+import { ActiveNetContext } from "../../../react/document/active-net-context";
+import { PetrinautInstanceContext } from "../../../react/document/instance-context";
+import { SDCPNContext } from "../../../react/document/sdcpn-context";
+import { ReadOnlyReasonProvider } from "../../../react/editing/read-only-reason-provider";
 import {
   defaultPetrinautNavigationState,
-  PetrinautNavigationProvider,
   type PetrinautNavigationState,
-} from "../../../react/navigation";
-import { ActiveNetContext } from "../../../react/state/active-net-context";
+} from "../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../react/navigation/navigation-provider";
 import { EditorContext } from "../../../react/state/editor-context";
 import { EditorProvider } from "../../../react/state/editor-provider";
-import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { PanelPresenceProvider } from "../../../react/state/panel-presence-provider";
 import { fusionLinks } from "./fusion-links";
 import { useCanvasInteractions } from "./use-canvas-interactions";
 
-import type { CanvasScene } from "./canvas-scene";
 import type {
   Fusion,
   FusionMember,
@@ -48,16 +49,6 @@ const itemTypes: Record<string, "place" | "componentInstance" | "fusion"> = {
   belt: "fusion",
 };
 
-const scene = {
-  nodes: [
-    { id: "buffer", kind: "place" },
-    { id: "m1", kind: "componentInstance" },
-    { id: "m2", kind: "componentInstance" },
-  ],
-  arcs: [],
-  fusions: links.map((link) => ({ id: link.id, fusionId: belt.id })),
-} as unknown as CanvasScene;
-
 const NavigationHost = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<PetrinautNavigationState>(
     defaultPetrinautNavigationState,
@@ -84,14 +75,21 @@ const Wrapper = ({ children }: { children: ReactNode }) => {
       >
         <NavigationHost>
           <EditorProvider>
-            <ActiveNetContext
-              value={{
-                ...activeNetContext,
-                activeNet: { ...activeNetContext.activeNet, fusions: [belt] },
-              }}
-            >
-              {children}
-            </ActiveNetContext>
+            <ReadOnlyReasonProvider>
+              <PanelPresenceProvider>
+                <ActiveNetContext
+                  value={{
+                    ...activeNetContext,
+                    activeNet: {
+                      ...activeNetContext.activeNet,
+                      fusions: [belt],
+                    },
+                  }}
+                >
+                  {children}
+                </ActiveNetContext>
+              </PanelPresenceProvider>
+            </ReadOnlyReasonProvider>
           </EditorProvider>
         </NavigationHost>
       </SDCPNContext>
@@ -102,7 +100,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => {
 it("keeps a fusion selected when one of its links is clicked again", async () => {
   const { result } = renderHook(
     () => ({
-      interactions: useCanvasInteractions(scene),
+      interactions: useCanvasInteractions(),
       selection: use(EditorContext).selection,
     }),
     { wrapper: Wrapper },

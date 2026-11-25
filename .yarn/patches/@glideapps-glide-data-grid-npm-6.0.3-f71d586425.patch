@@ -136,7 +136,7 @@ index 081f3b38d82107204ac3f3620d6724ffad01b43f..510406205502ce87b59080ccd3d30445
  /**
   * The primary component of Glide Data Grid.
 diff --git a/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js b/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
-index 0e698e3de90fb95954d8c3018a00811a7d612893..067ebb67ce070e7882c8f4239e8b41ee68dcecb9 100644
+index 0e698e3de90fb95954d8c3018a00811a7d612893..6b38d30ec92d34be4adae5c4535e719e1defdfe5 100644
 --- a/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
 +++ b/dist/cjs/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
 @@ -34,7 +34,7 @@ const data_grid_types_js_1 = require("../data-grid/data-grid-types.js");
@@ -158,7 +158,7 @@ index 0e698e3de90fb95954d8c3018a00811a7d612893..067ebb67ce070e7882c8f4239e8b41ee
 +        ? {
 +            position: "fixed",
 +            positionAnchor: anchorName,
-+            positionVisibility: "anchors-visible",
++            positionVisibility: CSS.supports("position-visibility", "anchor-visible") ? "anchor-visible" : "anchors-visible",
 +            left: `calc(anchor(${columnAnchor} left, ${target.x}px) - ${bloomX}px)`,
 +            top: `calc(anchor(top, ${target.y}px) - ${bloomY}px)`,
 +            minWidth: `calc(anchor-size(${columnAnchor} width, ${target.width}px) + ${bloomX * 2}px)`,
@@ -354,7 +354,7 @@ index ec05aa9866c70032fc5509ff557cb8c542e384ed..d89cad344fa189134b9d3ea645d045fc
  /**
   * The primary component of Glide Data Grid.
 diff --git a/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js b/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
-index 259b5fb8c7bf12a1a7e6d551429fce051fac2591..6e22dedd7d7025152a1501c7cd841ca46284b309 100644
+index 259b5fb8c7bf12a1a7e6d551429fce051fac2591..353ddda99e14281e3ff89cdcd080a81765db6414 100644
 --- a/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
 +++ b/dist/esm/internal/data-grid-overlay-editor/data-grid-overlay-editor.js
 @@ -6,7 +6,7 @@ import { isEditableGridCell, isInnerOnlyCell, isObjectEditorCallbackResult, } fr
@@ -376,7 +376,7 @@ index 259b5fb8c7bf12a1a7e6d551429fce051fac2591..6e22dedd7d7025152a1501c7cd841ca4
 +        ? {
 +            position: "fixed",
 +            positionAnchor: anchorName,
-+            positionVisibility: "anchors-visible",
++            positionVisibility: CSS.supports("position-visibility", "anchor-visible") ? "anchor-visible" : "anchors-visible",
 +            left: `calc(anchor(${columnAnchor} left, ${target.x}px) - ${bloomX}px)`,
 +            top: `calc(anchor(top, ${target.y}px) - ${bloomY}px)`,
 +            minWidth: `calc(anchor-size(${columnAnchor} width, ${target.width}px) + ${bloomX * 2}px)`,

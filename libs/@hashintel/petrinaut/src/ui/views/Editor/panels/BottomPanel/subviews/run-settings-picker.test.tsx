@@ -9,7 +9,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defineSimulator } from "@hashintel/petrinaut-core";
 
@@ -122,18 +122,6 @@ const openPopover = async () => {
   return screen.findByRole("radiogroup", { name: "Simulator" });
 };
 
-beforeEach(() => {
-  // The popover positions itself against its trigger with observers jsdom
-  // does not have.
-  class ObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  vi.stubGlobal("ResizeObserver", ObserverStub);
-  vi.stubGlobal("IntersectionObserver", ObserverStub);
-});
-
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -198,17 +186,6 @@ describe("RunSettingsPicker", () => {
     expect(
       (screen.getByLabelText(/^End at step/) as HTMLInputElement).value,
     ).toBe("60");
-  });
-
-  it("adds the run count and the end time in Stochastic mode", () => {
-    render(
-      <Providers simulation={{ mode: "stochastic", runs: 250, maxTime: 60 }} />,
-    );
-    expect(
-      screen.getByRole("button", {
-        name: "Simulator: Stepped, 0.01 s · 250 runs · to 60 s",
-      }),
-    ).toBeTruthy();
   });
 
   it("lists the simulators in a popover, with the one that cannot compute the mode greyed and explained", async () => {

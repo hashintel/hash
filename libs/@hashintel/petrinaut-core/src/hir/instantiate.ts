@@ -9,7 +9,7 @@
  */
 import { cloneUserKeyedRecord } from "../validation/record-keys";
 
-import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
+import type { RuntimeDistribution } from "../simulation/engine/distribution";
 import type { HirFunction } from "./hir";
 import type { MetricShape } from "./metric-shape";
 

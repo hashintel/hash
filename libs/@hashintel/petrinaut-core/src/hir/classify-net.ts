@@ -3,14 +3,14 @@ import {
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 import {
   hasTimedTransition,
   netColoringOf,
   netTimeOf,
   type NetChance,
   type NetClass,
-} from "../net-class";
+} from "../extensions/net-class";
 import { analyzeHir } from "./analyze";
 import { lowerAndCheck } from "./compile";
 import {

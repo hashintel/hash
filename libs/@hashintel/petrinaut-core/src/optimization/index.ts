@@ -4,12 +4,12 @@
  */
 import { z } from "zod";
 
-import { constraintListSchema } from "../constraint/constraint";
+import { constraintListSchema } from "../constraints/constraint";
+import { petrinautIdSchema } from "../document/petrinaut-id";
 import { parseSDCPNFile } from "../file-format/parse-sdcpn-file";
 import { sdcpnSchema } from "../file-format/types";
-import { petrinautIdSchema } from "../petrinaut-id";
 
-import type { AbortSignalLike } from "../environment";
+import type { AbortSignalLike } from "../environment/environment";
 
 export const PETRINAUT_OPTIMIZATION_MAX_SEED = 2_147_483_647;
 export const PETRINAUT_OPTIMIZATION_MAX_TRIALS = 1_000;

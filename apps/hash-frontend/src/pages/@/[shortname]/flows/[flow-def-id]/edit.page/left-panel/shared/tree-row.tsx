@@ -29,6 +29,8 @@ const rowLabel = css({
     whiteSpace: "nowrap",
   },
 });
+/* The tooltip's trigger takes the label's place in the row, so the whole row opens it. */
+const rowLabelTooltip = css({ display: "flex", flex: "1", minWidth: "0" });
 const emphasizedRowLabel = css({
   "& > span:last-child": { fontWeight: "semibold" },
 });
@@ -58,6 +60,7 @@ export const TreeRow = ({
   label,
   selected = false,
   emphasized = false,
+  disabledTooltip,
   expander,
   stepCount,
   status,
@@ -69,6 +72,8 @@ export const TreeRow = ({
   label: string;
   selected?: boolean;
   emphasized?: boolean;
+  /** Disables the row, and says why on hover or focus. */
+  disabledTooltip?: string;
   expander?: ReactNode;
   /** Shown at the end of a group's row. */
   stepCount?: number;
@@ -79,13 +84,18 @@ export const TreeRow = ({
   const iconTile = icon && (
     <StepIconTile icon={icon} tone={tone} size="small" />
   );
-  const labelElement = onClick ? (
+  const disabled = disabledTooltip !== undefined;
+  const asButton = onClick !== undefined || disabled;
+  const labelElement = asButton ? (
     <Button
       variant="ghost"
       size="sm"
       prefix={iconTile}
       pressed={selected}
       className={cx(rowLabel, emphasized ? emphasizedRowLabel : undefined)}
+      disabled={disabled}
+      tooltip={disabledTooltip}
+      tooltipOptions={{ position: "right", className: rowLabelTooltip }}
       onClick={onClick}
     >
       {label}

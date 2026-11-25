@@ -30,7 +30,7 @@ import {
 import { fillSeedChunk, seedRunsPerChunk } from "./runner/seeds";
 import { dispatchChunkFrames, planTiles, runsPerTile } from "./runner/tiles";
 
-import type { AbortSignalLike } from "../environment";
+import type { AbortSignalLike } from "../environment/environment";
 import type { CompiledNetShader } from "./compile-net-shader";
 import type { MetricWindow, ObservedMetricRange } from "./metric-windows";
 import type { GpuDeviceHandle } from "./runner/device";

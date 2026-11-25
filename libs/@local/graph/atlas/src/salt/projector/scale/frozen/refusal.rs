@@ -20,8 +20,6 @@ pub(crate) enum InvalidRuler<N> {
     /// The zero field must exist as a trained control before it can serve as the ruler's
     /// reference.
     MissingReference,
-    /// No `ε_rel` is declared, and the regularizer therefore does not exist.
-    MissingEpsilon,
     /// A frozen local scale, a row's selected median distance, overflowed the finite range.
     ///
     /// The variant names the smallest affected row. A 2D distance's `f32` square or sum
@@ -91,7 +89,6 @@ impl<N> InvalidRuler<N> {
     pub(crate) fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> InvalidRuler<M> {
         match self {
             Self::MissingReference => InvalidRuler::MissingReference,
-            Self::MissingEpsilon => InvalidRuler::MissingEpsilon,
             Self::NonFiniteScale { row: affected } => {
                 InvalidRuler::NonFiniteScale { row: row(affected) }
             }
@@ -126,7 +123,6 @@ where
             Self::MissingReference => {
                 fmt.write_str("the schedule names no relation boundary to measure the ruler on")
             }
-            Self::MissingEpsilon => fmt.write_str("no relative epsilon is declared for the ruler"),
             Self::NonFiniteScale { ref row } => {
                 write!(
                     fmt,

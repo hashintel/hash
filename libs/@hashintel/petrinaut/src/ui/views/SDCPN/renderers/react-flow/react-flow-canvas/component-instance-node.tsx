@@ -1,13 +1,11 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { ComponentGlyph } from "../../../../../components/component-glyph";
-import { problemTextStyle } from "../../../../../constants/problem-severity";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
+import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { nodeFocusStyle } from "../../../styles/focus";
 import {
   iconContainerBaseStyle,
@@ -15,34 +13,40 @@ import {
   nodeSubtitleStyle,
   nodeTextAreaStyle,
   nodeTitleStyle,
-} from "./node-card";
+} from "./node-card-styles";
 import { pinLayout, pinSides, portOnSide } from "./pin-layout";
 import { portInHandleId, portOutHandleId } from "./port-handles";
-import { pinColorStyle, pinStyle } from "./port-pin";
+import { pinColorStyle, pinStyle } from "./port-pin-style";
 import { useRemeasureHandles } from "./use-remeasure-handles";
 
 import type { CanvasInstanceBinding, CanvasPort } from "../../../canvas-scene";
 import type { ComponentInstanceNodeType } from "./react-flow-types";
 
-const cardStyle = css({
-  width: "full",
-  height: "full",
-  display: "flex",
-  flexDirection: "column",
-  boxSizing: "border-box",
-  border: "1px solid",
-  borderColor: "neutral.s70",
-  borderRadius: "lg",
-  backgroundColor: "neutral.s00",
-  cursor: "default",
-  // Contributed to the shadow `nodeFocusStyle` owns, so the focus glow
-  // and the elevation can sit in one declaration.
-  "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
-  _hover: {
-    borderColor: "neutral.s100",
-    "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)",
-  },
-});
+const cardStyle = cx(
+  "node-surface",
+  "node-border",
+  css({
+    width: "full",
+    height: "full",
+    display: "flex",
+    flexDirection: "column",
+    boxSizing: "border-box",
+    "--node-border": "var(--colors-neutral-s70)",
+    "--node-fill": "var(--colors-neutral-s00)",
+    border: "1px solid",
+    borderColor: "[var(--node-border)]",
+    borderRadius: "lg",
+    backgroundColor: "[var(--node-fill)]",
+    cursor: "default",
+    // Contributed to the shadow `nodeFocusStyle` owns, so the focus glow
+    // and the elevation can sit in one declaration.
+    "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
+    _hover: {
+      "--node-border": "var(--colors-neutral-s100)",
+      "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)",
+    },
+  }),
+);
 
 /**
  * `componentInstanceHeaderHeight` as a literal: Panda extracts no style value
@@ -51,16 +55,20 @@ const cardStyle = css({
 const headerHeight: typeof componentInstanceHeaderHeight = 48;
 
 /** The header matches the compact place and transition cards: tile, name, kind. */
-const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-  height: `[${headerHeight}px]`,
-  flexShrink: "0",
-  padding: "[4px 6px 4px 4px]",
-  borderBottom: "1px solid",
-  borderBottomColor: "neutral.s30",
-});
+const headerStyle = cx(
+  "node-border",
+  css({
+    display: "flex",
+    alignItems: "center",
+    gap: "[8px]",
+    height: `[${headerHeight}px]`,
+    flexShrink: "0",
+    padding: "[4px 6px 4px 4px]",
+    "--node-border": "var(--colors-neutral-s30)",
+    borderBottom: "1px solid",
+    borderBottomColor: "[var(--node-border)]",
+  }),
+);
 
 const iconTileStyle = css({
   borderRadius: "md",
@@ -70,10 +78,19 @@ const iconTileStyle = css({
  * A component's colour paints its glyph and washes its tile. Set inline: the
  * tile's own colours come from a shared class this must win over.
  */
-const tileTint = (color: string): React.CSSProperties => ({
-  color,
-  backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-  borderColor: `color-mix(in srgb, ${color} 30%, transparent)`,
+const tileTint = (color: string) =>
+  ({
+    color,
+    "--node-fill": `color-mix(in srgb, ${color} 12%, transparent)`,
+    "--node-border": `color-mix(in srgb, ${color} 30%, transparent)`,
+  }) as React.CSSProperties;
+
+/** A component's own glyph is a mask over a background of the tile's colour. */
+const glyphFillStyle = cx("node-fill", css({ "--node-fill": "currentColor" }));
+
+/** An instance that nothing runs for says so in the colour of an error. */
+const unboundSubtitleStyle = css({
+  "&[data-severity=error]": { "--node-text": "var(--colors-red-s100)" },
 });
 
 /** The cards' text column, grown to push the fold toggle to the header's end. */
@@ -82,23 +99,27 @@ const textStyle = cx(
   css({ flex: "1", color: "neutral.s120" }),
 );
 
-const foldToggleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: "0",
-  width: "[22px]",
-  height: "[22px]",
-  border: "none",
-  borderRadius: "sm",
-  background: "[transparent]",
-  color: "neutral.s90",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "neutral.s20",
-    color: "neutral.s115",
-  },
-});
+const foldToggleStyle = cx(
+  "node-fill",
+  css({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: "0",
+    width: "[22px]",
+    height: "[22px]",
+    border: "none",
+    borderRadius: "sm",
+    "--node-fill": "transparent",
+    backgroundColor: "[var(--node-fill)]",
+    color: "neutral.s90",
+    cursor: "pointer",
+    _hover: {
+      "--node-fill": "var(--colors-neutral-s20)",
+      color: "neutral.s115",
+    },
+  }),
+);
 
 /**
  * Every part of a fold moves on one clock, which the canvas sets: the card's
@@ -129,31 +150,39 @@ const foldChevronTurnedStyle = css({
  * keeps the height of a folded card's body, so it stays where it is while
  * the card grows under it.
  */
-const foldedBodyStyle = css({
-  flexShrink: "0",
-  display: "flex",
-  alignItems: "center",
-  padding: "[0 14px]",
-  fontSize: "xs",
-  color: "neutral.a90",
-  transitionProperty: "[opacity]",
-});
+const foldedBodyStyle = cx(
+  "node-text",
+  css({
+    flexShrink: "0",
+    display: "flex",
+    alignItems: "center",
+    padding: "[0 14px]",
+    fontSize: "xs",
+    "--node-text": "var(--colors-neutral-a90)",
+    color: "[var(--node-text)]",
+    transitionProperty: "[opacity]",
+  }),
+);
 
-const portLabelStyle = css({
-  position: "absolute",
-  fontSize: "[11px]",
-  fontWeight: "medium",
-  lineHeight: "[1]",
-  color: "neutral.s105",
-  // An unfolded port has its row to itself, short of the pin on each edge.
-  maxWidth: "[calc(100% - 24px)]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  pointerEvents: "none",
-  transform: "translateY(-50%)",
-  transitionProperty: "[top, opacity]",
-});
+const portLabelStyle = cx(
+  "node-text",
+  css({
+    position: "absolute",
+    fontSize: "[11px]",
+    fontWeight: "medium",
+    lineHeight: "[1]",
+    "--node-text": "var(--colors-neutral-s105)",
+    color: "[var(--node-text)]",
+    // An unfolded port has its row to itself, short of the pin on each edge.
+    maxWidth: "[calc(100% - 24px)]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    pointerEvents: "none",
+    transform: "translateY(-50%)",
+    transitionProperty: "[top, opacity]",
+  }),
+);
 
 /** A pin slides to its row, and grows to its full size, as the card unfolds. */
 const pinMotionStyle = css({
@@ -199,7 +228,7 @@ export const ComponentInstanceNode: React.FC<
   selected,
   isConnectable,
 }: NodeProps<ComponentInstanceNodeType>) => {
-  const { toggleComponentInstanceFold } = use(EditorContext);
+  const { toggleComponentInstanceFold } = useEditorActions();
 
   // React Flow marks a node selected as a drag-selection is drawn, before the
   // change reaches the editor's own selection.
@@ -234,18 +263,25 @@ export const ComponentInstanceNode: React.FC<
       <div className={cx(cardStyle, nodeFocusStyle({ focus }))}>
         <div className={headerStyle}>
           <div
-            className={cx(iconContainerBaseStyle, iconTileStyle)}
+            // A plain tile is nearly the white of the card. A tinted one is
+            // a wash of the component's colour, drawn at the node's strength.
+            className={cx(
+              data.color === null ? "node-inlay" : "node-fill",
+              iconContainerBaseStyle,
+              iconTileStyle,
+            )}
             style={data.color === null ? undefined : tileTint(data.color)}
           >
             <ComponentGlyph
               iconSvg={data.icon}
               fallback={isInterface ? "puzzlePiece" : "cube"}
+              maskClassName={glyphFillStyle}
             />
           </div>
           <div className={textStyle}>
             <div className={nodeTitleStyle}>{data.label}</div>
             <div
-              className={cx(nodeSubtitleStyle, problemTextStyle)}
+              className={cx(nodeSubtitleStyle, unboundSubtitleStyle)}
               data-severity={unbound ? "error" : undefined}
               title={
                 isInterface ? `${data.componentName}: ${subtitle}` : undefined
@@ -328,6 +364,8 @@ export const ComponentInstanceNode: React.FC<
                   }),
                   pinMotionStyle,
                   foldMotionStyle,
+                  "node-cover",
+                  "node-border",
                 )}
                 style={{ top: tops[side], ...pinColorStyle(port.typeColor) }}
               />

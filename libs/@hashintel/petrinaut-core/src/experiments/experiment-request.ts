@@ -8,7 +8,7 @@
  * process boundary as-is; `runPlan.values` is a `Float64Array`, which JSON
  * alone does not carry.
  */
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";

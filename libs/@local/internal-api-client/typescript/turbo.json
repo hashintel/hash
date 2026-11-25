@@ -2,7 +2,11 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["dist/**"]
+      "dependsOn": ["codegen", "^manifest"],
+      "outputs": ["./dist/**"]
+    },
+    "codegen": {
+      "outputs": ["src/api.gen.ts"]
     }
   }
 }

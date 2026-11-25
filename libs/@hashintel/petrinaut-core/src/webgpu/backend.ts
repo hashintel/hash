@@ -9,7 +9,7 @@
  * @layerRoot core.webgpu
  * @role Generates a WGSL compute shader from a net's HIR and runs its experiment runs on the GPU
  */
-import { resolveNetParameterValues } from "../parameter-values";
+import { resolveNetParameterValues } from "../document/parameter-values";
 import { compileNetShader } from "./compile-net-shader";
 import {
   assessGpuEligibility,
@@ -19,7 +19,7 @@ import {
 import { hirFromArtifacts } from "./hir-from-artifacts";
 import { requestGpuDevice } from "./runner";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
 import type { SDCPN } from "../types/sdcpn";

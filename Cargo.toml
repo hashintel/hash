@@ -170,8 +170,8 @@ circular-buffer                    = { version = "1.1.0", default-features = fal
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
 clap_complete                      = { version = "4.5.60", default-features = false }
-codspeed-criterion-compat          = { version = "4.1.0" }
-codspeed-criterion-compat-walltime = { version = "4.3.0", default-features = false }
+codspeed-criterion-compat          = { version = "6.0.0" }
+codspeed-criterion-compat-walltime = { version = "6.0.0", default-features = false }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
 convert_case                       = { version = "0.11.0", default-features = false }
 cookie                             = { version = "0.18.2", default-features = false }
@@ -356,8 +356,8 @@ tracing-flame                      = { version = "0.2.0", default-features = fal
 tracing-opentelemetry              = { version = "0.33.0", default-features = false }
 tracing-subscriber                 = { version = "0.3.20", default-features = false }
 trait-variant                      = { version = "0.1.2", default-features = false }
-trybuild                           = { version = "1.0.113", default-features = false }
 tsify                              = { version = "0.5.6", default-features = false }
+ui_test                            = { version = "0.30.7", default-features = false }
 unicase                            = { version = "2.8.1", default-features = false }
 unicode-ident                      = { version = "1.0.22", default-features = false }
 unicode-normalization              = { version = "0.1.25", default-features = false }

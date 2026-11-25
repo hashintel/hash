@@ -43,7 +43,7 @@
 
 use alloc::alloc::Global;
 use core::{
-    alloc::{Allocator, AllocatorClone},
+    alloc::{Allocator, AllocatorClone, AllocatorNightly},
     ops::Deref,
 };
 
@@ -184,7 +184,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
         alloc: L,
     ) -> Result<Value<'heap, L>, OrchestratorDiagnostic>
     where
-        L: AllocatorClone,
+        L: AllocatorClone + AllocatorNightly,
         C: AsRef<Client>,
     {
         let mut runtime = Runtime::new_in(
@@ -272,7 +272,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
         alloc: L,
     ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
-        L: AllocatorClone,
+        L: AllocatorClone + AllocatorNightly,
         C: AsRef<Client>,
     {
         match suspension {

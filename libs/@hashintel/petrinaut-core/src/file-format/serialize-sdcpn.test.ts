@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { parseSDCPNDocument, parseSDCPNFile } from "./parse-sdcpn-file";
 import { serializeSDCPN } from "./serialize-sdcpn";
 

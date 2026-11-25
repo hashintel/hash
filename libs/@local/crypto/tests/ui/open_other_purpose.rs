@@ -32,5 +32,5 @@ fn main() {
     let sealed = sessions
         .seal(&Secret::<[u8; 4]>::zeroed(), &())
         .expect("the plaintext should seal");
-    let _ = tokens.open(&sealed, &(), pin!(Secret::<[u8; 4]>::zeroed()));
+    let _ = tokens.open(&sealed, &(), pin!(Secret::<[u8; 4]>::zeroed())); //~ E0308
 }

@@ -45,8 +45,10 @@ export const useVisualizerLayout = (
   };
 
   const endGesture = (event: PointerEvent<HTMLElement>) => {
-    event.stopPropagation();
+    // A release that ends no gesture of the window goes on to the canvas: a
+    // pan can end with the pointer over the window.
     if (gesture.current?.pointerId !== event.pointerId) return;
+    event.stopPropagation();
     gesture.current = null;
     setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {

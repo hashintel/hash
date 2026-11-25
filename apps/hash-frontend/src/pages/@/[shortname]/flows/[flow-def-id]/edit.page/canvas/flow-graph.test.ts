@@ -230,6 +230,24 @@ describe("getFlowGraph", () => {
         { outputName: "true", name: "Over budget", connected: true },
         { outputName: "false", name: "No", connected: true },
       ],
+      lineFromStep: false,
+    });
+  });
+
+  it("marks a line from a step with paths that leaves none of them, so it isn't drawn from a path's port", () => {
+    const graph = graphOf([
+      actionStep("check", { actionDefinitionId: "if" }),
+      actionStep("either", { runAfter: [{ stepId: "check" }] }),
+    ]);
+
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("check"))?.data,
+    ).toMatchObject({
+      paths: [
+        { outputName: "true", connected: false },
+        { outputName: "false", connected: false },
+      ],
+      lineFromStep: true,
     });
   });
 
@@ -310,7 +328,11 @@ describe("getFlowGraph", () => {
           kind: "schedule",
           line: "Monthly review",
           on: true,
-          run: { mark: { state: "done", items: null }, featured: false },
+          run: {
+            mark: { state: "done", items: null },
+            featured: false,
+            live: false,
+          },
         },
       ],
     );

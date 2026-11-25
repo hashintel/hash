@@ -75,20 +75,6 @@ const emptyList = <const D extends Structural.Definition>(
   Inputs.Empty
 > => Structural.list(definition, []);
 
-const shorthandInput = <
-  const Name extends string,
-  const D extends Structural.Definition,
->(
-  name: Name,
-  definition: D,
-): Expression.Expression<
-  Structural.Definition.Type<D>,
-  Readonly<Record<Name, Structural.Definition.Type<D>>>
-> => {
-  const expression = Structural.input(name, definition);
-  return expression;
-};
-
 const possiblyAbsent = <V>(value: V): V | undefined => value;
 
 describe("structural_constructor_types", () => {
@@ -204,8 +190,8 @@ describe("structural_constructor_types", () => {
 
 describe("structural_value_types", () => {
   test("inferred_fields", () => {
-    const count = Structural.input("count", BigInt);
-    const enabled = Structural.input("enabled", Boolean, true);
+    const count = Expression.input("count", BigInt);
+    const enabled = Expression.input("enabled", Boolean, true);
     const row = Structural.struct({ count, enabled, pair: ["x", 1n] });
     expectTypeOf<Expression.Value.Type<typeof row>>().toEqualTypeOf<
       Type.Struct<{
@@ -242,8 +228,28 @@ describe("structural_value_types", () => {
     Structural.tuple(optional);
   });
 
+  test("fixed_length", () => {
+    type Pair = readonly [bigint, { readonly labels: readonly [string] }];
+    expectTypeOf<Structural.Value.FixedLength<Pair>>().toBeUnknown();
+    expectTypeOf<Structural.Value.FixedLength<readonly []>>().toBeUnknown();
+    expectTypeOf<
+      Structural.Value.FixedLength<Structural.Value.Any>
+    >().toBeUnknown();
+    expectTypeOf<Structural.Value.FixedLength<readonly string[]>>().toBeNever();
+    expectTypeOf<
+      Structural.Value.FixedLength<Pair | readonly bigint[]>
+    >().toBeNever();
+    const labels: readonly string[] = ["a"];
+    // @ts-expect-error A struct field needs a statically known length.
+    Structural.struct({ labels });
+    // @ts-expect-error A tuple member needs a statically known length.
+    Structural.tuple([1n, labels]);
+    // @ts-expect-error A nested field needs a statically known length.
+    Structural.struct({ row: { pair: [1n, labels] } });
+  });
+
   test("annotations", () => {
-    const count = Structural.input("count", BigInt);
+    const count = Expression.input("count", BigInt);
     const row = Structural.struct({ count, label: "x" }, { count: Number });
     expectTypeOf<Expression.Value.Type<typeof row>>().toEqualTypeOf<
       Type.Struct<{ readonly count: Type.PrimitiveNumber }>
@@ -266,7 +272,7 @@ describe("structural_value_types", () => {
   });
 
   test("list_elements", () => {
-    const count = Structural.input("count", BigInt);
+    const count = Expression.input("count", BigInt);
     const rows = Structural.list({ count: BigInt }, [{ count }, { count: 0n }]);
     expectTypeOf<Expression.Value.Type<typeof rows>>().toEqualTypeOf<
       Type.List<Row>
@@ -285,8 +291,8 @@ describe("structural_value_types", () => {
   });
 
   test("dictionary_entries", () => {
-    const key = Structural.input("key", String);
-    const count = Structural.input("count", BigInt);
+    const key = Expression.input("key", String);
+    const count = Expression.input("count", BigInt);
     const byName = Structural.dict(String, BigInt, [[key, count]]);
     expectTypeOf<Expression.Value.Type<typeof byName>>().toEqualTypeOf<
       Type.Dict<Type.PrimitiveString, Type.PrimitiveInteger>
@@ -364,48 +370,8 @@ describe("structural_value_types", () => {
 
   test("generic_definition", () => {
     const strings = emptyList(String);
-    const count = shorthandInput("count", BigInt);
     expectTypeOf<Expression.Value.Type<typeof strings>>().toEqualTypeOf<
       Type.List<Type.PrimitiveString>
     >();
-    expectTypeOf<Expression.Value.Inputs<typeof count>>().toEqualTypeOf<{
-      readonly count: Type.PrimitiveInteger;
-    }>();
-  });
-});
-
-describe("structural_input_types", () => {
-  test("default_requirements", () => {
-    const count = Structural.input("count", BigInt);
-    const row = Structural.input("row", { count: BigInt }, { count });
-    expectTypeOf<Expression.Value.Type<typeof row>>().toEqualTypeOf<Row>();
-    expectTypeOf<Expression.Value.Inputs<typeof row>>().toEqualTypeOf<{
-      readonly row?: Row;
-      readonly count: Type.PrimitiveInteger;
-    }>();
-    const required = Structural.input("row", { count: BigInt });
-    expectTypeOf<Expression.Value.Inputs<typeof required>>().toEqualTypeOf<{
-      readonly row: Row;
-    }>();
-    // @ts-expect-error The default cannot widen the declared field descriptor.
-    Structural.input("row", { count: BigInt }, { count: "x" });
-    // @ts-expect-error The default must not hide additional fields.
-    Structural.input("row", { count: BigInt }, { count: 1n, extra: true });
-  });
-
-  test("uncertain_default", () => {
-    const fallback = Structural.input("fallback", BigInt);
-    const count = Structural.input("count", BigInt, possiblyAbsent(fallback));
-    expectTypeOf<Expression.Value.Inputs<typeof count>>().toEqualTypeOf<{
-      readonly count: Type.PrimitiveInteger;
-      readonly fallback: Type.PrimitiveInteger;
-    }>();
-    // oxlint-disable-next-line unicorn/no-useless-undefined -- explicitly absent defaults still require the input
-    const absent = Structural.input("count", BigInt, undefined);
-    expectTypeOf<Expression.Value.Inputs<typeof absent>>().toEqualTypeOf<{
-      readonly count: Type.PrimitiveInteger;
-    }>();
-    // @ts-expect-error Undefined does not make an incompatible defined alternative acceptable.
-    Structural.input("count", BigInt, possiblyAbsent("x"));
   });
 });

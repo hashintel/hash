@@ -5,6 +5,14 @@
     "@local/tsconfig"
   ],
   "tasks": {
+    "build": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
     "build:reference": {
       "dependsOn": [
         "railroad-plugin#build:wasm"
@@ -14,14 +22,28 @@
       ]
     },
     "codegen": {
+      "dependsOn": [
+        "@local/hashql#build"
+      ],
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
+    "codegen:dev": {
       "dependsOn": []
     },
     "dev": {
-      "dependsOn": [],
+      "dependsOn": [
+        "codegen",
+        "codegen:dev"
+      ],
       "cache": false,
       "persistent": true,
       "env": [
         "PORT"
+      ],
+      "affectedBy": [
+        "@local/hashql"
       ]
     },
     "dev:reference": {
@@ -34,16 +56,43 @@
         "railroad-plugin"
       ]
     },
+    "generate": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
     "lint:oxlint": {
       "dependsOn": [
         "@local/oxlint#build",
+        "build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@local/hashql"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
-        "@local/oxlint#build",
-        "codegen"
+        "build"
+      ],
+      "affectedBy": [
+        "@local/hashql"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
       ]
     }
   }

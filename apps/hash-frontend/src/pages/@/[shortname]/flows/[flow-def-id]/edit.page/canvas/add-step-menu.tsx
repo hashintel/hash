@@ -7,13 +7,15 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ActionIo } from "../shared/action-io";
 import { useRecentActions } from "../shared/recent-actions";
 import {
-  addableActionGroups,
+  isAddableAction,
+  listedActionGroups,
   recommendedActions,
-  searchAddableActions,
+  searchListedActions,
   stepNoun,
+  upcomingNote,
 } from "../shared/step-display";
 
-import type { AddableAction } from "../shared/step-display";
+import type { AddableAction, ListedAction } from "../shared/step-display";
 import type { ItemOrGroup, MenuItem, Position } from "@hashintel/ds-components";
 import type { ReactElement } from "react";
 
@@ -76,6 +78,33 @@ const getActionItem = (
   };
 };
 
+/**
+ * Shown while its item, which the menu marks `data-disabled`, is hovered. In the item's color, as a suffix's lighter
+ * one can't be read at a disabled item's opacity.
+ */
+const upcomingNoteLabel = css({
+  color: "fg.heading",
+  opacity: "0",
+  "[data-disabled]:hover &": { opacity: "1" },
+});
+
+/** An upcoming action is listed disabled, and says so while hovered. */
+const getListedActionItem = (
+  action: ListedAction,
+  handlers: { onPick: OnPick; onHighlight: OnHighlight },
+): MenuItem =>
+  isAddableAction(action)
+    ? getActionItem(action, handlers)
+    : {
+        id: action.upcomingId,
+        text: action.label,
+        description: action.description,
+        icon: action.icon,
+        suffix: <span className={upcomingNoteLabel}>{upcomingNote}</span>,
+        disabled: true,
+        onClick: () => {},
+      };
+
 const getMenuItems = ({
   query,
   emptyFlow,
@@ -89,10 +118,10 @@ const getMenuItems = ({
   onHighlight: OnHighlight;
 }): ItemOrGroup<MenuItem>[] => {
   if (query.trim() !== "") {
-    const matches = searchAddableActions(query);
+    const matches = searchListedActions(query);
 
     return matches.length > 0
-      ? matches.map((action) => getActionItem(action, handlers))
+      ? matches.map((action) => getListedActionItem(action, handlers))
       : [
           {
             id: "no-matches",
@@ -123,7 +152,7 @@ const getMenuItems = ({
     {
       id: "browse-all",
       label: "Browse all",
-      items: addableActionGroups.map(
+      items: listedActionGroups.map(
         ({ groupId, label, icon, actions }): MenuItem => ({
           id: groupId,
           text: label,
@@ -132,7 +161,9 @@ const getMenuItems = ({
             {
               id: groupId,
               label,
-              items: actions.map((action) => getActionItem(action, handlers)),
+              items: actions.map((action) =>
+                getListedActionItem(action, handlers),
+              ),
             },
           ],
         }),

@@ -313,6 +313,109 @@ describe("program", () => {
     );
   });
 
+  test("structural_constructors", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ count: BigInt }, ($, { count }) => {
+      const { tuple } = $;
+      const pair = $.let("pair", tuple([count, "two"]));
+      return $.if(true, {
+        then: (branch) =>
+          branch.struct({
+            pair,
+            items: branch.list(BigInt, [count]),
+            names: branch.dict(String, BigInt, { one: 1n }),
+          }),
+      });
+    });
+    const input = call(
+      "::kernel::special_form::input",
+      "count",
+      "::kernel::type::Integer",
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "pair",
+        { "#tuple": [input, literal("two")] },
+        call("::kernel::special_form::if", literal(true), {
+          "#struct": {
+            pair: "pair",
+            items: {
+              "#list": [input],
+              "#type": "::kernel::type::List<::kernel::type::Integer>",
+            },
+            names: {
+              "#dict": [[literal("one"), literal(1)]],
+              "#type":
+                "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>",
+            },
+          },
+        }),
+      ),
+    );
+  });
+
+  test("structural_values", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ count: BigInt }, ($, { count }) => {
+      const row = $.let("row", { count, pair: [1n, "x"] });
+      return $.if($.eq(row, { count: 1n, pair: [1n, "x"] }), {
+        then: () => ({ total: row.count }),
+        else: () => ({ total: $.as(2n, BigInt) }),
+      });
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::let","row",{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"],"pair":{"#tuple":[{"#literal":1},{"#literal":"x"}]}}},["::kernel::special_form::if",["::core::cmp::eq","row",{"#struct":{"count":{"#literal":1},"pair":{"#tuple":[{"#literal":1},{"#literal":"x"}]}}}],{"#struct":{"total":["::kernel::special_form::access","row","count"]}},{"#struct":{"total":["::kernel::special_form::as",{"#literal":2},"::kernel::type::Integer"]}}]]',
+    );
+  });
+
+  test("structural_root", () => {
+    expect.hasAssertions();
+    expect(text(Draft.program({}, () => 1n))).toBe('{"#literal":1}');
+    expect(text(Draft.program({}, () => ({ ready: true })))).toBe(
+      '{"#struct":{"ready":{"#literal":true}}}',
+    );
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const map = Draft.program({}, () => new Map());
+    expect(reason(map)).toStrictEqual(
+      Program.ProgramError.Reason.make({ _tag: "InvalidBodyResult" }),
+    );
+  });
+
+  test("host_objects", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) =>
+      // @ts-expect-error exercise an unchecked JavaScript caller
+      $.let("row", { at: new Map() }),
+    );
+    expect(reason(result)._tag).toBe("InvalidExpression");
+  });
+
+  test("type_assertion", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { Number: NumberType } = $.prelude();
+      const foo = $.let("foo", $.as(2n, NumberType));
+      return $.if(true, { then: (branch) => branch.as(foo, NumberType) });
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "foo",
+        call(
+          "::kernel::special_form::as",
+          literal(2),
+          "::kernel::type::Number",
+        ),
+        call(
+          "::kernel::special_form::if",
+          literal(true),
+          call("::kernel::special_form::as", "foo", "::kernel::type::Number"),
+        ),
+      ),
+    );
+  });
+
   test("construction_failures", () => {
     expect.hasAssertions();
     for (const result of [
@@ -518,6 +621,25 @@ describe("references", () => {
     expect(reason(shadowed)).toStrictEqual(stale("T"));
   });
 
+  test("as_type", () => {
+    expect.hasAssertions();
+    const asserted = Draft.program({}, ($) => {
+      const count = $.type("Count", BigInt);
+      return $.let("foo", $.as(2n, count));
+    });
+    expect(text(asserted)).toBe(
+      '["::kernel::special_form::type","Count","::kernel::type::Integer",["::kernel::special_form::let","foo",["::kernel::special_form::as",{"#literal":2},"Count"],"foo"]]',
+    );
+
+    // The asserted type names a type binding, which the check follows like any other use.
+    const shadowed = Draft.program({}, ($) => {
+      const alias = $.type("T", BigInt);
+      $.type("T", String);
+      return $.as(1n, alias);
+    });
+    expect(reason(shadowed)).toStrictEqual(stale("T"));
+  });
+
   test("shadowing_initializer", () => {
     expect.hasAssertions();
     const result = Draft.program({}, ($) => {
@@ -584,6 +706,21 @@ describe("references", () => {
       return Structural.tuple([conditional, inner]);
     });
     expect(reason(result)).toStrictEqual(stale("inner"));
+  });
+
+  test("outer_context", () => {
+    expect.hasAssertions();
+    // The outer `$` declares inside the branch being built.
+    const result = Draft.program({}, ($) =>
+      $.if(true, { then: () => $.let("inner", 1n) }),
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::if",
+        literal(true),
+        call("::kernel::special_form::let", "inner", literal(1), "inner"),
+      ),
+    );
   });
 
   test("embedded_program", () => {
@@ -1408,9 +1545,9 @@ describe("query", () => {
     );
   });
 
-  test("predicate_escape", () => {
+  test("outer_context", () => {
     expect.hasAssertions();
-    // The outer `$` emits its `let` outside the closure, where `vertex` names nothing.
+    // The outer `$` declares inside the predicate being built, where `vertex` is in scope.
     const result = Draft.withPrelude(graph).program({}, ($) =>
       $.query($.prelude().entities(1n))
         .filter("vertex", (_, vertex) =>
@@ -1418,7 +1555,9 @@ describe("query", () => {
         )
         .collect(),
     );
-    expect(reason(result)).toStrictEqual(stale("vertex"));
+    expect(text(result)).toBe(
+      '["::graph::tail::collect",["::graph::body::filter",["::example::graph::entities",{"#literal":1}],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::kernel::special_form::let","enabled",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}],"enabled"]]]]',
+    );
   });
 
   test("parameter_shadows", () => {
@@ -1629,6 +1768,48 @@ describe("exception", () => {
           reason: { _tag: "CallbackException", cause: { cause: thrown } },
         },
       });
+    }
+  });
+
+  test("failed_body_declarations", () => {
+    expect.hasAssertions();
+    // Each program discards a failed callback's result, so none of its declarations may reach the root, and the root keeps the declaration it made before the callback ran.
+    const results = [
+      Draft.program({}, ($) => {
+        const kept = $.let("kept", 0n);
+        $.if(true, {
+          then: (branch) => {
+            branch.let("leaked", 1n);
+            throw new Error("branch callback");
+          },
+        });
+        return kept;
+      }),
+      Draft.program({}, ($) => {
+        const kept = $.let("kept", 0n);
+        $.if(true, {
+          // @ts-expect-error exercise an unchecked JavaScript caller
+          // oxlint-disable-next-line typescript/promise-function-async -- this branch supplies a Promise where the synchronous API rejects one
+          then: (branch) => {
+            branch.let("leaked", 1n);
+            return asynchronousBody();
+          },
+        });
+        return kept;
+      }),
+      Draft.withPrelude(graph).program({}, ($) => {
+        const kept = $.let("kept", 0n);
+        $.query($.prelude().entities(1n)).filter("vertex", (predicate) => {
+          predicate.let("leaked", 1n);
+          throw new Error("predicate callback");
+        });
+        return kept;
+      }),
+    ];
+    for (const result of results) {
+      expect(syntax(result)).toStrictEqual(
+        call("::kernel::special_form::let", "kept", literal(0), "kept"),
+      );
     }
   });
 });

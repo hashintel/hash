@@ -1,0 +1,39 @@
+# Hand-written; rendered by the arch-docs build. React components and hooks
+# use the purple palette, stores the blue one, the page the white one.
+direction: down
+
+vars: {
+  d2-legend: {
+    a -> b: passes data or calls
+    a -> b: writes outside React {style.stroke-dash: 3}
+    a.style.opacity: 0
+    b.style.opacity: 0
+  }
+}
+
+scene: "Canvas scene\nby ArcLayerContext" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+store: "React Flow's store\nmeasured pins, selection" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+shapes: "arcShapes\none shape per arc" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+runs: "arcRuns\nmerged strokes by colour" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+strokes: "ArcRunStrokes\nthe paths of a run" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+own: "ArcOwnStrokes\nthe strokes of one arc" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+item: "ArcItem\nfocus, name, pointer, weight" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+gestures: "useArcGestures" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+interactions: "Canvas interactions\nselectLink, enter, clearHover" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+transition: "Transition node\nthat fired" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+pulses: "ArcPulses" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+pulse: "Pulse path\nunder the arc's line" {style.fill: "#ffffff"; style.stroke: "#6b6b6b"}
+
+scene -> shapes: "gives nodes and arcs"
+store -> shapes: "gives the pins of port arcs"
+shapes -> runs: "the same shape for an arc that draws the same"
+runs -> strokes: "the same run while its arcs are the same"
+strokes -> own: "renders an arc that is not at rest"
+shapes -> item: "renders one element per arc"
+item -> gestures: "reports a click, the pointer, a key"
+gestures -> store: "selects as an edge"
+gestures -> interactions: "selects and hovers the arc"
+transition -> pulses: "fires"
+shapes -> pulses: "says which arcs are on the page"
+pulses -> pulse: "adds, animates, removes" {style.stroke-dash: 3}

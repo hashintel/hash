@@ -12,10 +12,10 @@ import {
   petrinautDocNames,
   petrinautDocSummaries,
 } from "./ai";
-import { generateArcId } from "./arc-id";
+import { generateArcId } from "./document/arc-id";
+import { toPetrinautId } from "./document/petrinaut-id";
 import { createJsonDocHandle } from "./handle";
-import { createPetrinaut } from "./instance";
-import { toPetrinautId } from "./petrinaut-id";
+import { createPetrinaut } from "./instance/instance";
 
 const createInstance = () =>
   createPetrinaut({

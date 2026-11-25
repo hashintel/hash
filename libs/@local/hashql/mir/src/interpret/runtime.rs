@@ -39,7 +39,10 @@
 //! [`GraphRead`]: crate::body::terminator::GraphRead
 //! [`Continuation`]: super::suspension::Continuation
 
-use alloc::{alloc::Global, borrow::Cow};
+use alloc::{
+    alloc::{AllocatorNightly, Global},
+    borrow::Cow,
+};
 use core::{
     alloc::{Allocator, AllocatorClone},
     debug_assert_matches,
@@ -393,7 +396,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         Target { block, args }: Target<'heap>,
     ) -> Result<(), RuntimeError<'heap, E, A>>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         if args.is_empty() {
             frame.current_block = CurrentBlock {
@@ -443,7 +446,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         frame: &mut Frame<'ctx, 'heap, A>,
     ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>, PopFrame>, RuntimeError<'heap, E, A>>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         let terminator = &frame.current_block.block.terminator.kind;
 
@@ -784,7 +787,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<ControlFlow<Yield<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         let Some((frame, stack)) = callstack.frames.split_last_mut() else {
             return Err(RuntimeError::CallstackEmpty);
@@ -842,7 +845,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         loop {
             let next = self.step(callstack)?;
@@ -877,7 +880,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         mut r#continue: impl FnMut(BasicBlockId) -> bool,
     ) -> Result<ControlFlow<BasicBlockId, Yield<'ctx, 'heap, A>>, RuntimeError<'heap, E, A>>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         loop {
             // Check if we've entered a new block in the outermost frame. This must happen
@@ -908,7 +911,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
             -> Result<Continuation<'ctx, 'heap, A>, RuntimeError<'heap, !, A>>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, !, A>>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         self.scratch.clear();
 
@@ -945,7 +948,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
             -> Result<Continuation<'ctx, 'heap, A>, RuntimeError<'heap, !, A>>,
     ) -> Result<Value<'heap, A>, InterpretDiagnostic>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         self.try_run(&mut callstack, on_suspension)
             .map_err(|error| {
@@ -978,7 +981,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         self.reset();
         self.run_until_suspension(callstack).map_err(|error| {
@@ -1003,7 +1006,7 @@ impl<'ctx, 'heap, A: Allocator> Runtime<'ctx, 'heap, A> {
         continuation: Continuation<'ctx, 'heap, A>,
     ) -> Result<Yield<'ctx, 'heap, A>, InterpretDiagnostic>
     where
-        A: AllocatorClone,
+        A: AllocatorClone + AllocatorNightly,
     {
         continuation.apply(callstack).map_err(|error| {
             let spans = callstack.unwind();

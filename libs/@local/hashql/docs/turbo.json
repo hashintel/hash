@@ -1,7 +1,25 @@
 {
   "extends": ["//"],
   "tasks": {
+    "build": {
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/**"]
+    },
+    "generate": {
+      "cache": false,
+      "dependsOn": ["build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["$TURBO_EXTENDS$", "build"]
+    },
     "codegen": {
+      "dependsOn": ["@local/hashql#build"],
+      "outputs": [".generated/**"]
+    },
+    "codegen:dev": {
       "outputs": [
         "preview/.source/**",
         "preview/.next/types/**",
@@ -11,7 +29,8 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["PORT"]
+      "env": ["PORT"],
+      "dependsOn": ["codegen", "codegen:dev"]
     },
     "manifest": {
       "dependsOn": ["^manifest", "railroad-plugin#manifest"]

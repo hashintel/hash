@@ -1,9 +1,13 @@
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import {
+  UndoRedoContext,
+  type UndoHistory,
+} from "../../../../../react/document/undo-redo-context";
+import { constantStore, useStore } from "../../../../../react/shared/use-store";
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
@@ -16,19 +20,33 @@ function formatTime(timestamp: string): string {
 
 const menuMaxHeightStyle = css({ maxHeight: "[310px]", minWidth: "[170px]" });
 
+const noHistory = constantStore<UndoHistory>({ entries: [], currentIndex: 0 });
+
+// The menu draws no popup for an empty list, so a closed menu keeps one row.
+// It is replaced by the entries as the menu opens and is never shown.
+const closedMenuItems: MenuItem[] = [
+  { id: "closed", text: "Recent changes", onClick: () => {} },
+];
+
 export const VersionHistoryButton = () => {
   const undoRedo = use(UndoRedoContext);
+  // Every edit adds an entry. The list is read only while the menu shows it,
+  // so a closed menu renders nothing as the user types.
+  const [isOpen, setIsOpen] = useState(false);
+  const { entries, currentIndex } = useStore(
+    isOpen && undoRedo ? undoRedo.history : noHistory,
+  );
 
   if (!undoRedo) {
     return null;
   }
 
-  const { history, currentIndex, goToIndex } = undoRedo;
+  const { goToIndex } = undoRedo;
 
-  const menuItems: MenuItem[] = [...history]
+  const menuItems: MenuItem[] = [...entries]
     .reverse()
     .map((entry, reversedIdx) => {
-      const realIndex = history.length - 1 - reversedIdx;
+      const realIndex = entries.length - 1 - reversedIdx;
       const isCurrent = realIndex === currentIndex;
       return {
         id: `version-${String(realIndex)}`,
@@ -52,7 +70,8 @@ export const VersionHistoryButton = () => {
           iconName="clockRotateLeft"
         />
       }
-      items={menuItems}
+      items={isOpen ? menuItems : closedMenuItems}
+      onOpen={setIsOpen}
       className={menuMaxHeightStyle}
       position="bottom-end"
     />

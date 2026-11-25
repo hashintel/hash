@@ -1,23 +1,35 @@
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
-import { SDCPNItemError } from "../../errors";
+import {
+  flattenComponentInstancesForSimulation,
+  getArcPlaceNameOverrideKey,
+} from "../../composition/flatten-component-instances";
+import { sourceItemId } from "../../composition/scoped-id";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../document/parameter-values";
+import { getRunningEquationIds } from "../../document/place-dynamics";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import {
   fingerprintHirCompilationInput,
   instantiateHirBufferDynamics,
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
 } from "../../hir-runtime";
+import { StringPool } from "../../tokens/string-pool";
 import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
-import { getRunningEquationIds } from "../../place-dynamics";
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+  encodeTokenToBytes,
+  type TokenSlotLayout,
+} from "../../tokens/token-layout";
+import { coerceTokenRecord } from "../../tokens/token-values";
 import {
   createUserKeyedRecord,
   describeDangerousSdcpnKeys,
@@ -30,25 +42,13 @@ import {
   type EngineFrameSnapshot,
   type EngineFrameLayout,
 } from "../frames/internal-frame";
+import { SDCPNItemError } from "../sdcpn-item-error";
 import {
   PLACE_CAPACITY_UNBOUNDED,
   computeTransitionCapacityConstraints,
   normalizePlaceCapacity,
 } from "./capacity";
 import { composeDerivatives } from "./compose-derivatives";
-import {
-  flattenComponentInstancesForSimulation,
-  getArcPlaceNameOverrideKey,
-} from "./flatten-component-instances";
-import { sourceItemId } from "./scoped-id";
-import { StringPool } from "./string-pool";
-import {
-  computeTokenSlotLayout,
-  createTokenRegionViews,
-  encodeTokenToBytes,
-  type TokenSlotLayout,
-} from "./token-layout";
-import { coerceTokenRecord } from "./token-values";
 
 import type {
   HirArtifacts,

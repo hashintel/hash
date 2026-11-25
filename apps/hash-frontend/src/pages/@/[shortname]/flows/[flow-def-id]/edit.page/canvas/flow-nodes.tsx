@@ -12,6 +12,7 @@ import {
   triggerDisplays,
 } from "../shared/step-display";
 import { StepIconTile } from "../shared/step-icon-tile";
+import { getShownState } from "../shared/step-states";
 import { useCanvasActions } from "./canvas-actions";
 import {
   forEachBoxPadding,
@@ -243,7 +244,7 @@ const TitleMarks = ({
           <Icon name="starFilled" size="xs" alt="Shown in run results" />
         </span>
       )}
-      <StepStateText state={run.mark.state} />
+      <StepStateText state={getShownState(run.mark.state, run.live)} />
     </>
   ) : (
     <ProblemsMarker problems={problems} />
@@ -385,7 +386,7 @@ const PathRows = ({
 );
 
 export const StepNode = ({
-  data: { step, paths, problems, inner, run },
+  data: { step, paths, lineFromStep, problems, inner, run },
   selected,
 }: NodeProps<ActionStepNode>) => {
   const { editing } = useCanvasActions();
@@ -401,12 +402,24 @@ export const StepNode = ({
       run={run}
       paths={
         paths.length > 0 && (
-          <PathRows
-            stepId={step.stepId}
-            paths={paths}
-            connectable={connectable}
-            showAdd={showAdd}
-          />
+          <>
+            {/* First, as React Flow draws a line that names no port from a node's first. */}
+            {lineFromStep && (
+              <Handle
+                type="source"
+                position={Position.Right}
+                isConnectable={false}
+                data-connected
+                style={{ top: stepCardSize.height / 2 }}
+              />
+            )}
+            <PathRows
+              stepId={step.stepId}
+              paths={paths}
+              connectable={connectable}
+              showAdd={showAdd}
+            />
+          </>
         )
       }
     >

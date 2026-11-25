@@ -1,0 +1,202 @@
+---
+title: Monte Carlo worker protocol
+description: The messages between an experiment and one of its shard workers, the order of one shard from init to complete, what bounds a shard that runs ahead, and how a worker is reset for the next experiment.
+sidebar_order: 10
+---
+
+import { Sequence } from "@diagrams/sequence";
+
+A Monte Carlo worker advances one shard of an experiment, a slice of its
+runs, and posts metric frames and progress. `messages.ts` in this folder
+defines every message, `attachMonteCarloWorker` in `attach.ts` is the
+worker's end, and `createMonteCarloExperiment` in `../runtime/experiment.ts`
+is the host's end. The host holds one channel per shard and speaks the same
+protocol on each. [Worker sharding](doc:core.simulation.monte-carlo/worker-sharding)
+says how the runs are split and why the split does not change the results.
+
+No frame of a run crosses the channel. A shard keeps its runs' buffers and
+posts what the metrics read from them.
+
+## Messages
+
+**Host to worker**, the type `MonteCarloToWorkerMessage`:
+
+| Type     | Payload                                                                                                                                                                            | Effect                                                                                                                                                                                                                                                     |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init`   | `sdcpn`, `extensions`, `initialMarking`, `parameterValues`, `seed`, `dt`, `maxTime`, `hirArtifacts`, `runCount`, `runIndexOffset`, `runs`, `batchSize`, `metricSpecs`, `simulator` | Builds the metrics from their specs and a simulator over the shard's runs, in place of any the worker held. Posts `ready`, then the metric frames of the initial state, then `progress`. A failure is answered with `error`, and the worker holds nothing. |
+| `start`  | none                                                                                                                                                                               | Starts the compute loop. Ignored while the loop runs. Answered with `error` when nothing is initialized.                                                                                                                                                   |
+| `cancel` | none                                                                                                                                                                               | Stops the loop, discards the simulator and posts `cancelled`. Every `cancel` is answered, one sent to a worker that holds nothing included.                                                                                                                |
+
+`runCount` is the number of runs of the shard and `runIndexOffset` the index
+of its first run in the experiment. A run's seed derives from `seed` and its
+index in the experiment, so a run has the same seed in any shard. `runs`
+holds the shard's slice of the per-run overrides, indexed from the shard's
+first run. `simulator` names the simulator that advances a run between two
+samples where that is not the fixed-step engine. The worker then asks its
+host for that simulator's run drivers, and a worker whose host supplies none
+answers `init` with `error`.
+
+**Worker to host**, the type `MonteCarloToMainMessage`:
+
+| Type           | Payload              | What the host does with it                                                                                                                                                            |
+| -------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`        | none                 | Marks the shard ready. Once every shard is ready it sets the status to `Ready` and resolves the promise of `createMonteCarloExperiment`.                                              |
+| `metricFrames` | `frames`             | Gives the frames to the shard merger and appends to the `metrics` store the frames the merger releases.                                                                               |
+| `progress`     | `progress`           | Keeps it as the shard's progress and publishes the progress of the experiment.                                                                                                        |
+| `complete`     | `progress`           | Settles the shard. Once every shard has settled it sets the status to `Complete` and emits `complete` on the handle's `events` stream.                                                |
+| `cancelled`    | `progress` or `null` | Settles the shard, sends `cancel` to every shard, sets the status to `Cancelled` and emits `cancelled`.                                                                               |
+| `error`        | `message`, `itemId`  | Sets the status to `Error` and emits it. Before the promise has resolved it rejects the promise and terminates every channel. After, it sends `cancel` to every shard and terminates. |
+
+`frames` holds the frames each metric recorded since the last post. A frame
+carries the state of its accumulator before reduction, which is what lets
+the host merge the frames of several shards: a mean of means is not a mean.
+
+`progress` is a `MonteCarloWorkerProgress`: the tallies of the shard's runs
+(`activeRuns`, `advancedRuns`, `completedRuns`, `erroredRuns`,
+`allFinished`), its `runCount`, and the `frameNumber` and `time` of its
+latest metric frame, or of its furthest run where it has no metric. The
+progress of `cancelled` is `null` when the worker was never initialized. `itemId` names the item of the net that an error
+blames, where the thrown error carries one.
+
+## One shard, end to end
+
+<Sequence
+  title="Experiment and one shard worker, in order"
+  actors={["Host", "Monte Carlo worker"]}
+  rows={[
+    {
+      direction: "right",
+      label: "`init`",
+      note: "The shard's slice of the runs, and the metric specs",
+    },
+    {
+      direction: "left",
+      label: "`ready`",
+      note: "The promise resolves once every shard has sent it",
+    },
+    {
+      direction: "left",
+      label: "`metricFrames`, `progress`",
+      note: "What the metrics read from the initial state",
+    },
+    {
+      direction: "right",
+      label: "`start`",
+      note: "The host sets `Running` and sends it to every shard",
+    },
+    {
+      phase:
+        "The loop runs to the end of the shard. Each turn advances every active run by up to `batchSize` samples.",
+    },
+    {
+      direction: "left",
+      label: "`metricFrames`",
+      note: "The frames recorded in that turn",
+    },
+    {
+      direction: "left",
+      label: "`progress`",
+      note: "Posted after the frames it counts",
+    },
+    {
+      direction: "left",
+      label: "`complete`",
+      note: "After the last `metricFrames` and `progress`",
+    },
+  ]}
+/>
+
+Within one turn the frames leave before the progress that counts them, and
+`complete` leaves last. A host that stops listening on `complete` has every
+frame of the shard.
+
+## Flow control
+
+The channel has none. A started worker computes to the end of its shard
+without waiting for the host, and it has no message that slows it down:
+
+```js
+while (isRunning) {
+  // advance every active run, up to batchSize times
+  post("metricFrames", framesSinceTheLastPost);
+  post("progress", progress);
+  if (allFinished) {
+    post("complete", progress);
+    return;
+  }
+  await delay(0); // let cancel in
+}
+```
+
+- `batchSize` is the number of samples per turn, 4 where `init` gives none.
+  The loop yields after each turn, so a `cancel` is read within one turn.
+- What a worker holds for a run does not grow with the run's length: two
+  buffers. It also keeps every frame of its metrics, one per sample.
+  [Monte Carlo experiments](doc:core.simulation.monte-carlo/experiments) has
+  the memory model.
+- The host bounds what it shows, not what a shard computes. The merger in
+  `../metrics/merge.ts` holds the frames of a shard that runs ahead and
+  releases a frame number once every shard that still runs has reported it.
+  A shard that has settled leaves that watermark, so it blocks no frame.
+- The progress of the experiment reports the position of the slowest shard
+  that still runs, so it is never ahead of the released frames.
+
+`../metrics/merge.test.ts` holds the watermark, in "withholds a frame until
+every running shard has reported it", and "reports the slowest shard's
+position while any shard still runs" in `../runtime/experiment.test.ts`
+holds the progress.
+
+## Lifecycle
+
+The handle's `status` store holds the host's state:
+
+```text
+Initializing ──every shard ready──▶ Ready ──start()──▶ Running
+                         Running ──every shard complete──▶ Complete
+                         any     ──one shard cancelled───▶ Cancelled
+                         any     ──one shard error───────▶ Error
+```
+
+`start()` sets `Running` and sends `start` to every shard without waiting
+for an answer. `cancel()` sends `cancel` to every shard, and the status
+changes when the first `cancelled` arrives. One shard that cancels or fails
+ends the experiment, and the host stops the others. `dispose()` sends
+`cancel` and terminates every channel, and an abort of the `signal` given to
+`createMonteCarloExperiment` does the same.
+
+The worker keeps less: whether it holds a simulator, and whether its loop
+runs. `init` builds a simulator at any time and `cancel` discards it, so a
+worker that has finished or was cancelled serves the next experiment.
+`createReusableWorkerFactory` in `../runtime/reusable-worker-factory.ts`
+relies on that. It wraps a worker factory in a pool, and `terminate()` on a
+worker it leased resets the worker in place of ending it:
+
+1. The lease detaches its listeners and posts `cancel`.
+2. The pool waits for one `cancelled` per `cancel` the worker still owes: the
+   one of the reset, and one for each `cancel` the lease sent and saw no
+   answer to. An answer that arrived after the next lease had attached would
+   read as that lease's own shard being cancelled.
+3. The worker goes back to the pool, and the next `init` builds its
+   simulator.
+
+`reusable-worker-factory.test.ts` holds the order, in "holds a worker out of
+the pool until every owed cancel is acknowledged". A worker whose script
+failed is terminated and not pooled.
+
+## What each end runs on
+
+`attachMonteCarloWorker` takes a `WorkerThreadRuntime` of
+[the environment](layer:core.environment), which posts a message, receives
+messages and yields. A host supplies the thread:
+
+| Host                    | The worker's end                                                                                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The editor              | `../../../simulators/worker/experiment.worker.ts`, a Web Worker that also supplies the run drivers of every simulator with a stepper                        |
+| A test, or a source run | `createInProcessMonteCarloWorker` in `in-process-worker.ts`, the same protocol on the calling thread. It yields between turns and runs nothing in parallel. |
+
+On the host's end `createWorkerTransport` in `../../worker-transport.ts`
+holds the messages sent before a worker exists. `createMonteCarloExperiment`
+takes a `transport` in place of `createWorker` for a single shard, which is
+how `../runtime/experiment.test.ts` reads and answers the messages. Given
+metric callbacks, or metric specs and neither of the two, it runs the
+simulator on the calling thread and sends no message.

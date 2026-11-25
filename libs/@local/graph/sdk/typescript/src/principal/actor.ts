@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import type { AuthenticationContext } from "../authentication-context.js";
 import type { Ai, Machine } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -8,8 +10,8 @@ export const getMachineByIdentifier = (
   identifier: string,
 ): Promise<Machine | null> =>
   graphAPI
-    .getMachineByIdentifier(authentication.actorId, identifier)
-    .then(({ data }) => {
+    .getMachineByIdentifier(identifier, actorHeaders(authentication.actorId))
+    .then((data) => {
       const machine = data as Machine | null;
       if (!machine) {
         return null;
@@ -23,8 +25,8 @@ export const getAiByIdentifier = (
   identifier: string,
 ): Promise<Ai | null> =>
   graphAPI
-    .getAiByIdentifier(authentication.actorId, identifier)
-    .then(({ data }) => {
+    .getAiByIdentifier(identifier, actorHeaders(authentication.actorId))
+    .then((data) => {
       const ai = data as Ai | null;
       if (!ai) {
         return null;

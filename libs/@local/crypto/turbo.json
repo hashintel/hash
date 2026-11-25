@@ -47,12 +47,14 @@
     "test:unit:bless": {
       "cache": false,
       "command": [
-        "env",
-        "TRYBUILD=overwrite",
-        "mise",
-        "run",
-        "test:unit",
-        "hash-crypto"
+        "cargo",
+        "test",
+        "-p",
+        "hash-crypto",
+        "--test",
+        "compiletest",
+        "--",
+        "--bless"
       ]
     }
   }

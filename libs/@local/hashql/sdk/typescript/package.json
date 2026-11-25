@@ -29,11 +29,11 @@
     "test:unit": "vitest run --project unit --typecheck"
   },
   "dependencies": {
-    "effect": "4.0.3"
+    "effect": "catalog:"
   },
   "devDependencies": {
-    "@effect/platform-node": "4.0.3",
-    "@effect/vitest": "4.0.3",
+    "@effect/platform-node": "catalog:",
+    "@effect/vitest": "catalog:",
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",

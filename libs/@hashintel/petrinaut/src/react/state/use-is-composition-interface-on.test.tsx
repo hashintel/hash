@@ -8,8 +8,8 @@ import {
   type PetrinautRules,
 } from "@hashintel/petrinaut-core";
 
-import { CompositionContext } from "./composition-context";
-import { SDCPNContext } from "./sdcpn-context";
+import { CompositionContext } from "../document/composition-context";
+import { SDCPNContext } from "../document/sdcpn-context";
 import { useIsCompositionInterfaceOn } from "./use-is-composition-interface-on";
 import { UserSettingsContext } from "./user-settings-context";
 

@@ -232,7 +232,7 @@ describe("emitted_structural_constructors", () => {
   test("collections", () => {
     expect.hasAssertions();
     const one = 1n;
-    const count = Program.Structural.input("count", BigInt);
+    const count = Program.Expression.input("count", BigInt);
     const numbers = Program.Structural.list(BigInt, [count, one]);
     const named = Program.Structural.dict(String, BigInt, [["count", count]]);
     const pair = Program.Structural.tuple(["x", count]);
@@ -264,8 +264,8 @@ describe("emitted_structural_constructors", () => {
 
   test("structural_default", () => {
     expect.hasAssertions();
-    const count = Program.Structural.input("count", BigInt);
-    const row = Program.Structural.input("row", { count: BigInt }, { count });
+    const count = Program.Expression.input("count", BigInt);
+    const row = Program.Expression.input("row", { count: BigInt }, { count });
     expectTypeOf<Program.Expression.Value.Inputs<typeof row>>().toEqualTypeOf<{
       readonly row?: Type.Struct<{ readonly count: Type.PrimitiveInteger }>;
       readonly count: Type.PrimitiveInteger;

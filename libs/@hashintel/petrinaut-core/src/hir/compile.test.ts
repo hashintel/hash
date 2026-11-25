@@ -20,7 +20,7 @@ import {
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   getTransitionLogicAvailability,
-} from "../extensions";
+} from "../extensions/extensions";
 import { buildSimulation } from "../simulation/engine/build-simulation";
 import { compileHirArtifacts } from "./compile";
 

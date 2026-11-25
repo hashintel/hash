@@ -1,22 +1,29 @@
-use std::ffi::OsStr;
+// Miri cannot spawn the `cargo` and `rustc` processes `ui_test` runs.
+#[cfg(miri)]
+fn main() {}
 
-#[cfg_attr(not(nightly), ignore = "Outputs are different across toolchains")]
-#[cfg_attr(miri, ignore = "Miri does not support UI tests")]
-#[test]
-fn ui() -> Result<(), Box<dyn core::error::Error>> {
-    let paths = glob::glob("tests/ui/*.rs")?.collect::<Result<Vec<_>, _>>()?;
+#[cfg(not(miri))]
+fn main() -> ui_test::Result<()> {
+    use ui_test::{Config, dependencies::DependencyBuilder, run_tests};
 
-    let test_cases = trybuild::TestCases::new();
+    let mut config = Config::rustc("tests/ui");
+    config.program.args.extend([
+        "-Zunstable-options".into(),
+        "--jobs-frontend=1".into(),
+        "-Zui-testing".into(),
+    ]);
+    config.stderr_filter(
+        "[^ ]+/lib/rustlib/src/rust/library/([^:]+):[0-9]+:[0-9]+",
+        "$$RUST/$1:LL:COL",
+    );
 
-    for path in paths {
-        if cfg!(feature = "serde") && path.file_name() == Some(OsStr::new("macro_invalid_args.rs"))
-        {
-            // This test adds additional notes when serde is enabled
-            continue;
-        }
+    // `ui_test` expects an artifact for every dependency, including optional ones.
+    let mut dependencies = DependencyBuilder::default();
+    dependencies.program.args.push("--all-features".into());
+    config
+        .comment_defaults
+        .base()
+        .set_custom("dependencies", dependencies);
 
-        test_cases.compile_fail(path);
-    }
-
-    Ok(())
+    run_tests(config)
 }

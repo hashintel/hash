@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import { petrinautIdSchema } from "../petrinaut-id";
+import { petrinautIdSchema } from "../document/petrinaut-id";
 
-import type { AbortSignalLike } from "../environment";
+import type { AbortSignalLike } from "../environment/environment";
 
 const parameterValueSchema = z.union([z.number().finite(), z.boolean()]);
 const parameterInputSchema = z.discriminatedUnion("mode", [

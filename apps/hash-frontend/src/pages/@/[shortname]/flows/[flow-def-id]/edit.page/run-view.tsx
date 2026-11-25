@@ -100,14 +100,15 @@ export const RunView = ({
   });
 
   const flowScheduleId = run.status === "loaded" ? run.flowScheduleId : null;
+  const live = run.status === "loaded" && run.live;
   /* It fired as the run started, so it's done, as Start is. */
   const trigger = useMemo(
     (): TriggerCard => ({
       ...getRunTrigger(flowScheduleId, schedules),
       on: true,
-      run: { mark: startMark, featured: false },
+      run: { mark: startMark, featured: false, live },
     }),
-    [flowScheduleId, schedules],
+    [flowScheduleId, schedules, live],
   );
 
   const [selectedStepIds, setSelectedStepIds] = useState<string[]>([]);
@@ -181,14 +182,7 @@ export const RunView = ({
       );
   }
 
-  const {
-    ranDefinition,
-    marks,
-    stepRuns,
-    waitingOnPerson,
-    live,
-    checkFailure,
-  } = run;
+  const { ranDefinition, marks, stepRuns, waitingOnPerson, checkFailure } = run;
   const flowDefinition = ranDefinition ?? currentDefinition;
 
   const [selectedStepId] = selectedStepIds;
@@ -220,6 +214,7 @@ export const RunView = ({
       <RunLeftPanel
         flowDefinition={flowDefinition}
         runMarks={marks}
+        live={live}
         selectedStepIds={selectedStepIds}
         onStepClick={(stepId) => {
           selectSteps([stepId]);
@@ -262,6 +257,7 @@ export const RunView = ({
         <RunCanvas
           flowDefinition={flowDefinition}
           marks={marks}
+          live={live}
           selectedStepIds={selectedStepIds}
           onSelectionChange={selectSteps}
           focusRequest={focusRequest}

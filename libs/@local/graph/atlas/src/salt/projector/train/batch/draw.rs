@@ -4,8 +4,8 @@
 //! artifacts, and the family order and the allocator contract live in the parent module's
 //! documentation.
 
+use alloc::alloc::Global;
 use core::alloc::Allocator;
-use std::alloc::Global;
 
 use hashql_core::id::{Id, IdSlice};
 use rand::Rng;

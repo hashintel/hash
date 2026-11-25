@@ -5,8 +5,11 @@
  * kernelStaging) so engine hot-path code can run against fixtures without
  * compiling real HIR artifacts. Not shipped — only imported from `*.test.ts`.
  */
-import { getArcEndpointPlaceId } from "../../arc-endpoints";
-import { computeTokenSlotLayout, createTokenRegionViews } from "./token-layout";
+import { getArcEndpointPlaceId } from "../../document/arc-endpoints";
+import {
+  computeTokenSlotLayout,
+  createTokenRegionViews,
+} from "../../tokens/token-layout";
 
 import type {
   HirCompiledBufferKernel,

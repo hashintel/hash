@@ -11,7 +11,7 @@ import { ValueChip } from "../../../../../../shared/value-chip";
 import { cellSx, typographySx } from "./cell-styles";
 
 import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
-import type { ValueMetadata } from "@local/hash-graph-client/api";
+import type { ValueMetadata } from "@local/hash-graph-client";
 
 export const NoValueCell = ({
   columnId,

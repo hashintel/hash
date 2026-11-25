@@ -1,6 +1,7 @@
 #![cfg_attr(doc, doc = include_str!("../README.md"))]
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
+#![expect(uncommon_codepoints, reason = "used by the zerocopy derive")]
 
 extern crate alloc;
 

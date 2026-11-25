@@ -3,7 +3,7 @@ import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
 import type { Query, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import type { GetWaitlistPosition200Response } from "@local/internal-api-client";
+import type { GetWaitlistPosition200 } from "@local/internal-api-client";
 
 export const getWaitlistPositionResolver: ResolverFn<
   Query["getWaitlistPosition"],
@@ -25,9 +25,9 @@ export const getWaitlistPositionResolver: ResolverFn<
     throw new Error("No email address found for user");
   }
 
-  let data: GetWaitlistPosition200Response;
+  let data: GetWaitlistPosition200;
   try {
-    ({ data } = await internalApiClient.getWaitlistPosition(email));
+    data = await internalApiClient.getWaitlistPosition({ email });
   } catch {
     throw new Error("Error fetching waitlist position");
   }

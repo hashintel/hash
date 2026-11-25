@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_RANGE_LENGTH } from "../simulation/authoring/scenario/helpers";
+import { MAX_RANGE_LENGTH } from "../scenario/helpers";
 import { HirInterpretError, interpretHir } from "./interpret";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 

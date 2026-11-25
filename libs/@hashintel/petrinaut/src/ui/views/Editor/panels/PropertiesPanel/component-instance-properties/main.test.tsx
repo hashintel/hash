@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { use, type ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createJsonDocHandle,
@@ -14,27 +14,12 @@ import {
   type Place,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../../../../react/instance-context";
-import { CompositionContext } from "../../../../../../react/state/composition-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { CompositionContext } from "../../../../../../react/document/composition-context";
+import { PetrinautInstanceContext } from "../../../../../../react/document/instance-context";
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import { ComponentInstanceProperties } from "./main";
 
-// The panel's sections measure themselves; jsdom has no observer.
-beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 const place = (id: string, name: string): Place => ({
   id,
@@ -162,7 +147,6 @@ const listedImplementations = async ({
     <ComponentInstanceProperties
       instance={placed}
       component={resolveComponent(sdcpn, scale, libraries) ?? null}
-      updateComponentInstance={instance.mutations.updateComponentInstance}
     />,
     { wrapper: Wrapper },
   );

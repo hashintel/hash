@@ -1133,7 +1133,12 @@ impl ToSchema<'_> for EntityQueryCursor<'_> {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
             "EntityQueryCursor",
-            openapi::Schema::Array(openapi::schema::Array::default()).into(),
+            openapi::Schema::Array(
+                schema::ArrayBuilder::new()
+                    .items(schema::Object::with_type(schema::SchemaType::Value))
+                    .build(),
+            )
+            .into(),
         )
     }
 }

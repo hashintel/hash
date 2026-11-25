@@ -1,5 +1,5 @@
 import { runEndOf } from "../../../../../../../react/simulation/run-end";
-import { visibleSimulatorParameters } from "../../../../../../components/simulator-parameter-input";
+import { visibleSimulatorParameters } from "../../../../shared/simulator-parameters";
 
 import type { SimulationMode } from "../../../../../../../react/simulators/context";
 /**

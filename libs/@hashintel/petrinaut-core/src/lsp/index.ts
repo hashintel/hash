@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.lsp
- * @role Language-server client and transport for editing user code in the net
+ * @role Host-side language client and worker transport for editing user code in the net
  */
 
 export {

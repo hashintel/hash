@@ -8,6 +8,7 @@ trait Leak: CloneToUninit + AsRef<[u8]> + AsMut<[u8]> {}
 
 impl<const N: usize> Leak for [u8; N] {}
 
+//~v ERROR: trait cannot be implemented outside `hash_crypto`
 impl SecretBuffer for dyn Leak {
     type View = [u8];
 }

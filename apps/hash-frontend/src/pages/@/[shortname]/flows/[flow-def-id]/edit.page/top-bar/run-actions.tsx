@@ -1,15 +1,17 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { useState } from "react";
 
-import { Button, Dialog } from "@hashintel/ds-components";
+import { Button, Dialog, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 import { useSnackbar } from "../../../../../../../components/hooks/use-snackbar";
 import { cancelFlowMutation } from "../../../../../../../graphql/queries/knowledge/flow.queries";
+import { generateRunViewPath } from "../run-path";
+import { RunFlow } from "../shared/run-flow";
 import { getShortRunId } from "../shared/run-id";
 import { isRunGoing } from "../shared/run-state";
-import { RunFlow } from "./run-flow";
 
 import type {
   CancelFlowMutation,
@@ -22,13 +24,63 @@ import type { FlowEditorState } from "@local/hash-isomorphic-utils/flows/flow-ed
 import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const dialogText = css({ textStyle: "sm" });
+const runMenu = css({ minWidth: "[208px]" });
+
+const RunMenu = ({
+  shortname,
+  flowDefinitionEntityId,
+  flowRunEntityId,
+}: {
+  shortname: string;
+  flowDefinitionEntityId: EntityId;
+  flowRunEntityId: EntityId;
+}) => {
+  const { triggerSnackbar } = useSnackbar();
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        `${frontendUrl}${generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId })}`,
+      );
+      triggerSnackbar.success("Copied the run's link");
+    } catch {
+      triggerSnackbar.error("Couldn't copy the run's link");
+    }
+  };
+
+  return (
+    <Menu
+      position="bottom-end"
+      className={runMenu}
+      items={[
+        {
+          id: "copy-link",
+          text: "Copy run link",
+          icon: "copy",
+          onClick: () => {
+            void copyLink();
+          },
+        },
+      ]}
+      trigger={
+        <Button
+          variant="subtle"
+          size="sm"
+          iconName="ellipsisVertical"
+          tooltip="More for this run"
+        />
+      }
+    />
+  );
+};
 
 /**
- * Stop, which asks first, while the run shown is going, and Re-run once it has ended. It reads the run that the run
- * view polls, so it shows nothing until that has loaded.
+ * Stop, which asks first, while the run shown is going, and Re-run once it has ended, then the run's menu. It reads the
+ * run that the run view polls, so it shows nothing until that has loaded.
  */
 export const RunActions = ({
   webId,
+  shortname,
   flowRunEntityId,
   flowDefinitionEntityId,
   editorState,
@@ -37,6 +89,8 @@ export const RunActions = ({
 }: {
   /** The web the flow is in, which a re-run is in too, and whose entities the form offers. */
   webId: WebId;
+  /** The shortname of the web the flow is in, for the run's link. */
+  shortname: string;
   flowRunEntityId: EntityId;
   flowDefinitionEntityId: EntityId;
   editorState: FlowEditorState;
@@ -83,6 +137,14 @@ export const RunActions = ({
     return null;
   }
 
+  const runMenuButton = (
+    <RunMenu
+      shortname={shortname}
+      flowDefinitionEntityId={flowDefinitionEntityId}
+      flowRunEntityId={flowRunEntityId}
+    />
+  );
+
   if (isRunGoing(run.status)) {
     return (
       <>
@@ -96,6 +158,7 @@ export const RunActions = ({
         >
           Stop
         </Button>
+        {runMenuButton}
         {confirmingStop && (
           <Dialog size="xs" onClose={() => setConfirmingStop(false)}>
             <Dialog.Header
@@ -134,12 +197,15 @@ export const RunActions = ({
   }
 
   return (
-    <RunFlow
-      webId={webId}
-      editorState={editorState}
-      ranInputs={run.flowInputs}
-      saveRefusedReason={saveRefusedReason}
-      onRun={onRun}
-    />
+    <>
+      <RunFlow
+        webId={webId}
+        editorState={editorState}
+        ranInputs={run.flowInputs}
+        saveRefusedReason={saveRefusedReason}
+        onRun={onRun}
+      />
+      {runMenuButton}
+    </>
   );
 };

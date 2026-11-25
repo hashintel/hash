@@ -8,26 +8,26 @@
 
 import { inlineImports, resolvedLibraries } from "@hashintel/petrinaut-core";
 
-import { petrinautNavigationStatesMatch } from "../../react/navigation";
 import {
   formatReadOnlyReason,
   mutationBlockedBy,
   type ReadOnlyReason,
-} from "../../react/state/use-read-only-reason";
+} from "../../react/editing/use-read-only-reason";
+import { petrinautNavigationStatesMatch } from "../../react/navigation/navigation";
 
+import type { ExperimentRecord } from "../../react/experiments/context";
 import type {
   ErrorTracker,
   ErrorTrackerCaptureContext,
-} from "../../react/error-tracker-context";
-import type { ExperimentRecord } from "../../react/experiments/context";
-import type { PetrinautRevealTarget } from "../../react/hooks/use-reveal-in-editor";
+} from "../../react/host/error-tracker-context";
 import type {
   PetrinautNavigationAction,
   PetrinautNavigationIntent,
   PetrinautNavigationState,
   PetrinautNavigationUpdate,
-} from "../../react/navigation";
+} from "../../react/navigation/navigation";
 import type { AddNotificationInput } from "../../react/notifications/context";
+import type { PetrinautRevealTarget } from "../../react/state/use-reveal-in-editor";
 import type {
   ApplyAutoLayoutResult,
   DiagnosticsSnapshot,

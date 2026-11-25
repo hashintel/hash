@@ -25,7 +25,7 @@ import ts from "@typescript/typescript6";
 import {
   isSupportedArity,
   MAX_DIFFERENTIAL_EQUATION_ARITY,
-} from "../equation-arity";
+} from "../document/equation-arity";
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {
   AMBIENT_INPUT_NAMES,

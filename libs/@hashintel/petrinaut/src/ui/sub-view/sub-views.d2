@@ -1,0 +1,30 @@
+# Hand-written; rendered by the arch-docs build. React components use the
+# purple palette, stores the blue one, plain data the grey one.
+direction: down
+
+descriptors: "sub-views.ts\nSubView descriptors: id, title, component,\nheaderAction, layout flags" {style.fill: "#f2f2f2"; style.stroke: "#6b6b6b"}
+modules: "Component modules (.tsx)\ncontent, header action, title" {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+deferred: "createDeferredSubView\none dynamic import per sub-view" {style.fill: "#f2f2f2"; style.stroke: "#6b6b6b"}
+
+side: "Left sidebar and properties panels" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+bottom: "Bottom panel" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+plugin: "Plugin bottomPanelViews" {style.fill: "#f2f2f2"; style.stroke: "#6b6b6b"}
+
+sections: "VerticalSubViewsContainer\ncollapsible, resizable sections" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+tabs: "HorizontalTabsHeader, HorizontalTabPanel\nin BottomPanel/tabs.tsx" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+
+settings: "User settings\ncollapsed and height per section" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+navigation: "Navigation state\nexpandedSubView" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+descriptors -> modules: "names components"
+deferred -> descriptors: "builds a descriptor"
+deferred -> modules: "imports on first mount or preload"
+side -> descriptors: "chooses a list"
+bottom -> descriptors: "chooses a list"
+plugin -> bottom: "adds tabs with rendered content"
+side -> sections: "passes subViews"
+bottom -> tabs: "passes tabs"
+sections -> modules: "renders each open section"
+bottom -> modules: "renders the active tab"
+sections -> settings: "saves collapse and height"
+sections -> navigation: "maximizes a section"

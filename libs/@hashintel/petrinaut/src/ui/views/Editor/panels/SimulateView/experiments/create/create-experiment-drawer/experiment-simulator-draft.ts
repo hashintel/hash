@@ -1,0 +1,191 @@
+/**
+ * The Create Experiment form's simulator choice as plain data, and what it
+ * resolves to against the simulators a host registers.
+ */
+import {
+  DEFAULT_EXPERIMENT_SAMPLE_PERIOD,
+  experimentSamplePeriod,
+  type RunClock,
+  type SimulatorRegistration,
+  type StoredSimulatorParameters,
+  WEBGPU_FIXED_STEP_SIMULATOR_ID,
+} from "@hashintel/petrinaut-core";
+
+import {
+  findSimulator,
+  simulatorRefusal,
+} from "../../../../../../../../react/simulators/context";
+import { acceptsSimulatorParameter } from "../../../../../shared/simulator-parameters";
+
+import type {
+  SimulatorSelection,
+  SimulatorsContextValue,
+} from "../../../../../../../../react/simulators/context";
+import type { GpuAvailability } from "./use-gpu-availability";
+
+export type ExperimentSimulatorDraft = {
+  /** The simulator picked, or null while the form stands on the default one. */
+  readonly simulatorId: string | null;
+  /** The values typed for each simulator, kept when another one is picked. */
+  readonly parametersBySimulator: Readonly<
+    Record<string, StoredSimulatorParameters>
+  >;
+  /**
+   * The field's text for the spacing of the samples, read for a simulator
+   * that has no time step to sample at.
+   */
+  readonly samplePeriod: string;
+};
+
+export const EMPTY_EXPERIMENT_SIMULATOR: ExperimentSimulatorDraft = {
+  simulatorId: null,
+  parametersBySimulator: {},
+  samplePeriod: String(DEFAULT_EXPERIMENT_SAMPLE_PERIOD),
+};
+
+/** Why a simulator cannot be picked. */
+type SimulatorRefusal = {
+  readonly reason: string;
+  /**
+   * True while the verdict is still being worked out, so that a picker can
+   * tell a slow answer from a negative one.
+   */
+  readonly pending: boolean;
+};
+
+/** Each simulator's refusal by id; null or absent when it can be picked. */
+export type SimulatorRefusals = ReadonlyMap<string, SimulatorRefusal | null>;
+
+/**
+ * Why each simulator cannot run an experiment on this net. The GPU
+ * simulator's verdict comes from the analysis of the net; the others are
+ * known from their registrations.
+ */
+export const simulatorRefusalsFor = (
+  registrations: readonly SimulatorRegistration[],
+  gpu: GpuAvailability,
+): SimulatorRefusals =>
+  new Map(
+    registrations.map((registration) => {
+      const known = simulatorRefusal(registration, "stochastic");
+      if (known !== null) {
+        return [registration.id, { reason: known, pending: false }];
+      }
+      return [
+        registration.id,
+        registration.id === WEBGPU_FIXED_STEP_SIMULATOR_ID && !gpu.available
+          ? {
+              reason:
+                gpu.reason ?? "Checking whether the net can run on the GPU",
+              pending: gpu.pending,
+            }
+          : null,
+      ];
+    }),
+  );
+
+export type ResolvedExperimentSimulator = {
+  /** The simulator the experiment would run on; undefined when none can. */
+  readonly registration: SimulatorRegistration | undefined;
+  /** The values its fields show: the defaults under what was typed. */
+  readonly parameters: StoredSimulatorParameters;
+  /** What `createExperiment` takes; null when no simulator can run it. */
+  readonly selection: SimulatorSelection | null;
+  /**
+   * What the experiment's positions count. On a clock of steps the
+   * simulator's parameters are not used, and their fields do not show.
+   */
+  readonly clock: RunClock;
+  /**
+   * The spacing the experiment is held to: one step on a clock of steps,
+   * else the simulator's time step when it samples at one. The Sample every
+   * field shows only without it.
+   */
+  readonly timeStep: number | null;
+  /** The spacing of the samples: the fixed one, or the field's value. */
+  readonly samplePeriod: number;
+};
+
+/**
+ * The simulator a draft stands for. The picked one while it can be picked;
+ * otherwise the default, so a net edited until the picked simulator refuses
+ * it neither shows that simulator as chosen nor submits it. The default is
+ * the one a Stochastic simulation starts on.
+ *
+ * `clock` is what the net's runs count: time unless the net is untimed.
+ */
+export const resolveExperimentSimulator = (
+  draft: ExperimentSimulatorDraft,
+  simulators: SimulatorsContextValue,
+  refusals: SimulatorRefusals,
+  clock: RunClock = "time",
+): ResolvedExperimentSimulator => {
+  const fallback = simulators.defaultSelections.stochastic;
+  const allowed = (simulatorId: string | null) =>
+    simulatorId === null || refusals.get(simulatorId)
+      ? undefined
+      : findSimulator(simulators.registrations, simulatorId);
+  const registration =
+    allowed(draft.simulatorId) ??
+    allowed(fallback.simulatorId) ??
+    simulators.registrations.find(({ id }) => !refusals.get(id));
+
+  const parameters: StoredSimulatorParameters = registration
+    ? {
+        ...(registration.id === fallback.simulatorId
+          ? fallback.parameters
+          : {}),
+        ...draft.parametersBySimulator[registration.id],
+      }
+    : {};
+  const timeStep = registration
+    ? experimentSamplePeriod(clock, registration, parameters)
+    : null;
+
+  return {
+    registration,
+    parameters,
+    selection: registration
+      ? { simulatorId: registration.id, parameters }
+      : null,
+    clock,
+    timeStep,
+    samplePeriod: timeStep ?? Number(draft.samplePeriod),
+  };
+};
+
+/**
+ * The draft with one parameter of a simulator set, or the draft as it was
+ * when the simulator's spec rejects the value.
+ */
+export const withSimulatorParameter = (
+  draft: ExperimentSimulatorDraft,
+  registration: SimulatorRegistration,
+  current: StoredSimulatorParameters,
+  key: string,
+  value: number | boolean | string,
+): ExperimentSimulatorDraft =>
+  acceptsSimulatorParameter(registration.parameters, current, key, value)
+    ? {
+        ...draft,
+        parametersBySimulator: {
+          ...draft.parametersBySimulator,
+          [registration.id]: { ...current, [key]: value },
+        },
+      }
+    : draft;
+
+/**
+ * What stops the experiment from running on the resolved simulator, or
+ * null: no simulator takes it, or its samples have no positive spacing.
+ */
+export const experimentSimulatorError = (
+  resolved: ResolvedExperimentSimulator,
+): string | null => {
+  if (!resolved.registration) {
+    return "No simulator can run this experiment";
+  }
+  return Number.isFinite(resolved.samplePeriod) && resolved.samplePeriod > 0
+    ? null
+    : "Sample every must be a positive number";
+};

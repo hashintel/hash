@@ -5,7 +5,17 @@
   ],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "codegen"
+      ]
+    },
+    "codegen": {
       "dependsOn": []
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "codegen"
+      ]
     }
   }
 }

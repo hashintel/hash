@@ -1,0 +1,296 @@
+---
+title: Panel geometry outside React state
+description: How a panel drag or slide changes the page without rendering the editor, and the rules for reading a size or how far a panel is in view.
+sidebar_order: 30
+---
+
+Panel geometry is the size of the left sidebar, the Properties panel, the
+bottom panel and the AI assistant, and how far each is in view. A size
+changes on every pointer move of a drag, and a presence on every frame of a
+slide, so both are Motion values and the elements that depend on one are
+written directly.
+
+![A drag or a slide sets a Motion value, and each element that follows it writes its own style once per frame. A drag renders its panel when it starts and when it ends, and no component between.](./panel-geometry.d2)
+
+The values live in this layer. The helpers that read them are UI code:
+`styleRef`, `bindStyle`, `watch` and `useReading` in `ui/shared/readings.ts`,
+`useCanvasInsetsReader` in `ui/shared/use-canvas-insets.ts`, and
+`slideFromEdge` and `useFloatingPanel` in `ui/views/Editor/shared`.
+
+## Motion values, and where they stop
+
+[Motion](https://motion.dev) is the library behind these values.
+`motionValue` holds a value and tells its listeners when it changes,
+`styleEffect` writes values onto an element's style once per frame,
+`transformValue` computes a value from the values it reads, and
+`animateValue` takes a number from one value to another over time. UI code
+reaches `styleEffect` and `transformValue` through `ui/shared/readings.ts`.
+
+Use a Motion value for a number of the UI's own that changes on every pointer
+move or frame and that elements follow: a size, an offset, a position, how far
+a panel is in view. The document, a run and what a plugin publishes come from
+Core as stores and are read with `useStore`.
+
+`usePanelSizes` and `usePanelPresence` give the values. They keep one
+identity for the editor's life, so calling either hook never renders the
+caller.
+
+## Reading a value
+
+Pick the first row that fits.
+
+| The reader                                                | Reads with                              | Renders per move or frame  |
+| --------------------------------------------------------- | --------------------------------------- | -------------------------- |
+| An element whose style follows sizes, presence or insets  | `ref={styleRef({ property: reading })}` | No                         |
+| An event handler                                          | `value.get()`                           | No                         |
+| An effect                                                 | `watch(reading, listener)`              | No                         |
+| A component that needs a yes or no computed from them     | `useReading(() => answer)`              | Only when the answer flips |
+| A component that computes with the number while rendering | `useReading(value)`                     | Yes, that component        |
+
+```tsx
+const { propertiesPanelWidth } = usePanelSizes();
+const { shown } = usePanelPresence();
+
+<GlassPanel
+  ref={styleRef({
+    width: propertiesPanelWidth,
+    transform: () => slideFromEdge("right", shown.propertiesPanel.get()),
+  })}
+/>;
+```
+
+`width` takes the value itself. `transform` takes a function, which is a
+reading too. `styleRef` gives a ref that calls `bindStyle`, which binds the
+readings to one element and returns the function that unbinds them.
+
+The rules of a reading:
+
+- A function is followed through the Motion values it reads the first time it
+  runs. It reads every value it depends on before any condition on one of
+  them: `() => open.get() > 0 && width.get()` is not followed through `width`
+  when `open` is zero on the first run. No test holds this.
+- A function may close over React values such as the view the editor is in.
+  When one changes, the component renders, the ref is attached again and the
+  style is written with the new value.
+- A style is written when the element attaches, and from then on once per
+  frame in which a reading changed. Held by `ui/shared/readings.test.tsx`.
+- `watch` and `useReading` hear of a Motion value at once, and of a function
+  once per frame. Held by `ui/shared/readings.test.tsx`.
+- Properties go by the names Motion takes: `width`, `marginLeft`,
+  `--a-custom-property`. A number is in pixels where CSS takes a length.
+- `styleRef` must not set a property that the element's React `style` prop
+  also sets. React would write its own value back on the next render. No
+  test holds this.
+
+## Keeping clear of the panels
+
+Where the presentation's `panelsOverlayCanvas` is true, the panels overlay
+the canvas, and whatever floats over the canvas keeps clear of them by the
+canvas insets. `useCanvasInsetsReader` gives a function that works the
+insets out from the sizes and from how far each panel is in view. Elsewhere
+it gives insets of zero.
+It is a reading: inside a bound style, `watch` or `useReading` it follows the
+panels, and called on its own it gives the insets at that moment.
+
+| Reader                    | How it follows a drag or a slide                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Viewport controls         | `styleRef` writes `right` and `bottom`.                                                                                 |
+| Minimap                   | React Flow's minimap takes no ref. A `display: contents` box around it finds the minimap and binds its `right`.         |
+| Bottom bar                | `bindStyle` writes its `transform`. `useReading` says whether the bar still fits, so it renders only when that changes. |
+| Keeping selection in view | `watch` moves the camera once per frame in which the insets changed.                                                    |
+| Visualizer windows        | `useCanvasInsets`: they compute their bounds while rendering, so an open window renders on each move.                   |
+
+## Opening, closing, docking and floating
+
+| Value                | Range                  | Who follows it                                                                                       |
+| -------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `shown.<panel>`      | 0 closed to 1 open     | The panel's `transform`, the insets, and the edges of the panels beside it.                          |
+| `aiAssistantDocked`  | 0 floating to 1 docked | The assistant's box, which lies between the floating window's and the docked column's.               |
+| `aiAssistantHasRoom` | 0 or 1, in one step    | The width of the room beside the editor. Each change lays the whole editor out, so it does not ease. |
+
+`PanelPresenceProvider` animates the values of `PanelPresence`. It reads
+which panels are open and where the assistant sits from the editor's state,
+and takes each value to its target with `animateValue` over 150 ms. Where
+the setting `showAnimations` is off, or the system asks for reduced motion,
+the value jumps. A change of target while a
+value animates starts the next animation from where the value is.
+Held by `panel-presence-provider.test.tsx`.
+
+- **The slide counts from its first frame.** Motion counts an animation's time
+  from the call that starts it. The render that opens a panel can take the
+  time of several frames, and the first frame drawn would then show most of
+  the slide done. The provider sets the animation's time to zero in that
+  first frame.
+- **A panel at rest has no transform.** `slideFromEdge` gives `none` for a
+  panel that is fully in view and that its third argument, `pushedBy`, moves
+  by zero pixels. Any transform would make the panel the containing block of
+  the fixed elements inside it, such as a code editor's suggestion list.
+  Held by `slide-from-edge.test.ts`.
+- **A closed panel leaves when it has slid out.** `DockedPanel` reads
+  `useReading(() => shown.get() > 0)` for its panel. The answer flips once
+  when the panel starts to open and once when it has closed, and a closed
+  panel unmounts once it is false. An open panel mounts in the render that
+  opens it, before its value has moved. Held by `docked-panel.test.tsx`.
+- **A panel that mounts is bound before its value moves.** The panel's
+  styles are bound when its element attaches, with the value still at 0.
+  The provider's layout effect then starts the slide, or sets the value to 1
+  where nothing animates, and Motion writes the style before the browser
+  paints. No frame shows a panel that jumps at the place it slides from.
+- **The docked assistant covers its room before it takes it.** While it
+  arrives, `assistantCover` says how much of its width lies over the editor.
+  The insets add that to the right edge, and the Properties panel moves by
+  it. When the assistant has arrived, `aiAssistantHasRoom` steps to 1, the
+  editor gives up the room and the cover is zero. When it leaves or floats,
+  the room goes back at once. `panel-presence.test.ts` holds the cover, and
+  `panel-presence-provider.test.tsx` the step.
+
+A floating window keeps its position and size the same way.
+`useFloatingPanel` holds them as Motion values and `bindPanel` is the ref
+that writes them on the window as custom properties.
+
+## Three rules for a write per frame
+
+- **Write the property on the element that needs it, not a custom property
+  on an ancestor.** A custom property is inherited, so the browser restyles
+  every element below the one it changes on, whether or not any of them reads
+  it. Use a custom property for a value that changes rarely, or on an
+  element with few elements below it: a floating window sets its position on
+  itself, and only its own elements inherit it.
+- **Keep `:has()` off an element whose style is written per frame or per
+  pointer move.** A direct write makes the browser work the element's style
+  out in full, and matching `:has()` searches every element inside it.
+  The separator of a docked panel paints the edge it drags on itself, from
+  the attribute the library sets on it, so no rule on the panel looks for it.
+
+- **Keep a transition off a property that a drag writes.** The transition
+  would ease every step of the drag, and the element would trail the pointer.
+  Where an element both eases and follows a drag, the transition goes on a
+  share and the drag writes the size the share is of, as for the Simulate
+  panel below.
+
+The scripts `geometry.mjs`, `panel-toggles.mjs` and `assistant-dock.mjs` in
+`benchmarks/monaco-performance/` measure a drag, a slide and a dock, and
+`panel-edges.mjs` a pointer that crosses a panel's edge.
+
+## Resizing a docked panel
+
+`PanelResizer` in `ui/resize/panel-resizer.tsx` resizes a panel whose box
+follows a Motion value. It is a group of `react-resizable-panels`, the
+library the sections inside a panel resize with, so a drag and a touch
+behave the same in both places. The panel is not in the group. An
+empty stand-in the size of the panel is, with the separator on its inner
+edge.
+
+`EditorResizers` in `ui/views/Editor/editor-view/editor-resizers.tsx` is the one
+layer of them, over the editor's row. The resizers nest as the panels sit:
+the AI assistant beside the workspace, then, while the canvas shows, the
+left sidebar beside everything else, the bottom panel under what is left and
+the Properties panel beside the canvas.
+
+- **A drag leads, and at any other time the stand-in follows.** Each pointer
+  move writes the stand-in's size to the panel's Motion value. When a panel
+  opens or closes, the window resizes, or the canvas view comes back from
+  being hidden, the stand-in is set to the Motion value. A stand-in that led
+  outside a drag would write a size the user never chose.
+- **A press where two separators cross resizes both panels.** The library
+  takes a press for every group with a separator under it, provided the
+  inner group is stacked over the outer separator. `restStyle` stacks it.
+- **A separator has no thickness.** The stand-in is then exactly as large as
+  the panel. The strip a pointer grabs and the strip that shows are the
+  separator's pseudo-elements. `EdgeSeparator` in `ui/resize` is that
+  separator, also where a split is a group of the library itself, as in the
+  Definitions view. Its group takes `grabSize` as `resizeTargetMinimumSize`,
+  so that the library takes a press anywhere on the strip.
+- **A separator takes no keyboard focus.** The library focuses a separator
+  that is pressed and puts each in the Tab order. A press would then take the
+  focus from the field the user was in, and each view would gain Tab stops
+  between its regions. `EdgeSeparator` removes the tab index the library
+  writes, and an element without one cannot be focused.
+  `edge-separator.test.tsx` holds this.
+- **A separator shows the resize cursor itself.** The library's own cursor is
+  a style rule for every element of the document. It writes the rule when the
+  pointer comes within reach of a separator and removes it when the pointer
+  leaves, and each write makes the browser work out the style of the whole
+  editor again. With separators along the canvas's edges that happened on
+  every pass of the pointer over a panel edge. Every split of the editor is
+  therefore a `ResizeGroup` from `ui/resize`, which turns the library's cursor
+  off, and a separator sets the cursor of its axis on itself, so on the strip
+  a pointer grabs. The sections inside a panel do the same with a strip of
+  their own. `resize-group.test.tsx` and `edge-separator.test.tsx` hold this,
+  and the lint rule `no-restricted-imports` refuses the library's `Group`
+  anywhere else. The cursor no longer says which way a panel at its narrowest
+  or widest can still move.
+- **A dragged separator keeps its cursor wherever the pointer goes.** While
+  the library marks a separator as dragged, the strip a pointer grabs covers
+  the window, over the groups inside the separator's own: `dragStripStyle`.
+  The library also gives the separator the pointer for the drag, and a
+  browser that takes the cursor from the element that holds the pointer keeps
+  it by that alone. No unit test holds this.
+- **Where two separators cross, each shows the cursor of the two axes.** The
+  library marks both as hovered or dragged there. One rule in
+  `edgeSeparatorStyle` reads that with `:has()` on the two groups, whose
+  style no drag writes. No unit test holds this.
+- **A panel that is not in place has a disabled separator.** A panel that
+  slides is not where its stand-in is, and neither is an assistant that
+  floats. `PanelResizer` takes this as `isInPlace`, and
+  `editor-resizers.test.tsx` holds it for the editor's four.
+- **The layer has no place in the stacking order of its own.** The docks'
+  separators lie under what floats over the editor, such as the bottom bar
+  and an assistant that is a window. The assistant's separator lies over the
+  docked assistant, whose edge it straddles.
+
+No unit test drags a separator: the library lays its groups out from measured
+sizes, which jsdom does not have.
+
+## Resizing the Simulate panel
+
+`SimulationWorkspace` in `ui/views/Editor/shared/simulation-workspace.tsx`
+shows a scenario, an experiment or a creation form in a panel over the right
+of the editor, and takes the panel's width from the content beside it. The
+width is a Motion value the workspace owns, and a `PanelResizer` laid over
+the workspace resizes it, as for a docked panel.
+
+Two elements follow the width, and each has its `width` written directly: the
+container the panels render into, marked `data-simulation-panel-container`,
+and a sizer inside the room. The room is a flex item beside the content, so
+the content gives up what the room takes.
+
+- **A drag leads, and at any other time the width worked out while rendering
+  does.** The workspace keeps the width the user chose in state, and
+  `simulationPanelWidth` fits it into the workspace on each render: the list
+  keeps 280 pixels, and the panel 440 where that leaves room. A layout effect
+  sets the Motion value to the result. A drag sets the Motion value on each
+  pointer move and the choice once, when it ends, so a drag renders the
+  workspace once. `panel-width.test.ts` and `simulation-workspace.test.tsx`
+  hold the widths.
+- **The room and the container ease a share, and a drag writes the width.**
+  The room opens and closes with the panel, and the container grows to the
+  whole workspace in fullscreen. The room is a grid whose one column goes from
+  `0fr` to `1fr` of the sizer, and the container takes the space left of it by a
+  `flex-grow` that goes from 0 to 1. Each transition is on the share, so a drag
+  moves both edges in the frame it happens in.
+- **The workspace learns of a panel from the container.** A panel is rendered
+  into the container through a portal, from anywhere below the workspace.
+  `useHasOpenPanel` observes the container's children and says whether one is
+  shown and not closing. The room is open and the resizer mounted while it
+  says yes. `use-has-open-panel.test.tsx` holds this.
+- **The container is always laid out.** It lets the pointer through everywhere but
+  on a panel. A container that appeared only once the workspace had rendered
+  again would refuse the focus a panel takes in the commit that adds it.
+- **The resizer is there only beside an open panel.** Without a panel, and
+  in fullscreen, the page has no separator to reach with the pointer.
+- **The workspace's width is read in the render that first has its
+  element.** `useElementWidth` reads the layout as an external store, so no
+  frame shows a panel at a width that was not measured.
+
+The dock resizers are not nested in this resizer's group. Where the bottom
+panel's separator ends on the Simulate panel's, a press resizes the Simulate
+panel alone.
+
+## Saving
+
+A drag of the separator of the left sidebar, the Properties panel or the
+bottom panel saves the size to the user settings when it ends.
+Saving renders the readers of that setting and writes local storage.
+`PanelSizesProvider` restores the three sizes. The assistant's width is not
+saved.

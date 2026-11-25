@@ -972,7 +972,21 @@ impl Modify for FilterSchemaAddon {
             );
             components.schemas.insert(
                 "PropertyValue".to_owned(),
-                ObjectBuilder::new().schema_type(SchemaType::Value).into(),
+                schema::Schema::OneOf(
+                    OneOfBuilder::new()
+                        .item(ObjectBuilder::new().schema_type(SchemaType::Boolean))
+                        .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                        .item(Ref::from_schema_name("Real"))
+                        .item(ArrayBuilder::new().items(Ref::from_schema_name("PropertyValue")))
+                        .item(
+                            ObjectBuilder::new().additional_properties(Some(
+                                Ref::from_schema_name("PropertyValue"),
+                            )),
+                        )
+                        .nullable(true)
+                        .build(),
+                )
+                .into(),
             );
         }
     }

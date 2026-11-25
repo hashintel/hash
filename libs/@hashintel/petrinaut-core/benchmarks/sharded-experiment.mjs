@@ -24,7 +24,7 @@ execFileSync(
   "npx",
   [
     "esbuild",
-    "src/simulation/simulators/worker/experiment.worker.ts",
+    "src/simulators/worker/experiment.worker.ts",
     "--bundle",
     "--format=esm",
     "--platform=node",

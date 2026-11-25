@@ -6,10 +6,10 @@
 import {
   DifferentialEquationIcon,
   ParameterIcon,
-  PlaceFilledIcon,
+  PlaceIcon,
   TokenTypeIcon,
-  TransitionFilledIcon,
-} from "../../constants/entity-icons";
+  TransitionIcon,
+} from "../../shared/entity-icons";
 
 import type { NotebookCellKind } from "./notebook-model";
 import type { ComponentType } from "react";
@@ -18,8 +18,8 @@ export const CELL_KIND_ICONS: Record<
   NotebookCellKind,
   ComponentType<{ size: number }>
 > = {
-  place: PlaceFilledIcon,
-  transition: TransitionFilledIcon,
+  place: PlaceIcon,
+  transition: TransitionIcon,
   type: TokenTypeIcon,
   differentialEquation: DifferentialEquationIcon,
   parameter: ParameterIcon,

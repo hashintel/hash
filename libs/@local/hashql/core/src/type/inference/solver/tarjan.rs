@@ -98,9 +98,9 @@ where
                 allocator.clone(),
             ),
             on_node_stack: bitbox![0; node_count],
-            discovery_time: alloc::vec::from_elem_in(0, node_count, allocator.clone()),
+            discovery_time: Vec::repeat_in(0, node_count, allocator.clone()),
             visited: bitbox![0; node_count],
-            lowlink: alloc::vec::from_elem_in(0, node_count, allocator.clone()),
+            lowlink: Vec::repeat_in(0, node_count, allocator.clone()),
             strongly_connected_components: Vec::with_capacity_in(
                 node_count / Self::EXPECTED_SCC_RATIO,
                 allocator,
