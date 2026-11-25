@@ -31,40 +31,41 @@ graph TD
     20[<a href="../hashql_mir/index.html">hashql-mir</a>]
     21[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
     22[<a href="../hash_integrations_engine/index.html">hash-integrations-engine</a>]
-    23[hash-middleware]
-    class 23 root
-    24[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    25[<a href="../error_stack/index.html">error-stack</a>]
-    26[<a href="../problematic/index.html">problematic</a>]
-    27[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    28[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    29[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    30[<a href="../hash_integrations_graph_tests/index.html">hash-integrations-graph-tests</a>]
+    23[<a href="../hash_integrations_ledger/index.html">hash-integrations-ledger</a>]
+    24[hash-middleware]
+    class 24 root
+    25[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    26[<a href="../error_stack/index.html">error-stack</a>]
+    27[<a href="../problematic/index.html">problematic</a>]
+    28[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    29[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    30[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    31[<a href="../hash_integrations_graph_tests/index.html">hash-integrations-graph-tests</a>]
     0 --> 5
     0 --> 6
     1 --> 12
-    1 -.-> 29
+    1 -.-> 30
     2 -.-> 3
     2 --> 15
-    4 --> 25
+    4 --> 26
     5 --> 18
     5 --> 21
     6 --> 10
     7 --> 11
-    7 -.-> 23
-    7 --> 23
+    7 -.-> 24
+    7 --> 24
     8 --> 1
     9 --> 10
     10 -.-> 7
     10 -.-> 10
     11 --> 8
     11 --> 13
-    11 --> 24
+    11 --> 25
     12 --> 2
-    13 -.-> 29
+    13 -.-> 30
     15 -.-> 14
     15 --> 14
-    15 --> 25
+    15 --> 26
     16 -.-> 17
     17 --> 18
     17 --> 21
@@ -74,13 +75,15 @@ graph TD
     20 --> 19
     21 --> 16
     22 --> 11
-    22 --> 23
-    23 --> 1
-    23 --> 4
-    23 --> 26
+    22 --> 24
+    23 -.-> 11
+    23 --> 24
     24 --> 1
-    27 -.-> 5
-    28 -.-> 10
-    29 --> 11
-    30 -.-> 10
-    30 -.-> 22
+    24 --> 4
+    24 --> 27
+    25 --> 1
+    28 -.-> 5
+    29 -.-> 10
+    30 --> 11
+    31 -.-> 10
+    31 -.-> 22
