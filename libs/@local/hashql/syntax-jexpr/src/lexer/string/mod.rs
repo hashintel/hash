@@ -1,6 +1,8 @@
 use alloc::{borrow::Cow, string::String};
 use core::{
-    ascii, mem,
+    ascii,
+    byte_str::ByteStr,
+    mem,
     simd::{
         Select as _,
         cmp::{SimdPartialEq as _, SimdPartialOrd as _},
@@ -8,7 +10,6 @@ use core::{
         u8x4, u8x16, u16x4,
     },
 };
-use std::bstr::ByteStr;
 
 mod error;
 mod offsets;

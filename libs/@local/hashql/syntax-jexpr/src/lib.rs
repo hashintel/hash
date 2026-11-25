@@ -33,7 +33,7 @@
 
     // Library Features
     ascii_char,
-    bstr,
+    byte_str,
     const_convert,
     portable_simd,
 )]

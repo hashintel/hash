@@ -1,5 +1,4 @@
-use core::{alloc::Allocator, fmt, mem};
-use std::bstr::ByteStr;
+use core::{alloc::Allocator, byte_str::ByteStr, fmt, mem};
 
 use super::{Sink, StringSyntaxError, run_length, scan};
 
