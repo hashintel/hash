@@ -136,6 +136,7 @@ const categories: Record<EntityItem["type"], string> = {
   type: "Type",
   differentialEquation: "Equation",
   parameter: "Parameter",
+  metric: "Metric",
 };
 
 interface SearchResult {

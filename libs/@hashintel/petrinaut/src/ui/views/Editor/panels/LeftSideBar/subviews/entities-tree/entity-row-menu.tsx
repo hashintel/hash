@@ -12,8 +12,12 @@ export const EntityRowMenu: React.FC<Pick<EntityItem, "id" | "type">> = ({
   id,
   type,
 }) => {
-  const { removeType, removeDifferentialEquation, removeParameter } =
-    usePetrinautMutations();
+  const {
+    removeType,
+    removeDifferentialEquation,
+    removeParameter,
+    removeMetric,
+  } = usePetrinautMutations();
   const globalMode = useEditorState((editor) => editor.globalMode);
   const isReadOnly = useIsReadOnly();
   const { enabled, entries, open } = useCodeNavigation();
@@ -36,6 +40,7 @@ export const EntityRowMenu: React.FC<Pick<EntityItem, "id" | "type">> = ({
     type: () => removeType({ typeId: id }),
     differentialEquation: () => removeDifferentialEquation({ equationId: id }),
     parameter: () => removeParameter({ parameterId: id }),
+    metric: () => removeMetric({ metricId: id }),
   };
   const deleteAction = deleteActions[type];
 

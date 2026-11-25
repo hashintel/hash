@@ -17,6 +17,7 @@ const definition = {
   differentialEquations: [{ id: "equation" }],
   componentInstances: [{ id: "instance" }],
   fusions: [{ id: "fusion" }],
+  metrics: [{ id: "metric" }],
   components: [
     {
       places: [{ id: "component-place" }],
@@ -43,6 +44,7 @@ describe("createItemTypeLookup", () => {
         "equation",
         "instance",
         "fusion",
+        "metric",
         "component-place",
         `${ARC_ID_PREFIX}anything`,
         "missing",
@@ -55,6 +57,7 @@ describe("createItemTypeLookup", () => {
       "differentialEquation",
       "componentInstance",
       "fusion",
+      "metric",
       "place",
       "arc",
       null,
