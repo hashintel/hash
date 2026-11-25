@@ -76,6 +76,11 @@ export const styles = sva({
       fontWeight: "normal",
       fontSize: "[0.85em]",
       paddingLeft: "5",
+      // Insets a trailing Kbd's keycap as far from the row's edge as from its top
+      "& > [data-scope='kbd']:last-child": {
+        marginInlineEnd:
+          "[calc(var(--selectable-list-item-padding-y) + (1lh - var(--kbd-key-size)) / 2 - var(--selectable-list-item-padding-x))]",
+      },
     },
     arrow: {
       alignSelf: "center",

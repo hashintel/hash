@@ -6,6 +6,7 @@ import { PropsTable } from "../../../docs/blocks/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
 import { Stage } from "../../../docs/blocks/stage";
 import { Button } from "../Button/button";
+import { Kbd } from "../Kbd/kbd";
 import {
   Toast,
   ToastAction,
@@ -562,8 +563,8 @@ Toasts follow the
   the screen reader is currently saying.
 - Each toast is a `role="status"` element labelled by its title and described
   by its body.
-- The hotkey <kbd>Alt</kbd>+<kbd>T</kbd> moves focus into a region; toasts
-  are focusable, and <kbd>Escape</kbd> dismisses the focused one (unless
+- The hotkey <Kbd keys="alt+t" /> moves focus into a region; toasts
+  are focusable, and <Kbd keys="escape" /> dismisses the focused one (unless
   `shouldCloseOn="none"`).
 - Timers pause while the pointer or focus is inside a region and while the
   page is idle — the tab hidden or the window unfocused — so a toast can't

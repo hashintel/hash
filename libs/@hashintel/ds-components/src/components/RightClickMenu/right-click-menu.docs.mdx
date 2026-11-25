@@ -4,6 +4,7 @@ import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
 import { Stage } from "../../../docs/blocks/stage";
+import { Kbd } from "../Kbd/kbd";
 import { MenuItemDoc, MenuItemGroupDoc } from "../Menu/menu";
 import { RightClickMenu } from "./right-click-menu";
 
@@ -43,7 +44,7 @@ export const area = {
 
 export const heroItems = [
   { text: "Open entity", icon: "arrowUpRight", onClick: noop },
-  { text: "Copy entity ID", icon: "copy", suffix: "⌘C", onClick: noop },
+  { text: "Copy entity ID", icon: "copy", suffix: <Kbd keys="mod+c" />, onClick: noop },
   { text: "Rename", icon: "pencil", onClick: noop },
   {
     id: "danger",
@@ -80,8 +81,8 @@ export const groupedItems = [
 ];
 
 export const flowItems = [
-  { text: "Run flow", icon: "play", suffix: "⌘↵", onClick: noop },
-  { text: "Duplicate", icon: "copy", suffix: "⌘D", onClick: noop },
+  { text: "Run flow", icon: "play", suffix: <Kbd keys="mod+enter" />, onClick: noop },
+  { text: "Duplicate", icon: "copy", suffix: <Kbd keys="mod+d" />, onClick: noop },
   { text: "View run history", icon: "clockRotateLeft", onClick: noop },
 ];
 
@@ -231,8 +232,9 @@ groups automatically. Pass an empty `label` for a divider without a heading.
 ### Icons and shortcut hints
 
 An item's `icon` reinforces its label; `suffix` right-aligns extra content,
-conventionally the keyboard shortcut. The suffix only displays the hint — the
-shortcut itself must be registered elsewhere.
+conventionally the keyboard shortcut, rendered with Kbd. The
+suffix only displays the hint — the shortcut itself must be registered
+elsewhere.
 
 <Stage>
   <RightClickMenu items={flowItems}>

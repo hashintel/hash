@@ -191,13 +191,13 @@ wrapper also gives up its tab stop, so keyboard navigation is unaffected.
 non-interactive.
 
 ```tsx
-import { Button, Tooltip } from "@hashintel/ds-components";
+import { Button, Kbd, Tooltip } from "@hashintel/ds-components";
 
 export const SearchShortcutHint = () => (
   <Tooltip
     content={
       <>
-        Search entities <kbd>⌘ K</kbd>
+        Search entities <Kbd keys="mod+k" variant="inherit" />
       </>
     }
   >

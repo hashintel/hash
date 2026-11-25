@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
+import { Kbd } from "../Kbd/kbd";
 import { BaseTooltip } from "./base-tooltip";
 import { Tooltip } from "./tooltip";
 
@@ -22,18 +23,6 @@ const richContent = (
     </span>
   </div>
 );
-
-const kbdKeyStyles = css({
-  paddingX: "1",
-  paddingY: "0.5",
-  borderRadius: "sm",
-  backgroundColor: "neutral.s10",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.s30",
-  color: "fg.body",
-  fontFamily: "[inherit]",
-});
 
 // BaseTooltip is unstyled: `content` is rendered via `asChild`, so it must be a
 // single element that carries its own styling. This shows a fully custom overlay
@@ -87,8 +76,7 @@ const customTooltipContent = (
       })}
     >
       <span>Press</span>
-      <kbd className={kbdKeyStyles}>⌘</kbd>
-      <kbd className={kbdKeyStyles}>K</kbd>
+      <Kbd keys="mod+k" />
       <span>to learn more</span>
     </div>
   </div>
