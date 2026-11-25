@@ -1,14 +1,15 @@
 /**
- * Seeds a web of a deployed HASH, such as staging, with two company outreach flows and what they need: a Company entity
- * type and its properties, and the companies in `flow-company-outreach/companies.json`. Both flows split companies by
- * whether their contact uses a personal email address, and draft a first-touch email for the organisations (from a
- * brief of their details) and a personal note for the people.
+ * Seeds a web of a deployed HASH, such as staging, with three company outreach flows and what they need: a Company
+ * entity type and its properties, and the companies in `flow-company-outreach/companies.json`. Each flow splits
+ * companies by whether their contact uses a personal email address.
  *
- *  - "First-touch email for picked companies" writes to the companies picked in its run form. It drafts one email for
- *    up to 20 organisations, and in a For each, a note of their own to each of the first 5 people.
+ *  - "First-touch email for picked companies" writes to the companies picked in its run form: one email for up to 20
+ *    organisations, from a brief of their details, and one personal note for up to 20 people.
  *  - "Company first-touch email" finds the companies never contacted and counts each side. It writes to the biggest
  *    organisations, as many as its run form asks for, and to the first 20 people. If the brief flags a company of 500
  *    or more staff, its "Escalate" path drafts a note to the account lead.
+ *  - "First-touch notes for each person" writes to the first 5 people picked in its run form, each in a For each: an
+ *    If gives those never contacted a first note and the others a follow-up. It collects and counts the first notes.
  *
  * It only uses the GraphQL API, as the signed-in user, so it needs no access to the graph. Sign in to the deployment in
  * a browser, copy the value of its `ory_kratos_session` cookie, and enter it without echoing it or saving it in your
@@ -77,7 +78,12 @@ import type {
 
 const pickedCompaniesFlowName = "First-touch email for picked companies";
 const neverContactedFlowName = "Company first-touch email";
-const flowNames = [pickedCompaniesFlowName, neverContactedFlowName];
+const notesPerPersonFlowName = "First-touch notes for each person";
+const flowNames = [
+  pickedCompaniesFlowName,
+  neverContactedFlowName,
+  notesPerPersonFlowName,
+];
 
 /** Domains of personal email addresses: a contact at one is a person, not an organisation. Matched with the `@`. */
 const personalEmailDomains = [
@@ -247,21 +253,35 @@ type FlowTypeUrls = {
 type RunAfter = NonNullable<StepDefinition<string>["runAfter"]>;
 
 /**
- * Sets the steps each step runs after, which the editor draws as the lines between them: `defineFlow` only sets the
- * outputs a step reads. Then validates the definition, so a mistake stops the script before it writes anything.
+ * Sets the steps each step runs after, which the editor draws as the lines between them, and the names of their paths,
+ * including steps inside a For each: `defineFlow` only sets the outputs a step reads. Then validates the definition, so
+ * a mistake stops the script before it writes anything.
  */
 const connectSteps = (
   flowDefinition: FlowDefinition,
   runAfter: Record<string, RunAfter>,
-): FlowDefinition =>
-  assertValidFlowDefinition({
-    ...flowDefinition,
-    steps: flowDefinition.steps.map((flowStep) =>
-      runAfter[flowStep.stepId]
+  pathNames: Record<string, Record<string, string>> = {},
+): FlowDefinition => {
+  const connect = (steps: StepDefinition<string>[]): StepDefinition<string>[] =>
+    steps.map((flowStep) => {
+      const connected = runAfter[flowStep.stepId]
         ? { ...flowStep, runAfter: runAfter[flowStep.stepId] }
-        : flowStep,
-    ),
+        : flowStep;
+
+      if (connected.kind === "for-each") {
+        return { ...connected, steps: connect(connected.steps) };
+      }
+
+      return pathNames[connected.stepId]
+        ? { ...connected, pathNames: pathNames[connected.stepId] }
+        : connected;
+    });
+
+  return assertValidFlowDefinition({
+    ...flowDefinition,
+    steps: connect(flowDefinition.steps),
   });
+};
 
 /** Whether a company's contact uses a personal email address, as the condition rows save it. */
 const isPersonalEmail = (urls: FlowTypeUrls): FilterCondition => ({
@@ -287,13 +307,16 @@ const emailInstructions =
   "Write a friendly first-touch email from HASH to the contact at the company in the brief, under 150 words. Mention what the company does, and suggest a short call. If the brief covers more than one company, write one email that suits each of them, with [Company] and [First name] placeholders.";
 
 /**
- * The most people "First-touch email for picked companies" drafts a note to, each their own. Its For each starts every
- * item at once, and one failed item fails the whole run, so it's kept low.
+ * The most people "First-touch notes for each person" drafts a note to, each their own. Its For each starts every item
+ * at once, and one failed item fails the whole run, so it's kept low.
  */
 const maxPeoplePerRun = 5;
 
 const notePerPersonInstructions =
   "Write a short, warm note from HASH to the person given, under 100 words. They use a personal email address, so write to them as an individual, not as a company, and avoid corporate language.";
+
+const followUpInstructions =
+  "Write a short follow-up note from HASH to the person given, under 80 words. We've written to them before, so don't introduce HASH again: check in, and ask whether now is a good time to talk. They use a personal email address, so write to them as an individual, not as a company.";
 
 const personalNoteInstructions = `${notePerPersonInstructions} If several people are given, write one note with a [First name] placeholder.`;
 
@@ -313,7 +336,7 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
         }),
       },
     },
-    ({ inputs, step, forEach }) => {
+    ({ inputs, step }) => {
       const split = step("splitContacts", actions.filterList, {
         description: splitDescription,
         inputs: {
@@ -351,32 +374,27 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
       });
 
       const firstPeople = step("keepFirstPeople", actions.takeFirst, {
-        description: `Keep the first ${maxPeoplePerRun} people`,
+        description: `Keep the first ${maxDraftMessageEntities} people`,
         inputs: {
           items: split.outputs.matching,
-          count: constant("Number", maxPeoplePerRun),
+          count: constant("Number", maxDraftMessageEntities),
         },
       });
 
-      // Named as the editor names a collected output, after the output it collects.
-      const notes = forEach("forEachPerson", firstPeople.outputs.items, {
-        description: "For each person",
-        collectAs: "collectedBody",
-        steps: (person, scope) =>
-          scope.step("personalNote", actions.draftMessage, {
-            description: "Personal note",
-            inputs: {
-              instructions: constant("Text", notePerPersonInstructions),
-              entities: person.wrap(),
-            },
-          }).outputs.body,
+      const note = step("personalNote", actions.draftMessage, {
+        description: "Personal note",
+        inputs: {
+          instructions: constant("Text", personalNoteInstructions),
+          entities: firstPeople.outputs.items,
+        },
       });
 
       return {
         outputs: {
           "Email subject": email.outputs.subject,
           "Email body": email.outputs.body,
-          "Personal notes": notes,
+          "Personal note subject": note.outputs.subject,
+          "Personal note body": note.outputs.body,
         },
       };
     },
@@ -387,7 +405,7 @@ const buildPickedCompaniesFlow = (urls: FlowTypeUrls): FlowDefinition => {
     pickDetails: [{ stepId: "keepFirstOrganisations" }],
     writeEmail: [{ stepId: "pickDetails" }],
     keepFirstPeople: [{ stepId: "splitContacts" }],
-    forEachPerson: [{ stepId: "keepFirstPeople" }],
+    personalNote: [{ stepId: "keepFirstPeople" }],
   });
 };
 
@@ -570,37 +588,149 @@ const buildNeverContactedFlow = (urls: FlowTypeUrls): FlowDefinition => {
     },
   );
 
-  const withPaths = {
-    ...flowDefinition,
-    steps: flowDefinition.steps.map((flowStep) =>
-      flowStep.stepId === "anyLarge" && flowStep.kind === "action"
-        ? { ...flowStep, pathNames: { true: "Escalate" } }
-        : flowStep,
-    ),
+  return connectSteps(
+    flowDefinition,
+    {
+      splitContacts: [{ stepId: "findNeverContacted" }],
+      countOrganisations: [{ stepId: "splitContacts" }],
+      countPeople: [{ stepId: "splitContacts" }],
+      biggestFirst: [{ stepId: "splitContacts" }],
+      keepBiggest: [{ stepId: "biggestFirst" }],
+      keepAtMostOrganisations: [{ stepId: "keepBiggest" }],
+      pickDetails: [{ stepId: "keepAtMostOrganisations" }],
+      writeEmail: [{ stepId: "pickDetails" }],
+      anyLarge: [{ stepId: "writeEmail" }],
+      /* Only on If's Yes path, as the editor connects a step to a path. */
+      noteToLead: [{ stepId: "anyLarge", outputName: "true" }],
+      keepFirstPeople: [{ stepId: "splitContacts" }],
+      personalNote: [{ stepId: "keepFirstPeople" }],
+    },
+    { anyLarge: { true: "Escalate" } },
+  );
+};
+
+/**
+ * Drafts a note of their own to each of the first people picked in the run form: a first note to those never contacted,
+ * and a follow-up to the others. Only the first notes are collected and counted.
+ */
+const buildNotesPerPersonFlow = (urls: FlowTypeUrls): FlowDefinition => {
+  const isNeverContacted: FilterCondition = {
+    kind: "all",
+    conditions: [
+      {
+        kind: "condition",
+        subject: {
+          kind: "entityProperty",
+          propertyTypeBaseUrl: urls.lastContacted,
+          payloadKind: "Date",
+        },
+        operator: "isEmpty",
+      },
+    ],
   };
 
-  return connectSteps(withPaths, {
-    splitContacts: [{ stepId: "findNeverContacted" }],
-    countOrganisations: [{ stepId: "splitContacts" }],
-    countPeople: [{ stepId: "splitContacts" }],
-    biggestFirst: [{ stepId: "splitContacts" }],
-    keepBiggest: [{ stepId: "biggestFirst" }],
-    keepAtMostOrganisations: [{ stepId: "keepBiggest" }],
-    pickDetails: [{ stepId: "keepAtMostOrganisations" }],
-    writeEmail: [{ stepId: "pickDetails" }],
-    anyLarge: [{ stepId: "writeEmail" }],
-    /* Only on If's Yes path, as the editor connects a step to a path. */
-    noteToLead: [{ stepId: "anyLarge", outputName: "true" }],
-    keepFirstPeople: [{ stepId: "splitContacts" }],
-    personalNote: [{ stepId: "keepFirstPeople" }],
-  });
+  const { flowDefinition } = defineFlow(
+    {
+      flowDefinitionId: crypto.randomUUID(),
+      name: notesPerPersonFlowName,
+      description:
+        "Draft a note to each person picked whose contact uses a personal email address: a first note to those never contacted, and a follow-up to the others",
+      inputs: {
+        companies: flowInput("EntityId", {
+          array: true,
+          label: "Companies",
+          description: "The companies to write to",
+        }),
+      },
+    },
+    ({ inputs, step, forEach }) => {
+      const split = step("splitContacts", actions.filterList, {
+        description: splitDescription,
+        inputs: {
+          items: inputs.companies,
+          condition: constant("FilterCondition", isPersonalEmail(urls)),
+        },
+      });
+
+      const firstPeople = step("keepFirstPeople", actions.takeFirst, {
+        description: `Keep the first ${maxPeoplePerRun} people`,
+        inputs: {
+          items: split.outputs.matching,
+          count: constant("Number", maxPeoplePerRun),
+        },
+      });
+
+      // Named as the editor names a collected output, after the output it collects.
+      const firstNotes = forEach("forEachPerson", firstPeople.outputs.items, {
+        description: "For each person",
+        collectAs: "collectedBody",
+        steps: (person, scope) => {
+          scope.step("neverContacted", actions.if, {
+            description: "Never contacted?",
+            inputs: {
+              value: person,
+              condition: constant("FilterCondition", isNeverContacted),
+            },
+          });
+
+          const firstNote = scope.step("firstNote", actions.draftMessage, {
+            description: "First note",
+            inputs: {
+              instructions: constant("Text", notePerPersonInstructions),
+              entities: person.wrap(),
+            },
+          });
+
+          scope.step("followUp", actions.draftMessage, {
+            description: "Follow-up",
+            inputs: {
+              instructions: constant("Text", followUpInstructions),
+              entities: person.wrap(),
+            },
+          });
+
+          return firstNote.outputs.body;
+        },
+      });
+
+      const count = step("countFirstNotes", actions.aggregate, {
+        description: "Count first notes",
+        inputs: {
+          items: firstNotes,
+          aggregation: constant("Aggregation", { operation: "count" }),
+        },
+      });
+
+      return {
+        outputs: {
+          "First notes": firstNotes,
+          "First notes drafted": count.outputs.result,
+        },
+      };
+    },
+  );
+
+  return connectSteps(
+    flowDefinition,
+    {
+      keepFirstPeople: [{ stepId: "splitContacts" }],
+      forEachPerson: [{ stepId: "keepFirstPeople" }],
+      /* On the If's paths, as the editor connects a step to a path. */
+      firstNote: [{ stepId: "neverContacted", outputName: "true" }],
+      followUp: [{ stepId: "neverContacted", outputName: "false" }],
+      countFirstNotes: [{ stepId: "forEachPerson" }],
+    },
+    { neverContacted: { true: "First note", false: "Follow-up" } },
+  );
 };
 
 /** The flows named, in the order they're seeded. */
 const buildFlows = (urls: FlowTypeUrls, names: string[]) =>
-  [buildPickedCompaniesFlow(urls), buildNeverContactedFlow(urls)].filter(
-    ({ name }) => names.includes(name),
-  );
+  [
+    buildPickedCompaniesFlow(urls),
+    buildNeverContactedFlow(urls),
+    buildNotesPerPersonFlow(urls),
+  ].filter(({ name }) => names.includes(name));
 
 const describeCompany = (company: Company) =>
   `${company.name} (${company.industry}, size ${company.size}, ${company.contactName} <${company.contactEmail}>, ${
@@ -656,22 +786,23 @@ const printDryRun = (
     console.log(
       `  - Input: ${flow.inputs.map(({ label, name }) => label ?? name).join(", ")}`,
     );
-    for (const flowStep of flow.steps) {
-      const after = (flowStep.runAfter ?? []).map(({ stepId, outputName }) =>
-        outputName ? `${stepId} (${outputName})` : stepId,
-      );
+    /* Steps inside a For each are indented under it. */
+    const printSteps = (steps: StepDefinition<string>[], indent: string) => {
+      for (const flowStep of steps) {
+        const after = (flowStep.runAfter ?? []).map(({ stepId, outputName }) =>
+          outputName ? `${stepId} (${outputName})` : stepId,
+        );
 
-      console.log(
-        `  - ${flowStep.stepId}: ${flowStep.description}${after.length > 0 ? `, after ${after.join(", ")}` : ""}`,
-      );
-      if (flowStep.kind === "for-each") {
-        for (const innerStep of flowStep.steps) {
-          console.log(
-            `    - ${innerStep.stepId}: ${innerStep.description}, for each item`,
-          );
+        console.log(
+          `${indent}- ${flowStep.stepId}: ${flowStep.description}${after.length > 0 ? `, after ${after.join(", ")}` : ""}`,
+        );
+        if (flowStep.kind === "for-each") {
+          printSteps(flowStep.steps, `${indent}  `);
         }
       }
-    }
+    };
+
+    printSteps(flow.steps, "  ");
     console.log(
       `  - Outputs: ${flow.outputs.map(({ name, stepId, outputName }) => `${name} (${stepId}.${outputName})`).join(", ")}`,
     );
@@ -1168,7 +1299,7 @@ const main = async () => {
 
   if (unknownNames.length > 0) {
     throw new Error(
-      `--only names flows this script doesn't have: ${unknownNames.join(", ")}. It has "${flowNames.join('" and "')}".`,
+      `--only names flows this script doesn't have: ${unknownNames.join(", ")}. It has "${flowNames.join('", "')}".`,
     );
   }
 
