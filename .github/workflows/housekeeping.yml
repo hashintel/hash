@@ -57,7 +57,7 @@ jobs:
         run: jq empty .github/renovate.json
 
       - name: Validate workflow
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/housekeeping.yml
+        run: go run github.com/jdx/jactionlint/v2/cmd/jactionlint@v2.6.0 --profile correctness .github/workflows/housekeeping.yml
 
   renovate:
     name: Dependencies
