@@ -48,8 +48,8 @@ export const archivedLengthGroupBaseUrls = [
 ] as BaseUrl[];
 
 /**
- * Data types created before 034, which 034 gave new versions: units it moved into its unit groups, and `Duration`,
- * which 034 made the quantity of its time units.
+ * Data types created before 034 that property types use, which 034 gave new versions: units it moved into its unit
+ * groups, and `Duration`, which 034 made the quantity of its time units.
  */
 export const upgradedUnitKeys = [
   "meters",
@@ -73,10 +73,14 @@ export const upgradedUnitKeys = [
   "squareFeet",
   "hours",
   "days",
+  "millisecond",
   "duration",
 ] as const satisfies (keyof typeof systemDataTypes)[];
 
-/** Supply chain property types from 026 and 028 whose values include those data types. */
+/**
+ * Property types whose values include those data types: the supply chain property types from 026 and 028, and
+ * `Schedule Catchup Window` from 024.
+ */
 export const upgradedPropertyTypeKeys = [
   "grossWeight",
   "netWeight",
@@ -102,6 +106,7 @@ export const upgradedPropertyTypeKeys = [
   "blockedStock",
   "valuatedStockQuantity",
   "timePeriod",
+  "scheduleCatchupWindow",
 ] as const satisfies (keyof typeof systemPropertyTypes)[];
 
 type EntityTypeKey =
@@ -110,7 +115,7 @@ type EntityTypeKey =
 
 /**
  * The entity and link types that use those property types, and the types that refer to those, such as orders that link
- * to their items.
+ * to their items. No type refers to the current `Flow Schedule`: `Flow Run` links to the `Flow Trigger` it is a kind of.
  *
  * A new version can only refer to types that exist, so each comes after every type it refers to.
  */
@@ -136,6 +141,7 @@ export const upgradedEntityTypeKeys = [
   "shipmentItem",
   "shipment",
   "supplyChainUserPreferences",
+  "flowSchedule",
 ] as const satisfies EntityTypeKey[];
 
 const isLinkEntityTypeKey = (
@@ -162,9 +168,11 @@ const replaceReferences = <Value>(
 
 /**
  * Archives the length groups that 034 left without children, and moves the supply chain property types from 026 and
- * 028 onto the versions of their units that 034 created, then the entity types that use them onto those property types.
+ * 028, and `Schedule Catchup Window` from 024, onto the versions of their units that 034 created, then the entity types
+ * that use them, including `Flow Schedule`, onto those property types.
  *
- * Existing entities keep their values: the v1 units they refer to are not archived.
+ * Existing entities keep their types and values: the units they refer to are not archived. A flow schedule moves to the
+ * new `Flow Schedule` when it is next updated.
  */
 const migrate: MigrationFunction = async ({
   context,

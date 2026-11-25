@@ -153,7 +153,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/flow-run/" as BaseUrl,
   },
   flowSchedule: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-schedule/v/2",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-schedule/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-schedule/" as BaseUrl,
   },
@@ -2038,7 +2038,7 @@ export const systemPropertyTypes = {
   },
   scheduleCatchupWindow: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/schedule-catchup-window/v/1",
+      "https://hash.ai/@h/types/property-type/schedule-catchup-window/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/schedule-catchup-window/" as BaseUrl,
   },
