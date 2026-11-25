@@ -23,7 +23,6 @@ import type {
   Conversions,
   DataTypeMetadata,
 } from "@blockprotocol/type-system";
-import type { DataType as GraphApiDataType } from "@local/hash-graph-client";
 
 const normalizeConversionNumbers = (
   conversions: Record<BaseUrl, Conversions>,
@@ -101,7 +100,7 @@ export const ensureUnitDataType: typeof createSystemDataTypeIfNotExists =
         ? await context.graphApi
             .loadExternalDataType(
               {
-                schema: schema as GraphApiDataType,
+                schema,
                 conversions,
                 provenance: context.provenance,
               },

@@ -68,10 +68,7 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  DataType as GraphApiDataType,
-  UpdatePropertyType,
-} from "@local/hash-graph-client";
+import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type {
   HashEntity,
   QueryEntitiesRequest,
@@ -277,7 +274,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     const dataTypeMetadata = await context.graphApi.loadExternalDataType(
       {
         // Specify the schema so that self-hosted instances don't need network access to hash.ai
-        schema: dataTypeSchema as GraphApiDataType,
+        schema: dataTypeSchema,
         conversions,
         provenance: context.provenance,
       },

@@ -290,7 +290,7 @@ export type GetClosedMultiEntityTypesResponse = Omit<
 
 export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =
   (entityTypeResolveDefinitions: EntityTypeResolveDefinitionsGraphApi) =>
-    entityTypeResolveDefinitions as unknown as EntityTypeResolveDefinitions;
+    entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
 
 export const getClosedMultiEntityTypes = (
   graphApi: GraphApi,
