@@ -8,7 +8,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   Length: [
     {
       dataTypeBaseUrl: systemDataTypes.inches.dataTypeBaseUrl,
-      title: "Inch",
+      title: "Inches",
       titlePlural: "Inches",
       description:
         "A unit of length expressed in inches. Based on the international yard of exactly 0.9144 meters.",
@@ -22,7 +22,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl: systemDataTypes.feet.dataTypeBaseUrl,
-      title: "Foot",
+      title: "Feet",
       titlePlural: "Feet",
       description:
         "A unit of length expressed in feet. Based on the international yard of exactly 0.9144 meters.",
@@ -36,7 +36,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl: systemDataTypes.yards.dataTypeBaseUrl,
-      title: "Yard",
+      title: "Yards",
       titlePlural: "Yards",
       description:
         "A unit of length expressed in yards. Based on the international yard of exactly 0.9144 meters.",
@@ -50,7 +50,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl: systemDataTypes.miles.dataTypeBaseUrl,
-      title: "Mile",
+      title: "Miles",
       titlePlural: "Miles",
       description:
         "A unit of length expressed in miles. Based on the international yard of exactly 0.9144 meters.",
@@ -63,7 +63,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.thousandthsOfAnInch.dataTypeBaseUrl,
       title: "Thousandth of an Inch",
       titlePlural: "Thousandths of an Inch",
       description:
@@ -77,7 +76,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.hands.dataTypeBaseUrl,
       title: "Hand",
       titlePlural: "Hands",
       description:
@@ -91,7 +89,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.links.dataTypeBaseUrl,
       title: "Link",
       titlePlural: "Links",
       description:
@@ -105,7 +102,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.rods.dataTypeBaseUrl,
       title: "Rod",
       titlePlural: "Rods",
       description:
@@ -119,7 +115,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.chains.dataTypeBaseUrl,
       title: "Chain",
       titlePlural: "Chains",
       description:
@@ -133,7 +128,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.furlongs.dataTypeBaseUrl,
       title: "Furlong",
       titlePlural: "Furlongs",
       description:
@@ -147,7 +141,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.fathoms.dataTypeBaseUrl,
       title: "Fathom",
       titlePlural: "Fathoms",
       description:
@@ -164,7 +157,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   Mass: [
     {
       dataTypeBaseUrl: systemDataTypes.pounds.dataTypeBaseUrl,
-      title: "Pound",
+      title: "Pounds",
       titlePlural: "Pounds",
       description: "A unit of mass expressed in pounds. Uses avoirdupois mass.",
       symbol: "lb",
@@ -176,7 +169,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.ounces.dataTypeBaseUrl,
       title: "Ounce",
       titlePlural: "Ounces",
       description: "A unit of mass expressed in ounces. Uses avoirdupois mass.",
@@ -189,7 +181,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.stones.dataTypeBaseUrl,
       title: "Stone",
       titlePlural: "Stones",
       description: "A unit of mass expressed in stones.",
@@ -202,7 +193,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.grains.dataTypeBaseUrl,
       title: "Grain",
       titlePlural: "Grains",
       description: "A unit of mass expressed in grains.",
@@ -215,7 +205,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.longHundredweights.dataTypeBaseUrl,
       title: "Long Hundredweight",
       titlePlural: "Long Hundredweights",
       description: "A unit of mass expressed in long hundredweights.",
@@ -228,7 +217,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.longTons.dataTypeBaseUrl,
       title: "Long Ton",
       titlePlural: "Long Tons",
       description: "A unit of mass expressed in long tons.",
@@ -241,7 +229,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.troyOunces.dataTypeBaseUrl,
       title: "Troy Ounce",
       titlePlural: "Troy Ounces",
       description: "A unit of mass expressed in troy ounces.",
@@ -254,7 +241,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.troyPounds.dataTypeBaseUrl,
       title: "Troy Pound",
       titlePlural: "Troy Pounds",
       description: "A unit of mass expressed in troy pounds.",
@@ -267,7 +253,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.pennyweights.dataTypeBaseUrl,
       title: "Pennyweight",
       titlePlural: "Pennyweights",
       description: "A unit of mass expressed in pennyweights.",
@@ -280,7 +265,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.slugs.dataTypeBaseUrl,
       title: "Slug",
       titlePlural: "Slugs",
       description: "A unit of mass expressed in slugs.",
@@ -294,7 +278,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.shortHundredweights.dataTypeBaseUrl,
       title: "Short Hundredweight",
       titlePlural: "Short Hundredweights",
       description: "A unit of mass expressed in short hundredweights.",
@@ -307,7 +290,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.shortTons.dataTypeBaseUrl,
       title: "Short Ton",
       titlePlural: "Short Tons",
       description: "A unit of mass expressed in short tons.",
@@ -322,7 +304,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Area: [
     {
-      dataTypeBaseUrl: systemDataTypes.squareInches.dataTypeBaseUrl,
+      dataTypeBaseUrl: systemDataTypes.squareInch.dataTypeBaseUrl,
       title: "Square Inch",
       titlePlural: "Square Inches",
       description:
@@ -337,7 +319,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl: systemDataTypes.squareFeet.dataTypeBaseUrl,
-      title: "Square Foot",
+      title: "Square Feet",
       titlePlural: "Square Feet",
       description:
         "A unit of area expressed in square feet. Based on the international foot of exactly 0.3048 meters.",
@@ -350,7 +332,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.squareYards.dataTypeBaseUrl,
       title: "Square Yard",
       titlePlural: "Square Yards",
       description:
@@ -364,7 +345,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.squareMiles.dataTypeBaseUrl,
       title: "Square Mile",
       titlePlural: "Square Miles",
       description:
@@ -378,7 +358,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.acres.dataTypeBaseUrl,
       title: "Acre",
       titlePlural: "Acres",
       description:
@@ -392,7 +371,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.roods.dataTypeBaseUrl,
       title: "Rood",
       titlePlural: "Roods",
       description:
@@ -408,7 +386,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Volume: [
     {
-      dataTypeBaseUrl: systemDataTypes.cubicInches.dataTypeBaseUrl,
       title: "Cubic Inch",
       titlePlural: "Cubic Inches",
       description: "A unit of volume expressed in cubic inches.",
@@ -422,7 +399,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl: systemDataTypes.cubicFeet.dataTypeBaseUrl,
-      title: "Cubic Foot",
+      title: "Cubic Feet",
       titlePlural: "Cubic Feet",
       description: "A unit of volume expressed in cubic feet.",
       symbol: "ft³",
@@ -434,7 +411,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.cubicYards.dataTypeBaseUrl,
       title: "Cubic Yard",
       titlePlural: "Cubic Yards",
       description: "A unit of volume expressed in cubic yards.",
@@ -447,7 +423,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialGallons.dataTypeBaseUrl,
       title: "Imperial Gallon",
       titlePlural: "Imperial Gallons",
       description: "A unit of volume expressed in imperial gallons.",
@@ -460,7 +435,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialQuarts.dataTypeBaseUrl,
       title: "Imperial Quart",
       titlePlural: "Imperial Quarts",
       description: "A unit of volume expressed in imperial quarts.",
@@ -473,7 +447,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialPints.dataTypeBaseUrl,
       title: "Imperial Pint",
       titlePlural: "Imperial Pints",
       description: "A unit of volume expressed in imperial pints.",
@@ -486,7 +459,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialGills.dataTypeBaseUrl,
       title: "Imperial Gill",
       titlePlural: "Imperial Gills",
       description: "A unit of volume expressed in imperial gills.",
@@ -499,7 +471,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialFluidOunces.dataTypeBaseUrl,
       title: "Imperial Fluid Ounce",
       titlePlural: "Imperial Fluid Ounces",
       description: "A unit of volume expressed in imperial fluid ounces.",
@@ -512,7 +483,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialBushels.dataTypeBaseUrl,
       title: "Imperial Bushel",
       titlePlural: "Imperial Bushels",
       description: "A unit of volume expressed in imperial bushels.",
@@ -525,7 +495,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.imperialPecks.dataTypeBaseUrl,
       title: "Imperial Peck",
       titlePlural: "Imperial Pecks",
       description: "A unit of volume expressed in imperial pecks.",
@@ -538,7 +507,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usLiquidGallons.dataTypeBaseUrl,
       title: "US Liquid Gallon",
       titlePlural: "US Liquid Gallons",
       description: "A unit of volume expressed in us liquid gallons.",
@@ -551,7 +519,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usLiquidQuarts.dataTypeBaseUrl,
       title: "US Liquid Quart",
       titlePlural: "US Liquid Quarts",
       description: "A unit of volume expressed in us liquid quarts.",
@@ -564,7 +531,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usLiquidPints.dataTypeBaseUrl,
       title: "US Liquid Pint",
       titlePlural: "US Liquid Pints",
       description: "A unit of volume expressed in us liquid pints.",
@@ -577,11 +543,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usCups.dataTypeBaseUrl,
       title: "US Cup",
       titlePlural: "US Cups",
       description:
-        "A US customary cup, equal to 8 US fluid ounces or 236.5882365 millilitres.",
+        "A US customary cup, equal to 8 US fluid ounces or 236.5882365 milliliters.",
       symbol: "cup (US)",
       systems: ["US Customary"],
       conversions: {
@@ -591,7 +556,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usFluidOunces.dataTypeBaseUrl,
       title: "US Fluid Ounce",
       titlePlural: "US Fluid Ounces",
       description: "A unit of volume expressed in us fluid ounces.",
@@ -604,7 +568,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usTablespoons.dataTypeBaseUrl,
       title: "US Tablespoon",
       titlePlural: "US Tablespoons",
       description: "A unit of volume expressed in us tablespoons.",
@@ -617,7 +580,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usTeaspoons.dataTypeBaseUrl,
       title: "US Teaspoon",
       titlePlural: "US Teaspoons",
       description: "A unit of volume expressed in us teaspoons.",
@@ -630,7 +592,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usDryGallons.dataTypeBaseUrl,
       title: "US Dry Gallon",
       titlePlural: "US Dry Gallons",
       description: "A unit of volume expressed in us dry gallons.",
@@ -643,7 +604,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usDryQuarts.dataTypeBaseUrl,
       title: "US Dry Quart",
       titlePlural: "US Dry Quarts",
       description: "A unit of volume expressed in us dry quarts.",
@@ -656,7 +616,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usDryPints.dataTypeBaseUrl,
       title: "US Dry Pint",
       titlePlural: "US Dry Pints",
       description: "A unit of volume expressed in us dry pints.",
@@ -669,7 +628,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usBushels.dataTypeBaseUrl,
       title: "US Bushel",
       titlePlural: "US Bushels",
       description: "A unit of volume expressed in us bushels.",
@@ -682,7 +640,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.usPecks.dataTypeBaseUrl,
       title: "US Peck",
       titlePlural: "US Pecks",
       description: "A unit of volume expressed in us pecks.",
@@ -695,7 +652,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.petroleumBarrels.dataTypeBaseUrl,
       title: "Petroleum Barrel",
       titlePlural: "Petroleum Barrels",
       description: "A petroleum barrel, equal to 42 US liquid gallons.",
@@ -710,7 +666,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Temperature: [
     {
-      dataTypeBaseUrl: systemDataTypes.degreesRankine.dataTypeBaseUrl,
       title: "Degree Rankine",
       titlePlural: "Degrees Rankine",
       description:
@@ -719,7 +674,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       systems: ["Imperial"],
       minimum: 0,
       conversions: {
-        [systemDataTypes.kelvins.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.kelvin.dataTypeBaseUrl]: scaledConversion({
           factor: 5.0,
           divisor: 9.0,
         }),
@@ -728,54 +683,50 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Force: [
     {
-      dataTypeBaseUrl: systemDataTypes.poundsForce.dataTypeBaseUrl,
       title: "Pound-Force",
       titlePlural: "Pounds-Force",
       description: "A unit of force expressed in pounds-force.",
       symbol: "lbf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newton.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.ouncesForce.dataTypeBaseUrl,
       title: "Ounce-Force",
       titlePlural: "Ounces-Force",
       description: "A unit of force expressed in ounces-force.",
       symbol: "ozf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newton.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 16.0,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.kips.dataTypeBaseUrl,
       title: "Kip",
       titlePlural: "Kips",
       description: "A unit of force expressed in kips.",
       symbol: "kip",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newton.dataTypeBaseUrl]: scaledConversion({
           factor: 4448.2216152605,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundals.dataTypeBaseUrl,
       title: "Poundal",
       titlePlural: "Poundals",
       description: "A unit of force expressed in poundals.",
       symbol: "pdl",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtons.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newton.dataTypeBaseUrl]: scaledConversion({
           factor: 0.138254954376,
         }),
       },
@@ -783,7 +734,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Pressure: [
     {
-      dataTypeBaseUrl: systemDataTypes.poundsForcePerSquareInch.dataTypeBaseUrl,
       title: "Pound-Force per Square Inch",
       titlePlural: "Pounds-Force per Square Inch",
       description:
@@ -791,14 +741,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "psi",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.pascal.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 0.00064516,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsForcePerSquareFoot.dataTypeBaseUrl,
       title: "Pound-Force per Square Foot",
       titlePlural: "Pounds-Force per Square Foot",
       description:
@@ -806,21 +755,20 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "psf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.pascal.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 0.09290304,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.kipsPerSquareInch.dataTypeBaseUrl,
       title: "Kip per Square Inch",
       titlePlural: "Kips per Square Inch",
       description: "A unit of pressure expressed in kips per square inch.",
       symbol: "ksi",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascals.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.pascal.dataTypeBaseUrl]: scaledConversion({
           factor: 4448.2216152605,
           divisor: 0.00064516,
         }),
@@ -829,7 +777,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Energy: [
     {
-      dataTypeBaseUrl: systemDataTypes.britishThermalUnitsIt.dataTypeBaseUrl,
       title: "British Thermal Unit (IT)",
       titlePlural: "British Thermal Units (IT)",
       description:
@@ -837,14 +784,14 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joule.dataTypeBaseUrl]: scaledConversion({
           factor: 1055.05585262,
         }),
       },
     },
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsThermochemical.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(thermochemical)"].dataTypeBaseUrl,
       title: "British Thermal Unit (Thermochemical)",
       titlePlural: "British Thermal Units (Thermochemical)",
       description:
@@ -852,34 +799,32 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (th)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joule.dataTypeBaseUrl]: scaledConversion({
           factor: 9489.1523804,
           divisor: 9.0,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.footPoundsForce.dataTypeBaseUrl,
       title: "Foot Pound-Force",
       titlePlural: "Foot Pounds-Force",
       description: "A unit of energy expressed in foot pounds-force.",
       symbol: "ft·lbf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joule.dataTypeBaseUrl]: scaledConversion({
           factor: 1.3558179483314003,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.inchPoundsForce.dataTypeBaseUrl,
       title: "Inch Pound-Force",
       titlePlural: "Inch Pounds-Force",
       description: "A unit of energy expressed in inch pounds-force.",
       symbol: "in·lbf",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joules.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joule.dataTypeBaseUrl]: scaledConversion({
           factor: 0.1129848290276167,
         }),
       },
@@ -887,7 +832,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Power: [
     {
-      dataTypeBaseUrl: systemDataTypes.mechanicalHorsepower.dataTypeBaseUrl,
       title: "Mechanical Horsepower",
       titlePlural: "Mechanical Horsepower",
       description: "A unit of power expressed in mechanical horsepower.",
@@ -901,7 +845,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerHour.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerHour"].dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Hour",
       titlePlural: "British Thermal Units (IT) per Hour",
       description:
@@ -917,7 +861,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerSecond.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerSecond"].dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Second",
       titlePlural: "British Thermal Units (IT) per Second",
       description:
@@ -931,7 +875,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.footPoundsForcePerSecond.dataTypeBaseUrl,
       title: "Foot Pound-Force per Second",
       titlePlural: "Foot Pounds-Force per Second",
       description: "A unit of power expressed in foot pounds-force per second.",
@@ -946,7 +889,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Speed: [
     {
-      dataTypeBaseUrl: systemDataTypes.feetPerSecond.dataTypeBaseUrl,
       title: "Foot per Second",
       titlePlural: "Feet per Second",
       description: "A unit of speed expressed in feet per second.",
@@ -960,7 +902,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl: systemDataTypes.feetPerMinute.dataTypeBaseUrl,
-      title: "Foot per Minute",
+      title: "Feet per Minute",
       titlePlural: "Feet per Minute",
       description: "A unit of speed expressed in feet per minute.",
       symbol: "ft/min",
@@ -972,7 +914,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.inchesPerSecond.dataTypeBaseUrl,
       title: "Inch per Second",
       titlePlural: "Inches per Second",
       description: "A unit of speed expressed in inches per second.",
@@ -985,7 +926,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.milesPerHour.dataTypeBaseUrl,
       title: "Mile per Hour",
       titlePlural: "Miles per Hour",
       description: "A unit of speed expressed in miles per hour.",
@@ -1000,7 +940,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Acceleration: [
     {
-      dataTypeBaseUrl: systemDataTypes.feetPerSecondSquared.dataTypeBaseUrl,
       title: "Foot per Second Squared",
       titlePlural: "Feet per Second Squared",
       description:
@@ -1008,12 +947,11 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft/s²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecondSquared.dataTypeBaseUrl]:
+        [systemDataTypes.meterPerSecondSquared.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.3048 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.inchesPerSecondSquared.dataTypeBaseUrl,
       title: "Inch per Second Squared",
       titlePlural: "Inches per Second Squared",
       description:
@@ -1021,35 +959,33 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "in/s²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.metersPerSecondSquared.dataTypeBaseUrl]:
+        [systemDataTypes.meterPerSecondSquared.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.0254 }),
       },
     },
   ],
   Wavenumber: [
     {
-      dataTypeBaseUrl: systemDataTypes.reciprocalFeet.dataTypeBaseUrl,
       title: "Reciprocal Foot",
       titlePlural: "Reciprocal Feet",
       description: "A unit of wavenumber expressed in reciprocal feet.",
       symbol: "ft⁻¹",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.reciprocalMeters.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.reciprocalMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.0,
           divisor: 0.3048,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.reciprocalInches.dataTypeBaseUrl,
       title: "Reciprocal Inch",
       titlePlural: "Reciprocal Inches",
       description: "A unit of wavenumber expressed in reciprocal inches.",
       symbol: "in⁻¹",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.reciprocalMeters.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.reciprocalMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.0,
           divisor: 0.0254,
         }),
@@ -1058,43 +994,39 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Mass Density": [
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerCubicFoot.dataTypeBaseUrl,
       title: "Pound per Cubic Foot",
       titlePlural: "Pounds per Cubic Foot",
       description: "A unit of mass density expressed in pounds per cubic foot.",
       symbol: "lb/ft³",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.45359237, divisor: 0.028316846592 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerCubicInch.dataTypeBaseUrl,
       title: "Pound per Cubic Inch",
       titlePlural: "Pounds per Cubic Inch",
       description: "A unit of mass density expressed in pounds per cubic inch.",
       symbol: "lb/in³",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.45359237, divisor: 1.6387064e-5 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerCubicYard.dataTypeBaseUrl,
       title: "Pound per Cubic Yard",
       titlePlural: "Pounds per Cubic Yard",
       description: "A unit of mass density expressed in pounds per cubic yard.",
       symbol: "lb/yd³",
       systems: ["Imperial", "US Customary"],
       conversions: {
-        [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.45359237, divisor: 0.764554857984 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerImperialGallon.dataTypeBaseUrl,
       title: "Pound per Imperial Gallon",
       titlePlural: "Pounds per Imperial Gallon",
       description:
@@ -1102,12 +1034,11 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb/gal (UK)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.45359237, divisor: 0.00454609 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerUsLiquidGallon.dataTypeBaseUrl,
       title: "Pound per US Liquid Gallon",
       titlePlural: "Pounds per US Liquid Gallon",
       description:
@@ -1115,14 +1046,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb/gal (US)",
       systems: ["US Customary"],
       conversions: {
-        [systemDataTypes.kilogramsPerCubicMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerCubicMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.45359237, divisor: 0.003785411784 }),
       },
     },
   ],
   "Surface Density": [
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerSquareFoot.dataTypeBaseUrl,
       title: "Pound per Square Foot",
       titlePlural: "Pounds per Square Foot",
       description:
@@ -1130,12 +1060,11 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb/ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.kilogramsPerSquareMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerSquareMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.45359237, divisor: 0.09290304 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.ouncesPerSquareYard.dataTypeBaseUrl,
       title: "Ounce per Square Yard",
       titlePlural: "Ounces per Square Yard",
       description:
@@ -1143,14 +1072,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "oz/yd²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.kilogramsPerSquareMeter.dataTypeBaseUrl]:
+        [systemDataTypes.kilogramPerSquareMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.028349523125, divisor: 0.83612736 }),
       },
     },
   ],
   "Specific Volume": [
     {
-      dataTypeBaseUrl: systemDataTypes.cubicFeetPerPound.dataTypeBaseUrl,
       title: "Cubic Foot per Pound",
       titlePlural: "Cubic Feet per Pound",
       description:
@@ -1158,21 +1086,20 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "ft³/lb",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.cubicMetersPerKilogram.dataTypeBaseUrl]:
+        [systemDataTypes.cubicMeterPerKilogram.dataTypeBaseUrl]:
           scaledConversion({ factor: 0.028316846592, divisor: 0.45359237 }),
       },
     },
   ],
   "Amount of Substance": [
     {
-      dataTypeBaseUrl: systemDataTypes.poundMoles.dataTypeBaseUrl,
       title: "Pound Mole",
       titlePlural: "Pound Moles",
       description: "A unit of amount of substance expressed in pound moles.",
       symbol: "lbmol",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.moles.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.mole.dataTypeBaseUrl]: scaledConversion({
           factor: 453.59237,
         }),
       },
@@ -1180,7 +1107,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Amount Concentration": [
     {
-      dataTypeBaseUrl: systemDataTypes.poundMolesPerCubicFoot.dataTypeBaseUrl,
       title: "Pound Mole per Cubic Foot",
       titlePlural: "Pound Moles per Cubic Foot",
       description:
@@ -1188,7 +1114,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbmol/ft³",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.molesPerCubicMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.molePerCubicMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 453.59237,
           divisor: 0.028316846592,
         }),
@@ -1197,7 +1123,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Illuminance: [
     {
-      dataTypeBaseUrl: systemDataTypes.footCandles.dataTypeBaseUrl,
       title: "Foot-Candle",
       titlePlural: "Foot-Candles",
       description: "Illuminance of one lumen per square international foot.",
@@ -1213,26 +1138,24 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Luminance: [
     {
-      dataTypeBaseUrl: systemDataTypes.candelasPerSquareFoot.dataTypeBaseUrl,
       title: "Candela per Square Foot",
       titlePlural: "Candelas per Square Foot",
       description: "A unit of luminance expressed in candelas per square foot.",
       symbol: "cd/ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.candelasPerSquareMeter.dataTypeBaseUrl]:
+        [systemDataTypes.candelaPerSquareMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.candelasPerSquareInch.dataTypeBaseUrl,
       title: "Candela per Square Inch",
       titlePlural: "Candelas per Square Inch",
       description: "A unit of luminance expressed in candelas per square inch.",
       symbol: "cd/in²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.candelasPerSquareMeter.dataTypeBaseUrl]:
+        [systemDataTypes.candelaPerSquareMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 1.0, divisor: 0.00064516 }),
       },
     },
@@ -1240,7 +1163,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   "Dynamic Viscosity": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.poundsForceSecondsPerSquareFoot.dataTypeBaseUrl,
+        systemDataTypes["pound-forceSecondPerSquareFoot"].dataTypeBaseUrl,
       title: "Pound-Force Second per Square Foot",
       titlePlural: "Pound-Force Seconds per Square Foot",
       description:
@@ -1248,7 +1171,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf·s/ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.pascalSecond.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 0.09290304,
         }),
@@ -1256,7 +1179,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
     },
     {
       dataTypeBaseUrl:
-        systemDataTypes.poundsForceSecondsPerSquareInch.dataTypeBaseUrl,
+        systemDataTypes["pound-forceSecondPerSquareInch"].dataTypeBaseUrl,
       title: "Pound-Force Second per Square Inch",
       titlePlural: "Pound-Force Seconds per Square Inch",
       description:
@@ -1264,14 +1187,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf·s/in²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.pascalSecond.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 0.00064516,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsPerFootSecond.dataTypeBaseUrl,
       title: "Pound per Foot Second",
       titlePlural: "Pounds per Foot Second",
       description:
@@ -1279,7 +1201,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lb/(ft·s)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.pascalSeconds.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.pascalSecond.dataTypeBaseUrl]: scaledConversion({
           factor: 0.45359237,
           divisor: 0.3048,
         }),
@@ -1288,40 +1210,37 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   Torque: [
     {
-      dataTypeBaseUrl: systemDataTypes.poundForceFeet.dataTypeBaseUrl,
       title: "Pound-Force Foot",
       titlePlural: "Pound-Force Feet",
       description: "A unit of torque expressed in pound-force feet.",
       symbol: "lbf·ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonMeters.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newtonMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.3558179483314003,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundForceInches.dataTypeBaseUrl,
       title: "Pound-Force Inch",
       titlePlural: "Pound-Force Inches",
       description: "A unit of torque expressed in pound-force inches.",
       symbol: "lbf·in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonMeters.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newtonMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 0.1129848290276167,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.ounceForceInches.dataTypeBaseUrl,
       title: "Ounce-Force Inch",
       titlePlural: "Ounce-Force Inches",
       description: "A unit of torque expressed in ounce-force inches.",
       symbol: "ozf·in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonMeters.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newtonMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 0.0070615518142260435,
         }),
       },
@@ -1329,7 +1248,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Surface Tension": [
     {
-      dataTypeBaseUrl: systemDataTypes.poundsForcePerFoot.dataTypeBaseUrl,
       title: "Pound-Force per Foot",
       titlePlural: "Pounds-Force per Foot",
       description:
@@ -1337,14 +1255,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonsPerMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newtonPerMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 0.3048,
         }),
       },
     },
     {
-      dataTypeBaseUrl: systemDataTypes.poundsForcePerInch.dataTypeBaseUrl,
       title: "Pound-Force per Inch",
       titlePlural: "Pounds-Force per Inch",
       description:
@@ -1352,7 +1269,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "lbf/in",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.newtonsPerMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.newtonPerMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 4.4482216152605,
           divisor: 0.0254,
         }),
@@ -1362,7 +1279,8 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   "Heat Flux Density": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerSquareFootHour.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerSquareFootHour"]
+          .dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Square Foot Hour",
       titlePlural: "British Thermal Units (IT) per Square Foot Hour",
       description:
@@ -1370,16 +1288,18 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/(ft²·h)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.wattsPerSquareMeter.dataTypeBaseUrl]: scaledConversion(
-          { factor: 1055.05585262, divisor: 334.450944 },
-        ),
+        [systemDataTypes.wattPerSquareMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+          divisor: 334.450944,
+        }),
       },
     },
   ],
   "Heat Capacity": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerDegreeRankine.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerDegreeRankine"]
+          .dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Degree Rankine",
       titlePlural: "British Thermal Units (IT) per Degree Rankine",
       description:
@@ -1387,7 +1307,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/°R",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerKelvin.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joulePerKelvin.dataTypeBaseUrl]: scaledConversion({
           factor: 1899.100534716,
         }),
       },
@@ -1396,7 +1316,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   "Specific Heat Capacity": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerPoundDegreeRankine
+        systemDataTypes["britishThermalUnit(it)PerPoundDegreeRankine"]
           .dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Pound Degree Rankine",
       titlePlural: "British Thermal Units (IT) per Pound Degree Rankine",
@@ -1405,7 +1325,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/(lb·°R)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerKilogramKelvin.dataTypeBaseUrl]:
+        [systemDataTypes.joulePerKilogramKelvin.dataTypeBaseUrl]:
           scaledConversion({ factor: 4186.8 }),
       },
     },
@@ -1413,7 +1333,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   "Specific Energy": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerPound.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerPound"].dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Pound",
       titlePlural: "British Thermal Units (IT) per Pound",
       description:
@@ -1421,7 +1341,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/lb",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerKilogram.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joulePerKilogram.dataTypeBaseUrl]: scaledConversion({
           factor: 1055.05585262,
           divisor: 0.45359237,
         }),
@@ -1431,7 +1351,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   "Thermal Conductivity": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerHourFootDegreeRankine
+        systemDataTypes["britishThermalUnit(it)PerHourFootDegreeRankine"]
           .dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Hour Foot Degree Rankine",
       titlePlural: "British Thermal Units (IT) per Hour Foot Degree Rankine",
@@ -1440,16 +1360,17 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/(h·ft·°R)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.wattsPerMeterKelvin.dataTypeBaseUrl]: scaledConversion(
-          { factor: 1055.05585262, divisor: 609.6 },
-        ),
+        [systemDataTypes.wattPerMeterKelvin.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+          divisor: 609.6,
+        }),
       },
     },
   ],
   "Energy Density": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerCubicFoot.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerCubicFoot"].dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Cubic Foot",
       titlePlural: "British Thermal Units (IT) per Cubic Foot",
       description:
@@ -1457,16 +1378,17 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/ft³",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
-          { factor: 1055.05585262, divisor: 0.028316846592 },
-        ),
+        [systemDataTypes.joulePerCubicMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1055.05585262,
+          divisor: 0.028316846592,
+        }),
       },
     },
   ],
   "Molar Energy": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerPoundMole.dataTypeBaseUrl,
+        systemDataTypes["britishThermalUnit(it)PerPoundMole"].dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Pound Mole",
       titlePlural: "British Thermal Units (IT) per Pound Mole",
       description:
@@ -1474,7 +1396,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/lbmol",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerMole.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.joulePerMole.dataTypeBaseUrl]: scaledConversion({
           factor: 1055.05585262,
           divisor: 453.59237,
         }),
@@ -1484,7 +1406,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   "Molar Heat Capacity": [
     {
       dataTypeBaseUrl:
-        systemDataTypes.britishThermalUnitsItPerPoundMoleDegreeRankine
+        systemDataTypes["britishThermalUnit(it)PerPoundMoleDegreeRankine"]
           .dataTypeBaseUrl,
       title: "British Thermal Unit (IT) per Pound Mole Degree Rankine",
       titlePlural: "British Thermal Units (IT) per Pound Mole Degree Rankine",
@@ -1493,15 +1415,14 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "Btu (IT)/(lbmol·°R)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.joulesPerMoleKelvin.dataTypeBaseUrl]: scaledConversion(
-          { factor: 4.1868 },
-        ),
+        [systemDataTypes.joulePerMoleKelvin.dataTypeBaseUrl]: scaledConversion({
+          factor: 4.1868,
+        }),
       },
     },
   ],
   "Electric Current Density": [
     {
-      dataTypeBaseUrl: systemDataTypes.amperesPerSquareFoot.dataTypeBaseUrl,
       title: "Ampere per Square Foot",
       titlePlural: "Amperes per Square Foot",
       description:
@@ -1509,14 +1430,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "A/ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.amperesPerSquareMeter.dataTypeBaseUrl]:
+        [systemDataTypes.amperePerSquareMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
   ],
   "Magnetic Field Strength": [
     {
-      dataTypeBaseUrl: systemDataTypes.amperesPerFoot.dataTypeBaseUrl,
       title: "Ampere per Foot",
       titlePlural: "Amperes per Foot",
       description:
@@ -1524,7 +1444,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "A/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.amperesPerMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.amperePerMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.0,
           divisor: 0.3048,
         }),
@@ -1533,7 +1453,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Electric Field Strength": [
     {
-      dataTypeBaseUrl: systemDataTypes.voltsPerFoot.dataTypeBaseUrl,
       title: "Volt per Foot",
       titlePlural: "Volts per Foot",
       description:
@@ -1541,7 +1460,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "V/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.voltsPerMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.voltPerMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.0,
           divisor: 0.3048,
         }),
@@ -1550,7 +1469,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Electric Charge Density": [
     {
-      dataTypeBaseUrl: systemDataTypes.coulombsPerCubicFoot.dataTypeBaseUrl,
       title: "Coulomb per Cubic Foot",
       titlePlural: "Coulombs per Cubic Foot",
       description:
@@ -1558,14 +1476,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "C/ft³",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.coulombsPerCubicMeter.dataTypeBaseUrl]:
+        [systemDataTypes.coulombPerCubicMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 1.0, divisor: 0.028316846592 }),
       },
     },
   ],
   "Surface Charge Density": [
     {
-      dataTypeBaseUrl: systemDataTypes.coulombsPerSquareFoot.dataTypeBaseUrl,
       title: "Coulomb per Square Foot",
       titlePlural: "Coulombs per Square Foot",
       description:
@@ -1573,21 +1490,20 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "C/ft²",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.coulombsPerSquareMeter.dataTypeBaseUrl]:
+        [systemDataTypes.coulombPerSquareMeter.dataTypeBaseUrl]:
           scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
   ],
   Permittivity: [
     {
-      dataTypeBaseUrl: systemDataTypes.faradsPerFoot.dataTypeBaseUrl,
       title: "Farad per Foot",
       titlePlural: "Farads per Foot",
       description: "A unit of permittivity expressed in farads per foot.",
       symbol: "F/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.faradsPerMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.faradPerMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.0,
           divisor: 0.3048,
         }),
@@ -1596,7 +1512,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Magnetic Permeability": [
     {
-      dataTypeBaseUrl: systemDataTypes.henriesPerFoot.dataTypeBaseUrl,
       title: "Henry per Foot",
       titlePlural: "Henries per Foot",
       description:
@@ -1604,7 +1519,7 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "H/ft",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.henriesPerMeter.dataTypeBaseUrl]: scaledConversion({
+        [systemDataTypes.henryPerMeter.dataTypeBaseUrl]: scaledConversion({
           factor: 1.0,
           divisor: 0.3048,
         }),
@@ -1613,7 +1528,6 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
   ],
   "Radiation Exposure": [
     {
-      dataTypeBaseUrl: systemDataTypes.coulombsPerPound.dataTypeBaseUrl,
       title: "Coulomb per Pound",
       titlePlural: "Coulombs per Pound",
       description:
@@ -1621,16 +1535,17 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "C/lb",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.coulombsPerKilogram.dataTypeBaseUrl]: scaledConversion(
-          { factor: 1.0, divisor: 0.45359237 },
-        ),
+        [systemDataTypes.coulombPerKilogram.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.45359237,
+        }),
       },
     },
   ],
   Radiance: [
     {
       dataTypeBaseUrl:
-        systemDataTypes.wattsPerSquareFootSteradian.dataTypeBaseUrl,
+        systemDataTypes.wattPerSquareFootSteradian.dataTypeBaseUrl,
       title: "Watt per Square Foot Steradian",
       titlePlural: "Watts per Square Foot Steradian",
       description:
@@ -1638,14 +1553,13 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "W/(ft²·sr)",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.wattsPerSquareMeterSteradian.dataTypeBaseUrl]:
+        [systemDataTypes.wattPerSquareMeterSteradian.dataTypeBaseUrl]:
           scaledConversion({ factor: 1.0, divisor: 0.09290304 }),
       },
     },
   ],
   "Catalytic Activity Concentration": [
     {
-      dataTypeBaseUrl: systemDataTypes.katalsPerCubicFoot.dataTypeBaseUrl,
       title: "Katal per Cubic Foot",
       titlePlural: "Katals per Cubic Foot",
       description:
@@ -1653,9 +1567,10 @@ export const imperialUnits: Record<string, SiUnitDefinition[]> = {
       symbol: "kat/ft³",
       systems: ["Imperial"],
       conversions: {
-        [systemDataTypes.katalsPerCubicMeter.dataTypeBaseUrl]: scaledConversion(
-          { factor: 1.0, divisor: 0.028316846592 },
-        ),
+        [systemDataTypes.katalPerCubicMeter.dataTypeBaseUrl]: scaledConversion({
+          factor: 1.0,
+          divisor: 0.028316846592,
+        }),
       },
     },
   ],
