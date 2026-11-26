@@ -20,8 +20,13 @@ const insertStep = (target: ContextTarget, actionDefinitionId: string) => {
   getContextMenuItems({
     target,
     editor,
-    topLevelSteps: new Map(
-      editor.getState().flowDefinition.steps.map((step) => [step.stepId, step]),
+    steps: new Map(
+      editor
+        .getState()
+        .flowDefinition.steps.map((step) => [
+          step.stepId,
+          { step, parentStepId: null },
+        ]),
     ),
     openAddMenu: (pick) => {
       addStep = pick;

@@ -22,8 +22,24 @@ import type {
   PayloadKind,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinitionDiagnosticCode } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 export const flowInputsLabel = "Flow inputs";
+
+/** Problems with a value whose source no longer exists. */
+export const goneSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
+  "unknownStep",
+  "unknownFlowInput",
+  "unknownStepOutput",
+]);
+
+/** Problems with where a value comes from, shown as a red chip in place of the value. */
+export const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
+  ...goneSourceCodes,
+  "stepNotInScope",
+  "selfReference",
+  "itemOutsideForEach",
+]);
 
 /**
  * What can feed an input of a step: the kinds it accepts, and whether it's an array and required. An input that takes
@@ -83,7 +99,7 @@ export const getSourceKey = (source: StepInputSource) => {
 };
 
 export type SourceOption = {
-  source: Extract<StepInputSource, { kind: "flow-input" | "step-output" }>;
+  source: Exclude<StepInputSource, { kind: "constant" }>;
   /** The value's own name, e.g. "Certificate link". */
   label: string;
   /** Where the value comes from: "Start · Flow inputs", or the step that gives it. */
@@ -91,8 +107,8 @@ export type SourceOption = {
   shape: ConnectionSource;
 };
 
-/** The steps a top-level step runs after, directly or not, nearest first. */
-const getEarlierStepIds = (
+/** The steps among `steps` that one of them runs after, directly or not, nearest first. */
+const getEarlierSteps = (
   steps: FlowDefinition<string>["steps"],
   stepId: string,
 ) => {
@@ -110,25 +126,54 @@ const getEarlierStepIds = (
     }
   }
 
-  return [...earlier];
+  return [...earlier].flatMap(
+    (id) => steps.find((step) => step.stepId === id) ?? [],
+  );
 };
 
 /**
- * The values that can feed an input of a top-level step: the flow's inputs, and the outputs of every step it runs
- * after, nearest first. Only those `canConnect` accepts are offered.
+ * The values that can feed an input of a step: inside a for-each step, its item, wrapped into a list for an input
+ * that takes one; the flow's inputs; and the outputs of every step it runs after, nearest first, which inside a
+ * for-each step are the steps before it there, then those before the for-each step. Only those `canConnect` accepts
+ * are offered.
  */
 export const getSourceOptions = ({
   flowDefinition,
   stepId,
   target,
+  getItemName,
 }: {
   flowDefinition: FlowDefinition<string>;
   stepId: string;
   target: ConnectionTarget;
-}): { flowInputs: SourceOption[]; earlierSteps: SourceOption[] } => {
+  /** What one item of a for-each step's list is called. */
+  getItemName: (forEachStepId: string) => string;
+}): {
+  item: SourceOption | null;
+  flowInputs: SourceOption[];
+  earlierSteps: SourceOption[];
+} => {
   const shapes = createStepShapeResolver(flowDefinition);
   const fits = (shape: ConnectionSource | null): shape is ConnectionSource =>
     shape !== null && canConnect({ source: shape, target }).ok;
+
+  const parent = findStep(flowDefinition.steps, stepId)?.parent ?? null;
+  const itemShape =
+    parent && shapes.getSourceShape({ kind: "item" }, [parent.stepId]);
+  const wrap =
+    itemShape &&
+    [false, true].find(
+      (wrapped) => canConnect({ source: itemShape, target, wrap: wrapped }).ok,
+    );
+  const item: SourceOption | null =
+    parent && itemShape && typeof wrap === "boolean"
+      ? {
+          source: wrap ? { kind: "item", wrap } : { kind: "item" },
+          label: getItemName(parent.stepId),
+          from: getStepName(parent),
+          shape: itemShape,
+        }
+      : null;
 
   const flowInputs = flowDefinition.inputs.flatMap(
     ({ name, label, payloadKind, array, required }): SourceOption[] => {
@@ -147,50 +192,43 @@ export const getSourceOptions = ({
     },
   );
 
-  const earlierSteps = getEarlierStepIds(flowDefinition.steps, stepId).flatMap(
-    (earlierStepId): SourceOption[] => {
-      const step = flowDefinition.steps.find(
-        (candidate) => candidate.stepId === earlierStepId,
-      );
+  const earlierSteps = [
+    ...(parent ? getEarlierSteps(parent.steps, stepId) : []),
+    ...getEarlierSteps(flowDefinition.steps, parent?.stepId ?? stepId),
+  ].flatMap((step): SourceOption[] => {
+    const outputNames =
+      step.kind === "for-each"
+        ? step.collect
+          ? [step.collect.as]
+          : []
+        : (getActionDefinition(step.actionDefinitionId)?.outputs.map(
+            ({ name }) => name,
+          ) ?? []);
 
-      if (!step) {
-        return [];
-      }
+    return outputNames.flatMap((outputName): SourceOption[] => {
+      const shape = shapes.getStepOutputShape(step.stepId, outputName);
 
-      const outputNames =
-        step.kind === "for-each"
-          ? step.collect
-            ? [step.collect.as]
-            : []
-          : (getActionDefinition(step.actionDefinitionId)?.outputs.map(
-              ({ name }) => name,
-            ) ?? []);
-
-      return outputNames.flatMap((outputName): SourceOption[] => {
-        const shape = shapes.getStepOutputShape(step.stepId, outputName);
-
-        return fits(shape)
-          ? [
-              {
-                source: {
-                  kind: "step-output",
-                  stepId: step.stepId,
-                  outputName,
-                },
-                label: getOutputLabel(
-                  step.kind === "action" ? step.actionDefinitionId : undefined,
-                  outputName,
-                ),
-                from: getStepName(step),
-                shape,
+      return fits(shape)
+        ? [
+            {
+              source: {
+                kind: "step-output",
+                stepId: step.stepId,
+                outputName,
               },
-            ]
-          : [];
-      });
-    },
-  );
+              label: getOutputLabel(
+                step.kind === "action" ? step.actionDefinitionId : undefined,
+                outputName,
+              ),
+              from: getStepName(step),
+              shape,
+            },
+          ]
+        : [];
+    });
+  });
 
-  return { flowInputs, earlierSteps };
+  return { item, flowInputs, earlierSteps };
 };
 
 /**

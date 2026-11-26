@@ -106,7 +106,6 @@ const ConditionFilter = ({
   rowKey,
   property,
   condition,
-  readOnly,
   autoFocus,
   onCommit,
   onRemove,
@@ -114,7 +113,6 @@ const ConditionFilter = ({
   rowKey: string;
   property: ConditionProperty;
   condition: QueryCondition | undefined;
-  readOnly: boolean;
   autoFocus: boolean;
   /** Called with `null` when the value is cleared. */
   onCommit: (condition: QueryCondition | null) => void;
@@ -153,9 +151,8 @@ const ConditionFilter = ({
       )}
       value={condition ? getFilterValue(condition) : null}
       errors={error === undefined ? undefined : [error]}
-      disabled={readOnly}
       autoFocus={autoFocus}
-      removeable={!readOnly && { onRemove }}
+      removeable={{ onRemove }}
       onChange={commit}
     />
   );
@@ -166,7 +163,7 @@ const ConditionFilter = ({
  * input or an earlier step shows as any other input does.
  */
 export const QueryField = (props: ComponentProps<typeof InputField>) => {
-  const { editor, stepId, input, source, problems, readOnly } = props;
+  const { editor, stepId, input, source, problems } = props;
 
   /* Set from picking a property under Add filter until the condition is complete. */
   const [newConditionProperty, setNewConditionProperty] =
@@ -262,7 +259,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
         note="This query wasn't built here, so it can't be changed here. The step runs it as it is."
         resetLabel="Build a new query"
         errors={problems.map(({ message }) => message)}
-        readOnly={readOnly}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
@@ -325,64 +321,59 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           items={typeItems}
           value={form.entityTypeBaseUrls}
           placeholder="Any"
-          disabled={readOnly}
           aria-label="Entity type"
           onChange={(entityTypeBaseUrls) =>
             save({ ...form, entityTypeBaseUrls })
           }
         />
       </Form.Field>
-      {(rows.length > 0 || !readOnly) && (
-        <ConditionRows
-          rows={rows.flatMap(({ condition, property }, index) =>
-            property
-              ? [
-                  {
-                    key: getRowKey(index),
-                    chip: (
-                      <ConditionFilter
-                        rowKey={`condition-${getRowKey(index)}`}
-                        property={property}
-                        condition={condition}
-                        readOnly={readOnly}
-                        autoFocus={condition === undefined}
-                        onCommit={(next) => commitCondition(index, next)}
-                        onRemove={() => removeCondition(index)}
-                      />
-                    ),
-                  },
-                ]
-              : [],
-          )}
-          join={form.join}
-          readOnly={readOnly}
-          add={
-            readOnly || newConditionProperty ? null : (
-              <AddFilterMenu
-                options={(form.entityTypeBaseUrls.length === 0
-                  ? [...conditionProperties.values()]
-                  : getPropertiesOfTypes(
-                      latestEntityTypes
-                        .filter(({ metadata }) =>
-                          form.entityTypeBaseUrls.includes(
-                            metadata.recordId.baseUrl,
-                          ),
-                        )
-                        .map(({ schema }) => schema.$id),
-                    )
-                ).map((property) => ({ ...property, key: property.baseUrl }))}
-                getIcon={({ valueKind }) =>
-                  valueKind.kind === "date" ? "calendar" : "list"
-                }
-                emptyText="These types have no dates or statuses"
-                onPick={setNewConditionProperty}
-              />
-            )
-          }
-          errors={[]}
-          onJoinChange={(join) => save({ ...form, join })}
-        />
-      )}
+      <ConditionRows
+        rows={rows.flatMap(({ condition, property }, index) =>
+          property
+            ? [
+                {
+                  key: getRowKey(index),
+                  chip: (
+                    <ConditionFilter
+                      rowKey={`condition-${getRowKey(index)}`}
+                      property={property}
+                      condition={condition}
+                      autoFocus={condition === undefined}
+                      onCommit={(next) => commitCondition(index, next)}
+                      onRemove={() => removeCondition(index)}
+                    />
+                  ),
+                },
+              ]
+            : [],
+        )}
+        join={form.join}
+        add={
+          newConditionProperty ? null : (
+            <AddFilterMenu
+              options={(form.entityTypeBaseUrls.length === 0
+                ? [...conditionProperties.values()]
+                : getPropertiesOfTypes(
+                    latestEntityTypes
+                      .filter(({ metadata }) =>
+                        form.entityTypeBaseUrls.includes(
+                          metadata.recordId.baseUrl,
+                        ),
+                      )
+                      .map(({ schema }) => schema.$id),
+                  )
+              ).map((property) => ({ ...property, key: property.baseUrl }))}
+              getIcon={({ valueKind }) =>
+                valueKind.kind === "date" ? "calendar" : "list"
+              }
+              emptyText="These types have no dates or statuses"
+              onPick={setNewConditionProperty}
+            />
+          )
+        }
+        errors={[]}
+        onJoinChange={(join) => save({ ...form, join })}
+      />
       <Form.Field layout="inline" label="Sort">
         <Select<SortOrder>
           required
@@ -391,7 +382,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
             text: label,
           }))}
           value={form.sort}
-          disabled={readOnly}
           aria-label="Sort"
           onChange={(sort) => save({ ...form, sort })}
         />
@@ -408,7 +398,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           max={maxEntitiesPerStep}
           placeholder="No limit"
           invalid={limitErrors.length > 0}
-          disabled={readOnly}
           aria-label="Limit"
           onChange={(limit) => {
             /* A negative would be rejected for the whole query, not reported here, so it isn't saved. */

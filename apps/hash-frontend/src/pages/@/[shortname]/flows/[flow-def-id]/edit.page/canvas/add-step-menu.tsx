@@ -7,8 +7,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ActionIo } from "../shared/action-io";
 import { useRecentActions } from "../shared/recent-actions";
 import {
+  forEachAddId,
+  getListedActionGroups,
   isAddableAction,
-  listedActionGroups,
   recommendedActions,
   searchListedActions,
   stepNoun,
@@ -19,7 +20,8 @@ import type { AddableAction, ListedAction } from "../shared/step-display";
 import type { ItemOrGroup, MenuItem, Position } from "@hashintel/ds-components";
 import type { ReactElement } from "react";
 
-type OnPick = (actionDefinitionId: string) => void;
+/** Called with what was picked: an action definition id, or `forEachAddId`. */
+type OnPick = (addId: string) => void;
 type OnHighlight = (action: AddableAction | null) => void;
 
 const highlightedActionIo = css({
@@ -92,33 +94,48 @@ const upcomingNoteLabel = css({
 const getListedActionItem = (
   action: ListedAction,
   handlers: { onPick: OnPick; onHighlight: OnHighlight },
-): MenuItem =>
-  isAddableAction(action)
-    ? getActionItem(action, handlers)
+): MenuItem => {
+  if (isAddableAction(action)) {
+    return getActionItem(action, handlers);
+  }
+
+  const shared = {
+    text: action.label,
+    description: action.description,
+    icon: action.icon,
+  };
+
+  return "forEach" in action
+    ? {
+        ...shared,
+        id: forEachAddId,
+        onClick: () => handlers.onPick(forEachAddId),
+      }
     : {
+        ...shared,
         id: action.upcomingId,
-        text: action.label,
-        description: action.description,
-        icon: action.icon,
         suffix: <span className={upcomingNoteLabel}>{upcomingNote}</span>,
         disabled: true,
         onClick: () => {},
       };
+};
 
 const getMenuItems = ({
   query,
   emptyFlow,
+  insideForEach,
   recentActions,
   ...handlers
 }: {
   query: string;
   emptyFlow: boolean;
+  insideForEach: boolean;
   recentActions: AddableAction[];
   onPick: OnPick;
   onHighlight: OnHighlight;
 }): ItemOrGroup<MenuItem>[] => {
   if (query.trim() !== "") {
-    const matches = searchListedActions(query);
+    const matches = searchListedActions(query, { insideForEach });
 
     return matches.length > 0
       ? matches.map((action) => getListedActionItem(action, handlers))
@@ -152,7 +169,7 @@ const getMenuItems = ({
     {
       id: "browse-all",
       label: "Browse all",
-      items: listedActionGroups.map(
+      items: getListedActionGroups({ insideForEach }).map(
         ({ groupId, label, icon, actions }): MenuItem => ({
           id: groupId,
           text: label,
@@ -177,6 +194,7 @@ export const AddStepMenu = ({
   trigger,
   position,
   emptyFlow,
+  insideForEach = false,
   onPick,
   onOpen,
 }: {
@@ -184,6 +202,8 @@ export const AddStepMenu = ({
   position?: Position;
   /** Whether the flow has no steps yet, when the menu recommends some to start with. */
   emptyFlow: boolean;
+  /** Whether the step will go inside a for-each step, where For each isn't offered. */
+  insideForEach?: boolean;
   onPick: OnPick;
   onOpen?: (open: boolean) => void;
 }) => {
@@ -200,10 +220,14 @@ export const AddStepMenu = ({
       items={getMenuItems({
         query,
         emptyFlow,
+        insideForEach,
         recentActions,
-        onPick: (actionDefinitionId) => {
-          recordAddedAction(actionDefinitionId);
-          onPick(actionDefinitionId);
+        onPick: (addId) => {
+          /* Recent lists actions only. */
+          if (addId !== forEachAddId) {
+            recordAddedAction(addId);
+          }
+          onPick(addId);
         },
         onHighlight: setHighlightedAction,
       })}
@@ -240,12 +264,14 @@ export const AddStepMenu = ({
 export const AddStepMenuAt = ({
   anchor,
   emptyFlow,
+  insideForEach,
   onPick,
   onClose,
 }: {
   /** In window coordinates. */
   anchor: DOMRect;
   emptyFlow: boolean;
+  insideForEach: boolean;
   onPick: OnPick;
   onClose: () => void;
 }) => {
@@ -262,6 +288,7 @@ export const AddStepMenuAt = ({
     <AddStepMenu
       position="right-start"
       emptyFlow={emptyFlow}
+      insideForEach={insideForEach}
       onPick={onPick}
       onOpen={(open) => {
         if (!open) {

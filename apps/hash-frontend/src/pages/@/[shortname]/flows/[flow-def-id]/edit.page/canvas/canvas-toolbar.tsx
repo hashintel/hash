@@ -34,7 +34,8 @@ export const CanvasToolbar = ({
   onToolChange: (tool: CanvasTool) => void;
   /** `null` on a canvas that can't be edited, such as a run's, which has no Add or Organize. */
   editing: {
-    onAddStep: (actionDefinitionId: string) => void;
+    /** Called with what was picked: an action definition id, or `forEachAddId`. */
+    onAddStep: (addId: string) => void;
     onAddMenuOpen: (open: boolean) => void;
     /** Whether the flow has no steps yet, when the add menu recommends some and there's nothing to organize. */
     emptyFlow: boolean;
