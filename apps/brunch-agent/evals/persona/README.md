@@ -32,13 +32,29 @@ The persona is a naive domain expert. It knows its own work, as its case's situa
 
 Brunch sees only what the persona types. The pack is legitimately the persona's own knowledge, so the persona needs no sandbox; the agent starts in a temporary directory only so that the repository's development `AGENTS.md` and `CLAUDE.md` files stay out of its context.
 
-## Choose the persona agent
+## Choose the persona driver
+
+Use at most one of `--agent`, `--agent-command`, or `--script`:
 
 - `--agent claude|codex|cursor-agent|pi` starts that agent with a one-line launch prompt pointing at the private persona brief. `--persona-model` goes to the agent's own model flag; `--persona-thinking` goes to `pi --thinking` and is accepted only with `--agent pi`.
 - `--agent-command '<shell command>'` starts any other agent. Every `{prompt}` in the template becomes the quoted launch prompt, for example `--agent-command 'opencode run {prompt}'`.
-- With neither option, the launcher prints the launch prompt and the helper path. Start any agent yourself, in any terminal, and give it that prompt.
+- `--script <file>` drives turns non-interactively from a declarative JSON script without launching an LLM persona, writing a persona brief, or requiring a TTY or Herdr. Use it for deterministic smoke tests and reproducible bug repros on either host:
 
-The agent runs in a sibling Herdr pane when the launcher runs inside Herdr (`HERDR_ENV=1`); otherwise it takes over the launcher's terminal. It starts in a fresh directory under the system temporary directory, outside the repository. It keeps your normal shell environment, so it uses its own login, credentials and user-level instructions. Its permission prompts are its own: approve reading the brief and running the helper command when asked, or allow them in the agent's settings.
+```json
+{
+  "steps": [
+    { "type": "open" },
+    { "type": "say", "message": "We run two shifts, 40 hours each." },
+    { "type": "end", "reason": "Smoke complete" }
+  ]
+}
+```
+
+  Supported step types are `open` (sends the case's opening; requires `--case` and may appear only as the first step), `say` (`message`, nonblank), and `end` (optional `reason`; may appear only as the final step). `--case` may be omitted when the script has no `open` step (when supplied with a script that has no `open` step, the case metadata is recorded without requiring `open`); `--objective` is rejected with `--script`. The launcher snapshots the validated preflight script under `<run>/script-<hash>.json` and verifies its SHA-256 before step 1. The runner sends each step in order over the browser bridge without reading or adapting to Brunch's replies. If any step fails, the run stops immediately, logs `script-step-failed` in `bridge-log.jsonl`, writes the run packet, and exits non-zero.
+
+- With none of those options (`external` driver), the launcher prints the launch prompt and the helper path. Start any agent yourself, in any terminal, and give it that prompt.
+
+Agents (`--agent` / `--agent-command`) run in a sibling Herdr pane when the launcher runs inside Herdr (`HERDR_ENV=1`); otherwise they take over the launcher's terminal. They start in a fresh directory under the system temporary directory, outside the repository, keeping your normal shell environment so they use their own login, credentials and user-level instructions. Their permission prompts are their own: approve reading the brief and running the helper command when asked, or allow them in the agent's settings.
 
 ## How the agent talks to Brunch
 
@@ -135,7 +151,7 @@ The debugging endpoint controls this browser: keep it loopback-only and keep its
 
 ### Resume the Brunch conversation
 
-Use `yarn brunch:persona --resume <run-directory>`; the run's host comes from `run.json`. A website run returns to the panel port recorded there, since the browser keeps the run's net and settings under that origin, and takes a free chat port. A HASH run reopens its process, signing in again if the profile's session has lapsed. The HASH editor opens a process as last saved, so before Brunch recovers anything a HASH resume refuses when the process is gone or archived, when the run never captured its live net, when its last capture failed, or when the reopened net differs from `evidence/net.json`: in each case edits the conversation relies on may not be in the editor. Resume reuses the saved Chrome profile, database and settings; it does not replay the opening or import a snapshot. It starts a **fresh** persona agent (the original agent and model unless you pass agent options) with `resume-brief.md`, which points back to the original brief and tells it to read `persona transcript` first. The earlier agent's own session is not resumed, so a resumed run is one Brunch conversation played by successive persona sessions, possibly on different models; `bridge-log.jsonl` records which agent settings wrote each persona utterance. Fresh-run options, including `--objective`, are rejected.
+Use `yarn brunch:persona --resume <run-directory>`; the run's host comes from `run.json`. A website run returns to the panel port recorded there, since the browser keeps the run's net and settings under that origin, and takes a free chat port. A HASH run reopens its process, signing in again if the profile's session has lapsed. The HASH editor opens a process as last saved, so before Brunch recovers anything a HASH resume refuses when the process is gone or archived, when the run never captured its live net, when its last capture failed, or when the reopened net differs from `evidence/net.json`: in each case edits the conversation relies on may not be in the editor. Resume reuses the saved Chrome profile, database and settings; it does not replay the opening or import a snapshot. For agent runs it starts a **fresh** persona agent (the original agent and model unless you pass driver options) with `resume-brief.md`, which points back to the original brief and tells it to read `persona transcript` first. For scripted runs, resume requires an explicit driver option (`--script <continuation.json>` with no `open` step, `--agent`, or `--agent-command`) so the original script is never silently replayed from step 0. The earlier agent's own session is not resumed, so a resumed run is one Brunch conversation played by successive persona sessions, possibly on different drivers; `bridge-log.jsonl` records `personaDriver` on every admitted utterance. Fresh-run options, including `--objective`, are rejected.
 
 The panel opens first and the launcher waits for recording readiness **before starting backend recovery or the agent**. After Enter, Flue settles the prior admitted submission; the launcher checks it against the last admitted utterance in `bridge-log.jsonl` and refuses mismatches or unanswered browser calls. The interrupted utterance is never resent. Runs made with the earlier Pi extension launcher have no bridge log and cannot be resumed.
 
@@ -143,12 +159,13 @@ The panel opens first and the launcher waits for recording readiness **before st
 
 Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-runs/`:
 
-- `run.json`: case and configuration paths, effective Brunch model settings, the selected persona agent, the bridge socket path and owned process/pane identifiers; no credentials.
+- `run.json`: case and configuration paths, effective Brunch model settings, `personaDriver` (tagged union: `agent`, `command`, `scripted` with `scriptPath` and `scriptSha256`, or `external`), the bridge socket path and owned process/pane identifiers; no credentials.
 - `configuration-preflight.json`: request-free Brunch configuration checks.
 - `conversation.db`: this run's local Flue database, including conversation history, including the Ledger's commits, and provider usage records.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
-- `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
-- `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume; and every destructive edit or save the launcher allowed, with what its approval panel showed.
+- `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper (brief files are omitted on `--script` runs).
+- `script-<hash>.json` (`--script` runs only): immutable content-addressed copy of the exact preflight script bytes executed for that run (or resume).
+- `bridge-log.jsonl`: every utterance Brunch admitted, with `personaDriver` on each admitted utterance, used to reconcile resume; every destructive edit or save the launcher allowed, with what its approval panel showed; and any `script-step-failed` record if a scripted driver halted on an error.
 - `net-capture-failed.json` (HASH only): written when capturing the editor's net fails and removed by the next capture that succeeds; while it stands, `evidence/net.json` may be out of date and resume refuses.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and `net.json`; refreshed after completed turns and on shutdown. On the website `net.json` is the bound document as the browser stores it. In HASH it is the net the editor holds, saved or not, taken through the editor's own **Export → JSON** (a download, so nothing the agent sees changes), and `saved-net.json` beside it is the process's latest saved version. Both have the website's shape, which the run packet reads.
 - `evidence/packet.json` and `packet.md`: the run packet, written on shutdown (see [Run packets](../petrinaut/README.md#run-packets)).

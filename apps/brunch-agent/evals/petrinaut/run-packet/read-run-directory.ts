@@ -9,6 +9,10 @@ import {
 } from "@hashintel/brunch-agent";
 
 import { parseBrunchLog } from "../../../src/server/telemetry-readback.ts";
+import {
+  driverFromRun,
+  personaDriverLabel,
+} from "../../persona/launch/driver.ts";
 import { netSizeOf } from "./build-run-packet.ts";
 
 import type {
@@ -100,17 +104,21 @@ const readConversationDb = (
   }
 };
 
+const personaDriverFromRun = (run: Record<string, unknown>): string | null => {
+  if (run.personaDriver === undefined && run.personaAgent === undefined)
+    return null;
+  try {
+    const driver = driverFromRun(run);
+    return driver.kind === "external" ? "external" : personaDriverLabel(driver);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `invalid (${message})`;
+  }
+};
+
 const readMetadata = async (directory: string): Promise<RunMetadata | null> => {
   const run = await readJson(join(directory, "run.json"));
   if (!isRecord(run)) return null;
-  const persona = isRecord(run.personaAgent) ? run.personaAgent : {};
-  const personaAgent = [
-    persona.agent,
-    persona.personaModel,
-    persona.personaThinking,
-  ]
-    .filter((part): part is string => typeof part === "string")
-    .join(" / ");
   return {
     caseName:
       typeof run.caseDirectory === "string"
@@ -118,7 +126,7 @@ const readMetadata = async (directory: string): Promise<RunMetadata | null> => {
         : null,
     brunchModel: stringOrNull(run.brunchModel),
     brunchThinking: stringOrNull(run.brunchThinking),
-    personaAgent: personaAgent === "" ? null : personaAgent,
+    personaDriver: personaDriverFromRun(run),
     guidanceSha256: isRecord(run.guidance)
       ? stringOrNull(run.guidance.sha256)
       : null,
