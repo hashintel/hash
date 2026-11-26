@@ -101,10 +101,10 @@ test("keeps core links in order even when entity and type lists are preferred", 
   ]);
   expect(
     screen.getByRole("link", { name: "Processes" }).getAttribute("href"),
-  ).toBe("/flows");
+  ).toBe("/processes");
   expect(
     screen.getByRole("link", { name: "Environments" }).getAttribute("href"),
-  ).toBe("/processes");
+  ).toBe("/environments");
   expect(screen.queryByText("Apps")).toBeNull();
   expect(screen.queryByText("Notes")).toBeNull();
   expect(screen.queryByText("Favorites")).toBeNull();
@@ -133,7 +133,8 @@ test.each([
   ["/@alice/entities/example", "Entities"],
   ["/types?tab=data", "Types"],
   ["/@alice/types/entity-type/example/v/1", "Types"],
-  ["/processes/draft?example=example", "Environments"],
+  ["/environments/draft?example=example", "Environments"],
+  ["/processes", "Processes"],
   ["/flows?filter=example", "Processes"],
 ])("highlights the owning section for %s", (path, label) => {
   state.path = path;

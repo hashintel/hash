@@ -83,7 +83,7 @@ export const PageSidebar: FunctionComponent = () => {
         ? [
             {
               title: "Processes",
-              path: enabledFeatureFlags.ai ? "/goals" : "/flows",
+              path: "/processes",
               icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
               tooltipTitle: "",
               activeIfPathMatches: /^\/@([^/]+)\/(flows|agents|workers)\//,
@@ -165,9 +165,9 @@ export const PageSidebar: FunctionComponent = () => {
         ? [
             {
               title: "Environments",
-              path: "/processes",
+              path: "/environments",
               icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
-              activeIfPathMatches: /^\/processes(\/|[?#]|$)/,
+              activeIfPathMatches: /^\/environments(\/|[?#]|$)/,
             },
           ]
         : []),

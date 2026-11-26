@@ -61,10 +61,10 @@ const watchFrom = (loadedAt: string | null) => {
 };
 
 describe("reloadOnLeavingEditorPolicy", () => {
-  test.each(["/processes", "/processes?tab=all", "/@alice"])(
+  test.each(["/environments", "/environments?tab=all", "/@alice"])(
     "reloads once the document has left the editor for %s",
     (url) => {
-      const { events, reload } = watchFrom("/processes/abc");
+      const { events, reload } = watchFrom("/environments/abc");
 
       events.emit("routeChangeStart", url);
       expect(reload).not.toHaveBeenCalled();
@@ -76,71 +76,71 @@ describe("reloadOnLeavingEditorPolicy", () => {
   );
 
   test("doesn't reload when the destination is another editor", () => {
-    const { events, reload } = watchFrom("/processes/draft");
+    const { events, reload } = watchFrom("/environments/draft");
 
-    events.emit("routeChangeStart", "/processes/abc");
-    events.emit("routeChangeComplete", "/processes/abc");
+    events.emit("routeChangeStart", "/environments/abc");
+    events.emit("routeChangeComplete", "/environments/abc");
 
     expect(reload).not.toHaveBeenCalled();
   });
 
   test("doesn't reload when the route change to another route is cancelled", () => {
-    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/environments/abc");
 
-    events.emit("routeChangeStart", "/processes");
-    events.emit("routeChangeError", routeCancelled(), "/processes");
-    events.emit("routeChangeStart", "/processes/def");
-    changeHistory("/processes/def");
-    events.emit("routeChangeComplete", "/processes/def");
+    events.emit("routeChangeStart", "/environments");
+    events.emit("routeChangeError", routeCancelled(), "/environments");
+    events.emit("routeChangeStart", "/environments/def");
+    changeHistory("/environments/def");
+    events.emit("routeChangeComplete", "/environments/def");
 
     expect(reload).not.toHaveBeenCalled();
   });
 
   test("doesn't reload when a route change is cancelled after changing history", () => {
-    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/environments/abc");
 
     // The second change's render supersedes the first's, after its history change.
-    events.emit("routeChangeStart", "/processes");
-    changeHistory("/processes");
-    events.emit("routeChangeStart", "/processes/def");
-    changeHistory("/processes/def");
-    events.emit("routeChangeError", routeCancelled(), "/processes");
-    events.emit("routeChangeComplete", "/processes/def");
+    events.emit("routeChangeStart", "/environments");
+    changeHistory("/environments");
+    events.emit("routeChangeStart", "/environments/def");
+    changeHistory("/environments/def");
+    events.emit("routeChangeError", routeCancelled(), "/environments");
+    events.emit("routeChangeComplete", "/environments/def");
 
     expect(reload).not.toHaveBeenCalled();
   });
 
   test("reloads when a change superseding another to a different route completes", () => {
-    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/environments/abc");
 
     // The first change's render is still pending when the second one commits.
     events.emit("routeChangeStart", "/@alice");
     changeHistory("/@alice");
-    events.emit("routeChangeStart", "/processes");
-    changeHistory("/processes");
+    events.emit("routeChangeStart", "/environments");
+    changeHistory("/environments");
     events.emit("routeChangeError", routeCancelled(), "/@alice");
     expect(reload).not.toHaveBeenCalled();
-    events.emit("routeChangeComplete", "/processes");
+    events.emit("routeChangeComplete", "/environments");
 
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
   test("reloads when a change superseding another to the same route completes", () => {
-    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/environments/abc");
 
-    events.emit("routeChangeStart", "/processes");
-    changeHistory("/processes");
-    events.emit("routeChangeStart", "/processes");
-    changeHistory("/processes");
-    events.emit("routeChangeError", routeCancelled(), "/processes");
+    events.emit("routeChangeStart", "/environments");
+    changeHistory("/environments");
+    events.emit("routeChangeStart", "/environments");
+    changeHistory("/environments");
+    events.emit("routeChangeError", routeCancelled(), "/environments");
     expect(reload).not.toHaveBeenCalled();
-    events.emit("routeChangeComplete", "/processes");
+    events.emit("routeChangeComplete", "/environments");
 
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
   test("reloads once the router has shown its error page at another route", () => {
-    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/environments/abc");
 
     events.emit("routeChangeStart", "/@alice");
     changeHistory("/@alice");
@@ -150,7 +150,7 @@ describe("reloadOnLeavingEditorPolicy", () => {
   });
 
   test("leaves a route change that fails before changing history to the router", () => {
-    const { events, reload } = watchFrom("/processes/abc");
+    const { events, reload } = watchFrom("/environments/abc");
 
     // A page that fails to load: Next reports it, then navigates the document itself.
     events.emit("routeChangeStart", "/@alice");
@@ -164,10 +164,10 @@ describe("reloadOnLeavingEditorPolicy", () => {
   });
 
   test("leaves a page that fails to load to the router while an earlier change renders", () => {
-    const { events, reload, changeHistory } = watchFrom("/processes/abc");
+    const { events, reload, changeHistory } = watchFrom("/environments/abc");
 
-    events.emit("routeChangeStart", "/processes");
-    changeHistory("/processes");
+    events.emit("routeChangeStart", "/environments");
+    changeHistory("/environments");
     events.emit("routeChangeStart", "/@alice");
     events.emit(
       "routeChangeError",
@@ -178,7 +178,7 @@ describe("reloadOnLeavingEditorPolicy", () => {
     expect(reload).not.toHaveBeenCalled();
   });
 
-  test.each(["/processes", null])(
+  test.each(["/environments", null])(
     "does nothing in a document loaded at %s",
     (loadedAt) => {
       const { events, reload } = watchFrom(loadedAt);
@@ -191,32 +191,32 @@ describe("reloadOnLeavingEditorPolicy", () => {
   );
 
   test("still reloads after the editor stops watching, once a departure has started", () => {
-    const { events, reload, stop } = watchFrom("/processes/abc");
+    const { events, reload, stop } = watchFrom("/environments/abc");
 
-    events.emit("routeChangeStart", "/processes");
+    events.emit("routeChangeStart", "/environments");
     stop();
-    events.emit("routeChangeComplete", "/processes");
+    events.emit("routeChangeComplete", "/environments");
 
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
   test("stops watching once the editor stops watching, if it only moved to another editor", () => {
-    const { events, reload, stop } = watchFrom("/processes/abc");
+    const { events, reload, stop } = watchFrom("/environments/abc");
 
-    events.emit("routeChangeStart", "/processes/def");
+    events.emit("routeChangeStart", "/environments/def");
     stop();
-    events.emit("routeChangeComplete", "/processes/def");
-    events.emit("routeChangeComplete", "/processes");
+    events.emit("routeChangeComplete", "/environments/def");
+    events.emit("routeChangeComplete", "/environments");
 
     expect(reload).not.toHaveBeenCalled();
   });
 
   test("ignores route changes that start after the editor stops watching", () => {
-    const { events, reload, stop } = watchFrom("/processes/abc");
+    const { events, reload, stop } = watchFrom("/environments/abc");
 
     stop();
-    events.emit("routeChangeStart", "/processes");
-    events.emit("routeChangeComplete", "/processes");
+    events.emit("routeChangeStart", "/environments");
+    events.emit("routeChangeComplete", "/environments");
 
     expect(reload).not.toHaveBeenCalled();
   });
@@ -228,7 +228,7 @@ describe("runStringEvaluationGate", () => {
 
     const shouldRender = runStringEvaluationGate({
       canEvaluate: () => false,
-      documentPathname: () => "/processes",
+      documentPathname: () => "/environments",
       reload,
     });
 
@@ -236,7 +236,7 @@ describe("runStringEvaluationGate", () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
-  test.each(["/processes/draft", "/processes/abc/"])(
+  test.each(["/environments/draft", "/environments/abc/"])(
     "renders without reloading when evaluation is blocked in a document loaded at %s",
     (pathname) => {
       const reload = vi.fn();
@@ -267,7 +267,7 @@ describe("runStringEvaluationGate", () => {
 
   test("renders without reloading when evaluation is allowed", () => {
     const reload = vi.fn();
-    const documentPathname = vi.fn(() => "/processes");
+    const documentPathname = vi.fn(() => "/environments");
 
     expect(
       runStringEvaluationGate({

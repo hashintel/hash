@@ -117,7 +117,7 @@ const router = vi.hoisted(() => {
   };
   const go = (url: string) => {
     const [path = "", search = ""] = url.split("?");
-    const uuid = path.replace("/processes/", "");
+    const uuid = path.replace("/environments/", "");
     const example = new URLSearchParams(search).get("example");
     state.current = {
       isReady: true,
@@ -702,7 +702,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
   expect(observed.editor).toBeNull();
 
   // The URL names a net before the nets query has answered.
-  await navigate(`/processes/${uuidA}`);
+  await navigate(`/environments/${uuidA}`);
   expect(observed.editor).toBeNull();
 
   graph.listPending = false;
@@ -732,7 +732,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
   expect(observed.brunch?.hostSave).toBeDefined();
 
   // The route rerendering with the same URL is not a load.
-  await navigate(`/processes/${uuidA}`);
+  await navigate(`/environments/${uuidA}`);
   expect(editor().handle).toBe(first);
 
   // Saving refreshes the history, which is not a load either.
@@ -767,7 +767,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
 });
 
 test("Create turns the draft into the saved net in the same editor, under its URL, with its history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute("/environments/draft");
   const draft = editor().handle;
   expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
   expect(observed.brunch).toBeNull();
@@ -785,9 +785,9 @@ test("Create turns the draft into the saved net in the same editor, under its UR
     },
   ]);
   expect(router.replace).toHaveBeenCalledExactlyOnceWith(
-    `/processes/${uuidCreated}`,
+    `/environments/${uuidCreated}`,
   );
-  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(url()).toBe(`/environments/${uuidCreated}`);
   expect(editor().handle).toBe(draft);
   expect(observed.handles).toEqual([draft]);
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
@@ -801,7 +801,7 @@ test("Create turns the draft into the saved net in the same editor, under its UR
 });
 
 test("unsaved edits guard the tab and the switch; declining keeps them, discarding loads the other net", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   const handleA = editor().handle;
   expect(leaveIsBlocked()).toBe(false);
 
@@ -810,19 +810,19 @@ test("unsaved edits guard the tab and the switch; declining keeps them, discardi
   expect(topBar().isDirty).toBe(true);
   expect(leaveIsBlocked()).toBe(true);
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   expect(observed.alert).not.toBeNull();
   act(() => observed.alert?.close());
   await settle();
 
   expect(observed.alert).toBeNull();
-  expect(url()).toBe(`/processes/${uuidA}`);
+  expect(url()).toBe(`/environments/${uuidA}`);
   expect(editor().handle).toBe(handleA);
   expect(handleA.doc()?.places[0]?.name).toBe("edited");
   expect(topBar().isDirty).toBe(true);
   expect(leaveIsBlocked()).toBe(true);
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   act(() => observed.alert?.callback?.());
   await settle();
 
@@ -836,7 +836,7 @@ test("unsaved edits guard the tab and the switch; declining keeps them, discardi
 });
 
 test("Save persists the net as pressed, returns its history, and keeps edits made meanwhile unsaved", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   const handle = editor().handle;
   renamePlace("submitted");
   editTitle("A submitted");
@@ -887,12 +887,12 @@ test("Save persists the net as pressed, returns its history, and keeps edits mad
 });
 
 test("a Create finishing after another net loads leaves that net, its URL, history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute("/environments/draft");
   const release = holdNextWrite();
   pressSave();
   await settle();
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   act(() => observed.alert?.callback?.());
   await settle();
   const handleB = editor().handle;
@@ -903,7 +903,7 @@ test("a Create finishing after another net loads leaves that net, its URL, histo
 
   expect(graph.nets.has(createdId)).toBe(true);
   expect(router.replace).not.toHaveBeenCalled();
-  expect(url()).toBe(`/processes/${uuidB}`);
+  expect(url()).toBe(`/environments/${uuidB}`);
   expect(editor().handle).toBe(handleB);
   expect(topBar()).toMatchObject({
     title: "B",
@@ -922,18 +922,18 @@ test("a Create finishing after another net loads leaves that net, its URL, histo
     netBId,
   ]);
   expect(topBar().revisions.map(({ title }) => title)).toEqual(["B2", "B"]);
-  expect(url()).toBe(`/processes/${uuidB}`);
+  expect(url()).toBe(`/environments/${uuidB}`);
 });
 
 test("an update finishing after another net loads leaves that net's selection, permission and editor", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   editTitle("A2");
   graph.editableAfterWrite = false;
   const release = holdNextWrite();
   pressSave();
   await settle();
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   act(() => observed.alert?.callback?.());
   await settle();
   const handleB = editor().handle;
@@ -963,7 +963,7 @@ test("an update finishing after another net loads leaves that net's selection, p
 });
 
 test("a pending save takes no second press, and a failed save settles and can be retried", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   editTitle("A2");
 
   graph.writeFailures.push(new Error("graph unavailable"));
@@ -986,7 +986,7 @@ test("a pending save takes no second press, and a failed save settles and can be
     loadedRevisionTime: firstSaved,
     revisions: [{ decisionTime: firstSaved, title: "A" }],
   });
-  expect(url()).toBe(`/processes/${uuidA}`);
+  expect(url()).toBe(`/environments/${uuidA}`);
   expect(leaveIsBlocked()).toBe(true);
 
   pressSave();
@@ -999,7 +999,7 @@ test("a pending save takes no second press, and a failed save settles and can be
 });
 
 test("Save called twice before the editor rerenders writes once, for Create and for an update", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute("/environments/draft");
   const draftBar = topBar();
 
   act(() => {
@@ -1010,7 +1010,7 @@ test("Save called twice before the editor rerenders writes once, for Create and 
 
   expect(graph.writes.map(({ kind }) => kind)).toEqual(["create"]);
   expect(router.replace).toHaveBeenCalledExactlyOnceWith(
-    `/processes/${uuidCreated}`,
+    `/environments/${uuidCreated}`,
   );
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
 
@@ -1027,7 +1027,7 @@ test("Save called twice before the editor rerenders writes once, for Create and 
 });
 
 test("Save submits the title as it is when called, even one changed in the same tick", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   const bar = topBar();
 
   act(() => {
@@ -1043,7 +1043,7 @@ test("Save submits the title as it is when called, even one changed in the same 
 });
 
 test("a Save kept from before Create, called after Create resolves, saves to the created net", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute("/environments/draft");
   const draftBar = topBar();
   const release = holdNextWrite();
   act(() => draftBar.onSave());
@@ -1063,9 +1063,9 @@ test("a Save kept from before Create, called after Create resolves, saves to the
     { kind: "update", entityId: createdId, title: "Created renamed" },
   ]);
   expect(router.replace).toHaveBeenCalledExactlyOnceWith(
-    `/processes/${uuidCreated}`,
+    `/environments/${uuidCreated}`,
   );
-  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(url()).toBe(`/environments/${uuidCreated}`);
   expect(topBar()).toMatchObject({
     title: "Created renamed",
     saveLabel: "Saved",
@@ -1074,11 +1074,11 @@ test("a Save kept from before Create, called after Create resolves, saves to the
 });
 
 test("a title change or Save kept from an earlier load does nothing once another net loads", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   editTitle("A2");
   const barA = topBar();
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   act(() => observed.alert?.callback?.());
   await settle();
   const handleB = editor().handle;
@@ -1103,17 +1103,17 @@ test("a title change or Save kept from an earlier load does nothing once another
   await settle();
   expect(graph.writes.map(({ entityId }) => entityId)).toEqual([netBId]);
   expect(editor()).toMatchObject({ handle: handleB, readonly: false });
-  expect(url()).toBe(`/processes/${uuidB}`);
+  expect(url()).toBe(`/environments/${uuidB}`);
 });
 
 test("a save pending for an earlier load neither blocks the next load's save nor ends its pending state", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   editTitle("A2");
   const releaseA = holdNextWrite();
   pressSave();
   await settle();
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   act(() => observed.alert?.callback?.());
   await settle();
   editTitle("B2");
@@ -1143,7 +1143,7 @@ test("a save pending for an earlier load neither blocks the next load's save nor
 });
 
 test("a failed Create stays on the draft, and its retry creates the net and moves the URL", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute("/environments/draft");
   const draft = editor().handle;
   graph.writeFailures.push(new Error("graph unavailable"));
 
@@ -1151,7 +1151,7 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   await settle();
 
   expect(router.replace).not.toHaveBeenCalled();
-  expect(url()).toBe("/processes/draft");
+  expect(url()).toBe("/environments/draft");
   expect(topBar()).toMatchObject({
     persistPending: false,
     saveLabel: "Create",
@@ -1161,14 +1161,14 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   pressSave();
   await settle();
 
-  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(url()).toBe(`/environments/${uuidCreated}`);
   expect(editor().handle).toBe(draft);
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
 });
 
 test("contained failures reach Sentry as thrown, tagged with the net and permission the host loaded", async () => {
   graph.nets.set(netBId, graphNet(netBId, "B", false));
-  await renderRoute(`/processes/${uuidB}`);
+  await renderRoute(`/environments/${uuidB}`);
 
   // A net the user may not edit is readonly and gets no Brunch.
   expect(editor().readonly).toBe(true);
@@ -1195,7 +1195,7 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
   });
 
   // A draft turned into a saved net by Create reports as that net.
-  await navigate("/processes/draft");
+  await navigate("/environments/draft");
   pressSave();
   await settle();
   const createdFailure = new Error("brunch failed");
@@ -1230,7 +1230,7 @@ const agentSave = (
 };
 
 test("Brunch's agent save writes the open net through the editor's Save, and settles once saved with the edits made meanwhile still dirty", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   renamePlace("A-agent");
   const submitted = editor().handle.doc();
   const release = holdNextWrite();
@@ -1279,7 +1279,7 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
 });
 
 test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   expect(observed.brunch?.versionLoad).toBeUndefined();
   editTitle("A2");
   pressSave();
@@ -1316,14 +1316,14 @@ test("picking an earlier revision tells Brunch of a version load, which Saves ke
   expect(observed.brunch?.versionLoad?.decisionTime).toBe(firstSaved);
   expect(observed.brunch?.versionLoad?.id).not.toBe(versionLoad?.id);
 
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   await settle();
   expect(editor().title).toBe("B");
   expect(observed.brunch?.versionLoad).toBeUndefined();
 });
 
 test("leaving a net while Brunch's agent save of it is pending settles the save as unconfirmed, and its write still lands", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   renamePlace("A-agent");
   const release = holdNextWrite();
   const saved = agentSave(netAId);
@@ -1331,7 +1331,7 @@ test("leaving a net while Brunch's agent save of it is pending settles the save 
   expect(topBar().persistPending).toBe(true);
 
   // The edits are still unsaved, so leaving asks to discard them.
-  await navigate(`/processes/${uuidB}`);
+  await navigate(`/environments/${uuidB}`);
   act(() => observed.alert?.callback?.());
   await settle();
   expect(topBar().title).toBe("B");
@@ -1344,11 +1344,11 @@ test("leaving a net while Brunch's agent save of it is pending settles the save 
   await settle();
   expect(graph.writes.map(({ entityId }) => entityId)).toEqual([netAId]);
   expect(topBar()).toMatchObject({ title: "B", persistPending: false });
-  expect(url()).toBe(`/processes/${uuidB}`);
+  expect(url()).toBe(`/environments/${uuidB}`);
 });
 
 test("an update save's editability reaches its own load, including Brunch's save state, and never a later load of the same net", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   const firstHandle = editor().handle;
   const readSaveState = observed.brunch?.hostSave?.read;
   editTitle("A2");
@@ -1366,7 +1366,7 @@ test("an update save's editability reaches its own load, including Brunch's save
 });
 
 test("an update save finishing after the user picks a revision of the same net leaves that later load's editability as it was", async () => {
-  await renderRoute(`/processes/${uuidA}`);
+  await renderRoute(`/environments/${uuidA}`);
   editTitle("A2");
   pressSave();
   await settle();

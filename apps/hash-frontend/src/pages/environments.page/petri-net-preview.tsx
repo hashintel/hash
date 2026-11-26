@@ -62,7 +62,7 @@ const clamp = (value: number, min: number, max: number) =>
 
 /**
  * Lightweight non-interactive preview of a Petri net used in tile cards on
- * the `/processes` list. Renders places as circles and transitions as
+ * the `/environments` list. Renders places as circles and transitions as
  * rectangles, scaled and centred into a fixed viewbox. Arcs and labels are
  * intentionally omitted — at tile size they would just be noise.
  *

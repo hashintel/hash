@@ -6,7 +6,7 @@ import { flowDefinitionIds } from "../flow-definition-ids.js";
  * Researches the FTSE350's constituents, then each constituent's investors in a for-each step.
  *
  * This flow is not seeded: it exists to exercise for-each steps (in the builder, validator, engine and Petri net
- * compiler), and can be previewed as a Petri net on `/processes`.
+ * compiler), and can be previewed as a Petri net on `/environments`.
  */
 export const ftseInvestorsFlow = defineFlow(
   {

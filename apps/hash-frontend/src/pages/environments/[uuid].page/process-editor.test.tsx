@@ -10,7 +10,7 @@ import {
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { ProcessEditor, type ProcessEditorView } from "./process-editor";
 
-import type { PersistedNet } from "../../processes.page/use-persisted-nets";
+import type { PersistedNet } from "../../environments.page/use-persisted-nets";
 import type { PetrinautEditor } from "./process-editor/petrinaut-editor";
 import type { PetriNetRevision } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import type * as ApolloClient from "@apollo/client";
@@ -99,7 +99,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
   };
 });
 
-vi.mock("../../processes.page/use-persisted-nets", () => ({
+vi.mock("../../environments.page/use-persisted-nets", () => ({
   usePersistedNets: () => ({
     persistedNets: graph.nets,
     loading: false,
@@ -323,7 +323,7 @@ test("Create moves the URL to the new net without reloading the editor, and read
   );
 
   expect(result.entityId).toBe(createdId);
-  expect(router.replace).toHaveBeenCalledWith(`/processes/${uuidCreated}`);
+  expect(router.replace).toHaveBeenCalledWith(`/environments/${uuidCreated}`);
   navigate(savedView(uuidCreated));
 
   expect(editor().load).toBe(draftLoad);
@@ -436,7 +436,7 @@ test("unsaved changes guard the tab and a declined switch restores the URL", asy
   await waitFor(() => expect(observed.alert).not.toBeNull());
   act(() => observed.alert?.close());
 
-  expect(router.replace).toHaveBeenCalledWith(`/processes/${uuidA}`);
+  expect(router.replace).toHaveBeenCalledWith(`/environments/${uuidA}`);
   expect(editor().load).toBe(loadA);
 
   act(() => editor().onDirtyChange(false));
