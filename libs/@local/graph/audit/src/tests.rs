@@ -1,10 +1,13 @@
 use std::collections::HashSet;
 
+use serde_json::json;
+use time::OffsetDateTime;
 use type_system::principal::{actor::UserId, actor_group::WebId};
 use uuid::Uuid;
 
 use crate::{
-    ActionName, AuditAction, AuditActor, AuditContext, AuditEvent, Target, TargetKind, UserAgent,
+    ActionName, AuditAction, AuditActor, AuditContext, AuditEvent, AuditEventId, Target,
+    TargetKind, UserAgent,
 };
 
 fn is_snake_case(segment: &str) -> bool {
@@ -14,9 +17,11 @@ fn is_snake_case(segment: &str) -> bool {
             .all(|byte| byte.is_ascii_lowercase() || byte == b'_')
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 struct UserDeleted {
+    #[serde(skip)]
     user_id: UserId,
+    entities_deleted: u32,
 }
 
 impl AuditAction for UserDeleted {
@@ -107,7 +112,14 @@ fn event_keeps_action() {
         trace_id: None,
     };
 
-    let event = AuditEvent::new(context, Some(WebId::from(user_id)), UserDeleted { user_id });
+    let event = AuditEvent::new(
+        context,
+        Some(WebId::from(user_id)),
+        UserDeleted {
+            user_id,
+            entities_deleted: 3,
+        },
+    );
 
     assert_eq!(
         event.action_name(),
@@ -118,5 +130,27 @@ fn event_keeps_action() {
         event.target(),
         Some(Target::from(user_id)),
         "the event should carry the target of its action"
+    );
+    assert_eq!(
+        serde_json::to_value(event.details()).expect("should serialize the details"),
+        json!({ "entities_deleted": 3 }),
+        "the details should be the serialized fields of the action"
+    );
+}
+
+#[test]
+fn event_id_at_time() {
+    let time = OffsetDateTime::from_unix_timestamp_nanos(1_795_000_000_123_456_789)
+        .expect("should be a valid time");
+
+    let timestamp = Uuid::from(AuditEventId::at(time))
+        .get_timestamp()
+        .expect("should be a version 7 UUID")
+        .to_unix();
+
+    assert_eq!(
+        timestamp,
+        (1_795_000_000, 123_000_000),
+        "the identifier should begin with the time, cut to the millisecond"
     );
 }

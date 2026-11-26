@@ -2,6 +2,8 @@
 
 use core::fmt::Debug;
 
+use serde_core::Serialize;
+
 use crate::target::Target;
 
 /// The name of an action an audit event records.
@@ -29,10 +31,11 @@ impl ActionName {
 
 /// An action an audit event records.
 ///
-/// The crate that owns a change defines the type for its action, and the fields of that type are
-/// the details of the action. They hold identifiers and enumerated values only: no entity
-/// content, credentials, tokens, email addresses or names.
-pub trait AuditAction: Debug {
+/// The crate that owns a change defines the type for its action. The serialized fields of that
+/// type are the details of the action, and a field needed only for the
+/// [`target`](Self::target) is skipped with `#[serde(skip)]`. The details hold identifiers and
+/// enumerated values only: no entity content, credentials, tokens, email addresses or names.
+pub trait AuditAction: Debug + Serialize {
     /// The name the action is recorded under.
     const NAME: ActionName;
 

@@ -3,9 +3,10 @@
 use alloc::boxed::Box;
 use core::fmt::Debug;
 
+use serde_core::Serialize;
 use time::OffsetDateTime;
 use type_system::principal::actor_group::WebId;
-use uuid::Uuid;
+use uuid::{NoContext, Timestamp, Uuid};
 
 use crate::{
     action::{ActionName, AuditAction},
@@ -13,10 +14,28 @@ use crate::{
     target::Target,
 };
 
-/// The identifier of an audit event: a version 7 UUID, which begins with the time it was
-/// generated at.
+/// The identifier of an audit event: a version 7 UUID, which begins with the
+/// [`time`](AuditEvent::time) of its event to the millisecond.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AuditEventId(Uuid);
+
+impl AuditEventId {
+    /// Generates the identifier of an event recorded at `time`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `time` is before the Unix epoch.
+    pub(crate) fn at(time: OffsetDateTime) -> Self {
+        let seconds =
+            u64::try_from(time.unix_timestamp()).expect("should not be before the Unix epoch");
+
+        Self(Uuid::new_v7(Timestamp::from_unix(
+            NoContext,
+            seconds,
+            time.nanosecond(),
+        )))
+    }
+}
 
 impl From<AuditEventId> for Uuid {
     fn from(event_id: AuditEventId) -> Self {
@@ -35,6 +54,8 @@ trait RecordedAction: Debug + Send + Sync {
     fn name(&self) -> ActionName;
 
     fn target(&self) -> Option<Target>;
+
+    fn details(&self) -> &dyn erased_serde::Serialize;
 }
 
 impl<A> RecordedAction for A
@@ -47,6 +68,10 @@ where
 
     fn target(&self) -> Option<Target> {
         AuditAction::target(self)
+    }
+
+    fn details(&self) -> &dyn erased_serde::Serialize {
+        self
     }
 }
 
@@ -69,9 +94,11 @@ impl AuditEvent {
     where
         A: AuditAction + Send + Sync + 'static,
     {
+        let time = OffsetDateTime::now_utc();
+
         Self {
-            id: AuditEventId(Uuid::now_v7()),
-            time: OffsetDateTime::now_utc(),
+            id: AuditEventId::at(time),
+            time,
             context,
             web_id,
             outcome: Outcome::Success,
@@ -89,5 +116,11 @@ impl AuditEvent {
     #[must_use]
     pub fn target(&self) -> Option<Target> {
         self.action.target()
+    }
+
+    /// Returns the details of the recorded action: the serialized fields of its type.
+    #[must_use]
+    pub fn details(&self) -> impl Serialize + '_ {
+        self.action.details()
     }
 }

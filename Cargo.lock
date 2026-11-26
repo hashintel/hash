@@ -6698,6 +6698,10 @@ name = "hash-graph-audit"
 version = "0.0.0"
 dependencies = [
  "enum-iterator",
+ "erased-serde",
+ "serde",
+ "serde_core",
+ "serde_json",
  "simple-mermaid",
  "time",
  "type-system",
