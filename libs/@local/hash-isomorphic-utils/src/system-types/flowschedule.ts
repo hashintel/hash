@@ -11,6 +11,8 @@ import type {
   DescriptionPropertyValueWithMetadata,
   DurationDataType,
   DurationDataTypeWithMetadata,
+  DurationMetricDataType,
+  DurationMetricDataTypeWithMetadata,
   FlowDefinition,
   FlowDefinitionOutgoingLinkAndTarget,
   FlowDefinitionOutgoingLinksByLinkEntityTypeId,
@@ -66,6 +68,8 @@ export type {
   DescriptionPropertyValueWithMetadata,
   DurationDataType,
   DurationDataTypeWithMetadata,
+  DurationMetricDataType,
+  DurationMetricDataTypeWithMetadata,
   FlowDefinition,
   FlowDefinitionOutgoingLinkAndTarget,
   FlowDefinitionOutgoingLinksByLinkEntityTypeId,
@@ -125,7 +129,7 @@ export type ExplanationPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A flow trigger that starts runs of a flow on a schedule.
  */
 export type FlowSchedule = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-schedule/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-schedule/v/3"];
   properties: FlowScheduleProperties;
   propertiesWithMetadata: FlowSchedulePropertiesWithMetadata;
 };
@@ -166,7 +170,7 @@ export type FlowSchedulePropertiesWithMetadata =
 /**
  * A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.
  */
-export type MillisecondDataType = DurationDataType;
+export type MillisecondDataType = DurationMetricDataType;
 
 export type MillisecondDataTypeWithMetadata = {
   value: MillisecondDataType;
@@ -175,7 +179,7 @@ export type MillisecondDataTypeWithMetadata = {
 export type MillisecondDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/2";
 };
 
 /**

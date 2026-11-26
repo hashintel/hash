@@ -378,7 +378,37 @@ export type AreaDataTypeWithMetadata = {
 export type AreaDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/area/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/area/v/2";
+};
+
+/**
+ * Area expressed in imperial units, including units shared with US customary measurement.
+ */
+export type AreaImperialDataType = AreaDataType;
+
+export type AreaImperialDataTypeWithMetadata = {
+  value: AreaImperialDataType;
+  metadata: AreaImperialDataTypeMetadata;
+};
+export type AreaImperialDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/area-imperial/v/1";
+};
+
+/**
+ * Area expressed in metric units, including SI units and their accepted companions.
+ */
+export type AreaMetricDataType = AreaDataType;
+
+export type AreaMetricDataTypeWithMetadata = {
+  value: AreaMetricDataType;
+  metadata: AreaMetricDataTypeMetadata;
+};
+export type AreaMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/area-metric/v/1";
 };
 
 /**
@@ -641,7 +671,7 @@ export type BZDDataTypeMetadata = {
  * A specific lot of a material, tracked through production, storage, and movement.
  */
 export type Batch = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/batch/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/batch/v/2"];
   properties: BatchProperties;
   propertiesWithMetadata: BatchPropertiesWithMetadata;
 };
@@ -664,7 +694,7 @@ export type BatchOutgoingLinkAndTarget =
 
 export type BatchOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/of-material/v/1": BatchOfMaterialLink;
-  "https://hash.ai/@h/types/entity-type/stored-at/v/1": BatchStoredAtLink;
+  "https://hash.ai/@h/types/entity-type/stored-at/v/2": BatchStoredAtLink;
 };
 
 /**
@@ -688,7 +718,7 @@ export type BatchStoredAtLink = { linkEntity: StoredAt; rightEntity: Site };
  */
 export type BillOfMaterialsItem = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/1",
+    "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/2",
   ];
   properties: BillOfMaterialsItemProperties;
   propertiesWithMetadata: BillOfMaterialsItemPropertiesWithMetadata;
@@ -1058,7 +1088,7 @@ export type CalendarYearDataTypeMetadata = {
 /**
  * A unit of length in the International System of Units (SI), equal to one hundredth of a meter.
  */
-export type CentimetersDataType = MetricLengthSIDataType;
+export type CentimetersDataType = LengthMetricDataType;
 
 export type CentimetersDataTypeWithMetadata = {
   value: CentimetersDataType;
@@ -1067,7 +1097,7 @@ export type CentimetersDataTypeWithMetadata = {
 export type CentimetersDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/centimeters/v/2";
 };
 
 /**
@@ -1245,9 +1275,9 @@ export type CountryPropertyValue = TextDataType;
 export type CountryPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An imperial unit of volume equal to approximately 28.317 litres.
+ * A unit of volume expressed in cubic feet.
  */
-export type CubicFeetDataType = VolumeDataType;
+export type CubicFeetDataType = VolumeImperialDataType;
 
 export type CubicFeetDataTypeWithMetadata = {
   value: CubicFeetDataType;
@@ -1256,13 +1286,13 @@ export type CubicFeetDataTypeWithMetadata = {
 export type CubicFeetDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/cubic-feet/v/2";
 };
 
 /**
  * A metric unit of volume equal to 1000 litres.
  */
-export type CubicMetresDataType = VolumeDataType;
+export type CubicMetresDataType = VolumeMetricDataType;
 
 export type CubicMetresDataTypeWithMetadata = {
   value: CubicMetresDataType;
@@ -1271,7 +1301,7 @@ export type CubicMetresDataTypeWithMetadata = {
 export type CubicMetresDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/cubic-metres/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/cubic-metres/v/2";
 };
 
 /**
@@ -1521,7 +1551,7 @@ export type DateTimeDataTypeMetadata = {
 /**
  * A unit of time equal to 24 hours.
  */
-export type DaysDataType = DurationDataType;
+export type DaysDataType = DurationMetricDataType;
 
 export type DaysDataTypeWithMetadata = {
   value: DaysDataType;
@@ -1530,7 +1560,7 @@ export type DaysDataTypeWithMetadata = {
 export type DaysDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/days/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/days/v/2";
 };
 
 /**
@@ -1604,7 +1634,7 @@ export type DeliversPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * A logistics execution document for delivering goods against a sales order or transfer requirement.
  */
 export type Delivery = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/delivery/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/delivery/v/2"];
   properties: DeliveryProperties;
   propertiesWithMetadata: DeliveryPropertiesWithMetadata;
 };
@@ -1628,7 +1658,7 @@ export type DeliveryHasLineItemLink = {
  * A line item within a delivery.
  */
 export type DeliveryItem = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/delivery-item/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/delivery-item/v/2"];
   properties: DeliveryItemProperties;
   propertiesWithMetadata: DeliveryItemPropertiesWithMetadata;
 };
@@ -1870,7 +1900,22 @@ export type DurationDataTypeWithMetadata = {
 export type DurationDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/2";
+};
+
+/**
+ * Duration expressed in metric units, including SI units and their accepted companions.
+ */
+export type DurationMetricDataType = DurationDataType;
+
+export type DurationMetricDataTypeWithMetadata = {
+  value: DurationMetricDataType;
+  metadata: DurationMetricDataTypeMetadata;
+};
+export type DurationMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/duration-metric/v/1";
 };
 
 /**
@@ -2024,9 +2069,9 @@ export type FeatureNamePropertyValue = TextDataType;
 export type FeatureNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An imperial unit of length. 3 feet equals 1 yard. Equivalent to 0.3048 meters in the International System of Units (SI).
+ * A unit of length expressed in feet. Based on the international yard of exactly 0.9144 meters.
  */
-export type FeetDataType = ImperialLengthUKDataType;
+export type FeetDataType = LengthImperialDataType;
 
 export type FeetDataTypeWithMetadata = {
   value: FeetDataType;
@@ -2035,7 +2080,7 @@ export type FeetDataTypeWithMetadata = {
 export type FeetDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/feet/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/feet/v/2";
 };
 
 /**
@@ -2323,6 +2368,51 @@ export type FlowTriggerUsesLink = {
 };
 
 /**
+ * The intrinsic ability of a porous material to transmit fluids, independent of the fluid's properties.
+ */
+export type FluidPermeabilityDataType = NumberDataType;
+
+export type FluidPermeabilityDataTypeWithMetadata = {
+  value: FluidPermeabilityDataType;
+  metadata: FluidPermeabilityDataTypeMetadata;
+};
+export type FluidPermeabilityDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/fluid-permeability/v/1";
+};
+
+/**
+ * Fluid Permeability expressed in imperial units, including units shared with US customary measurement.
+ */
+export type FluidPermeabilityImperialDataType = FluidPermeabilityDataType;
+
+export type FluidPermeabilityImperialDataTypeWithMetadata = {
+  value: FluidPermeabilityImperialDataType;
+  metadata: FluidPermeabilityImperialDataTypeMetadata;
+};
+export type FluidPermeabilityImperialDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/fluid-permeability-imperial/v/1";
+};
+
+/**
+ * Fluid Permeability expressed in metric units, including SI units and their accepted companions.
+ */
+export type FluidPermeabilityMetricDataType = FluidPermeabilityDataType;
+
+export type FluidPermeabilityMetricDataTypeWithMetadata = {
+  value: FluidPermeabilityMetricDataType;
+  metadata: FluidPermeabilityMetricDataTypeMetadata;
+};
+export type FluidPermeabilityMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/fluid-permeability-metric/v/1";
+};
+
+/**
  * The fractional index indicating the current position of something.
  */
 export type FractionalIndexPropertyValue = TextDataType;
@@ -2511,7 +2601,7 @@ export type GoodsReceiptQuantityPropertyValueWithMetadata =
 /**
  * A metric unit of mass equal to one thousandth of a kilogram.
  */
-export type GramsDataType = MassDataType;
+export type GramsDataType = MassMetricDataType;
 
 export type GramsDataTypeWithMetadata = {
   value: GramsDataType;
@@ -2520,7 +2610,7 @@ export type GramsDataTypeWithMetadata = {
 export type GramsDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/grams/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/grams/v/2";
 };
 
 /**
@@ -2916,7 +3006,7 @@ export type HasTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 /**
  * A unit of time equal to 60 minutes.
  */
-export type HoursDataType = DurationDataType;
+export type HoursDataType = DurationMetricDataType;
 
 export type HoursDataTypeWithMetadata = {
   value: HoursDataType;
@@ -2925,7 +3015,7 @@ export type HoursDataTypeWithMetadata = {
 export type HoursDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/hours/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/hours/v/2";
 };
 
 /**
@@ -3063,39 +3153,9 @@ export type ImageFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
 };
 
 /**
- * A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.
+ * A unit of length expressed in inches. Based on the international yard of exactly 0.9144 meters.
  */
-export type ImperialLengthUKDataType = LengthDataType;
-
-export type ImperialLengthUKDataTypeWithMetadata = {
-  value: ImperialLengthUKDataType;
-  metadata: ImperialLengthUKDataTypeMetadata;
-};
-export type ImperialLengthUKDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-uk/v/1";
-};
-
-/**
- * A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.
- */
-export type ImperialLengthUSDataType = LengthDataType;
-
-export type ImperialLengthUSDataTypeWithMetadata = {
-  value: ImperialLengthUSDataType;
-  metadata: ImperialLengthUSDataTypeMetadata;
-};
-export type ImperialLengthUSDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-us/v/1";
-};
-
-/**
- * An imperial unit of length. 12 inches equals 1 foot. Equivalent to 0.0254 meters in the International System of Units (SI).
- */
-export type InchesDataType = ImperialLengthUKDataType;
+export type InchesDataType = LengthImperialDataType;
 
 export type InchesDataTypeWithMetadata = {
   value: InchesDataType;
@@ -3104,7 +3164,7 @@ export type InchesDataTypeWithMetadata = {
 export type InchesDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/inches/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/inches/v/2";
 };
 
 /**
@@ -3543,7 +3603,7 @@ export type KZTDataTypeMetadata = {
 /**
  * The SI base unit of mass, equal to 1000 grams.
  */
-export type KilogramsDataType = MassDataType;
+export type KilogramsDataType = MassMetricDataType;
 
 export type KilogramsDataTypeWithMetadata = {
   value: KilogramsDataType;
@@ -3552,13 +3612,13 @@ export type KilogramsDataTypeWithMetadata = {
 export type KilogramsDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/kilograms/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/kilograms/v/2";
 };
 
 /**
  * A unit of length in the International System of Units (SI), equal to one thousand meters.
  */
-export type KilometersDataType = MetricLengthSIDataType;
+export type KilometersDataType = LengthMetricDataType;
 
 export type KilometersDataTypeWithMetadata = {
   value: KilometersDataType;
@@ -3567,7 +3627,7 @@ export type KilometersDataTypeWithMetadata = {
 export type KilometersDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/kilometers/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/kilometers/v/2";
 };
 
 /**
@@ -3687,7 +3747,37 @@ export type LengthDataTypeWithMetadata = {
 export type LengthDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/length/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/length/v/2";
+};
+
+/**
+ * Length expressed in imperial units, including units shared with US customary measurement.
+ */
+export type LengthImperialDataType = LengthDataType;
+
+export type LengthImperialDataTypeWithMetadata = {
+  value: LengthImperialDataType;
+  metadata: LengthImperialDataTypeMetadata;
+};
+export type LengthImperialDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/length-imperial/v/1";
+};
+
+/**
+ * Length expressed in metric units, including SI units and their accepted companions.
+ */
+export type LengthMetricDataType = LengthDataType;
+
+export type LengthMetricDataTypeWithMetadata = {
+  value: LengthMetricDataType;
+  metadata: LengthMetricDataTypeMetadata;
+};
+export type LengthMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/length-metric/v/1";
 };
 
 /**
@@ -3726,7 +3816,7 @@ export type LinkPropertiesWithMetadata = {
 /**
  * A metric unit of volume equal to one cubic decimetre.
  */
-export type LitresDataType = VolumeDataType;
+export type LitresDataType = VolumeMetricDataType;
 
 export type LitresDataTypeWithMetadata = {
   value: LitresDataType;
@@ -3735,7 +3825,7 @@ export type LitresDataTypeWithMetadata = {
 export type LitresDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/litres/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/litres/v/2";
 };
 
 /**
@@ -4014,14 +4104,59 @@ export type MassDataTypeWithMetadata = {
 export type MassDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/mass/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/mass/v/2";
+};
+
+/**
+ * Mass expressed in imperial units, including units shared with US customary measurement.
+ */
+export type MassImperialDataType = MassDataType;
+
+export type MassImperialDataTypeWithMetadata = {
+  value: MassImperialDataType;
+  metadata: MassImperialDataTypeMetadata;
+};
+export type MassImperialDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/mass-imperial/v/1";
+};
+
+/**
+ * Mass expressed in metric units, including SI units and their accepted companions.
+ */
+export type MassMetricDataType = MassDataType;
+
+export type MassMetricDataTypeWithMetadata = {
+  value: MassMetricDataType;
+  metadata: MassMetricDataTypeMetadata;
+};
+export type MassMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/mass-metric/v/1";
+};
+
+/**
+ * Mass expressed in US customary units.
+ */
+export type MassUSCustomaryDataType = MassDataType;
+
+export type MassUSCustomaryDataTypeWithMetadata = {
+  value: MassUSCustomaryDataType;
+  metadata: MassUSCustomaryDataTypeMetadata;
+};
+export type MassUSCustomaryDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/mass-us-customary/v/1";
 };
 
 /**
  * A good or material that can be produced, stored, sold, or procured, including raw materials, intermediates, and finished goods.
  */
 export type Material = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/material/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/material/v/2"];
   properties: MaterialProperties;
   propertiesWithMetadata: MaterialPropertiesWithMetadata;
 };
@@ -4094,7 +4229,7 @@ export type MaterialTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The base unit of length in the International System of Units (SI).
  */
-export type MetersDataType = MetricLengthSIDataType;
+export type MetersDataType = LengthMetricDataType;
 
 export type MetersDataTypeWithMetadata = {
   value: MetersDataType;
@@ -4103,7 +4238,7 @@ export type MetersDataTypeWithMetadata = {
 export type MetersDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/meters/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/meters/v/2";
 };
 
 /**
@@ -4114,24 +4249,9 @@ export type MethodologyPropertyValue = TextDataType;
 export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.
- */
-export type MetricLengthSIDataType = LengthDataType;
-
-export type MetricLengthSIDataTypeWithMetadata = {
-  value: MetricLengthSIDataType;
-  metadata: MetricLengthSIDataTypeMetadata;
-};
-export type MetricLengthSIDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/metric-length-si/v/1";
-};
-
-/**
  * A metric unit of mass equal to 1000 kilograms.
  */
-export type MetricTonnesDataType = MassDataType;
+export type MetricTonnesDataType = MassMetricDataType;
 
 export type MetricTonnesDataTypeWithMetadata = {
   value: MetricTonnesDataType;
@@ -4140,13 +4260,13 @@ export type MetricTonnesDataTypeWithMetadata = {
 export type MetricTonnesDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/metric-tonnes/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/metric-tonnes/v/2";
 };
 
 /**
- * An imperial unit of length, equivalent to 1,609.344 meters in the International System of Units (SI).
+ * A unit of length expressed in miles. Based on the international yard of exactly 0.9144 meters.
  */
-export type MilesDataType = ImperialLengthUKDataType;
+export type MilesDataType = LengthImperialDataType;
 
 export type MilesDataTypeWithMetadata = {
   value: MilesDataType;
@@ -4155,13 +4275,13 @@ export type MilesDataTypeWithMetadata = {
 export type MilesDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/miles/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/miles/v/2";
 };
 
 /**
  * A metric unit of volume equal to one thousandth of a litre.
  */
-export type MillilitresDataType = VolumeDataType;
+export type MillilitresDataType = VolumeMetricDataType;
 
 export type MillilitresDataTypeWithMetadata = {
   value: MillilitresDataType;
@@ -4170,13 +4290,13 @@ export type MillilitresDataTypeWithMetadata = {
 export type MillilitresDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/millilitres/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/millilitres/v/2";
 };
 
 /**
  * A unit of length in the International System of Units (SI), equal to one thousandth of a meter.
  */
-export type MillimetersDataType = MetricLengthSIDataType;
+export type MillimetersDataType = LengthMetricDataType;
 
 export type MillimetersDataTypeWithMetadata = {
   value: MillimetersDataType;
@@ -4185,7 +4305,7 @@ export type MillimetersDataTypeWithMetadata = {
 export type MillimetersDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/millimeters/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/millimeters/v/2";
 };
 
 /**
@@ -5049,9 +5169,9 @@ export type PostalCodePropertyValue = TextDataType;
 export type PostalCodePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An imperial unit of mass equal to exactly 0.45359237 kilograms.
+ * A unit of mass expressed in pounds. Uses avoirdupois mass.
  */
-export type PoundsDataType = MassDataType;
+export type PoundsDataType = MassImperialDataType;
 
 export type PoundsDataTypeWithMetadata = {
   value: PoundsDataType;
@@ -5060,7 +5180,7 @@ export type PoundsDataTypeWithMetadata = {
 export type PoundsDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/pounds/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/pounds/v/2";
 };
 
 /**
@@ -5156,7 +5276,7 @@ export type ProducesPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * An order to manufacture a material.
  */
 export type ProductionOrder = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/production-order/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/production-order/v/2"];
   properties: ProductionOrderProperties;
   propertiesWithMetadata: ProductionOrderPropertiesWithMetadata;
 };
@@ -5171,7 +5291,7 @@ export type ProductionOrderHasLineItemLink = {
  */
 export type ProductionOrderItem = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/production-order-item/v/1",
+    "https://hash.ai/@h/types/entity-type/production-order-item/v/2",
   ];
   properties: ProductionOrderItemProperties;
   propertiesWithMetadata: ProductionOrderItemPropertiesWithMetadata;
@@ -5352,7 +5472,7 @@ export type PublicationYearPropertyValueWithMetadata =
  */
 export type PurchaseOrderItem = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/purchase-order-item/v/1",
+    "https://hash.ai/@h/types/entity-type/purchase-order-item/v/2",
   ];
   properties: PurchaseOrderItemProperties;
   propertiesWithMetadata: PurchaseOrderItemPropertiesWithMetadata;
@@ -5427,7 +5547,7 @@ export type PurchaseOrderNumberPropertyValueWithMetadata =
  */
 export type PurchaseOrderScheduleLine = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/purchase-order-schedule-line/v/1",
+    "https://hash.ai/@h/types/entity-type/purchase-order-schedule-line/v/2",
   ];
   properties: PurchaseOrderScheduleLineProperties;
   propertiesWithMetadata: PurchaseOrderScheduleLinePropertiesWithMetadata;
@@ -5902,7 +6022,7 @@ export type SalesDocumentTypePropertyValueWithMetadata =
  * A commitment by a customer to purchase goods or services on agreed terms.
  */
 export type SalesOrder = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/sales-order/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/sales-order/v/2"];
   properties: SalesOrderProperties;
   propertiesWithMetadata: SalesOrderPropertiesWithMetadata;
 };
@@ -5921,7 +6041,7 @@ export type SalesOrderHasLineItemLink = {
  * A line item within a sales order.
  */
 export type SalesOrderItem = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/sales-order-item/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/sales-order-item/v/2"];
   properties: SalesOrderItemProperties;
   propertiesWithMetadata: SalesOrderItemPropertiesWithMetadata;
 };
@@ -6185,7 +6305,7 @@ export type ServiceUnitCostPropertyValueWithMetadata = {
  * A line within a shipment, linking it to a delivery being transported.
  */
 export type ShipmentItem = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/shipment-item/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/shipment-item/v/2"];
   properties: ShipmentItemProperties;
   propertiesWithMetadata: ShipmentItemPropertiesWithMetadata;
 };
@@ -6307,7 +6427,7 @@ export type SiteTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * A metric unit of area equal to one ten-thousandth of a square metre.
  */
-export type SquareCentimetresDataType = AreaDataType;
+export type SquareCentimetresDataType = AreaMetricDataType;
 
 export type SquareCentimetresDataTypeWithMetadata = {
   value: SquareCentimetresDataType;
@@ -6316,13 +6436,13 @@ export type SquareCentimetresDataTypeWithMetadata = {
 export type SquareCentimetresDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/square-centimetres/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/square-centimetres/v/2";
 };
 
 /**
- * An imperial unit of area equal to a square one foot on each side.
+ * A unit of area expressed in square feet. Based on the international foot of exactly 0.3048 meters.
  */
-export type SquareFeetDataType = AreaDataType;
+export type SquareFeetDataType = AreaImperialDataType;
 
 export type SquareFeetDataTypeWithMetadata = {
   value: SquareFeetDataType;
@@ -6331,13 +6451,13 @@ export type SquareFeetDataTypeWithMetadata = {
 export type SquareFeetDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/square-feet/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/square-feet/v/2";
 };
 
 /**
  * A metric unit of area equal to a square one metre on each side.
  */
-export type SquareMetresDataType = AreaDataType;
+export type SquareMetresDataType = AreaMetricDataType;
 
 export type SquareMetresDataTypeWithMetadata = {
   value: SquareMetresDataType;
@@ -6346,7 +6466,7 @@ export type SquareMetresDataTypeWithMetadata = {
 export type SquareMetresDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/square-metres/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/square-metres/v/2";
 };
 
 /**
@@ -6449,7 +6569,7 @@ export type StorageLocationPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A site where a batch is held in stock, with the quantities on hand by stock type.
  */
 export type StoredAt = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/stored-at/v/1"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/stored-at/v/2"];
   properties: StoredAtProperties;
   propertiesWithMetadata: StoredAtPropertiesWithMetadata;
 };
@@ -7189,7 +7309,52 @@ export type VolumeDataTypeWithMetadata = {
 export type VolumeDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/volume/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/volume/v/2";
+};
+
+/**
+ * Volume expressed in imperial units, including units shared with US customary measurement.
+ */
+export type VolumeImperialDataType = VolumeDataType;
+
+export type VolumeImperialDataTypeWithMetadata = {
+  value: VolumeImperialDataType;
+  metadata: VolumeImperialDataTypeMetadata;
+};
+export type VolumeImperialDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/volume-imperial/v/1";
+};
+
+/**
+ * Volume expressed in metric units, including SI units and their accepted companions.
+ */
+export type VolumeMetricDataType = VolumeDataType;
+
+export type VolumeMetricDataTypeWithMetadata = {
+  value: VolumeMetricDataType;
+  metadata: VolumeMetricDataTypeMetadata;
+};
+export type VolumeMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/volume-metric/v/1";
+};
+
+/**
+ * Volume expressed in US customary units.
+ */
+export type VolumeUSCustomaryDataType = VolumeDataType;
+
+export type VolumeUSCustomaryDataTypeWithMetadata = {
+  value: VolumeUSCustomaryDataType;
+  metadata: VolumeUSCustomaryDataTypeMetadata;
+};
+export type VolumeUSCustomaryDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/volume-us-customary/v/1";
 };
 
 /**
@@ -7312,9 +7477,9 @@ export type YERDataTypeMetadata = {
 };
 
 /**
- * An imperial unit of length. 1,760 yards equals 1 mile. Equivalent to 0.9144 meters in the International System of Units (SI).
+ * A unit of length expressed in yards. Based on the international yard of exactly 0.9144 meters.
  */
-export type YardsDataType = ImperialLengthUKDataType;
+export type YardsDataType = LengthImperialDataType;
 
 export type YardsDataTypeWithMetadata = {
   value: YardsDataType;
@@ -7323,7 +7488,7 @@ export type YardsDataTypeWithMetadata = {
 export type YardsDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/yards/v/1";
+  dataTypeId: "https://hash.ai/@h/types/data-type/yards/v/2";
 };
 
 /**

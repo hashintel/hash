@@ -34,6 +34,8 @@ import type {
   IntegerDataTypeWithMetadata,
   LengthDataType,
   LengthDataTypeWithMetadata,
+  LengthMetricDataType,
+  LengthMetricDataTypeWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -41,8 +43,6 @@ import type {
   LinkPropertiesWithMetadata,
   MetersDataType,
   MetersDataTypeWithMetadata,
-  MetricLengthSIDataType,
-  MetricLengthSIDataTypeWithMetadata,
   NamePropertyValue,
   NamePropertyValueWithMetadata,
   NumberDataType,
@@ -95,6 +95,8 @@ export type {
   IntegerDataTypeWithMetadata,
   LengthDataType,
   LengthDataTypeWithMetadata,
+  LengthMetricDataType,
+  LengthMetricDataTypeWithMetadata,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
@@ -102,8 +104,6 @@ export type {
   LinkPropertiesWithMetadata,
   MetersDataType,
   MetersDataTypeWithMetadata,
-  MetricLengthSIDataType,
-  MetricLengthSIDataTypeWithMetadata,
   NamePropertyValue,
   NamePropertyValueWithMetadata,
   NumberDataType,
@@ -157,6 +157,21 @@ export type AngleDataTypeMetadata = {
 };
 
 /**
+ * Angle expressed in metric units, including SI units and their accepted companions.
+ */
+export type AngleMetricDataType = AngleDataType;
+
+export type AngleMetricDataTypeWithMetadata = {
+  value: AngleMetricDataType;
+  metadata: AngleMetricDataTypeMetadata;
+};
+export type AngleMetricDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/angle-metric/v/1";
+};
+
+/**
  * The area or carousel number where passengers collect their checked luggage after a flight.
  */
 export type BaggageClaimPropertyValue = TextDataType;
@@ -182,7 +197,7 @@ export type CodesharePropertyValueWithMetadata = {
 /**
  * A unit of angular measure equal to 1/360 of a full rotation.
  */
-export type DegreeDataType = AngleDataType;
+export type DegreeDataType = AngleMetricDataType;
 
 export type DegreeDataTypeWithMetadata = {
   value: DegreeDataType;
@@ -226,9 +241,9 @@ export type EstimatedRunwayTimePropertyValueWithMetadata =
   DateTimeDataTypeWithMetadata;
 
 /**
- * A unit of vertical speed commonly used in aviation to measure rate of climb or descent.
+ * A unit of speed expressed in feet per minute.
  */
-export type FeetPerMinuteDataType = SpeedDataType;
+export type FeetPerMinuteDataType = SpeedImperialDataType;
 
 export type FeetPerMinuteDataTypeWithMetadata = {
   value: FeetPerMinuteDataType;
@@ -558,6 +573,21 @@ export type SpeedDataTypeMetadata = {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/speed/v/1";
+};
+
+/**
+ * Speed expressed in imperial units, including units shared with US customary measurement.
+ */
+export type SpeedImperialDataType = SpeedDataType;
+
+export type SpeedImperialDataTypeWithMetadata = {
+  value: SpeedImperialDataType;
+  metadata: SpeedImperialDataTypeMetadata;
+};
+export type SpeedImperialDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/speed-imperial/v/1";
 };
 
 /**
