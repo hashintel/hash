@@ -59,8 +59,10 @@ impl<'heap> Value<'heap> {
         let kind = match data {
             data::Data::Primitive(primitive) => TypeKind::Primitive(match primitive {
                 Primitive::Boolean(_) => PrimitiveType::Boolean,
-                Primitive::Float(_) => PrimitiveType::Number,
-                Primitive::Integer(_) => PrimitiveType::Integer,
+                Primitive::Integer(integer) if integer.as_i128().is_some() => {
+                    PrimitiveType::Integer
+                }
+                Primitive::Float(_) | Primitive::Integer(_) => PrimitiveType::Number,
                 Primitive::String(_) => PrimitiveType::String,
                 Primitive::Null => PrimitiveType::Null,
             }),
