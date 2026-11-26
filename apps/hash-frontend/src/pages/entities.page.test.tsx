@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   flags: { pages: true, dashboards: true, documents: true, canvases: true },
   pagesAreEnabled: true,
   entityTypeIds: null as VersionedUrl[] | null,
+  entityTypesLoading: false,
   router: {
     asPath: "/pages",
     pathname: "/entities",
@@ -58,6 +59,7 @@ vi.mock(
       isSpecialEntityTypeLookup: null,
       entityTypes:
         state.entityTypeIds?.map(($id) => ({ schema: { $id } })) ?? null,
+      loading: state.entityTypesLoading,
     }),
   }),
 );
@@ -98,6 +100,7 @@ beforeEach(() => {
   state.flags.pages = true;
   state.flags.dashboards = true;
   state.pagesAreEnabled = true;
+  state.entityTypesLoading = false;
   state.entityTypeIds = [
     systemEntityTypes.page.entityTypeId,
     `${systemEntityTypes.page.entityTypeBaseUrl}v/2` as VersionedUrl,
@@ -151,11 +154,13 @@ test.each([
 test("waits for all type versions before querying pages", () => {
   const entityTypeIds = state.entityTypeIds;
   state.entityTypeIds = null;
+  state.entityTypesLoading = true;
   const { rerender } = renderPage();
   expect(EntitiesVisualizer).not.toHaveBeenCalled();
   expect(screen.getByText("Loading pages…")).toBeTruthy();
 
   state.entityTypeIds = entityTypeIds;
+  state.entityTypesLoading = false;
   rerender(
     <ThemeProvider theme={theme}>
       <EntitiesPage />
@@ -164,6 +169,14 @@ test("waits for all type versions before querying pages", () => {
   expect(
     vi.mocked(EntitiesVisualizer).mock.lastCall?.[0].entityTypeIds,
   ).toEqual(entityTypeIds?.slice(0, 4));
+});
+
+test("stops loading when the entity types could not be fetched", () => {
+  state.entityTypeIds = null;
+  renderPage();
+  expect(EntitiesVisualizer).not.toHaveBeenCalled();
+  expect(screen.queryByText("Loading pages…")).toBeNull();
+  expect(screen.getByText("No pages to display.")).toBeTruthy();
 });
 
 test("does not query all entities when no page types are available", () => {

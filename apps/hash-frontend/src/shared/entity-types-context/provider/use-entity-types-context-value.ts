@@ -70,6 +70,12 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
         latestOnly: false,
         includeArchived: true,
       },
+    }).catch((error: unknown) => {
+      // if aborted, a newer fetch is in flight and reports its own loading state
+      if (!controller.signal.aborted) {
+        setTypes((currentTypes) => ({ ...currentTypes, loading: false }));
+      }
+      throw error;
     });
 
     if (controller.signal.aborted) {

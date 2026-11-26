@@ -180,7 +180,8 @@ const EntitiesPage: NextPageWithLayout = () => {
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
-  const { entityTypes } = useEntityTypesContextRequired();
+  const { entityTypes, loading: entityTypesLoading } =
+    useEntityTypesContextRequired();
 
   const isPagesRoute = router.asPath.split(/[?#]/)[0] === "/pages";
   const pageEntityTypeIds = useMemo(
@@ -390,7 +391,7 @@ const EntitiesPage: NextPageWithLayout = () => {
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         {isPagesRoute && !pageEntityTypeIds ? (
           <Typography>
-            {entityTypes === null ? "Loading pages…" : "No pages to display."}
+            {entityTypesLoading ? "Loading pages…" : "No pages to display."}
           </Typography>
         ) : (
           <EntitiesVisualizer
