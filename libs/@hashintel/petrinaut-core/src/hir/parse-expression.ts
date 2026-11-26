@@ -109,9 +109,10 @@ const tokenize = (source: string): Token[] => {
   // Every quantifier sits behind a distinct prefix, so none backtracks.
   const whitespacePattern = /\s+/y;
   // JavaScript's number literals: hex, binary and octal integers, and
-  // decimals with an optional fraction and exponent, `_` between digits.
+  // decimals with an optional fraction and exponent. Every form takes `_`
+  // between digits.
   const numberPattern =
-    /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+(?:_\d+)*(?:\.(?:\d+(?:_\d+)*)?)?|\.\d+(?:_\d+)*)(?:[eE][+-]?\d+(?:_\d+)*)?/y;
+    /0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|(?:\d+(?:_\d+)*(?:\.(?:\d+(?:_\d+)*)?)?|\.\d+(?:_\d+)*)(?:[eE][+-]?\d+(?:_\d+)*)?/y;
   const identifierPattern = /[A-Za-z_$][A-Za-z0-9_$]*/y;
   let index = 0;
   while (index < source.length) {

@@ -59,6 +59,14 @@ describe("parseHirExpression", () => {
       expect(parse("0x1F")).toMatchObject({ kind: "numberLit", value: 31 });
       expect(parse("0b101")).toMatchObject({ kind: "numberLit", value: 5 });
       expect(parse("0o17")).toMatchObject({ kind: "numberLit", value: 15 });
+      expect(parse("0xFF_FF")).toMatchObject({
+        value: 0xff_ff,
+        raw: "0xFF_FF",
+      });
+      expect(parse("0b1010_0101")).toMatchObject({ value: 0b1010_0101 });
+      expect(parse("0o7_7")).toMatchObject({ value: 0o7_7 });
+      expect(failure("0x_F").message).toBe("Unexpected `x_F`.");
+      expect(failure("0xF_").message).toBe("Unexpected `_`.");
       expect(failure("0_1").message).toBe("Numbers may not start with `0`.");
     });
 
