@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[[[[[\"x\"]]]]]"
+---
+error[jexpr::parser::nesting-limit]: Nesting limit exceeded
+  ╭▸ 
+1 │ [[[[["x"]]]]]
+  │    ━ nested more than 3 levels deep
+  │
+  ├ help: reduce the nesting, for example by binding an inner expression with `let` and referring to it by name
+  ╰ note: a J-Expr document nests values at most 3 levels deep

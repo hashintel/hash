@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{, \"#literal\": 1}"
+---
+error[jexpr::parser::object::leading-comma]: Unexpected leading comma in object
+  ╭▸ 
+1 │ {, "#literal": 1}
+  │  ━ leading comma is not allowed in objects
+  │
+  ╰ note: J-Expr follows JSON syntax, which does not allow leading commas
+help: remove the leading comma
+  ╭╴
+1 - {, "#literal": 1}
+1 + { "#literal": 1}
+  ╰╴

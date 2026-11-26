@@ -30,6 +30,8 @@ pub(crate) enum ParseNumberErrorKind {
     UnexpectedDot,
     /// Found an unexpected exponent.
     UnexpectedExponent,
+    /// Found a letter or underscore directly after the number (e.g., `0x10` or `42abc`).
+    UnexpectedSuffix,
 }
 
 impl fmt::Display for ParseNumberErrorKind {
@@ -40,6 +42,7 @@ impl fmt::Display for ParseNumberErrorKind {
             Self::UnexpectedDigit(digit) => write!(fmt, "unexpected digit '{}'", *digit as char),
             Self::UnexpectedDot => fmt.write_str("unexpected dot"),
             Self::UnexpectedExponent => fmt.write_str("unexpected exponent"),
+            Self::UnexpectedSuffix => fmt.write_str("unexpected suffix"),
         }
     }
 }

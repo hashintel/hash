@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#tuple\": {}}"
+---
+error[jexpr::parser::object::tuple-expected-array]: Expected array for `#tuple`
+  ╭▸ 
+1 │ {"#tuple": {}}
+  │  ┬───────  ━━ expected an array, found an object
+  │  │
+  │  required by `#tuple`
+  │
+  ╰ help: use an array of elements, for example `{"#tuple": [elem1, elem2]}`

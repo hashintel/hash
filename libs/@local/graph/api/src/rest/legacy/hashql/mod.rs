@@ -28,7 +28,7 @@ use hashql_eval::{
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
 use hashql_mir::interpret::Inputs;
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{JsonPointers, span::Span};
 use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
@@ -99,8 +99,11 @@ async fn query_local_impl<S>(
     ctx: Arc<CompilerContext>,
     exec: ExecutionContext<S>,
     spans: &mut SpanTable<Span>,
-    query: &[u8],
-) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId>
+    source: &str,
+) -> (
+    Status<OwnedValue, HashQlDiagnosticCategory, SpanId>,
+    JsonPointers,
+)
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
 {
@@ -112,61 +115,69 @@ where
 
     let inputs = Inputs::new(); // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
 
-    let Success {
-        value: mut compilation,
-        advisories,
-    } = Compilation::compile(&heap, &mut scratch, spans, query)?;
+    let (compiled, pointers) = Compilation::compile(&heap, &mut scratch, spans, source);
+    let status = async {
+        let Success {
+            value: mut compilation,
+            advisories,
+        } = compiled?;
 
-    let Success {
-        value: store,
-        advisories,
-    } = exec
-        .store
-        .acquire(exec.temporal.clone())
-        .await
-        .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
-        .into_status()
-        .with_diagnostics(advisories)?;
+        let Success {
+            value: store,
+            advisories,
+        } = exec
+            .store
+            .acquire(exec.temporal.clone())
+            .await
+            .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
+            .into_status()
+            .with_diagnostics(advisories)?;
 
-    let mut policy_components = PolicyComponents::builder(&store, Some(exec.actor_id));
-    policy_components.add_actions(
-        compilation.permissions.actions.iter().copied(),
-        MergePolicies::Yes,
-    );
-    let Success {
-        value: policy_components,
-        advisories,
-    } = policy_components
-        .await
-        .map_err(|report| error::authorization_context_diagnostic(&report, compilation.root_span))
-        .into_status()
-        .with_diagnostics(advisories)?;
-    let property = &*exec.filter_protection;
+        let mut policy_components = PolicyComponents::builder(&store, Some(exec.actor_id));
+        policy_components.add_actions(
+            compilation.permissions.actions.iter().copied(),
+            MergePolicies::Yes,
+        );
+        let Success {
+            value: policy_components,
+            advisories,
+        } = policy_components
+            .await
+            .map_err(|report| {
+                error::authorization_context_diagnostic(&report, compilation.root_span)
+            })
+            .into_status()
+            .with_diagnostics(advisories)?;
+        let property = &*exec.filter_protection;
 
-    let patch = AuthorizationPatch::new(&policy_components, property);
+        let patch = AuthorizationPatch::new(&policy_components, property);
 
-    // TODO: in the future when we cache queries, this will have to clone them, but because this is
-    // oneshot, we can just ignore that for now.
-    for query in compilation.artifact.postgres.iter_mut() {
-        PreparedQueryPatch::new()
-            .layer(&patch)
-            .apply(query, &mut *scratch);
+        // TODO: in the future when we cache queries, this will have to clone them, but because this
+        // is oneshot, we can just ignore that for now.
+        for query in compilation.artifact.postgres.iter_mut() {
+            PreparedQueryPatch::new()
+                .layer(&patch)
+                .apply(query, &mut *scratch);
 
-        scratch.reset();
+            scratch.reset();
+        }
+        drop(scratch);
+
+        let context = compilation.context();
+        let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
+        orchestrator
+            .run(&inputs, compilation.entrypoint, [])
+            .await
+            .into_status()
+            .map_category(|category| {
+                HashQlDiagnosticCategory::Eval(EvalDiagnosticCategory::Orchestrator(category))
+            })
+            .with_diagnostics(advisories)
+            .map_value(OwnedValue::from)
     }
-    drop(scratch);
+    .await;
 
-    let context = compilation.context();
-    let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
-    orchestrator
-        .run(&inputs, compilation.entrypoint, [])
-        .await
-        .into_status()
-        .map_category(|category| {
-            HashQlDiagnosticCategory::Eval(EvalDiagnosticCategory::Orchestrator(category))
-        })
-        .with_diagnostics(advisories)
-        .map_value(OwnedValue::from)
+    (status, pointers)
 }
 
 #[expect(clippy::future_not_send)]
@@ -184,8 +195,8 @@ where
 
     let mut spans = SpanTable::new(source_id);
 
-    let status = query_local_impl(ctx, exec, &mut spans, query.get().as_bytes()).await;
-    status_to_response(status, &sources, &spans, &options)
+    let (status, pointers) = query_local_impl(ctx, exec, &mut spans, query.get()).await;
+    status_to_response(status, &sources, &spans, &pointers, &options)
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.

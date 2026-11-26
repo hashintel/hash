@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1 \"#type\": \"Int\"}"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ {"#literal": 1 "#type": "Int"}
+  │                ━━━━━━━ expected `,` or `}`, found string
+  ╰╴
+help: insert `,` between object entries
+  ╭╴
+1 │ {"#literal": 1, "#type": "Int"}
+  ╰╴              +

@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"a\"] \"extra\""
+---
+error[jexpr::parser::expected-eof]: Unexpected token after expression
+  ╭▸ 
+1 │ ["a"] "extra"
+  │       ━━━━━━━ unexpected trailing content after expression
+  │
+  ├ help: remove the trailing content, or check for an extra closing delimiter in the preceding expression
+  ╰ note: a J-Expr document must contain a single top-level expression

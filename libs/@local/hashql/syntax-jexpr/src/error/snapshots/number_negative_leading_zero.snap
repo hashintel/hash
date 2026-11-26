@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": -042}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": -042}
+  │               ━ leading zeros are not allowed in JSON numbers
+  │
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`
+help: remove the leading zero
+  ╭╴
+1 - {"#literal": -042}
+1 + {"#literal": -42}
+  ╰╴

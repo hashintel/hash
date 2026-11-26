@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"a\nb\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │   {"#literal": "a
+  │ ┏━━━━━━━━━━━━━━━━┛
+2 │ ┃ b"}
+  │ ┗━┛ unescaped newline in string literal
+  │
+  ╰ note: ASCII control characters (`0x00` through `0x1F`) must be escaped in JSON strings
+help: escape the newline character
+  ╭╴
+1 │ {"#literal": "a\nb"}
+  ╰╴               ++

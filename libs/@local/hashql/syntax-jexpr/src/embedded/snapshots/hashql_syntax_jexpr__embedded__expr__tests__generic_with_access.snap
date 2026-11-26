@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/expr.rs
+description: Generic path with index access
+expression: "Vec<Int>[0]"
+info:
+  kind: Ok
+---
+Expr#4294967040@10
+  ExprKind (Index)
+    IndexExpr#4294967040@10
+      Expr#4294967040@8
+        ExprKind (Path)
+          Path#4294967040@8 (rooted: false)
+            PathSegment#4294967040@7 (name: Vec)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@6
+                  Type#4294967040@5
+                    TypeKind (Path)
+                      Path#4294967040@5 (rooted: false)
+                        PathSegment#4294967040@4 (name: Int)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@9
+            Primitive (Integer)
+              Integer (0)

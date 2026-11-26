@@ -1,0 +1,24 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"fn\", {\":a\": \"x\", \"b\": \"y\"}]"
+---
+error[jexpr::parser::array::labeled-argument-missing-prefix]: Missing `:` prefix in labeled argument
+  ╭▸ 
+1 │ ["fn", {":a": "x", "b": "y"}]
+  │                    ━━━ labeled argument key `b` must start with `:`
+  │
+  ╰ note: labeled arguments use `{":label": value}` (one entry per object) or shorthand `":label"`
+help: prefix `b` with `:`
+  ╭╴
+1 │ ["fn", {":a": "x", ":b": "y"}]
+  ╰╴                    +
+
+error[jexpr::parser::array::labeled-argument-length-mismatch]: Invalid number of labeled arguments
+  ╭▸ 
+1 │ ["fn", {":a": "x", "b": "y"}]
+  │         ┬────────  ━━━━━━━━ expected 1 labeled argument per object, found 2
+  │         │
+  │         first labeled argument here
+  │
+  ├ help: place each labeled argument in its own object: `{":a": "x"}, {":b": "y"}`
+  ╰ note: labeled arguments use `{":label": value}` (one entry per object) or shorthand `":label"`

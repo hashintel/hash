@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1, \"#type\": \"Int\", \"extra\": 2}"
+---
+error[jexpr::parser::object::unknown-key]: Unknown object key
+  ╭▸ 
+1 │ {"#literal": 1, "#type": "Int", "extra": 2}
+  │  ┬─────────                     ━━━━━━━ unexpected key `extra` in `#literal` object
+  │  │
+  │  in this `#literal` object
+  │
+  ├ help: remove the `extra` key
+  ╰ note: a `#literal` object accepts no additional keys

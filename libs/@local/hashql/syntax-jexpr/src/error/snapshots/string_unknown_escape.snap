@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"hello\\zworld\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "hello\zworld"}
+  │                    ━━ unknown escape sequence `\z`
+  │
+  ├ help: escape the backslash as `\\` to write a literal backslash
+  ╰ note: valid JSON escapes are `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, and `\uXXXX`

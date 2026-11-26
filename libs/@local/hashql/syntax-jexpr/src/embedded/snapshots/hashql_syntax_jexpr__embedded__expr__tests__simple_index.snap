@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/expr.rs
+description: Simple index access
+expression: "[0]"
+info:
+  kind: Ok
+---
+IndexByLiteral(
+    LiteralExpr {
+        id: NodeId(
+            4294967040,
+        ),
+        span: SpanId(
+            1,
+        ),
+        kind: Integer(
+            Integer {
+                value: Symbol(
+                    "0",
+                ),
+            },
+        ),
+        type: None,
+    },
+)

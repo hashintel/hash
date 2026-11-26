@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#struct\": {\"123bad\": {\"#literal\": 1}}}"
+---
+error[jexpr::parser::object::struct-key-expected-identifier]: Invalid struct field identifier
+  ╭▸ 
+1 │ {"#struct": {"123bad": {"#literal": 1}}}
+  │               ━ invalid struct field identifier starting with `1`
+  │
+  ├ help: use a valid HashQL identifier starting with a letter, `_`, or symbol
+  ╰ note: struct field keys must be valid HashQL identifiers

@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#struct\": [1]}"
+---
+error[jexpr::parser::object::struct-expected-object]: Expected object for `#struct`
+  ╭▸ 
+1 │ {"#struct": [1]}
+  │  ┬────────  ━━━ expected an object, found an array
+  │  │
+  │  required by `#struct`
+  │
+  ╰ help: use an object of field definitions, for example `{"#struct": {"field": value}}`

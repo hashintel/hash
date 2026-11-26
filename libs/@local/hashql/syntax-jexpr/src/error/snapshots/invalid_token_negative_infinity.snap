@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": -Infinity}"
+---
+error[jexpr::lexer::invalid-token]: Invalid token
+  ╭▸ 
+1 │ {"#literal": -Infinity}
+  │              ━━━━━━━━━ `-Infinity` is not a valid JSON number
+  │
+  ├ help: use a finite number, `null`, or a string literal such as `"-Infinity"`
+  ╰ note: JSON numbers do not support `NaN` or `Infinity`

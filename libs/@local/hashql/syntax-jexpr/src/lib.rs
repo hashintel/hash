@@ -1,161 +1,156 @@
 //! # HashQL J-Expr syntax
 //!
+//! Parser and HashQL AST lowerer for J-Expr.
+//!
+//! Start with [`Parser`] for parsing a J-Expr document into a [`hashql_ast::node::expr::Expr`],
+//! or [`JsonPointers`] for RFC 6901 JSON Pointer resolution.
+//!
+//! # Example
+//!
+//! ```
+//! use std::alloc::Global;
+//!
+//! use hashql_core::{heap::Heap, span::SpanTable};
+//! use hashql_diagnostics::source::SourceId;
+//! use hashql_syntax_jexpr::{Parser, ParserOptions};
+//!
+//! let source = r##"{"#literal": 42}"##;
+//! let heap = Heap::new();
+//! let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+//! let success = Parser::new(&heap, &mut spans, ParserOptions::default())
+//!     .parse_expr_in(source, Global)
+//!     .expect("valid literal parses to an AST expression");
+//! assert!(success.advisories.is_empty());
+//! ```
+//!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![expect(clippy::indexing_slicing)]
+#![cfg_attr(test, feature(decl_macro))]
 #![feature(
     // Language Features
-    decl_macro,
+    const_trait_impl,
 
     // Library Features
     ascii_char,
+    byte_str,
+    const_convert,
     portable_simd,
-    variant_count,
 )]
 
 extern crate alloc;
 
-use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::SpanTable};
+use core::alloc::Allocator;
 
-use self::{
-    error::{JExprDiagnostic, JExprDiagnosticCategory, ResultExt as _},
-    parser::state::ParserState,
-    span::Span,
+use hashql_ast::node::expr::Expr;
+use hashql_core::{
+    heap::Heap,
+    span::{SpanId, SpanTable},
 };
+use hashql_diagnostics::Status;
 
 #[cfg(feature = "bench")]
 #[doc(hidden)]
 pub mod bench;
+pub(crate) mod cst;
+pub(crate) mod embedded;
 pub mod error;
 pub(crate) mod lexer;
+pub(crate) mod lower;
 pub(crate) mod parser;
+pub(crate) mod pointer;
 pub mod span;
+pub(crate) mod stack;
+pub(crate) mod syntax_kind;
+pub(crate) mod syntax_kind_set;
 #[cfg(test)]
-pub(crate) mod test;
+mod tests;
 
+pub use self::{
+    error::{JExprDiagnostic, JExprDiagnosticCategory},
+    pointer::JsonPointers,
+    span::Span,
+};
+
+/// Limits that a [`Parser`] enforces on the documents it parses.
+#[derive(Debug, Copy, Clone)]
+pub struct ParserOptions {
+    /// Number of levels a document may nest its arrays and objects.
+    ///
+    /// Parsing fails for a document that nests deeper. A string counts the levels of its type or
+    /// expression on its own, starting from zero at any depth of the document.
+    ///
+    /// The passes over the AST recurse once per level, and the limit bounds the stack they need.
+    ///
+    /// 256 by default.
+    pub nesting_limit: u16,
+}
+
+impl Default for ParserOptions {
+    fn default() -> Self {
+        Self { nesting_limit: 256 }
+    }
+}
+
+/// Parser from J-Expr source to the HashQL AST.
 pub struct Parser<'heap, 'spans> {
     heap: &'heap Heap,
     spans: &'spans mut SpanTable<Span>,
+    options: ParserOptions,
 }
 
 impl<'heap, 'spans> Parser<'heap, 'spans> {
-    pub const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
-        Self { heap, spans }
-    }
-
-    /// Parse an expression from a byte slice.
-    ///
-    /// # Errors
-    ///
-    /// - Lexer errors if the input contains invalid tokens
-    /// - Parser errors if the tokens don't form a valid expression
-    /// - Unexpected EOF if the input is incomplete
-    pub fn parse_expr(&mut self, source: &[u8]) -> Result<Expr<'heap>, JExprDiagnostic> {
-        let lexer = lexer::Lexer::new(source);
-
-        let mut state = ParserState::new(self.heap, lexer, self.spans);
-
-        let expr = parser::expr::parse_expr(&mut state)
-            .change_category(JExprDiagnosticCategory::Parser)?;
-
-        state
-            .finish()
-            .change_category(JExprDiagnosticCategory::Parser)?;
-
-        Ok(expr)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use hashql_ast::format::SyntaxDump as _;
-    use hashql_core::{heap::Heap, span::SpanTable};
-    use hashql_diagnostics::source::SourceId;
-    use insta::{assert_snapshot, with_settings};
-
-    use crate::{Parser, test::render_diagnostic};
-
-    /// Helper struct to organize parsing test results.
-    #[derive(Debug)]
-    struct ParseTestResult {
-        /// String representation of the syntax tree.
-        dump: String,
-        /// Original input text that was parsed.
-        input: &'static str,
-    }
-
-    /// Attempt to parse an input string and return either a successful result or formatted error.
-    fn parse_input(input: &'static str) -> Result<ParseTestResult, String> {
-        let heap = Heap::new();
-        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-        let mut parser = Parser::new(&heap, &mut spans);
-
-        match parser.parse_expr(input.as_bytes()) {
-            Ok(expr) => Ok(ParseTestResult {
-                dump: expr.syntax_dump_to_string(),
-                input,
-            }),
-            Err(diagnostic) => Err(render_diagnostic(input, &diagnostic, &spans)),
+    /// Creates a parser that allocates the AST in `heap` and inserts its spans into `spans`.
+    #[must_use]
+    pub const fn new(
+        heap: &'heap Heap,
+        spans: &'spans mut SpanTable<Span>,
+        options: ParserOptions,
+    ) -> Self {
+        Self {
+            heap,
+            spans,
+            options,
         }
     }
 
-    #[test]
-    fn parse_literal_expression() {
-        // Basic test with a literal to validate the pipeline works
-        let result = parse_input(r##"{"#literal": 42}"##).expect("should parse simple literal");
-
-        with_settings!({
-            description => "End-to-end test of parsing a literal expression"
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
-        });
+    /// Parses a J-Expr document into an [`Expr`] alongside an RFC 6901 [`JsonPointers`] resolver.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `source.len()` exceeds `u32::MAX` bytes.
+    pub fn parse_expr_with_pointers_in<A: Allocator>(
+        &mut self,
+        source: &str,
+        alloc: A,
+    ) -> (
+        Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
+        JsonPointers,
+    ) {
+        let parse = parser::Parser::<parser::expr::ExprGrammar, _>::parse_cst_in(
+            source,
+            self.options,
+            &alloc,
+        );
+        let status = lower::lower_expr_in(self.heap, self.spans, self.options, &parse, &alloc);
+        (status, JsonPointers::from_green(parse.into_green()))
     }
 
-    #[test]
-    fn parse_complex_nested_expression() {
-        // A more complex test that exercises multiple node types
-        let result = parse_input(
-            r##"["let",
-            {"#literal": "x"},
-            {"#literal": 10},
-            ["if",
-                [">", {"#literal": "x"}, {"#literal": 5}],
-                {"#struct": {"result": {"#literal": "large"}}},
-                {"#struct": {"result": {"#literal": "small"}}}
-            ]
-            ]"##,
-        )
-        .expect("should parse complex nested expression");
-
-        with_settings!({
-            description => "End-to-end test of parsing a complex nested expression"
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
-        });
-    }
-
-    #[test]
-    fn parse_invalid_json() {
-        // Test error handling in the full pipeline
-        let error = parse_input("{invalid").expect_err("should fail on invalid JSON");
-
-        with_settings!({
-            description => "End-to-end test of error handling with invalid JSON"
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, error);
-        });
-    }
-
-    #[test]
-    fn parse_incomplete_expression() {
-        // Another error case focusing on unexpected EOF
-        let error = parse_input(r#"["incomplete""#).expect_err("should fail on unexpected EOF");
-
-        with_settings!({
-            description => "End-to-end test of handling unexpected EOF"
-        }, {
-            assert_snapshot!(insta::_macro_support::AutoName, error);
-        });
+    /// Parses a J-Expr document and lowers it into an arena-allocated HashQL [`Expr`].
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical, syntactic, and
+    /// embedded-DSL diagnostics collected across the document.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `source.len()` exceeds `u32::MAX` bytes.
+    pub fn parse_expr_in<A: Allocator>(
+        &mut self,
+        source: &str,
+        alloc: A,
+    ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
+        self.parse_expr_with_pointers_in(source, alloc).0
     }
 }

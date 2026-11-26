@@ -1,58 +1,37 @@
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, string::String};
 use core::{
-    fmt,
+    ascii,
+    byte_str::ByteStr,
+    mem,
     simd::{
         Select as _,
         cmp::{SimdPartialEq as _, SimdPartialOrd as _},
         num::SimdUint as _,
         u8x4, u8x16, u16x4,
     },
-    str::Utf8Error,
 };
 
+mod error;
+mod offsets;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum EscapeError {
-    Kind(u8),
-    HexDigit(u8),
-    Surrogate(u16),
-    ExpectedLowSurrogate,
-    Eof,
-}
-
-impl fmt::Display for EscapeError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Kind(byte) => write!(fmt, "invalid escape character {}", char::from(byte)),
-            Self::HexDigit(byte) => {
-                write!(fmt, "invalid hexadecimal character {}", char::from(byte))
-            }
-            Self::Surrogate(unit) => write!(fmt, "invalid character with index {unit}"),
-            Self::ExpectedLowSurrogate => fmt.write_str("expected low surrogate"),
-            Self::Eof => fmt.write_str("unexpected end of file"),
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum StringError {
-    Control,
-    Escape(EscapeError),
-    Eof,
-    Utf8(Utf8Error),
-}
+use self::error::{compute_error_span, recover_to_closing_quote};
+pub(crate) use self::{
+    error::{EscapeError, StringError, StringSyntaxError, ValidatedStringError},
+    offsets::RawOffsets,
+};
 
 #[cold]
 fn hex_error(source: &mut &[u8]) -> EscapeError {
-    while let Some(&byte) = source.split_off_first() {
-        if !byte.is_ascii_hexdigit() {
-            return EscapeError::HexDigit(byte);
-        }
+    if let Some(index) = source.iter().position(|byte| !byte.is_ascii_hexdigit()) {
+        let byte = source[index];
+        *source = &source[index + 1..];
+        EscapeError::HexDigit(byte)
+    } else {
+        *source = &[];
+        EscapeError::Eof
     }
-
-    EscapeError::Eof
 }
 
 fn hex_quad(source: &mut &[u8]) -> Result<u16, EscapeError> {
@@ -116,21 +95,25 @@ fn unicode_escape(source: &mut &[u8]) -> Result<char, EscapeError> {
     Ok(char::from_u32(scalar).expect("paired surrogates encode a Unicode scalar"))
 }
 
+#[inline]
 fn escape(source: &mut &[u8]) -> Result<char, EscapeError> {
     let &byte = source.split_off_first().ok_or(EscapeError::Eof)?;
 
     match SIMPLE_ESCAPES[usize::from(byte)] {
-        0 if byte == b'u' => unicode_escape(source),
+        0 if byte == b'u' => {
+            let mut rest = *source;
+            let result = unicode_escape(&mut rest);
+            *source = rest;
+            result
+        }
         0 => Err(EscapeError::Kind(byte)),
         ascii => Ok(char::from(ascii)),
     }
 }
 
 fn run_length(source: &[u8]) -> usize {
-    // Check for how long we can run before hitting an ASCII delimiter, because UTF-8 codepoints are
-    // designed in a way where multi-byte codepoints cannot use ASCII bytes, this is safe, even if
-    // we end up crossing a vector boundary.
-    // We just ask here: _is there any escaping to be done here?_
+    // UTF-8 multi-byte codepoints never contain ASCII bytes. Scanning 16-byte SIMD chunks for
+    // ASCII delimiters stays valid across vector boundaries.
     let mut rest = source;
 
     while let Some((&chunk, tail)) = rest.split_first_chunk::<16>() {
@@ -157,64 +140,303 @@ fn run_length(source: &[u8]) -> usize {
     source.len() - rest.len() + tail
 }
 
-#[inline]
-fn segment<'source>(source: &mut &'source [u8]) -> Result<&'source str, StringError> {
-    let (bytes, rest) = source.split_at(run_length(source));
-    *source = rest;
-
-    bytes.as_ascii().map_or_else(
-        || str::from_utf8(bytes).map_err(StringError::Utf8),
-        |ascii| Ok(ascii.as_str()),
-    )
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum SegmentLocation {
+    AfterEscape,
+    BeforeEscape,
 }
 
 #[inline]
-fn escaped_segment<'source>(source: &mut &'source [u8]) -> Result<&'source str, StringError> {
-    // Escapes can cluster, as in `\r\n`. A short scalar scan can find the next delimiter without
-    // setting up a SIMD search. If it misses, `segment` starts from the same cursor, so the
-    // lookahead limits how many bytes we scan twice.
-    for (length, &byte) in source.iter().take(9).enumerate() {
-        match byte {
-            0..=0x1F | b'"' | b'\\' => {
-                let (run, tail) = source.split_at(length);
-                *source = tail;
+fn next_segment<'source>(source: &mut &'source [u8], location: SegmentLocation) -> &'source [u8] {
+    let length = if location == SegmentLocation::AfterEscape {
+        // Escapes often cluster (such as `\r\n`). A short scalar scan finds the next delimiter
+        // without setting up a SIMD search.
+        let lookahead = &source[..source.len().min(9)];
+        lookahead
+            .iter()
+            .position(|byte| matches!(byte, 0..=0x1F | b'"' | b'\\'))
+            .unwrap_or_else(|| run_length(source))
+    } else {
+        run_length(source)
+    };
 
-                return Ok(run.as_ascii().expect("matched ASCII bytes").as_str());
+    let (head, tail) = source.split_at(length);
+    *source = tail;
+    head
+}
+
+const ASCII_CHARS: [ascii::Char; ascii::Char::MAX as usize + 1] = {
+    let mut table = [ascii::Char::MIN; ascii::Char::MAX as usize + 1];
+    let mut index = 0_u8;
+
+    loop {
+        table[index as usize] = ascii::Char::from_u8(index).expect("index is within ASCII range");
+        if index == ascii::Char::MAX as u8 {
+            break;
+        }
+        index += 1;
+    }
+
+    table
+};
+
+trait Sink<'source> {
+    type Output;
+    type Error;
+
+    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), Self::Error>;
+    fn push_char(&mut self, character: char);
+    fn finish(&mut self) -> Self::Output;
+}
+
+struct DecodeSink<'source>(Cow<'source, str>);
+
+impl DecodeSink<'_> {
+    const fn new() -> Self {
+        Self(Cow::Borrowed(""))
+    }
+}
+
+impl<'source> Sink<'source> for DecodeSink<'source> {
+    type Error = StringError;
+    type Output = Cow<'source, str>;
+
+    fn push_segment(&mut self, bytes: &'source ByteStr) -> Result<(), Self::Error> {
+        if bytes.is_empty() {
+            return Ok(());
+        }
+
+        let segment: &str = bytes.try_into()?;
+        match &mut self.0 {
+            Cow::Borrowed(str @ "") => *str = segment,
+            Cow::Owned(owned) => owned.push_str(segment),
+            Cow::Borrowed(borrowed) => {
+                let mut owned = String::with_capacity(borrowed.len() + segment.len());
+                owned.push_str(borrowed);
+                owned.push_str(segment);
+                self.0 = Cow::Owned(owned);
             }
-            // A non-ASCII byte ends the fast path. Let `segment` validate the run as UTF-8.
-            0x80..=0xFF => break,
-            _ => {}
+        }
+        Ok(())
+    }
+
+    fn push_char(&mut self, character: char) {
+        match &mut self.0 {
+            Cow::Borrowed(str @ "") => {
+                if let Some(ascii) = character.as_ascii() {
+                    *str = ASCII_CHARS[ascii as usize].as_str();
+                } else {
+                    let mut owned = String::with_capacity(character.len_utf8());
+                    owned.push(character);
+                    self.0 = Cow::Owned(owned);
+                }
+            }
+            Cow::Owned(owned) => owned.push(character),
+            Cow::Borrowed(borrowed) => {
+                let mut owned = String::with_capacity(borrowed.len() + character.len_utf8());
+                owned.push_str(borrowed);
+                owned.push(character);
+                self.0 = Cow::Owned(owned);
+            }
         }
     }
 
-    segment(source)
+    fn finish(&mut self) -> Self::Output {
+        mem::take(&mut self.0)
+    }
 }
 
-/// Decodes the bytes after an opening quote, leaving the cursor just past the closing quote.
-pub(super) fn decode<'source>(
-    source: &mut &'source [u8],
-) -> Result<Cow<'source, str>, StringError> {
-    let prefix = segment(source)?;
-    match source.split_off_first() {
-        Some(b'"') => return Ok(Cow::Borrowed(prefix)),
-        Some(b'\\') => {}
-        Some(_) => return Err(StringError::Control),
-        None => return Err(StringError::Eof),
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub(crate) enum StringEscapes {
+    #[default]
+    Verbatim,
+    Escaped,
+}
+
+impl StringEscapes {
+    /// Decodes a validated string body including its closing `"` after the opening `"`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `body` is not a valid JSON string body ending in `"`.
+    #[expect(
+        clippy::string_slice,
+        reason = "validated string bodies always end with an ASCII closing quote"
+    )]
+    #[inline]
+    pub(crate) fn decode(self, body: &str) -> Cow<'_, str> {
+        match self {
+            Self::Verbatim => Cow::Borrowed(&body[..body.len() - 1]),
+            Self::Escaped => scan(DecodeSink::new(), &mut body.as_bytes())
+                .expect("validated string passed validation on construction"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Default)]
+struct ValidationSink {
+    escapes: StringEscapes,
+}
+
+impl Sink<'_> for ValidationSink {
+    type Error = StringSyntaxError;
+    type Output = StringEscapes;
+
+    fn push_segment(&mut self, _bytes: &ByteStr) -> Result<(), Self::Error> {
+        Ok(())
     }
 
-    let mut decoded = String::from(prefix);
-    loop {
-        let escaped = escape(source).map_err(StringError::Escape)?;
-        decoded.push(escaped);
+    fn push_char(&mut self, _character: char) {
+        self.escapes = StringEscapes::Escaped;
+    }
 
-        // We have just hit an escaped character, we're likely to hit another one.
-        decoded.push_str(escaped_segment(source)?);
+    fn finish(&mut self) -> Self::Output {
+        self.escapes
+    }
+}
+
+#[inline(never)]
+fn scan_escaped<'source, S>(
+    mut sink: S,
+    mut source: &'source [u8],
+) -> (Result<S::Output, S::Error>, &'source [u8])
+where
+    S: Sink<'source>,
+    S::Error: From<StringSyntaxError>,
+{
+    loop {
+        let escaped = match escape(&mut source) {
+            Ok(character) => character,
+            Err(error) => return (Err(StringSyntaxError::Escape(error).into()), source),
+        };
+        sink.push_char(escaped);
+
+        let segment = next_segment(&mut source, SegmentLocation::AfterEscape);
+        if let Err(error) = sink.push_segment(ByteStr::new(segment)) {
+            return (Err(error), source);
+        }
 
         match source.split_off_first() {
-            Some(b'"') => return Ok(Cow::Owned(decoded)),
+            Some(b'"') => return (Ok(sink.finish()), source),
             Some(b'\\') => {}
-            Some(_) => return Err(StringError::Control),
-            None => return Err(StringError::Eof),
+            Some(_) => return (Err(StringSyntaxError::Control.into()), source),
+            None => return (Err(StringSyntaxError::Eof.into()), source),
         }
+    }
+}
+
+#[inline]
+fn scan<'source, S>(mut sink: S, source: &mut &'source [u8]) -> Result<S::Output, S::Error>
+where
+    S: Sink<'source>,
+    S::Error: From<StringSyntaxError>,
+{
+    let prefix = next_segment(source, SegmentLocation::BeforeEscape);
+    match source.first() {
+        Some(b'"') => {
+            sink.push_segment(ByteStr::new(prefix))?;
+            *source = &source[1..];
+            return Ok(sink.finish());
+        }
+        Some(b'\\') => {}
+        Some(_) => {
+            sink.push_segment(ByteStr::new(prefix))?;
+            *source = &source[1..];
+            return Err(StringSyntaxError::Control.into());
+        }
+        None => {
+            sink.push_segment(ByteStr::new(prefix))?;
+            return Err(StringSyntaxError::Eof.into());
+        }
+    }
+
+    sink.push_segment(ByteStr::new(prefix))?;
+    let (result, tail) = scan_escaped(sink, &source[1..]);
+    *source = tail;
+    result
+}
+
+#[expect(
+    clippy::string_slice,
+    reason = "compute_error_span aligns error spans to UTF-8 character boundaries"
+)]
+#[cold]
+#[inline(never)]
+fn validated_error(source: &str, rest_len: usize, kind: StringSyntaxError) -> ValidatedStringError {
+    let end = source.len() - rest_len;
+    let span = compute_error_span(source, end, kind);
+    let tail = recover_to_closing_quote(&source[span.end..]);
+    let consumed = source.len() - tail.len();
+
+    ValidatedStringError {
+        kind,
+        span,
+        consumed,
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct LexedStr {
+    consumed: usize,
+    escapes: StringEscapes,
+}
+
+impl LexedStr {
+    /// Validates a UTF-8 JSON string body after its opening `"` without allocating.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ValidatedStringError`] for the first lexical failure with a UTF-8
+    /// character-boundary span and `consumed` covering bytes through the recovery closing `"`
+    /// (or EOF).
+    #[inline]
+    pub(crate) fn new(source: &str) -> Result<Self, ValidatedStringError> {
+        let mut rest = source.as_bytes();
+        match scan(ValidationSink::default(), &mut rest) {
+            Ok(escapes) => Ok(Self {
+                consumed: source.len() - rest.len(),
+                escapes,
+            }),
+            Err(kind) => Err(validated_error(source, rest.len(), kind)),
+        }
+    }
+
+    #[inline]
+    pub(crate) const fn consumed(self) -> usize {
+        self.consumed
+    }
+
+    #[inline]
+    pub(crate) const fn escapes(self) -> StringEscapes {
+        self.escapes
+    }
+}
+
+/// Decodes a quoted JSON string token (`"..."`), borrowing directly when no escapes appear.
+///
+/// # Errors
+///
+/// Returns [`StringError`] if `quoted` is not a valid JSON string literal.
+#[expect(
+    clippy::string_slice,
+    reason = "run_length stops at ASCII closing quote, which is always a UTF-8 boundary"
+)]
+#[inline]
+pub(crate) fn decode_quoted(quoted: &str) -> Result<Cow<'_, str>, StringError> {
+    let Some(rest) = quoted.strip_prefix('"') else {
+        return Err(StringError::Eof);
+    };
+
+    let mut bytes = rest.as_bytes();
+    let len = run_length(bytes);
+    if bytes.get(len) == Some(&b'"') && len + 1 == bytes.len() {
+        return Ok(Cow::Borrowed(&rest[..len]));
+    }
+
+    let decoded = scan(DecodeSink::new(), &mut bytes)?;
+    if bytes.is_empty() {
+        Ok(decoded)
+    } else {
+        Err(StringError::Eof)
     }
 }

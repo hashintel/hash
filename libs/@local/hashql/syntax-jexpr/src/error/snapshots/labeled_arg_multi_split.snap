@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"fn\", {\":a\": \"x\", \":b\": \"y\"}]"
+---
+error[jexpr::parser::array::labeled-argument-length-mismatch]: Invalid number of labeled arguments
+  ╭▸ 
+1 │ ["fn", {":a": "x", ":b": "y"}]
+  │         ┬────────  ━━━━━━━━━ expected 1 labeled argument per object, found 2
+  │         │
+  │         first labeled argument here
+  │
+  ╰ note: labeled arguments use `{":label": value}` (one entry per object) or shorthand `":label"`
+help: place each labeled argument in its own object
+  ╭╴
+1 - ["fn", {":a": "x", ":b": "y"}]
+1 + ["fn", {":a": "x"}, {":b": "y"}]
+  ╰╴

@@ -23,6 +23,7 @@
     const_convert,
     const_destruct,
     const_index,
+    const_iter,
     const_ops,
     const_range,
     const_range_bounds,
