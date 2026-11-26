@@ -30,7 +30,7 @@ use super::{
 use crate::{
     context::HirContext,
     intern::Interner,
-    node::{data::Data, kind::NodeKind, modname::Value},
+    node::{Value, data::Data, kind::NodeKind},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -193,7 +193,7 @@ fn value_all_data_constructors() {
         }),
     });
 
-    let hir_value = modname::Value::from_ast_in(value, &mut context, Scratch::new())
+    let hir_value = Value::from_ast_in(value, &mut context, Scratch::new())
         .expect("valid compound value must reify")
         .value;
 

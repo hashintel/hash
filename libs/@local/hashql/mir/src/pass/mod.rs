@@ -24,7 +24,7 @@ use core::{
 };
 
 use hashql_core::{
-    heap::{Heap, PhaseAllocator, ResetAllocator as _, Scratch},
+    heap::{Heap, PhaseAllocator, ResetAllocator as _, ScopeAllocator, Scratch},
     span::SpanId,
 };
 use hashql_diagnostics::Status;
@@ -508,27 +508,31 @@ pub struct LowerConfig {
 /// Returns `Err` if any pass emits a critical diagnostic (`Error` or `Bug`
 /// severity). This indicates a compiler invariant violation, since transform
 /// passes operate on well-typed, well-formed MIR.
-pub fn lower<'heap>(
+pub fn lower<'heap, 'alloc, S>(
     context: &mut MirContext<'_, 'heap>,
-    scratch: &mut Scratch,
+    mut scratch: S,
     bodies: &mut DefIdSlice<Body<'heap>>,
     config: &LowerConfig,
-) -> Status<(), MirDiagnosticCategory, SpanId> {
-    scratch.reset();
-
+) -> Status<(), MirDiagnosticCategory, SpanId>
+where
+    S: ScopeAllocator<'alloc>,
+{
     let mut state = GlobalTransformState::new_in(&*bodies, context.heap);
 
-    let mut pass = PreInline::new_in(scratch.as_mut_scope());
-    let _: Changed = pass.run(context, &mut state, bodies);
-    scratch.reset();
+    scratch.scoped(|scope| {
+        let mut pass = PreInline::new_in(scope);
+        let _: Changed = pass.run(context, &mut state, bodies);
+    });
 
-    let mut pass = Inline::new_in(config.inline, &*scratch);
-    let _: Changed = pass.run(context, &mut state, bodies);
-    scratch.reset();
+    scratch.scoped(|scope| {
+        let mut pass = Inline::new_in(config.inline, &scope);
+        let _: Changed = pass.run(context, &mut state, bodies);
+    });
 
-    let mut pass = PostInline::new_in(scratch.as_mut_scope());
-    let _: Changed = pass.run(context, &mut state, bodies);
-    scratch.reset();
+    scratch.scoped(|scope| {
+        let mut pass = PostInline::new_in(scope);
+        let _: Changed = pass.run(context, &mut state, bodies);
+    });
 
     let issues = mem::take(&mut context.diagnostics);
     issues.into_status(())
@@ -553,30 +557,35 @@ pub fn lower<'heap>(
 /// or target construction.
 ///
 /// [`GraphReadFilter`]: crate::body::Source::GraphReadFilter
-pub fn place<'heap>(
+pub fn place<'heap, 'alloc, S>(
     context: &mut MirContext<'_, 'heap>,
-    scratch: &mut Scratch,
+    mut scratch: S,
     bodies: &mut DefIdSlice<Body<'heap>>,
 ) -> Status<
     DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
     MirDiagnosticCategory,
     SpanId,
-> {
-    scratch.reset();
-
+>
+where
+    S: ScopeAllocator<'alloc>,
+{
     let heap = context.heap;
 
-    let mut pass = SizeEstimationAnalysis::new_in(&*scratch);
-    pass.run(context, bodies);
-    let footprints = pass.finish();
-    scratch.reset();
+    let footprints = scratch.scoped(|scope| {
+        let mut pass = SizeEstimationAnalysis::new_in(&scope);
+        pass.run(context, bodies);
 
-    let pass = ExecutionAnalysis {
-        footprints: &footprints,
-        scratch: &*scratch,
-    };
-    let residual = pass.run_all_in(context, bodies, heap);
-    scratch.reset();
+        pass.finish()
+    });
+
+    let residual = scratch.scoped(|scope| {
+        let pass = ExecutionAnalysis {
+            footprints: &footprints,
+            scratch: &scope,
+        };
+
+        pass.run_all_in(context, bodies, heap)
+    });
 
     let issues = mem::take(&mut context.diagnostics);
     issues.into_status(residual)

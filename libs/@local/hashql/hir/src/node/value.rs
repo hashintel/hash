@@ -1,5 +1,5 @@
 use hashql_core::{
-    heap::{PhaseAllocator, ScopeAllocator},
+    heap::{PhaseAllocator as _, ScopeAllocator},
     r#type::{
         self, TypeId,
         environment::LatticeEnvironment,
@@ -85,11 +85,11 @@ impl<'heap> Value<'heap> {
             NodeKind::Data(data::Data::Tuple(data::Tuple { fields })) => {
                 let out = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
 
-                let (fields, rest) = out.write_iter(fields.iter().map(|&field| {
-                    let r#type = scratch.scoped(|scope| Self(field).r#type(env, scope));
-
-                    r#type
-                }));
+                let (fields, rest) = out.write_iter(
+                    fields
+                        .iter()
+                        .map(|&field| scratch.scoped(|scope| Self(field).r#type(env, scope))),
+                );
                 debug_assert!(rest.is_empty());
 
                 let fields = env.intern_type_ids(fields);
@@ -167,7 +167,7 @@ impl<'heap> Value<'heap> {
     }
 
     pub(crate) fn is_subtype_of<'alloc, S>(
-        &self,
+        self,
         env: &mut LatticeEnvironment<'_, 'heap>,
         r#type: TypeId,
         scratch: S,

@@ -367,20 +367,12 @@ impl<C, S> Failure<C, S> {
 /// ```
 pub type Status<T, C, S> = Result<Success<T, C, S>, Failure<C, S>>;
 
-mod sealed {
-    use super::Status;
-
-    pub trait Sealed {}
-
-    impl<T, C, S> Sealed for Status<T, C, S> {}
-}
-
 /// Extension trait providing diagnostic-aware operations for [`Status`].
 ///
 /// This trait provides methods for creating, manipulating, and converting [`Status`] values while
 /// maintaining proper diagnostic handling semantics. The trait ensures that fatal diagnostics are
 /// always promoted to the error variant while non-fatal diagnostics are accumulated appropriately.
-pub trait StatusExt<T, C, S>: sealed::Sealed {
+pub impl(self) trait StatusExt<T, C, S> {
     /// The type returned by [`boxed`](StatusExt::boxed).
     type Boxed<'category>: StatusExt<T, Box<dyn DiagnosticCategory + 'category>, S>
     where
@@ -1061,4 +1053,47 @@ impl<T, C, S> IntoStatus<T, C, S> for Result<T, Diagnostic<C, S, Critical>> {
             Err(primary) => Status::failure(primary),
         }
     }
+}
+
+pub impl(self) trait IteratorStatusExt:
+    Iterator<Item = Status<Self::Value, Self::Category, Self::Severity>>
+{
+    type Value;
+    type Category;
+    type Severity;
+
+    fn collect_status<C>(self) -> Status<C, Self::Category, Self::Severity>
+    where
+        C: Default + Extend<Self::Value>,
+        Self: Sized,
+    {
+        let mut result = Status::success(C::default());
+
+        for item in self {
+            // We deliberately don't short-circuit here so that we're able to collect all errors
+            match Status::zip(result, item) {
+                Ok(Success {
+                    value: (mut out, value),
+                    advisories,
+                }) => {
+                    out.extend([value]);
+                    result = Ok(Success {
+                        value: out,
+                        advisories,
+                    });
+                }
+                Err(failure) => {
+                    result = Err(failure);
+                }
+            }
+        }
+
+        result
+    }
+}
+
+impl<I: Iterator<Item = Status<T, C, S>> + ?Sized, T, C, S> IteratorStatusExt for I {
+    type Category = C;
+    type Severity = S;
+    type Value = T;
 }

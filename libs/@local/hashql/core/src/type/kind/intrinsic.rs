@@ -248,6 +248,9 @@ impl<'heap> Inference<'heap> for ListType {
 ///
 /// 1. **Hash Consistency**: Different types may have different hashing algorithms
 /// 2. **Lookup Correctness**: Allowing substitution of key types could lead to failed lookups
+///
+/// Neither applies to a dictionary whose key type is uninhabited, because it has no entries. Such a
+/// dictionary is a subtype of a dictionary with any key type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct DictType {
     pub key: TypeId,
@@ -473,7 +476,10 @@ impl<'heap> Lattice<'heap> for DictType {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        env.is_subtype_of(Variance::Invariant, self.kind.key, supertype.kind.key)
+        // A dict with an uninhabited key type has no entries, and invariance only protects lookups
+        // of entries.
+        (env.is_bottom(self.kind.key)
+            || env.is_subtype_of(Variance::Invariant, self.kind.key, supertype.kind.key))
             && env.is_subtype_of(Variance::Covariant, self.kind.value, supertype.kind.value)
     }
 

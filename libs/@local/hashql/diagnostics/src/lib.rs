@@ -10,6 +10,7 @@
 
     // Library Features
     variant_count,
+    impl_restriction
 )]
 
 extern crate alloc;
@@ -31,5 +32,5 @@ pub use self::{
     issues::{DiagnosticIssues, DiagnosticSink},
     severity::Severity,
     source::{Source, Sources},
-    status::{Failure, IntoStatus, Status, StatusExt, Success},
+    status::{Failure, IntoStatus, IteratorStatusExt, Status, StatusExt, Success},
 };

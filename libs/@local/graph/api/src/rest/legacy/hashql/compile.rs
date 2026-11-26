@@ -1,13 +1,13 @@
 use hash_graph_authorization::policies::action::ActionName;
 use hashql_ast::{error::AstDiagnosticCategory, node::expr::Expr};
 use hashql_core::{
-    heap::{self, Heap, ResetAllocator as _, Scratch},
+    heap::{self, Heap, ResetAllocator as _, ScopeAllocator, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     symbol::sym,
     r#type::environment::Environment,
 };
-use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _, Success};
+use hashql_diagnostics::{DiagnosticIssues, IteratorStatusExt, Status, StatusExt as _, Success};
 use hashql_eval::{
     context::{CodeExecutionContext, CodeGenerationContext},
     postgres::{PostgresCompiler, PreparedQueries},
@@ -72,9 +72,12 @@ impl<'heap> Compilation<'heap> {
         stacker::maybe_grow(COMPILE_STACK_RED_ZONE, COMPILE_STACK_SIZE, || {
             let mut parser =
                 hashql_syntax_jexpr::Parser::new(heap, spans, ParserOptions::default());
-            let (parsed, pointers) = parser.parse_expr_with_pointers_in(source, &*scratch);
-            scratch.reset();
-            let status = Self::compile_parsed(heap, scratch, parsed);
+
+            let (parsed, pointers) = scratch
+                .as_mut_scope()
+                .scoped(|scope| parser.parse_expr_with_pointers_in(source, &scope));
+
+            let status = Self::compile_parsed(heap, scratch, parsed, Status::success(Vec::new()));
             (status, pointers)
         })
     }
@@ -84,11 +87,14 @@ impl<'heap> Compilation<'heap> {
         heap: &'heap Heap,
         scratch: &mut Scratch,
         parsed: Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
+        inputs: Status<Vec<hashql_ast::node::value::Value<'heap>>, JExprDiagnosticCategory, SpanId>,
     ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
+        let scope = scratch.as_mut_scope();
+
         let Success {
-            value: mut ast,
+            value: (mut ast, inputs),
             advisories,
-        } = parsed.map_category(HashQlDiagnosticCategory::JExpr)?;
+        } = Status::zip(parsed, inputs).map_category(HashQlDiagnosticCategory::JExpr)?;
 
         let root_span = ast.span;
 
@@ -99,32 +105,39 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: types,
             advisories,
-        } = hashql_ast::lower::lower(
-            sym::path::main,
-            &mut ast,
-            &env,
-            &modules,
-            scratch.as_mut_scope(),
-        )
-        .map_category(|category| {
-            HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
-        })
-        .with_diagnostics(advisories)?;
-        scratch.reset();
+        } = scope
+            .scoped(|scope| {
+                hashql_ast::lower::lower(sym::path::main, &mut ast, &env, &modules, scope)
+            })
+            .map_category(|category| {
+                HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
+            })
+            .with_diagnostics(advisories)?;
 
         let interner = hashql_hir::intern::Interner::new(heap);
         let mut hir_context = hashql_hir::context::HirContext::new(&interner, &modules);
 
-        // Reify the HIR from the AST
+        // Reify the HIR from the AST (value)
+        let value_status = scope.scoped(|scope| {
+            hashql_hir::node::NodeData::from_ast_in(ast, &mut hir_context, &types, scope)
+        });
+        let inputs_status = inputs
+            .into_iter()
+            .map(|input| {
+                scope.scoped(|scope| {
+                    hashql_hir::node::Value::from_ast_in(input, &mut hir_context, scope)
+                })
+            })
+            .collect_status::<Vec<_>>();
+
         let Success {
-            value: hir,
+            value: (hir, inputs),
             advisories,
-        } = hashql_hir::node::NodeData::from_ast_in(ast, &mut hir_context, &types, &*scratch)
+        } = Status::zip(value_status, inputs_status)
             .map_category(|category| {
                 HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })
             .with_diagnostics(advisories)?;
-        scratch.reset();
 
         // Lower the HIR
         let Success {
@@ -135,6 +148,8 @@ impl<'heap> Compilation<'heap> {
                 HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
             })
             .with_diagnostics(advisories)?;
+
+        // now that we're HIR (pun intended), endure that the inputs have the correct subtypes.
 
         let interner = hashql_mir::intern::Interner::new(heap);
         let mut bodies = DefIdVec::new_in(heap);
@@ -162,47 +177,49 @@ impl<'heap> Compilation<'heap> {
             .with_diagnostics(advisories)?;
         scratch.reset();
 
+        let scope = scratch.as_mut_scope();
+
         // Lower the MIR
         let Success {
             value: (),
             advisories,
-        } = hashql_mir::pass::lower(
-            &mut mir_context,
-            scratch,
-            &mut bodies,
-            &LowerConfig::default(),
-        )
-        .map_category(HashQlDiagnosticCategory::Mir)
-        .with_diagnostics(advisories)?;
+        } = scope
+            .scoped(|scope| {
+                hashql_mir::pass::lower(
+                    &mut mir_context,
+                    scope,
+                    &mut bodies,
+                    &LowerConfig::default(),
+                )
+            })
+            .map_category(HashQlDiagnosticCategory::Mir)
+            .with_diagnostics(advisories)?;
 
         // Plan the execution
         let Success {
             value: execution,
             advisories,
-        } = hashql_mir::pass::place(&mut mir_context, scratch, &mut bodies)
+        } = scope
+            .scoped(|scope| hashql_mir::pass::place(&mut mir_context, scope, &mut bodies))
             .map_category(HashQlDiagnosticCategory::Mir)
             .with_diagnostics(advisories)?;
 
         // Build the postgres artifacts
         let interner = interner.into();
-        let mut context = CodeGenerationContext::new_in(
-            &env,
-            &interner,
-            &bodies,
-            &execution,
-            heap,
-            scratch.as_mut_scope(),
-        );
+        let mut context =
+            CodeGenerationContext::new_in(&env, &interner, &bodies, &execution, heap, scope);
 
-        let mut postgres = PostgresCompiler::new_in(&mut context, scratch.as_mut_scope());
-        let queries = postgres.compile();
-        scratch.reset();
+        let queries = scope.scoped(|scope| {
+            let mut postgres = PostgresCompiler::new_in(&mut context, scope);
+            postgres.compile()
+        });
 
         let mut actions = heap::Vec::new_in(heap);
         for query in queries.iter() {
             let action = match query.vertex_type {
                 VertexType::Entity => ActionName::ViewEntity,
             };
+
             actions.push(action);
         }
 
