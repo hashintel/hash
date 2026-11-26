@@ -2,6 +2,11 @@
 
 #[cfg_attr(
     not(test),
-    expect(dead_code, reason = "the SQL steps are the first caller")
+    expect(dead_code, reason = "Prepare's entry is the first caller")
+)]
+mod pipeline;
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "Prepare's entry is the first caller")
 )]
 mod workspace;
