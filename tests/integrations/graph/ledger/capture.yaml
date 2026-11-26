@@ -1,0 +1,4 @@
+# The DuckDB query that captures each table of the aviation definition, by the table's name.
+# `$FIXTURES` stands for the folder of this file.
+aircraft: SELECT * FROM read_csv('$FIXTURES/aircraft.csv', all_varchar = true)
+airfields: SELECT * FROM read_csv('$FIXTURES/airfields.csv', all_varchar = true)

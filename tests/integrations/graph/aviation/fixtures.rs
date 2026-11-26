@@ -22,14 +22,41 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
+/// Data, property and entity types to add to a Graph.
 #[derive(Deserialize)]
-struct OntologyFixture {
+pub(super) struct OntologyFixture {
     #[serde(rename = "dataTypes")]
     data: Vec<DataType>,
     #[serde(rename = "propertyTypes")]
     properties: Vec<PropertyType>,
     #[serde(rename = "entityTypes")]
     entities: Vec<EntityType>,
+}
+
+impl OntologyFixture {
+    /// The aviation types of `ontology.json`.
+    pub(super) fn aviation() -> Self {
+        serde_json::from_str(include_str!("ontology.json"))
+            .expect("the aviation ontology should be valid")
+    }
+
+    /// Adds the Block Protocol types the aviation types build on, for a Graph that has none.
+    fn with_primitives(mut self) -> Self {
+        self.data.extend(
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ]
+            .map(|schema| {
+                serde_json::from_str(schema).expect("the primitive schema should be valid")
+            }),
+        );
+        self.entities.push(
+            serde_json::from_str(entity_type::LINK_V1).expect("the link schema should be valid"),
+        );
+        self
+    }
 }
 
 pub(super) async fn seed(store: &mut PostgresStore<PooledConnection>) -> (ActorId, WebId) {
@@ -72,24 +99,23 @@ pub(super) async fn seed(store: &mut PostgresStore<PooledConnection>) -> (ActorI
         )
         .await
         .expect("the machine should administer the aviation web");
-    seed_ontology(store, actor, web_id).await;
+    seed_ontology(
+        store,
+        actor,
+        web_id,
+        OntologyFixture::aviation().with_primitives(),
+    )
+    .await;
     (actor, web_id)
 }
 
-async fn seed_ontology(store: &mut PostgresStore<PooledConnection>, actor: ActorId, web_id: WebId) {
-    let mut ontology: OntologyFixture = serde_json::from_str(include_str!("ontology.json"))
-        .expect("the aviation ontology should be valid");
-    ontology.data.extend(
-        [
-            data_type::VALUE_V1,
-            data_type::TEXT_V1,
-            data_type::NUMBER_V1,
-        ]
-        .map(|schema| serde_json::from_str(schema).expect("the primitive schema should be valid")),
-    );
-    ontology
-        .entities
-        .push(serde_json::from_str(entity_type::LINK_V1).expect("the link schema should be valid"));
+/// Adds `ontology` to `web_id`, owned by it, as `actor`. Types the Graph has already are kept.
+pub(super) async fn seed_ontology(
+    store: &mut PostgresStore<PooledConnection>,
+    actor: ActorId,
+    web_id: WebId,
+    ontology: OntologyFixture,
+) {
     let provenance = ProvidedOntologyEditionProvenance {
         actor_type: actor.actor_type(),
         origin: OriginProvenance::from_empty_type(OriginType::Api),
