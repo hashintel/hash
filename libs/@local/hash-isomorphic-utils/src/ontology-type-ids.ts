@@ -30,13 +30,13 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/batch/" as BaseUrl,
   },
   billOfMaterials: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/bill-of-materials/v/2",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/bill-of-materials/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/bill-of-materials/" as BaseUrl,
   },
   billOfMaterialsItem: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/2",
+      "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/bill-of-materials-item/" as BaseUrl,
   },
@@ -2114,7 +2114,7 @@ export const systemPropertyTypes = {
   },
   scrapPercentage: {
     propertyTypeId:
-      "https://hash.ai/@h/types/property-type/scrap-percentage/v/1",
+      "https://hash.ai/@h/types/property-type/scrap-percentage/v/2",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/scrap-percentage/" as BaseUrl,
   },
