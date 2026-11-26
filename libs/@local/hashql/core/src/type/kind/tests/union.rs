@@ -965,6 +965,26 @@ fn simplify_with_subtypes() {
 }
 
 #[test]
+fn simplify_with_subtype_first() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    // The subtype is created first and has the smaller id
+    let integer = primitive!(env, PrimitiveType::Integer);
+    let number = primitive!(env, PrimitiveType::Number);
+    union!(env, union_type, [integer, number]);
+
+    let mut simplify_env = SimplifyEnvironment::new(&env);
+
+    let result = union_type.simplify(&mut simplify_env);
+
+    assert_matches!(
+        *env.r#type(result).kind,
+        TypeKind::Primitive(PrimitiveType::Number)
+    );
+}
+
+#[test]
 fn simplify_with_equivalent_variants() {
     let heap = Heap::new();
     let env = Environment::new(&heap);

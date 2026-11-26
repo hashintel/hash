@@ -3,8 +3,9 @@ use core::ops::ControlFlow;
 use bitvec::bitvec;
 use smallvec::SmallVec;
 
-use super::TypeKind;
+use super::{TypeKind, VariantId};
 use crate::{
+    id::{IdSlice, bit_vec::DenseBitSet},
     intern::Interned,
     span::SpanId,
     symbol::Ident,
@@ -635,22 +636,32 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             }
         }
 
-        // Drop supertypes of other variants
-        let backup = variants.clone();
-        variants.retain(|&supertype| {
-            // keep `supertype` only if it is not a supertype of any other variant
-            !backup.iter().any(|&subtype| {
-                if subtype == supertype
-                    || !env.is_subtype_of(Variance::Covariant, subtype, supertype)
-                {
-                    return false;
+        // Drop every variant that is a supertype of another variant. The variants are sorted, of
+        // two that are supertypes of each other the earlier one stays.
+        let candidates = IdSlice::<VariantId, _>::from_raw(&variants);
+        let mut redundant = DenseBitSet::new_empty(candidates.len());
+
+        for later in candidates.ids() {
+            for earlier in candidates.prefix(later).ids() {
+                if redundant.contains(earlier) {
+                    // whatever would make `earlier` redundant is a supertype of the variant that
+                    // makes `earlier` redundant as well
+                    continue;
                 }
 
-                // of two variants that are supertypes of each other, the one with the smaller id
-                // stays
-                supertype > subtype || !env.is_subtype_of(Variance::Covariant, supertype, subtype)
-            })
-        });
+                if env.is_subtype_of(Variance::Covariant, candidates[earlier], candidates[later]) {
+                    redundant.insert(later);
+                    break;
+                }
+
+                if env.is_subtype_of(Variance::Covariant, candidates[later], candidates[earlier]) {
+                    redundant.insert(earlier);
+                }
+            }
+        }
+
+        let mut ids = candidates.ids();
+        variants.retain(|_| ids.next().is_some_and(|id| !redundant.contains(id)));
 
         match variants.as_slice() {
             [] => env.intern_provisioned(

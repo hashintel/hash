@@ -3,8 +3,9 @@ use core::{debug_assert_matches, ops::ControlFlow};
 use bitvec::bitvec;
 use smallvec::SmallVec;
 
-use super::TypeKind;
+use super::{TypeKind, VariantId};
 use crate::{
+    id::{IdSlice, bit_vec::DenseBitSet},
     intern::Interned,
     span::SpanId,
     symbol::Ident,
@@ -651,22 +652,32 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         // TODO: in the future we might want to consider collapse via constructor-merge, turning
         // any: `List<T> | List<U>` into `List<T | U>`.
 
-        // Collapse via subsumption
-        let backup = variants.clone();
-        variants.retain(|&subtype| {
-            // keep v only if it is *not* a subtype of any other distinct u
-            !backup.iter().any(|&supertype| {
-                if subtype == supertype
-                    || !env.is_subtype_of(Variance::Covariant, subtype, supertype)
-                {
-                    return false;
+        // Collapse via subsumption: drop every variant that is a subtype of another variant. The
+        // variants are sorted, of two that are subtypes of each other the earlier one stays.
+        let candidates = IdSlice::<VariantId, _>::from_raw(&variants);
+        let mut subsumed = DenseBitSet::new_empty(candidates.len());
+
+        for later in candidates.ids() {
+            for earlier in candidates.prefix(later).ids() {
+                if subsumed.contains(earlier) {
+                    // whatever `earlier` would subsume is a subtype of the variant that subsumes
+                    // `earlier` as well
+                    continue;
                 }
 
-                // of two variants that are subtypes of each other, the one with the smaller id
-                // stays
-                subtype > supertype || !env.is_subtype_of(Variance::Covariant, supertype, subtype)
-            })
-        });
+                if env.is_subtype_of(Variance::Covariant, candidates[later], candidates[earlier]) {
+                    subsumed.insert(later);
+                    break;
+                }
+
+                if env.is_subtype_of(Variance::Covariant, candidates[earlier], candidates[later]) {
+                    subsumed.insert(earlier);
+                }
+            }
+        }
+
+        let mut ids = candidates.ids();
+        variants.retain(|_| ids.next().is_some_and(|id| !subsumed.contains(id)));
 
         // Collapse empty or singleton
         match variants.as_slice() {
