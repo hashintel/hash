@@ -247,3 +247,76 @@ pub(crate) fn fat_call_on_constant(span: SpanId) -> ReifyDiagnostic {
 
     diagnostic
 }
+
+// Synthetic body diagnostics
+
+/// ICE: monomorphized closure type has wrong parameter count for a synthetic binary
+/// operation body.
+#[coverage(off)]
+pub(crate) fn synthetic_binary_arity_mismatch(
+    span: SpanId,
+    name: Symbol<'_>,
+    actual_params: usize,
+) -> ReifyDiagnostic<Critical> {
+    let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::TypeInvariant, Critical::BUG)
+        .primary(Label::new(
+            span,
+            format!("monomorphized type of `{name}` has {actual_params} parameters, expected 2"),
+        ));
+
+    diagnostic.add_message(Message::note(
+        "binary operations require exactly 2 parameters after monomorphization",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "type checking should have ensured the correct arity before reification",
+    ));
+
+    diagnostic
+}
+
+/// ICE: monomorphized closure type has wrong parameter count for a synthetic unary
+/// operation body.
+#[coverage(off)]
+pub(crate) fn synthetic_unary_arity_mismatch(
+    span: SpanId,
+    name: Symbol<'_>,
+    actual_params: usize,
+) -> ReifyDiagnostic<Critical> {
+    let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::TypeInvariant, Critical::BUG)
+        .primary(Label::new(
+            span,
+            format!("monomorphized type of `{name}` has {actual_params} parameters, expected 1"),
+        ));
+
+    diagnostic.add_message(Message::note(
+        "unary operations require exactly 1 parameter after monomorphization",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "type checking should have ensured the correct arity before reification",
+    ));
+
+    diagnostic
+}
+
+/// Intrinsic cannot be used as a first-class value.
+pub(crate) fn intrinsic_not_first_class(
+    span: SpanId,
+    name: Symbol<'_>,
+) -> ReifyDiagnostic<Critical> {
+    let mut diagnostic =
+        Diagnostic::new(ReifyDiagnosticCategory::UnsupportedFeature, Critical::ERROR).primary(
+            Label::new(span, format!("`{name}` cannot be used as a value")),
+        );
+
+    diagnostic.add_message(Message::note(format!(
+        "`{name}` is a syntactic form that is only valid at a call site"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "call this intrinsic directly instead of passing it as an argument",
+    ));
+
+    diagnostic
+}
