@@ -3,7 +3,7 @@
  * @role The frame layout and the readers hosts use to inspect one frame
  */
 
-import { readTokenRecord } from "../engine/token-layout";
+import { readTokenRecord } from "../../tokens/token-layout";
 import {
   createEngineFrameLayout,
   readEngineFrame,
@@ -11,9 +11,9 @@ import {
   type EngineFrameLayout,
 } from "./internal-frame";
 
+import type { StringPoolReader } from "../../tokens/token-layout";
 import type { SDCPN, TokenRecord } from "../../types/sdcpn";
 import type { SimulationFrameReader, SimulationFrameState } from "../api";
-import type { StringPoolReader } from "../engine/token-layout";
 
 function createSimulationFrameReader(
   layout: EngineFrameLayout,
@@ -87,8 +87,8 @@ function createSimulationFrameReader(
 /**
  * Compiles the SDCPN's frame layout once and returns a per-frame reader
  * factory. `stringPool` is required to decode `string` token elements (the
- * frame stores pool references, not the strings) — the frame store passes an
- * accessor over its accumulated main-thread pool copy.
+ * frame stores pool references, not the strings): the event trace store
+ * passes an accessor over its accumulated main-thread pool copy.
  */
 export function compileSimulationFrameReader(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,

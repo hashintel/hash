@@ -30,6 +30,18 @@
         "petrinaut-optimizer-core"
       ]
     },
+    "build:storybook": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
     "dev": {
       "dependsOn": [
         "@hashintel/ds-components#build",

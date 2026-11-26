@@ -1,7 +1,12 @@
 import { useRef, useState } from "react";
 
-import { linkEnd } from "../../../canvas-scene";
+import { linkEnd, type CanvasLinkEndName } from "../../../canvas-scene";
 import { toCanvasConnection, type FlowConnection } from "./port-handles";
+import {
+  fusionItemOf,
+  type CanvasEdgeType,
+  type NodeType,
+} from "./react-flow-types";
 
 import type {
   CanvasInteractions,
@@ -10,7 +15,7 @@ import type {
 import type { IsValidConnection, ReactFlowProps } from "@xyflow/react";
 
 type ReconnectProps = Pick<
-  ReactFlowProps,
+  ReactFlowProps<NodeType, CanvasEdgeType>,
   "onReconnect" | "onReconnectStart" | "onReconnectEnd"
 >;
 
@@ -29,16 +34,19 @@ const endedOnPane = (event: MouseEvent | TouchEvent): boolean => {
   );
 };
 
-type MovingEnd = Pick<CanvasLinkRewire, "linkId" | "end">;
+type MovingEnd = Pick<CanvasLinkRewire, "fusionId" | "from"> & {
+  end: CanvasLinkEndName;
+};
 
 // React Flow builds the connection around the end that stays, so the end
 // dropped has the name of the end picked up.
 const rewireOnto = (
-  moving: MovingEnd,
+  { fusionId, from, end }: MovingEnd,
   connection: FlowConnection,
 ): CanvasLinkRewire => ({
-  ...moving,
-  onto: linkEnd(toCanvasConnection(connection), moving.end),
+  fusionId,
+  from,
+  onto: linkEnd(toCanvasConnection(connection), end),
 });
 
 /**
@@ -55,7 +63,15 @@ const rewireOnto = (
  * moved end by other rules than to a new connection.
  */
 export const useLinkRewiring = (
-  interactions: CanvasInteractions,
+  {
+    readonly,
+    isValidConnection: isValidNewConnection,
+    canRewireLink,
+    rewireLink,
+  }: Pick<
+    CanvasInteractions,
+    "readonly" | "isValidConnection" | "canRewireLink" | "rewireLink"
+  >,
   isConnecting: () => boolean,
 ): {
   isValidConnection: IsValidConnection;
@@ -71,23 +87,30 @@ export const useLinkRewiring = (
     isRewiring,
     isValidConnection: (connection) =>
       moving.current
-        ? interactions.canRewireLink(rewireOnto(moving.current, connection))
-        : interactions.isValidConnection(toCanvasConnection(connection)),
+        ? canRewireLink(rewireOnto(moving.current, connection))
+        : isValidNewConnection(toCanvasConnection(connection)),
     // React Flow offers the ends of an edge to drag only when it is given
     // `onReconnect`.
-    reconnectProps: interactions.readonly
+    reconnectProps: readonly
       ? {}
       : {
           onReconnectStart: (_event, edge, keptEnd) => {
+            // Only a fusion link offers its ends to drag.
+            const fusion = fusionItemOf(edge);
+            if (!fusion) {
+              return;
+            }
+            const end = keptEnd === "source" ? "target" : "source";
             moving.current = {
-              linkId: edge.id,
-              end: keptEnd === "source" ? "target" : "source",
+              fusionId: fusion.id,
+              from: linkEnd(toCanvasConnection(edge), end),
+              end,
             };
             setIsRewiring(true);
           },
           onReconnect: (_edge, connection) => {
             if (moving.current && isConnecting()) {
-              interactions.rewireLink(rewireOnto(moving.current, connection));
+              rewireLink(rewireOnto(moving.current, connection));
             }
           },
           onReconnectEnd: (event, _edge, _keptEnd, connection) => {
@@ -97,7 +120,8 @@ export const useLinkRewiring = (
               connection.toHandle === null &&
               endedOnPane(event)
             ) {
-              interactions.rewireLink({ ...moving.current, onto: null });
+              const { fusionId, from } = moving.current;
+              rewireLink({ fusionId, from, onto: null });
             }
             moving.current = null;
             setIsRewiring(false);

@@ -1,30 +1,32 @@
 ---
 title: Working on these docs
-description: How this site is produced, and the two things you need to change it.
+description: How this site is produced, and the pages to read before changing it.
 sidebar_order: 2
 ---
 
-These pages are about the documentation system itself, not about using Petrinaut.
+These pages are about the documentation system itself.
 
 Everything under [Architecture](architecture) is generated from annotations in
 the covered packages (`@hashintel/petrinaut-core`, `@hashintel/petrinaut`,
 `@apps/petrinaut-website`, and the Python package `petrinaut-optimizer-core`),
-joined against the real import graph. Editing a
+joined against the references the type checker resolves between files and the
+edges a `@talksTo` tag declares. `packages` in
+`apps/petrinaut-docs/archinaut.config.ts` names the covered packages. Editing a
 generated page does nothing: the next build replaces it.
 
-Two things follow from that, and they are what these pages cover.
-
-- **[Declaring layers](doc:maintaining/declaring-layers)** — the two annotations
+- **[Declaring layers](doc:maintaining/declaring-layers)**: the annotations
   that put a folder on the map, where to write them, and what the build refuses
   to accept.
-- **[Running locally](doc:maintaining/running-locally)** — building the docs,
+- **[Running locally](doc:maintaining/running-locally)**: building the docs,
   reading them without a server, and what to do when a page looks stale.
-- **[Previewing changes](doc:maintaining/previewing-changes)** — how a PR
+- **[Previewing changes](doc:maintaining/previewing-changes)**: how a PR
   preview highlights the pages and blocks the branch changed, and how that
   comparison is built.
+- **[Writing a layer guide](doc:maintaining/writing-a-guide)**: the template a
+  guide about one layer follows, what it leaves to the generated pages, and
+  what the build checks in it.
 
-Pages like this one are hand-written. They live in
-`apps/petrinaut-docs/content/` and are optional: the generator
-produces a complete bundle with that directory absent. They carry the reasoning
-an import graph cannot supply, and nothing checks them against the code, so they
-avoid restating facts the generated pages already own.
+Hand-written pages live in `apps/petrinaut-docs/content/`, and a guide about
+one layer lives beside that layer's code. They are optional: the generator
+produces a complete bundle without them. The check resolves their `layer:` and
+`doc:` links and their diagram references, and nothing checks their prose.

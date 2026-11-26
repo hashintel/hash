@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  easeOutCubic,
-  interpolate,
-  layoutSignature,
-} from "./net-graph-animation";
+import { layoutSignature } from "./net-graph-animation";
 
 import type { NetGraphLayout } from "./net-graph-layout";
 
@@ -20,32 +16,6 @@ const layout = (
     layer: 0,
   })),
   edges: [],
-});
-
-describe("easeOutCubic", () => {
-  it("pins both ends of the animation", () => {
-    expect(easeOutCubic(0)).toBe(0);
-    expect(easeOutCubic(1)).toBe(1);
-  });
-
-  it("decelerates: more than half the distance is covered by halfway", () => {
-    expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
-  });
-});
-
-describe("interpolate", () => {
-  it("returns the endpoints exactly", () => {
-    expect(interpolate(10, 50, 0)).toBe(10);
-    expect(interpolate(10, 50, 1)).toBe(50);
-  });
-
-  it("moves proportionally in between", () => {
-    expect(interpolate(0, 100, 0.25)).toBe(25);
-  });
-
-  it("handles a backwards move", () => {
-    expect(interpolate(100, 0, 0.5)).toBe(50);
-  });
 });
 
 describe("layoutSignature", () => {

@@ -2844,8 +2844,7 @@
             "description": "When true, error responses are rendered as HTML instead of JSON",
             "required": false,
             "schema": {
-              "type": "boolean",
-              "nullable": true
+              "type": "string"
             }
           },
           {
@@ -2854,8 +2853,7 @@
             "description": "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers",
             "required": false,
             "schema": {
-              "type": "boolean",
-              "nullable": true
+              "type": "string"
             }
           }
         ],
@@ -4432,9 +4430,7 @@
           },
           "policies": {
             "type": "array",
-            "items": {
-              "type": "object"
-            }
+            "items": {}
           },
           "properties": {
             "$ref": "#/components/schemas/PropertyObjectWithMetadata"
@@ -5217,9 +5213,7 @@
       },
       "EntityQueryCursor": {
         "type": "array",
-        "items": {
-          "type": "object"
-        }
+        "items": {}
       },
       "EntityQuerySortingPath": {
         "type": "array",
@@ -8823,7 +8817,32 @@
           "propertyName": "type"
         }
       },
-      "PropertyValue": {},
+      "PropertyValue": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/schemas/Real"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyValue"
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PropertyValue"
+            }
+          }
+        ],
+        "nullable": true
+      },
       "PropertyValueMetadata": {
         "type": "object",
         "required": [

@@ -6,11 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
-import {
-  CommandRegistryProvider,
-  useCommand,
-  useCommands,
-} from "./command-registry";
+import { useCommand, useCommands } from "./command-registry";
+import { CommandRegistryProvider } from "./command-registry-provider";
 
 import type { CommandRegistry } from "@hashintel/petrinaut-core";
 

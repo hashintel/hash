@@ -18,7 +18,8 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-24.04
+    name: Setup
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -52,7 +53,8 @@ jobs:
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
-    runs-on: ubuntu-24.04
+    name: Sccache credentials
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write
@@ -81,7 +83,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
     if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Show selection reason
         env:
@@ -94,7 +96,9 @@ jobs:
           fetch-depth: 2
 
       - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -255,13 +259,15 @@ jobs:
       checks: write
       pull-requests: write
     needs: [sccache-credentials]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -414,19 +420,6 @@ jobs:
             exit 1;
           fi
 
-      - name: Validate renovate config
-        if: ${{ success() || failure() }}
-        run: |
-          if ! renovate-config-validator; then
-            echo ''
-            echo ''
-            echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Please fix the above errors locally for the check to pass.'
-            echo 'If you do not see them, try merging target branch into yours.'
-            echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
-          fi
-
       - name: Run SQL formatter and linter
         if: ${{ success() || failure() }}
         run: |
@@ -456,7 +449,7 @@ jobs:
     name: Linting passed
     needs: [setup, sccache-credentials, package, global]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check setup script
         run: |

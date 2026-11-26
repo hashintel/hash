@@ -21,7 +21,7 @@ import type {
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
-import type { AllFilter, Filter } from "@local/hash-graph-client";
+import type { Filter } from "@local/hash-graph-client";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type {
   CreateEntityParameters,
@@ -43,7 +43,7 @@ type AvatarLink = {
   createdAt: number;
 };
 
-const hasAvatarLinkFilter = (webId: WebId): AllFilter["all"] => [
+const hasAvatarLinkFilter = (webId: WebId): Filter[] => [
   {
     equal: [{ path: ["type", "baseUrl"] }, { parameter: hasAvatarBaseUrl }],
   },
@@ -51,7 +51,7 @@ const hasAvatarLinkFilter = (webId: WebId): AllFilter["all"] => [
   { equal: [{ path: ["archived"] }, { parameter: false }] },
 ];
 
-const rightEntityFilter = (rightEntityId: EntityId): AllFilter["all"] => [
+const rightEntityFilter = (rightEntityId: EntityId): Filter[] => [
   {
     equal: [
       { path: ["rightEntity", "uuid"] },
@@ -69,7 +69,7 @@ const rightEntityFilter = (rightEntityId: EntityId): AllFilter["all"] => [
 const endpointFilter = (params: {
   leftEntityId: EntityId;
   rightEntityId: EntityId;
-}): AllFilter["all"] => [
+}): Filter[] => [
   {
     equal: [
       { path: ["leftEntity", "uuid"] },

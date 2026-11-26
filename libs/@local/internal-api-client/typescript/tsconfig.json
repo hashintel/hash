@@ -1,6 +1,6 @@
 {
   "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
-  "include": ["./"],
+  "include": ["src", "orval.config.ts"],
   "compilerOptions": {
     "lib": ["es2024"],
     "module": "NodeNext",

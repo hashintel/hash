@@ -7,7 +7,7 @@ import type { XYPosition } from "@xyflow/react";
 /** Position and size are in pixels relative to the Canvas container. */
 export type VisualizerLayout = { position: XYPosition; size: Size };
 export type VisualizerAction = "move" | FloatingResizeDirection;
-export type VisualizerPlacement =
+type VisualizerPlacement =
   | { mode: "follow"; offset: XYPosition; size: Size }
   | { mode: "fixed"; layout: VisualizerLayout };
 

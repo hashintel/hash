@@ -166,7 +166,7 @@ pub struct CreateEntityParams {
     #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Option<LinkData>))]
     pub link_data: Option<Link>,
     pub draft: bool,
-    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Value>))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policies: Vec<CreateEntityPolicyParams>,
     pub provenance: ProvidedEntityEditionProvenance,

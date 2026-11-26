@@ -404,7 +404,7 @@ impl<'heap> Place<'heap> {
     pub fn type_id_unchecked(&self, decl: &LocalDecl<'heap>) -> TypeId {
         self.projections
             .last()
-            .map_or_else(|| decl.r#type, |projection| projection.r#type)
+            .map_or(decl.r#type, |projection| projection.r#type)
     }
 
     /// Returns a borrowed reference to this place.

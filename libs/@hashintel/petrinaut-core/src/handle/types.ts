@@ -1,4 +1,4 @@
-import type { PetrinautHandleCapabilities } from "../extensions";
+import type { PetrinautHandleCapabilities } from "../extensions/extensions";
 import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";
 

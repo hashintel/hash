@@ -24,8 +24,8 @@ import {
   type SignatureInformation,
 } from "vscode-languageserver-types";
 
-import { createWorkerThreadRuntime } from "../../environment";
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
+import { createWorkerThreadRuntime } from "../../environment/environment";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions/extensions";
 import {
   buildMetricContext,
   buildScenarioCodeContext,
@@ -36,21 +36,27 @@ import {
   lowerScenarioToHir,
 } from "../../hir";
 import { lowerVisualizerToHir } from "../../view-hir";
-import { getHirDiagnosticsForItem } from "../lib/check-hir";
-import { checkSDCPN } from "../lib/checker";
-import { filePathToUri, uriToFilePath } from "../lib/document-uris";
-import { parseScenarioCodeFilePath } from "../lib/file-paths";
+import { filePathToUri, uriToFilePath } from "../document-uris";
+import { getHirDiagnosticsForItem } from "../language-service/check-hir";
+import { checkSDCPN } from "../language-service/checker";
+import { parseScenarioCodeFilePath } from "../language-service/file-paths";
 import {
   createLanguageServers,
   disposeLanguageServers,
   languageServerForFile,
   syncLanguageServers,
   type LanguageServers,
-} from "../lib/language-servers";
-import { offsetToPosition, positionToOffset } from "../lib/position-utils";
-import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
+} from "../language-service/language-servers";
+import {
+  offsetToPosition,
+  positionToOffset,
+} from "../language-service/position-utils";
+import {
+  serializeDiagnostic,
+  toCompletionItemKind,
+} from "../language-service/ts-to-lsp";
 
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
@@ -58,7 +64,7 @@ import type {
   ConstraintSessionData,
   MetricSessionData,
   ScenarioSessionData,
-} from "../lib/generate-virtual-files";
+} from "../language-service/generate-virtual-files";
 import type {
   AdHocSessionParams,
   ClientMessage,

@@ -1,6 +1,9 @@
 import ELK from "elkjs";
 
-import { getArcEndpoint, getArcEndpointNodeId } from "../arc-endpoints";
+import {
+  getArcEndpoint,
+  getArcEndpointNodeId,
+} from "../document/arc-endpoints";
 import { createUserKeyedRecord } from "../validation/record-keys";
 
 import type { SDCPN } from "../types/sdcpn";

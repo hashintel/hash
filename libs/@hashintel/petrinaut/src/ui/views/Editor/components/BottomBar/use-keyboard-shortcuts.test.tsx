@@ -10,11 +10,12 @@ import {
   type SelectionItem,
 } from "@hashintel/petrinaut-core";
 
-import { PetrinautInstanceContext } from "../../../../../react/instance-context";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
-import { CompositionContext } from "../../../../../react/state/composition-context";
+import { ActiveNetContext } from "../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../react/document/composition-context";
+import { PetrinautInstanceContext } from "../../../../../react/document/instance-context";
+import { UndoRedoContext } from "../../../../../react/document/undo-redo-context";
+import { constantStore } from "../../../../../react/shared/use-store";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const actions = vi.hoisted(() => ({
@@ -26,18 +27,20 @@ const actions = vi.hoisted(() => ({
   paste: vi.fn(),
   mode: vi.fn(),
 }));
-vi.mock("../../../../../react", () => ({
+vi.mock("../../../../../react/editing/use-petrinaut-mutations", () => ({
   usePetrinautMutations: () => ({ deleteItemsByIds: actions.remove }),
+}));
+vi.mock("../../../../../react/editing/use-petrinaut-commands", () => ({
   usePetrinautCommands: () => ({ applyClipboardPaste: actions.paste }),
 }));
-vi.mock("../../../../../react/hooks/use-read-only-feedback", () => ({
+vi.mock("../../../../../react/editing/use-read-only-feedback", () => ({
   useReadOnlyFeedback: () => actions.notify,
 }));
-vi.mock("../../../../../react/state/use-is-read-only", () => ({
+vi.mock("../../../../../react/editing/use-is-read-only", () => ({
   useIsReadOnly: () => actions.readOnly,
 }));
 vi.mock(
-  import("../../../../../react/state/use-read-only-reason"),
+  import("../../../../../react/editing/use-read-only-reason"),
   async (importOriginal) => ({
     ...(await importOriginal()),
     useReadOnlyReason: () =>
@@ -65,7 +68,7 @@ const createInstance = (rules?: PetrinautRules) =>
 const plainInstance = createInstance();
 
 const BoundShortcuts = () => {
-  useKeyboardShortcuts("edit", actions.mode, () => {});
+  useKeyboardShortcuts();
   return <input aria-label="Search" />;
 };
 /** The shortcuts, on a plain instance unless a test mounts its own. */
@@ -73,7 +76,11 @@ const Shortcuts = () => (
   <PetrinautInstanceContext
     value={use(PetrinautInstanceContext) ?? plainInstance}
   >
-    <BoundShortcuts />
+    <EditorContext
+      value={{ ...use(EditorContext), setEditionMode: actions.mode }}
+    >
+      <BoundShortcuts />
+    </EditorContext>
   </PetrinautInstanceContext>
 );
 const Selection = ({ children }: { children: ReactNode }) => {
@@ -239,10 +246,9 @@ test("undoes in Simulate mode, where scenario and metric edits can be undone", (
       value={{
         undo: actions.undo,
         redo: vi.fn(),
-        canUndo: true,
-        canRedo: false,
-        history: [],
-        currentIndex: 0,
+        canUndo: constantStore(true),
+        canRedo: constantStore(false),
+        history: constantStore({ entries: [], currentIndex: 0 }),
         goToIndex: vi.fn(),
       }}
     >

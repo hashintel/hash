@@ -1,7 +1,7 @@
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
 /** A metric's value at one combination, with the runs that reported it. */
-export type SweepCellSample = { value: number; runs: number };
+type SweepCellSample = { value: number; runs: number };
 
 /**
  * One combination's objective: the metric's value on its last frame that

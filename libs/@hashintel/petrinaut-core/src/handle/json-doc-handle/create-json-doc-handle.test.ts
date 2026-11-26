@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createPetrinaut } from "../../instance";
-import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
+import { isPetrinautId, toPetrinautId } from "../../document/petrinaut-id";
+import { createPetrinaut } from "../../instance/instance";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 
@@ -223,6 +223,77 @@ describe("createJsonDocHandle", () => {
       colorId: null,
       dynamicsEnabled: false,
     });
+  });
+
+  const kernelCode = "export default TransitionKernel(() => ({}));";
+  const transitionTo = (placeId: string): SDCPN["transitions"][number] => ({
+    id: "tr1",
+    name: "Transition 1",
+    inputArcs: [],
+    outputArcs: [{ placeId, weight: 1 }],
+    lambdaType: "predicate",
+    lambdaCode: "",
+    transitionKernelCode: kernelCode,
+    x: 0,
+    y: 0,
+  });
+
+  // The pass after a change cannot be left out when no extension is
+  // disabled: it is also what removes code a transition cannot have.
+  it("drops the kernel a direct change writes on a transition with no coloured output place, with every extension enabled", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p1",
+        name: "Place 1",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions.push(transitionTo("p1"));
+    });
+
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe("");
+  });
+
+  it("settles the transitions of a direct change against the places that change leaves", () => {
+    const handle = createJsonDocHandle({ initial: coloured() });
+
+    // A coloured place arrives with the arc that reaches it.
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p2",
+        name: "Place 2",
+        colorId: "t1",
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions.push(transitionTo("p2"));
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe(kernelCode);
+
+    // The place leaves and the arc stays.
+    handle.change((draft) => {
+      draft.places.pop();
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe("");
+
+    // It comes back with a kernel for the transition, in one change.
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p2",
+        name: "Place 2",
+        colorId: "t1",
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions[0]!.transitionKernelCode = kernelCode;
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe(kernelCode);
   });
 });
 

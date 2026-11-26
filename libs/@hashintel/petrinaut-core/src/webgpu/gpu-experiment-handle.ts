@@ -14,7 +14,7 @@
  * the charts like every other attempt's instead of arriving en bloc once the
  * handle exists. A probe that concedes ends the run with its reason.
  */
-import { resolveNetParameterValues } from "../parameter-values";
+import { resolveNetParameterValues } from "../document/parameter-values";
 import {
   appendMetricFrames,
   createEmptyMetricsState,
@@ -39,9 +39,9 @@ import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import { anyEscapes, calibrationKey } from "./metric-windows";
 import { GPU_PREVIEW_RUNS, runGpuExperiment } from "./runner";
 
-import type { AbortSignalLike } from "../environment";
+import type { AbortSignalLike } from "../environment/environment";
 import type { ExperimentRunPlan } from "../experiments/experiment-request";
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics";

@@ -7,8 +7,8 @@ import {
   sirModel,
   wheelTruing,
 } from "../examples";
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions";
-import { createSDCPN } from "../lsp/lib/helper/create-sdcpn";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../extensions/extensions";
+import { createSDCPN } from "../lsp/language-service/create-sdcpn.test-helpers";
 import { classifyNet } from "./classify-net";
 
 import type { Transition } from "../types/sdcpn";

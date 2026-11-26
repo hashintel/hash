@@ -10,7 +10,7 @@ import {
   getArcEndpoint,
   getArcEndpointKey,
   placeArcEndpoint,
-} from "../arc-endpoints";
+} from "../document/arc-endpoints";
 
 import type {
   ArcEndpoint,

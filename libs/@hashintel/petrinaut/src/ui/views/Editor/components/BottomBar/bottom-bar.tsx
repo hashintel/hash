@@ -1,20 +1,26 @@
-import { use, useEffect, useRef } from "react";
+/**
+ * @layerRoot ui.views.editor.bottom-bar
+ * @role The floating toolbar over the canvas: the cursor mode, the edit tools, the playback controls and the canvas shortcuts
+ *
+ * The editor shell imports this file only.
+ * Also imported by the preview: `event-simulation-controls.tsx`.
+ */
+import { use, useEffect, useRef, type ReactNode } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
+import { useIsReadOnly } from "../../../../../react/editing/use-is-read-only";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import {
-  type CursorMode,
-  EditorContext,
-  type EditorState,
+  useEditorActions,
+  useEditorFields,
+  useEditorMode,
 } from "../../../../../react/state/editor-context";
-import { useComposesOnly } from "../../../../../react/state/use-composes-only";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { BOTTOM_BAR_GAP } from "../../../../constants/ui";
+import { BOTTOM_BAR_GAP } from "../../../../shared/ui-constants";
+import { AiAssistantIcon } from "../../shared/ai-assistant-icon";
 import { BottomBarCollapseContext } from "./collapse-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { CursorModeDropdown } from "./cursor-mode-dropdown";
@@ -43,11 +49,20 @@ const glassPanelStyle = css({
   },
 });
 
+const glassRefraction = {
+  radius: 8,
+  blur: 3,
+  bezelWidth: 20,
+  glassThickness: 100,
+};
+
 const toolbarContainerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
 });
+
+const aiAssistantIconStyle = css({ transform: "[translateY(-1px)]" });
 
 // Spans the main view so the bar centres on the viewport rather than on the space
 // between the panels, and lets clicks through everywhere the bar itself is not.
@@ -73,54 +88,43 @@ const bottomBarStyle = css({
   flexShrink: 0,
 });
 
-/** Keep the bar's vertical movement in step with the panel beneath it. */
-const barAnimatingStyle = cva({
-  base: {},
-  variants: {
-    animating: {
-      true: {
-        transition: "[transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
-      },
-    },
-  },
-});
+/** One glass panel of the bar, with its controls in a row. */
+const GlassSegment = ({ children }: { children: ReactNode }) => (
+  <refractive.div className={glassPanelStyle} refraction={glassRefraction}>
+    <div className={toolbarContainerStyle}>{children}</div>
+  </refractive.div>
+);
 
-type EditorMode = EditorState["globalMode"];
-type EditorEditionMode = EditorState["editionMode"];
+/**
+ * The canvas shortcuts. A leaf, because they read the selection and the
+ * document, which the bar does not.
+ */
+const CanvasShortcuts = () => {
+  useKeyboardShortcuts();
+  return null;
+};
 
-interface BottomBarProps {
-  mode: EditorMode;
-  editionMode: EditorEditionMode;
-  onEditionModeChange: (mode: EditorEditionMode) => void;
-  cursorMode: CursorMode;
-  onCursorModeChange: (mode: CursorMode) => void;
-  hasAiAssistant: boolean;
-}
-
-export const BottomBar: React.FC<BottomBarProps> = ({
-  mode,
-  editionMode,
-  hasAiAssistant,
-  onEditionModeChange,
-  cursorMode,
-  onCursorModeChange,
-}) => {
-  const isActualMode = mode === "actual";
+export const BottomBar = ({ hasAiAssistant }: { hasAiAssistant: boolean }) => {
+  const { editionMode, isBottomPanelOpen, isAiAssistantOpen } = useEditorFields(
+    "editionMode",
+    "isBottomPanelOpen",
+    "isAiAssistantOpen",
+  );
+  // As the view reads it: the effect below must see the mode of the commit
+  // that shows the bar again, not the one before it.
+  const { globalMode } = useEditorMode();
   const {
-    isBottomPanelOpen,
+    setEditionMode,
     setBottomPanelOpen,
     setActiveBottomPanelTab,
-    isAiAssistantOpen,
-    isPanelAnimating,
     toggleAiAssistant,
-  } = use(EditorContext);
+  } = useEditorActions();
+  const isActualMode = globalMode === "actual";
 
   // Only error-severity diagnostics block simulation — warnings and hints
   // (e.g. HIR semantic lints) are informational.
   const { errorDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = errorDiagnosticsCount > 0;
-  const { activeComponentId } = use(ActiveNetContext);
-  const isInComponent = activeComponentId !== null;
   const isReadOnly = useIsReadOnly();
   const composesOnly = useComposesOnly();
 
@@ -129,15 +133,13 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setActiveBottomPanelTab("diagnostics");
   };
 
-  // Fallback to cursor mode when switching away from edit while in a mutative mode.
+  // Actual mode adds nothing, so a tool armed in Edit falls back to the
+  // cursor. Simulate mode hides the bar, and the tool stays armed.
   useEffect(() => {
-    if (mode !== "edit" && editionMode !== "cursor") {
-      onEditionModeChange("cursor");
+    if (globalMode !== "edit" && editionMode !== "cursor") {
+      setEditionMode("cursor");
     }
-  }, [mode, editionMode, onEditionModeChange]);
-
-  // Setup keyboard shortcuts
-  useKeyboardShortcuts(mode, onEditionModeChange, onCursorModeChange);
+  }, [globalMode, editionMode, setEditionMode]);
 
   const laneRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -148,6 +150,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // Edit tools are absent on a read-only net and outside edit mode, so the
   // group would otherwise fold an empty box and leave its gap behind.
   const hasEditionGroup = !isActualMode && (!isReadOnly || hasAiAssistant);
+  const aiAssistantLabel = isAiAssistantOpen
+    ? "Hide AI assistant"
+    : "Show AI assistant";
 
   return (
     <div
@@ -155,117 +160,69 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       className={bottomBarLaneStyle}
       style={{ bottom: BOTTOM_BAR_GAP }}
     >
-      <div
-        ref={barRef}
-        data-bottom-bar
-        className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
-        style={{
-          transform: `translate(${layout.offsetX}, ${-layout.liftY}px)`,
-        }}
-      >
-        <BottomBarCollapseContext
-          value={{
-            isCollapsed: layout.isCollapsed,
-            reportGroupWidth: layout.reportGroupWidth,
-          }}
-        >
-          {/* Edition tools segment */}
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 8,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
-            <div className={toolbarContainerStyle}>
-              <CursorModeDropdown
-                editionMode={editionMode}
-                onEditionModeChange={onEditionModeChange}
-                cursorMode={cursorMode}
-                onCursorModeChange={onCursorModeChange}
-              />
-              {hasEditionGroup && (
-                <CollapsibleGroup>
-                  <EditionTools
-                    editionMode={editionMode}
-                    onEditionModeChange={onEditionModeChange}
-                  />
-                  {hasAiAssistant && (
-                    <>
-                      <ToolbarDivider />
-                      <ToolbarButton
-                        tooltip={
-                          isAiAssistantOpen
-                            ? "Hide AI assistant"
-                            : "Show AI assistant"
-                        }
-                        shortcut="mod+shift+k"
-                        onClick={toggleAiAssistant}
-                        isSelected={isAiAssistantOpen}
-                        ariaLabel={
-                          isAiAssistantOpen
-                            ? "Hide AI assistant"
-                            : "Show AI assistant"
-                        }
-                        ariaExpanded={isAiAssistantOpen}
-                      >
-                        <AiAssistantIcon
-                          size={22}
-                          className={css({ transform: "[translateY(-1px)]" })}
-                        />
-                      </ToolbarButton>
-                    </>
-                  )}
-                </CollapsibleGroup>
-              )}
-            </div>
-          </refractive.div>
-
-          {/* Playback segment */}
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 8,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
-            <div className={toolbarContainerStyle}>
-              <ToolbarButton
-                tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
-                onClick={() => setBottomPanelOpen(!isBottomPanelOpen)}
-                ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
-                ariaExpanded={isBottomPanelOpen}
-              >
-                {isBottomPanelOpen ? (
-                  <Icon name="chevronDown" size="sm" />
-                ) : (
-                  <Icon name="chevronUp" size="sm" />
-                )}
-              </ToolbarButton>
-              {!isActualMode && (
-                <>
-                  <DiagnosticsIndicator
-                    onClick={showDiagnostics}
-                    isExpanded={isBottomPanelOpen}
-                  />
-                  {/* An editor that only composes runs nothing. */}
-                  {composesOnly ? null : (
-                    <>
-                      <ToolbarDivider />
-                      <EventSimulationControls
-                        disabled={hasDiagnostics}
-                        inComponent={isInComponent}
+      <CanvasShortcuts />
+      <div ref={barRef} data-bottom-bar className={bottomBarStyle}>
+        <BottomBarCollapseContext value={layout}>
+          <GlassSegment>
+            <CursorModeDropdown />
+            {hasEditionGroup && (
+              <CollapsibleGroup>
+                {/* Left out here and not by the tools themselves. Simulate
+                    mode hides the bar, and the net is writable again once
+                    the bar shows. The bar renders then; a reader of the
+                    reason further down does not, for a change that came
+                    while it was hidden. */}
+                {isReadOnly ? null : <EditionTools />}
+                {hasAiAssistant && (
+                  <>
+                    <ToolbarDivider />
+                    <ToolbarButton
+                      tooltip={aiAssistantLabel}
+                      shortcut="mod+shift+k"
+                      onClick={toggleAiAssistant}
+                      isSelected={isAiAssistantOpen}
+                      ariaLabel={aiAssistantLabel}
+                      ariaExpanded={isAiAssistantOpen}
+                    >
+                      <AiAssistantIcon
+                        size={22}
+                        className={aiAssistantIconStyle}
                       />
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </refractive.div>
+                    </ToolbarButton>
+                  </>
+                )}
+              </CollapsibleGroup>
+            )}
+          </GlassSegment>
+
+          <GlassSegment>
+            <ToolbarButton
+              tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
+              onClick={() => setBottomPanelOpen(!isBottomPanelOpen)}
+              ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+              ariaExpanded={isBottomPanelOpen}
+            >
+              <Icon
+                name={isBottomPanelOpen ? "chevronDown" : "chevronUp"}
+                size="sm"
+              />
+            </ToolbarButton>
+            {!isActualMode && (
+              <>
+                <DiagnosticsIndicator
+                  onClick={showDiagnostics}
+                  isExpanded={isBottomPanelOpen}
+                />
+                {/* An editor that only composes runs nothing. */}
+                {composesOnly ? null : (
+                  <>
+                    <ToolbarDivider />
+                    <EventSimulationControls disabled={hasDiagnostics} />
+                  </>
+                )}
+              </>
+            )}
+          </GlassSegment>
         </BottomBarCollapseContext>
       </div>
     </div>

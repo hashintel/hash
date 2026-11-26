@@ -23,6 +23,7 @@ import {
   withArticle,
 } from "../shared/value-display";
 import {
+  brokenSourceCodes,
   getInputTarget,
   getNewFlowInput,
   getSourceKey,
@@ -30,6 +31,7 @@ import {
   getSourceOptions,
   getTypedConstant,
   getTypedKind,
+  goneSourceCodes,
 } from "./input-sources";
 
 import type { SourceOption } from "./input-sources";
@@ -43,26 +45,8 @@ import type {
   PayloadKind,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type {
-  FlowDefinitionDiagnosticCode,
-  FlowDefinitionDiagnosticWithStepId,
-} from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
+import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import type { FocusEvent } from "react";
-
-/** Problems with a value whose source no longer exists. */
-const goneSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
-  "unknownStep",
-  "unknownFlowInput",
-  "unknownStepOutput",
-]);
-
-/** Problems with where a value comes from, shown as a red chip in place of the value. */
-const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
-  ...goneSourceCodes,
-  "stepNotInScope",
-  "selfReference",
-  "itemOutsideForEach",
-]);
 
 /** Values shown before Show more. */
 const shownOptionCount = 4;
@@ -109,14 +93,14 @@ const matchesQuery = ({ label, from }: SourceOption, query: string) => {
  * Picks where an input's value comes from: a flow input, an earlier step's output, or a value typed in. Shows the
  * picked value, or a red chip saying why it's broken.
  */
-const SourceMenu = ({
+export const SourceMenu = ({
   label,
+  placeholder: placeholderText = "Choose a value",
   options,
   pickedKey,
   pickedLabel,
   brokenReason,
   invalid,
-  disabled,
   newFlowInputLabel,
   typeLabel,
   onPick,
@@ -125,13 +109,14 @@ const SourceMenu = ({
   onClear,
 }: {
   label: string;
-  /** Flow inputs, then the outputs of earlier steps, nearest first. */
+  /** Shown while nothing is picked. */
+  placeholder?: string;
+  /** The current item inside a for-each step, flow inputs, then the outputs of earlier steps, nearest first. */
   options: SourceOption[];
   pickedKey: string | undefined;
   pickedLabel: string | undefined;
   brokenReason: string | undefined;
   invalid: boolean;
-  disabled: boolean;
   /** Offered only when no value fits. */
   newFlowInputLabel: string | null;
   typeLabel: string | null;
@@ -175,11 +160,13 @@ const SourceMenu = ({
           } satisfies MenuItem,
         ]
       : []),
-    ...(options.length > 0 && matching.length === 0
+    ...(matching.length === 0 &&
+    (options.length > 0 || (newFlowInputLabel === null && typeLabel === null))
       ? [
           {
             id: "no-matches",
-            text: "No matching values",
+            text:
+              options.length > 0 ? "No matching values" : "No values to pick",
             disabled: true,
             onClick: () => {},
           } satisfies MenuItem,
@@ -238,7 +225,7 @@ const SourceMenu = ({
       </Tooltip>
     ) : (
       <span className={pickedLabel === undefined ? placeholder : undefined}>
-        {pickedLabel ?? "Choose a value"}
+        {pickedLabel ?? placeholderText}
       </span>
     );
 
@@ -263,7 +250,6 @@ const SourceMenu = ({
         <Button
           variant="subtle"
           tone={invalid ? "error" : "neutral"}
-          disabled={disabled}
           aria-label={`${label}: ${pickedLabel ?? "no value"}`}
           className={trigger}
         >
@@ -289,7 +275,6 @@ export const InputField = ({
   actionDefinition,
   source,
   problems,
-  readOnly,
   onSelectStart,
 }: {
   editor: FlowEditor;
@@ -299,8 +284,6 @@ export const InputField = ({
   actionDefinition: ActionDefinition<FlowActionDefinitionId>;
   source: StepInputSource | undefined;
   problems: FlowDefinitionDiagnosticWithStepId[];
-  /** For steps inside a for-each step, which can't be edited yet. */
-  readOnly: boolean;
   onSelectStart: () => void;
 }) => {
   /* Set from picking Type a value until the field is left with nothing typed. */
@@ -347,7 +330,6 @@ export const InputField = ({
       );
     };
     const fieldProps = {
-      readonly: readOnly,
       invalid: errors.length > 0,
       autoFocus: typing,
       /* Moving between a text and its Expand button doesn't leave the field. */
@@ -362,7 +344,7 @@ export const InputField = ({
         }
       },
     };
-    const clearable = !readOnly && {
+    const clearable = {
       onClear: () => {
         setTyping(false);
         setSource(null);
@@ -436,9 +418,12 @@ export const InputField = ({
     );
   }
 
-  const { flowInputs, earlierSteps } = readOnly
-    ? { flowInputs: [], earlierSteps: [] }
-    : getSourceOptions({ flowDefinition, stepId, target });
+  const { item, flowInputs, earlierSteps } = getSourceOptions({
+    flowDefinition,
+    stepId,
+    target,
+    getItemName,
+  });
   const forEachStepId = getForEachScope(flowDefinition.steps, stepId)?.at(-1);
   const pickedLabel =
     source &&
@@ -463,7 +448,7 @@ export const InputField = ({
     >
       <SourceMenu
         label={label}
-        options={[...flowInputs, ...earlierSteps]}
+        options={[...(item ? [item] : []), ...flowInputs, ...earlierSteps]}
         pickedKey={source && getSourceKey(source)}
         pickedLabel={pickedLabel}
         brokenReason={
@@ -473,7 +458,6 @@ export const InputField = ({
             : brokenProblem.message)
         }
         invalid={errors.length > 0}
-        disabled={readOnly}
         newFlowInputLabel={
           newFlowInput &&
           `Add ${withArticle(getKindLabel(newFlowInput))} input on Start`

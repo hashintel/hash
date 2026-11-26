@@ -1,0 +1,90 @@
+---
+title: The canvas
+description: The canvas renders the active net as an interactive graph, with node and arc interaction.
+sidebar_order: 10
+---
+
+The canvas renders the active net as an interactive graph and owns its scene, its pointer state, the per-frame simulation values and the gestures.
+The editor and the [preview](layer:ui.preview) both mount it, so it imports nothing from the [editor shell](layer:ui.views.editor). A rule of `archinaut check` holds that.
+
+![A gesture changes one store, the scene is derived again, React Flow renders the nodes whose object changed, and the arc layer the arcs whose shape changed](./canvas-flow.d2)
+
+## Entry point
+
+`SDCPNView` in `ui/views/SDCPN/sdcpn-view.tsx` composes four parts, in this order:
+
+1. `useCanvasScene` builds a `CanvasScene`: plain data that says what to draw and holds no React Flow type.
+2. `CanvasPointerContext` carries a `CanvasPointer`: the hover, the item that waits for a release to be hovered, and the drag preview of this canvas. `SDCPNView` creates it once with `createCanvasPointer`.
+3. `CanvasFrameStoreProvider` holds the values of the viewed simulation frame. It is keyed by `petriNetId`, the id of the document, so another document starts with an empty store.
+4. `ReactFlowCanvas`, the [React Flow renderer](layer:ui.views.canvas.react-flow), draws the scene and publishes a `CanvasController`. It mounts once the size of the container is known.
+
+`SDCPNView` also mounts `CursorTooltip` beside the renderer.
+
+## Interface
+
+| Name                                       | File                         | Use it to                                                                                                                                                                                          |
+| ------------------------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SDCPNView`                                | `sdcpn-view.tsx`             | Mount the canvas. `onControllerChange` receives the controller.                                                                                                                                    |
+| `CanvasController`                         | `canvas-renderer.ts`         | Move the viewport from outside (`setViewport`, `zoomIn`, `zoomOut`, `fitView`, `frameSceneAfterRender`), read where it will rest (`getRestViewport`) and convert a screen point (`screenToScene`). |
+| `useCanvasController`                      | `canvas-renderer.ts`         | Read the controller inside the renderer.                                                                                                                                                           |
+| `useCanvasInteractions`                    | `use-canvas-interactions.ts` | Turn a renderer's gestures into selection, moves, connections and drops.                                                                                                                           |
+| `usePlaceTokenLabel`, `useTransitionFrame` | `canvas-frame-store.tsx`     | Read one item's value of the viewed frame, by id.                                                                                                                                                  |
+| `useIsHovered`                             | `canvas-pointer.ts`          | Ask whether the pointer is on one node or line.                                                                                                                                                    |
+
+## Data flow
+
+A user drags a node:
+
+1. React Flow reports position changes. `useApplyNodeChanges` passes them to `moveNodes`, which writes the positions to `dragPreview` in the canvas pointer, snapped to the grid while the `snapToGrid` setting is on.
+2. `useCanvasScene` derives the scene again with the previewed positions.
+3. `useReactFlowElements` maps the scene to nodes and edges, and `useStableItems` returns the previous object for each item whose content is the same. The edges are one edge for all the arcs, one for each selected arc, and the fusion links.
+4. React Flow renders the dragged nodes. The arc layer reads the scene from a context and renders the arcs that end at them.
+5. On release, `dropNodes` commits the positions in one document mutation and clears the preview in the same tick.
+
+## What renders
+
+| Gesture        | Nodes and arcs that render                                                                                                                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Select         | The nodes whose selected state or focus changed, the arcs whose role changed, and the runs that hold those arcs                                                 |
+| Hover          | The state tooltip of the place under the pointer, at once. After the pointer rests, the nodes and arcs whose focus changed, and the runs of those arcs.         |
+| Drag frame     | The dragged nodes and the arcs that end at them. The merged paths of a run are written at the first frame and at the drop, and not in between.                  |
+| Pan, zoom      | No node and no arc: React Flow writes one transform on the viewport element. An open place state tooltip renders on each frame, because it reads `useViewport`. |
+| Playback frame | The places and transitions whose value moved. No arc: a firing adds a path to the page outside React.                                                           |
+
+The focus of a node or an arc is its `CanvasNodeFocus` or `CanvasArcFocus` in `canvas-focus.ts`: how it relates to the hovered or selected items.
+The pointer rests after 150 ms with no move above 2 px, and a hover changes focus only while the `highlightOnHover` setting is on. A place with visualizer code reaches the scene before the rest, so its visualizer shows at once.
+The release of a button counts as a move, so a hover that begins at the release waits the same 150 ms.
+
+`benchmarks/monaco-performance/canvas-scale.mjs`, from the package root, measures each gesture on a net of about 500 nodes and, with `details=1`, lists who rendered. Its header says which build to serve.
+
+## The arc layer
+
+React Flow draws the nodes and the fusion links, and `ArcLayer` draws every arc in one `svg` that React Flow renders as one edge: [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) has its parts, its rules and where an arc differs from an edge of React Flow.
+
+## Rules
+
+**A handler given to `ReactFlow` keeps its identity.** React Flow renders every node and arc when a handler prop is a new function. `useCanvasInteractions` returns its actions through `useStableActions`, and each action reads the latest state when called. `use-stable-actions.test.ts` holds this for the actions. The handlers that `ReactFlowCanvasInner` writes inline keep their identity through the React Compiler, and no test checks those.
+
+**An unchanged node or edge is the same object, and an unchanged list the same array.** React Flow renders an item for a new object and walks every item for a new array. `use-stable-items.test.ts` and the test "preserves unaffected nodes when focus changes" in `use-react-flow-elements.test.tsx` hold this.
+
+**A value that changes per playback frame is read by id from the frame store.** A frame moves one number per place and per transition, and a scene rebuild for each frame would compare every node. The test "re-renders only the items whose values moved" in `canvas-frame-store.test.tsx` holds this.
+
+**Hover and drag preview stay in `CanvasPointer`.** No panel subscribes to it, so a pointer move renders no panel. `use-canvas-scene.test.tsx` covers the hover delay and the drag.
+
+**A node or arc that comes under the pointer while a button is down is hovered at the release.** A pan moves the net one frame after the pointer, so nodes and arcs pass under the pointer. Hovered on the way, each would fade the rest of the net and clear again, which takes most of the frames of a pan on a large net. A renderer reports each item with `enter` and says whether a button is down and whether a connection is being drawn. `enter` keeps an item that has to wait in `hoverOnReleaseId` of the canvas pointer, and `releasePointer` hovers it. Two gestures hover without that wait: a node is hovered from the start of its drag, and a connection being drawn hovers the item it comes onto. The tests under "the hover of what the pointer comes onto" in `use-canvas-interactions.test.tsx` hold this, and "waits as long for the hover a released button leaves behind" in `use-canvas-scene.test.tsx` holds the delay after the release.
+
+A move of the camera does to a pointer at rest what a pan does to a pressed one: when a selection slides into view, nodes and arcs pass under the pointer. A pointer at rest hovers at once, and a node outside the neighbourhood dims in one frame, so the net would cut from one neighbourhood to the next for as long as the camera moves. The React Flow renderer therefore reports an item that comes under the pointer while its camera moves as it reports one under a pressed button, and calls `releasePointer` when the camera stops.
+
+A visualizer window that is kept open stays through a pan and stands for its place, so it follows the rule: under a pressed pointer it writes its place to `hoverOnReleaseId`. A preview and the eye hover their place whatever the buttons. A preview closes once its place is no longer hovered, and the eye shows on a place that is hovered or selected, which is lit already. The test "keeps the place of a window kept open for the release when a pan carries the window under the pointer" in `place-state-tooltip.test.tsx` holds the window's part.
+
+A release has to count as a move before `releasePointer` hovers the item, or the hover finds the pointer at rest and shows at once. `usePointerAtRest` therefore listens for the release in the capture phase: React runs the handlers of a release inside the visualizer window, which is a portal, before that release bubbles to the canvas element. The window stops the release of its own drag only, so a pan that ends over it reaches `releasePointer`. "hears a release before a handler on its target does" in `use-pointer-at-rest.test.ts` and "stops the release of its own drag and lets any other through to the canvas" in `visualizer-window.test.tsx` hold these. No test checks what the React Flow renderer passes to `enter`, or that a browser counts the release before `releasePointer` runs.
+
+**A control drawn over the canvas has the class `nokey`.** While the selection key is held, React Flow starts a selection box from a press anywhere inside the pane, and takes the press from the control. A control that is no part of the net (the visualizer window, the eye that opens it, the fold toggle of a component card) opts out with React Flow's `nokey` class. `useSelectionKeys` covers the case where the page saw Shift go down and not come up, as after a system shortcut: the next press that says Shift is up sends the missing keyup. The tests in `selection-keys.test.tsx` and `visualizer-window.test.tsx` hold both.
+
+**No opacity goes on an element that every arc has, on a node, or on an element inside a node that draws more than one thing.** The browser draws an element with an opacity into a buffer of its own on every frame of a pan, a zoom or a drag, and a net has one per arc and per node. [The arc layer](doc:ui.views.canvas.react-flow/arc-layer) and [The fade of a node](doc:ui.views.canvas.react-flow/node-fade) say how each fades without one, and name the tests that hold it.
+
+## Pitfalls
+
+- No custom property is registered for the canvas, by `@property` or by `CSS.registerProperty`. A registered property with a delayed transition could hold an arc's head through the fade back in CSS alone. With any property registered, used or not, Chromium 145 takes 550 to 850 ms to restyle a net of 470 nodes for a change of focus, where it takes 77 ms without one. A registration holds for the whole document, so one made by the page around the editor costs the same. The test in `panda.config.shared.test.ts` holds that the Panda preset makes none. WebKit, the engine of Safari, also paints the next marker while such a transition waits. A transition on `marker-end` itself makes Chromium paint no head for as long as it runs.
+- `useStableItems` reads a ref during render and opts out of the React Compiler with `"use no memo"`. It compares against the previous render's objects, which no effect can do in time. Keep scene items plain data: the comparison handles primitives, plain objects and arrays only.
+- An action from `useCanvasInteractions` is for an event. Calling one during render reads state of an earlier render.

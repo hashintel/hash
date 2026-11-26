@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toPetrinautId } from "../petrinaut-id";
+import { toPetrinautId } from "../document/petrinaut-id";
 import { checkComposition } from "./check-composition";
 import { implementationsOf } from "./check-interfaces";
 import { resolveImplementation } from "./interfaces";

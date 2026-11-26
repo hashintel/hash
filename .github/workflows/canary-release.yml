@@ -7,14 +7,16 @@ permissions:
 
 jobs:
   sccache-credentials:
-    runs-on: ubuntu-24.04
+    name: Sccache credentials
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write # Vault OIDC
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
       - name: Mint sccache credentials
         id: mint
@@ -26,7 +28,8 @@ jobs:
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   release:
-    runs-on: ubuntu-24.04
+    name: Release
+    runs-on: ubuntu-26.04
     needs: [sccache-credentials]
     permissions:
       contents: write
@@ -34,7 +37,8 @@ jobs:
       id-token: write # npm trusted publishing
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
       - name: Install tools
         uses: $/.github/actions/install-tools

@@ -1,4 +1,4 @@
-import { GRID_SIZE } from "../grid-size";
+import { GRID_SIZE } from "../document/grid-size";
 
 import type { Scenario, SDCPN } from "../types/sdcpn";
 

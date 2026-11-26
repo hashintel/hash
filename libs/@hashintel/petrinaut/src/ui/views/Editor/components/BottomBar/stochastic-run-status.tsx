@@ -3,9 +3,13 @@ import { use } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ExperimentsActionsContext } from "../../../../../react/experiments/context";
-import { computeBackendOf } from "../../../../../react/experiments/provider/create-experiment";
+import { SDCPNContext } from "../../../../../react/document/sdcpn-context";
+import {
+  computeBackendOf,
+  ExperimentsActionsContext,
+} from "../../../../../react/experiments/context";
 import { NotificationsContext } from "../../../../../react/notifications/context";
+import { useStore } from "../../../../../react/shared/use-store";
 import {
   SimulationContext,
   type StochasticRun,
@@ -14,8 +18,6 @@ import {
   findSimulator,
   SimulatorsContext,
 } from "../../../../../react/simulators/context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { useStore } from "../../../../../react/use-store";
 import { ToolbarDivider } from "./toolbar-divider";
 
 const progressStyle = css({

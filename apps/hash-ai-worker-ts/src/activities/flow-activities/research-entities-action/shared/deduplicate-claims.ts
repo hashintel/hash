@@ -1,4 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { actorHeaders } from "@local/hash-graph-client";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
@@ -123,33 +124,39 @@ export const deduplicateClaims = async (
     /**
      * @todo H-3307: Use graph 'merge' feature once available (H-3306), instead of these separate patches.
      */
-    await graphApiClient.patchEntity(aiAssistantAccountId, {
-      entityId: newClaimObject.claimId,
-      properties: [
-        {
-          op: "replace",
-          path: [
-            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" satisfies keyof ClaimProperties as BaseUrl,
-          ],
-          property: {
-            metadata: {
-              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-              provenance: {
-                sources: provenance.sources,
+    await graphApiClient.patchEntity(
+      {
+        entityId: newClaimObject.claimId,
+        properties: [
+          {
+            op: "replace",
+            path: [
+              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/" satisfies keyof ClaimProperties as BaseUrl,
+            ],
+            property: {
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                provenance: {
+                  sources: provenance.sources,
+                },
               },
+              value: claimTextualContentFromClaim(newClaimObject),
             },
-            value: claimTextualContentFromClaim(newClaimObject),
           },
-        },
-      ] satisfies PropertyPatchOperation[],
-      provenance,
-    });
+        ] satisfies PropertyPatchOperation[],
+        provenance,
+      },
+      actorHeaders(aiAssistantAccountId),
+    );
 
-    await graphApiClient.patchEntity(aiAssistantAccountId, {
-      entityId: currentClaimInLoop.claimId,
-      archived: true,
-      provenance,
-    });
+    await graphApiClient.patchEntity(
+      {
+        entityId: currentClaimInLoop.claimId,
+        archived: true,
+        provenance,
+      },
+      actorHeaders(aiAssistantAccountId),
+    );
 
     canonicalClaimIdByDuplicateId[currentClaimInLoop.claimId] =
       newClaimObject.claimId;

@@ -2,12 +2,7 @@ import { useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-/**
- * Width reserved on each side of the cell list for connection lines. The cell
- * list content wrapper must pad its rows by this amount so the lines have
- * empty space to run through.
- */
-export const CONNECTION_GUTTER_WIDTH = 32;
+import { CONNECTION_GUTTER_WIDTH } from "./connection-gutter";
 
 /** Horizontal distance between the row edge and where a line attaches. */
 const EDGE_INSET = 4;
@@ -58,7 +53,7 @@ type Geometry = {
   rightLines: Line[];
 };
 
-export interface ConnectionLinesProps {
+interface ConnectionLinesProps {
   /**
    * The positioned (`position: relative`) element containing the cell rows;
    * row positions are measured against it and the overlay fills it.
@@ -92,9 +87,9 @@ export const ConnectionLines: React.FC<ConnectionLinesProps> = ({
 }) => {
   const [geometry, setGeometry] = useState<Geometry | null>(null);
 
-  // Serialized so the effect's dependencies stay primitive while the arrays
-  // are rebuilt each render; ids are arbitrary imported strings, so JSON is
-  // the only safe delimiter.
+  // Serialized so the effect measures when the ids change, not when an edit
+  // of the net rebuilds their arrays; ids are arbitrary imported strings, so
+  // JSON is the only safe delimiter.
   const upstreamKey = JSON.stringify(upstreamIds);
   const downstreamKey = JSON.stringify(downstreamIds);
   const rowOrderKey = JSON.stringify(visibleCellIds);

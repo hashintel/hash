@@ -1,0 +1,161 @@
+/**
+ * The Parameters table: one row per net parameter — name, type, value slot
+ * overriding the parameter's default, Optimize (where available) — in the
+ * form's spreadsheet grammar and keyboard grid.
+ */
+
+import { css, cx } from "@hashintel/ds-helpers/css";
+import { emptyAdHocValue } from "@hashintel/petrinaut-core";
+
+import { FormSpreadsheet } from "../spreadsheet-kit/form-spreadsheet";
+import { cellStyle } from "../spreadsheet-kit/form-table";
+import { useFocusGrid, type FocusGrid } from "../worksheet/use-focus-grid";
+import {
+  useAdHocForm,
+  useAdHocFormFact,
+  adHocIntervalSelection,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
+import {
+  dependencyHighlightStyle as highlightStyle,
+  staticNameCellStyle,
+  staticTypeCellStyle,
+} from "./form-row-styles";
+import { OptimizeToggle } from "./optimize-toggle";
+import { ValueEditor } from "./value-editor";
+
+import type { AdHocNetParameter, Parameter } from "@hashintel/petrinaut-core";
+
+// An untouched parameter shows its default quietly: a small uppercase tag,
+// then the value — both lighter than an actual override.
+const defaultDisplayStyle = css({
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: "1.5",
+  // The value sits a step darker than the tag, still lighter than an
+  // override's neutral.s110.
+  color: "neutral.s100",
+});
+
+const defaultTagStyle = css({
+  fontSize: "[9px]",
+  fontWeight: "medium",
+  textTransform: "uppercase",
+  letterSpacing: "[0.5px]",
+  color: "neutral.s80",
+});
+
+const parameterOptimizeCellStyle = css({
+  width: "[92px]",
+  paddingX: "1",
+  textAlign: "center",
+});
+
+/**
+ * One net parameter. It reads its own override and whether the focused value
+ * reads it, so typing in one row renders that row alone.
+ */
+const ParameterRow: React.FC<{
+  parameter: Parameter;
+  parameterIndex: number;
+  register: FocusGrid["register"];
+  onKeyDown: FocusGrid["onKeyDown"];
+}> = ({ parameter, parameterIndex, register, onKeyDown }) => {
+  const { mode, selection, setFocusedValue, dispatch } = useAdHocForm();
+  const stored = useAdHocFormFact((facts) =>
+    facts.state.netParameters.find(
+      (candidate) => candidate.parameterId === parameter.id,
+    ),
+  );
+  const highlighted = useAdHocFormFact((facts) =>
+    facts.highlight.parameterIds.has(parameter.id),
+  );
+  const entry: AdHocNetParameter = stored ?? {
+    parameterId: parameter.id,
+    ...emptyAdHocValue(""),
+  };
+  const target = {
+    kind: "netParameter" as const,
+    parameterId: parameter.id,
+  };
+  const rowHighlight = highlighted && highlightStyle;
+  return (
+    <tr data-highlighted={highlighted || undefined}>
+      <td className={cx(cellStyle, rowHighlight)} style={{ width: 170 }}>
+        <div className={staticNameCellStyle}>{parameter.name}</div>
+      </td>
+      <td className={cx(cellStyle, rowHighlight)} style={{ width: 84 }}>
+        <div className={staticTypeCellStyle}>{parameter.type}</div>
+      </td>
+      <td className={cx(cellStyle, rowHighlight)}>
+        <ValueEditor
+          target={target}
+          value={entry}
+          display={
+            entry.optimize || mode === "run"
+              ? undefined
+              : entry.expression || (
+                  <span className={defaultDisplayStyle}>
+                    <span className={defaultTagStyle}>default</span>
+                    {parameter.defaultValue}
+                  </span>
+                )
+          }
+          kind={parameter.type}
+          readOnly={mode === "run"}
+          placeholder={parameter.defaultValue}
+          triggerRef={register(parameterIndex, 0)}
+          onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
+        />
+      </td>
+      {/* Interval selections only, and never in run mode: a net
+          parameter cannot be exposed (the Scenario Parameter toggle
+          belongs to Variables alone), and a run's computed
+          parameters are a preview the host derives, not slots to
+          select. */}
+      {adHocIntervalSelection(selection) && mode !== "run" ? (
+        <td
+          className={cx(cellStyle, parameterOptimizeCellStyle, rowHighlight)}
+          style={{ width: 92 }}
+          onFocus={() => setFocusedValue(target)}
+          onBlur={() => setFocusedValue(null)}
+        >
+          {adHocSelectionApplies(selection, parameter.type) ? (
+            <OptimizeToggle
+              text={adHocSelectionText(selection)}
+              label={`${adHocSelectionText(selection)} ${parameter.name}`}
+              value={entry.optimize !== null}
+              buttonRef={register(parameterIndex, 1)}
+              onKeyDown={onKeyDown(parameterIndex, 1)}
+              onChange={(on) =>
+                dispatch({ type: "toggleSelection", target, on })
+              }
+            />
+          ) : null}
+        </td>
+      ) : null}
+    </tr>
+  );
+};
+
+export const ParameterRows: React.FC = () => {
+  const { synthesisContext } = useAdHocForm();
+  const { register, onKeyDown, attach } = useFocusGrid({ tabStop: "native" });
+
+  return (
+    <FormSpreadsheet attach={attach}>
+      <tbody>
+        {synthesisContext.netParameters.map((parameter, parameterIndex) => (
+          <ParameterRow
+            key={parameter.id}
+            parameter={parameter}
+            parameterIndex={parameterIndex}
+            register={register}
+            onKeyDown={onKeyDown}
+          />
+        ))}
+      </tbody>
+    </FormSpreadsheet>
+  );
+};

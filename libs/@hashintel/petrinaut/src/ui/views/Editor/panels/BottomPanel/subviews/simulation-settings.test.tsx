@@ -9,6 +9,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
 } from "@hashintel/petrinaut-core";
 
+import { SDCPNContext } from "../../../../../../react/document/sdcpn-context";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
@@ -18,11 +19,10 @@ import {
   SimulationContext,
 } from "../../../../../../react/simulation/context";
 import { SimulatorsContext } from "../../../../../../react/simulators/context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { simulationSettingsSubView } from "./simulation-settings";
+import { SimulationSettingsContent as SimulationSettings } from "./simulation-settings";
 
+import type { SDCPNContextValue } from "../../../../../../react/document/sdcpn-context";
 import type { SimulationContextValue } from "../../../../../../react/simulation/context";
-import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
@@ -78,20 +78,6 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
   return { ...actual, Select, SegmentedControl };
 });
 
-// jsdom provides neither observer; the scroll fades and the value editor's
-// popover construct both.
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): never[] {
-    return [];
-  }
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver =
-  ObserverStub as unknown as typeof IntersectionObserver;
-
 afterEach(cleanup);
 
 const perPlaceScenario: Scenario = {
@@ -132,15 +118,10 @@ const sdcpn: SDCPN = {
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
   petriNetId: "test-net",
   petriNetDefinition: sdcpn,
   readonly: false,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
   getItemType: () => null,
 };
 
@@ -211,8 +192,6 @@ const registrations = [
     neverLoaded,
   ),
 ];
-
-const SimulationSettings = simulationSettingsSubView.component;
 
 const Providers = ({
   simulation,

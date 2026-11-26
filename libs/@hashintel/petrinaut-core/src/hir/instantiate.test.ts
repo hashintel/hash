@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { StringPool } from "../simulation/engine/string-pool";
+import { StringPool } from "../tokens/string-pool";
 import { instantiateHirBufferLambda } from "./instantiate";
 
 /**

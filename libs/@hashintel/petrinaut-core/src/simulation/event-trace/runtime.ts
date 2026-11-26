@@ -1,28 +1,27 @@
+import { flattenComponentInstancesForSimulation } from "../../composition/flatten-component-instances";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../document/parameter-values";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,
-} from "../../extensions";
+} from "../../extensions/extensions";
 import {
   runClockOf,
   runContinuityOf,
   type RunClock,
   type RunContinuity,
-} from "../../net-class";
-import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
+} from "../../extensions/net-class";
 import { createReadableStore } from "../../store";
-import { flattenComponentInstancesForSimulation } from "../engine/flatten-component-instances";
 import { createEventStream } from "../monte-carlo/runtime/experiment-stores";
-import { createWorkerTransport } from "../runtime/transport";
+import { createWorkerTransport } from "../worker-transport";
 import { createInMemoryEventTraceStore } from "./trace-store";
 
-import type { AbortSignalLike } from "../../environment";
-import type { PetrinautExtensionSettings } from "../../extensions";
+import type { AbortSignalLike } from "../../environment/environment";
+import type { PetrinautExtensionSettings } from "../../extensions/extensions";
 import type { HirArtifacts } from "../../hir-runtime";
-import type { EventStream } from "../../instance";
-import type { ReadableStore } from "../../store";
+import type { EventStream, ReadableStore } from "../../store";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
   InitialMarking,
@@ -31,6 +30,7 @@ import type {
   SimulationTransport,
   WorkerFactory,
 } from "../api";
+import type { StepperSelection } from "../steppers/steppers";
 import type {
   EventSimulationErrorEvent,
   EventSimulationEvent,
@@ -38,7 +38,6 @@ import type {
   TraceEvent,
 } from "./trace";
 import type { ToEventMainMessage } from "./worker/messages";
-import type { StepperSelection } from "./worker/steppers";
 
 /**
  * Per-run configuration of an event-driven run. The run is configured by
@@ -118,10 +117,10 @@ const EMPTY_SUMMARY: EventTraceSummary = {
  * once the worker reports `ready`; rejects (and disposes) on an
  * initialization error or when `signal` aborts first.
  *
- * The host side mirrors `createSimulation`: a transport to the worker, a
- * store that keeps what the worker sends, and stores that publish status and
- * progress. What differs is the unit: the worker sends events rather than
- * frames, and the host asks for time rather than acknowledging frames.
+ * The host side is a transport to the worker, a store that keeps the events
+ * the worker sends, and stores that publish status and progress. The host
+ * bounds the worker by time: the worker computes until its trace covers the
+ * time last passed to `demand`.
  */
 export function createEventSimulation(
   config: CreateEventSimulationConfig,

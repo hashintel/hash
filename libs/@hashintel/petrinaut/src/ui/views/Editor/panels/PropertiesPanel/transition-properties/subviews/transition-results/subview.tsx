@@ -1,21 +1,24 @@
 import { use } from "react";
 
-import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultTransitionKernelCode,
   getArcEndpoint,
-  resolveComponent,
+  getDocumentUri,
 } from "@hashintel/petrinaut-core";
 
-import { CompositionContext } from "../../../../../../../../react/state/composition-context";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { ActiveNetContext } from "../../../../../../../../react/document/active-net-context";
+import { CompositionContext } from "../../../../../../../../react/document/composition-context";
+import { SDCPNContext } from "../../../../../../../../react/document/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../../react/editing/use-petrinaut-mutations";
+import { useEditorState } from "../../../../../../../../react/state/editor-context";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
-import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { UI_MESSAGES } from "../../../../../shared/ui-messages";
+import { resolvePort } from "../../../arc-endpoint";
+import { CodeTemplateMenu } from "../../../code-template-menu";
+import { codeSectionStyle } from "../../../styles";
 import { useTransitionPropertiesContext } from "../../context";
 
-import type { SubView } from "../../../../../../../components/sub-view/types";
 import type {
   Color,
   InputArc,
@@ -23,31 +26,49 @@ import type {
   Place,
   ResolvedLibraries,
   SDCPN,
+  Transition,
 } from "@hashintel/petrinaut-core";
 
-const aiMenuItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-});
+type Net = Pick<SDCPN, "places" | "componentInstances">;
 
-const contentStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "[1]",
-  minHeight: "[0]",
-});
+/**
+ * The place an arc ends at and its name in kernel code, where the net still
+ * has it. A port is named `Instance::Port`.
+ */
+const arcPlace = (
+  arc: InputArc | OutputArc,
+  net: Net,
+  sdcpn: SDCPN,
+  libraries: ResolvedLibraries,
+): { place: Place; placeName: string } | undefined => {
+  const endpoint = getArcEndpoint(arc);
 
-const getTypeById = ({
+  if (endpoint.kind === "place") {
+    const place = net.places.find(({ id }) => id === endpoint.placeId);
+    return place ? { place, placeName: place.name } : undefined;
+  }
+
+  const { instance, port } = resolvePort(endpoint, net, sdcpn, libraries);
+  return instance && port?.isPort
+    ? { place: port, placeName: `${instance.name}::${port.name}` }
+    : undefined;
+};
+
+/** The default kernel code of a transition, from its arcs to typed places. */
+const defaultKernelCode = ({
+  transition,
+  net,
   sdcpn,
   types,
   libraries,
 }: {
+  transition: Transition;
+  net: Net;
   sdcpn: SDCPN;
   types: Color[];
   libraries: ResolvedLibraries;
-}) =>
-  new Map(
+}) => {
+  const typeById = new Map(
     [
       ...[...libraries.values()].flatMap(({ components }) =>
         components.flatMap((component) => component.types),
@@ -58,46 +79,33 @@ const getTypeById = ({
     ].map((type) => [type.id, type]),
   );
 
-const createTransitionArcPlaceResolver = (
-  sdcpn: SDCPN,
-  net: { places: Place[]; componentInstances?: SDCPN["componentInstances"] },
-  libraries: ResolvedLibraries,
-): ((
-  arc: InputArc | OutputArc,
-) => { place: Place; placeName: string } | undefined) => {
-  const placeById = new Map(net.places.map((place) => [place.id, place]));
-  const componentById = new Map(
-    (sdcpn.components ?? []).map((component) => [component.id, component]),
+  const templateArcs = (arcs: (InputArc | OutputArc)[]) =>
+    arcs.flatMap((arc) => {
+      const resolved = arcPlace(arc, net, sdcpn, libraries);
+      const type = resolved?.place.colorId
+        ? typeById.get(resolved.place.colorId)
+        : undefined;
+
+      return resolved && type
+        ? [{ placeName: resolved.placeName, type, weight: arc.weight }]
+        : [];
+    });
+
+  return generateDefaultTransitionKernelCode(
+    templateArcs(
+      transition.inputArcs.filter((arc) => arc.type !== "inhibitor"),
+    ),
+    templateArcs(transition.outputArcs),
   );
-  const instanceById = new Map(
-    (net.componentInstances ?? []).map((instance) => [instance.id, instance]),
-  );
-
-  return (arc) => {
-    const endpoint = getArcEndpoint(arc);
-
-    if (endpoint.kind === "place") {
-      const place = placeById.get(endpoint.placeId);
-      return place ? { place, placeName: place.name } : undefined;
-    }
-
-    const instance = instanceById.get(endpoint.componentInstanceId);
-    const component = instance
-      ? resolveComponent(sdcpn, instance.component, libraries, componentById)
-      : undefined;
-    const place = component?.places.find(
-      (p) => p.id === endpoint.portPlaceId && p.isPort,
-    );
-
-    if (!instance || !place) return undefined;
-    return { place, placeName: `${instance.name}::${place.name}` };
-  };
 };
 
-const ResultsHeaderAction: React.FC = () => {
-  const { logicAvailability, transition, sdcpn, net, types, updateTransition } =
+export const ResultsHeaderAction: React.FC = () => {
+  const { logicAvailability, transition, types } =
     useTransitionPropertiesContext();
-  const { globalMode } = use(EditorContext);
+  const { updateTransition } = usePetrinautMutations();
+  const { petriNetDefinition: sdcpn } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
+  const globalMode = useEditorState((editor) => editor.globalMode);
   const { libraries } = use(CompositionContext);
 
   if (globalMode !== "edit" || !logicAvailability.transitionKernel) {
@@ -105,107 +113,32 @@ const ResultsHeaderAction: React.FC = () => {
   }
 
   return (
-    <Menu
-      trigger={
-        <Button
-          aria-label="More options"
-          tooltip="More options"
-          variant="ghost"
-          size="xs"
-          iconName="ellipsisVertical"
-        />
-      }
-      items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            const resolveArcPlace = createTransitionArcPlaceResolver(
+    <CodeTemplateMenu
+      onLoadDefault={() =>
+        updateTransition({
+          transitionId: transition.id,
+          update: {
+            transitionKernelCode: defaultKernelCode({
+              transition,
+              net: activeNet,
               sdcpn,
-              net,
+              types,
               libraries,
-            );
-            const typeById = getTypeById({ sdcpn, types, libraries });
-
-            const inputs = transition.inputArcs
-              .filter((arc) => arc.type !== "inhibitor")
-              .map((arc) => {
-                const resolved = resolveArcPlace(arc);
-                const type = resolved?.place.colorId
-                  ? typeById.get(resolved.place.colorId)
-                  : undefined;
-
-                if (!resolved || !type) {
-                  return null;
-                }
-
-                return {
-                  placeName: resolved.placeName,
-                  type,
-                  weight: arc.weight,
-                };
-              })
-              .filter((i) => i !== null);
-
-            const outputs = transition.outputArcs
-              .map((arc) => {
-                const resolved = resolveArcPlace(arc);
-                const type = resolved?.place.colorId
-                  ? typeById.get(resolved.place.colorId)
-                  : undefined;
-
-                if (!resolved || !type) {
-                  return null;
-                }
-
-                return {
-                  placeName: resolved.placeName,
-                  type,
-                  weight: arc.weight,
-                };
-              })
-              .filter((o) => o !== null);
-
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                transitionKernelCode: generateDefaultTransitionKernelCode(
-                  inputs,
-                  outputs,
-                ),
-              },
-            });
+            }),
           },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
-      ]}
+        })
+      }
     />
   );
 };
 
-const TransitionResultsContent: React.FC = () => {
-  const { transition, isReadOnly, updateTransition } =
-    useTransitionPropertiesContext();
+export const TransitionResultsContent: React.FC = () => {
+  const { transition } = useTransitionPropertiesContext();
+  const { updateTransition } = usePetrinautMutations();
+  const isReadOnly = useIsReadOnly();
 
   return (
-    <div className={contentStyle}>
+    <div className={codeSectionStyle}>
       <CodeEditor
         path={getDocumentUri("transition-kernel", transition.id)}
         language="typescript"
@@ -226,20 +159,4 @@ const TransitionResultsContent: React.FC = () => {
       />
     </div>
   );
-};
-
-export const transitionResultsSubView: SubView = {
-  id: "transition-results",
-  canMaximize: true,
-  title: "Transition Results",
-  defaultCollapsed: true,
-  tooltip:
-    "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
-  component: TransitionResultsContent,
-  renderHeaderAction: () => <ResultsHeaderAction />,
-  resizable: {
-    minHeight: 300,
-    maxHeight: 1200,
-    defaultHeight: 500,
-  },
 };

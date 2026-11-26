@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.composition
- * @role Place fusion: how a net's places and its component instances' ports become one place, the checks on a fusion, and how flattening merges them
+ * @role Builds a net out of components: interfaces, ports, libraries, imports and place fusion, the checks on each, and the flattening of a composed net into a plain one
  *
  * A fusion names places the way an arc endpoint does, so the endpoint helpers
  * apply to its members. This module resolves members to the places they name
@@ -9,7 +9,10 @@
  * flattened for simulation.
  */
 
-import { arcEndpointsEqual, getArcEndpointKey } from "../arc-endpoints";
+import {
+  arcEndpointsEqual,
+  getArcEndpointKey,
+} from "../document/arc-endpoints";
 import { resolveComponent } from "./interfaces";
 
 import type {

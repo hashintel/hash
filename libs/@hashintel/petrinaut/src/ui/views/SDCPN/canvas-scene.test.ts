@@ -10,9 +10,14 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
-import { logisticsLibrary } from "../../libraries-story-fixtures";
+import { logisticsLibrary } from "../../stories/libraries-story-fixtures";
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
-import { buildCanvasScene, type CanvasSceneInput } from "./canvas-scene";
+import {
+  buildCanvasScene,
+  transitionLambdaTypes,
+  type CanvasSceneInput,
+} from "./canvas-scene";
+import { countReads } from "./count-reads.test-helpers";
 import { arcStrokeColor } from "./styles/type-colors";
 
 import type {
@@ -68,12 +73,12 @@ const input: CanvasSceneInput = {
   net: { ...sdcpn, componentInstances: [], fusions: [] },
   sdcpn,
   libraries: new Map(),
-  fusionStatuses: new Map(),
+  fusionSeverities: new Map(),
+  lambdaTypes: new Map(),
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
-  draggingStateByNodeId: {},
-  isSelected: () => false,
-  hoveredId: null,
+  dragPreview: new Map(),
+  selectedIds: new Set(),
   focus: resolveCanvasFocus({
     adjacency: buildNetAdjacency({
       ...sdcpn,
@@ -106,12 +111,25 @@ describe("buildCanvasScene", () => {
     });
   });
 
+  it("labels a transition with how the net's index says it gives its rate", () => {
+    const lambdaTypes = transitionLambdaTypes(
+      input.net,
+      sdcpn,
+      DEFAULT_PETRINAUT_EXTENSIONS,
+      new Map(),
+    );
+    const { nodes } = buildCanvasScene({ ...input, lambdaTypes });
+
+    expect([...lambdaTypes]).toEqual([["t1", "predicate"]]);
+    expect(nodes.find((node) => node.id === "t1")).toMatchObject({
+      lambdaType: "predicate",
+    });
+  });
+
   it("follows the drag preview while a node is dragged", () => {
     const { nodes } = buildCanvasScene({
       ...input,
-      draggingStateByNodeId: {
-        p1: { dragging: true, position: { x: 50, y: 60 } },
-      },
+      dragPreview: new Map([["p1", { x: 50, y: 60 }]]),
     });
     expect(nodes.find((node) => node.id === "p1")).toMatchObject({
       position: { x: 50, y: 60 },
@@ -119,11 +137,10 @@ describe("buildCanvasScene", () => {
     });
   });
 
-  it("carries selection, hover and focus roles per item", () => {
+  it("carries selection and focus roles per item", () => {
     const { nodes, arcs } = buildCanvasScene({
       ...input,
-      isSelected: (id) => id === "p1",
-      hoveredId: "t1",
+      selectedIds: new Set(["p1"]),
       focus: resolveCanvasFocus({
         adjacency: buildNetAdjacency(input.net),
         hoveredId: "t1",
@@ -131,21 +148,10 @@ describe("buildCanvasScene", () => {
       }),
     });
     expect(nodes.find((node) => node.id === "p1")?.selected).toBe(true);
-    expect(nodes.find((node) => node.id === "t1")?.hovered).toBe(true);
     expect(nodes.find((node) => node.id === "t1")?.focus).toBe("focused");
     expect(nodes.find((node) => node.id === "p2")?.focus).toBe("downstream");
     expect(arcs.find((arc) => arc.id === inputArcId)?.focus).toBe("incoming");
     expect(arcs.find((arc) => arc.id === outputArcId)?.focus).toBe("outgoing");
-  });
-
-  it("marks the hovered node even where nothing is focused", () => {
-    // The hover highlight can be turned off, which leaves the focus empty
-    // while the pointer still rests on a node — the state visualizer and the
-    // rest of the hover-driven surfaces still have to see it.
-    const { nodes } = buildCanvasScene({ ...input, hoveredId: "p1" });
-
-    expect(nodes.find((node) => node.id === "p1")?.hovered).toBe(true);
-    expect(nodes.find((node) => node.id === "p1")?.focus).toBe("none");
   });
 
   it("marks a place whose state visualizer is kept open", () => {
@@ -233,7 +239,7 @@ describe("buildCanvasScene", () => {
         ...input,
         sdcpn: composed,
         net: composedNet,
-        fusionStatuses: new Map([["fusion-left", { severity: "warning" }]]),
+        fusionSeverities: new Map([["fusion-left", "warning"]]),
         ...overrides,
       });
     const { fusions } = build();
@@ -248,9 +254,7 @@ describe("buildCanvasScene", () => {
     // An instance dragged across the hub swaps the ends of its link.
     expect(
       build({
-        draggingStateByNodeId: {
-          right: { dragging: true, position: { x: -900, y: 0 } },
-        },
+        dragPreview: new Map([["right", { x: -900, y: 0 }]]),
       }).fusions.find((link) => link.fusionId === "fusion-right"),
     ).toMatchObject({ sourceId: "right", targetId: "p1" });
     expect(
@@ -289,69 +293,6 @@ describe("buildCanvasScene", () => {
       targetId: "right",
       targetPortId: "in",
     });
-  });
-
-  it("reads a component's arcs once for the directions of its ports, however many ports and instances it has", () => {
-    // Two hundred ports that declare no direction, under 24,000 arcs: the
-    // even ones are consumed from and the odd ones produced into.
-    const ports = Array.from({ length: 200 }, (_, index) => ({
-      ...place(`port-${index}`, 0, 0),
-      isPort: true,
-    }));
-    const consumed = ports.filter((_, index) => index % 2 === 0);
-    const produced = ports.filter((_, index) => index % 2 === 1);
-    const wide = {
-      id: "wide",
-      name: "Wide",
-      places: ports,
-      transitions: Array.from({ length: 120 }, (_, index) => ({
-        ...transition(`work-${index}`, [], []),
-        inputArcs: consumed.map(({ id }) => ({
-          placeId: id,
-          weight: 1,
-          type: "standard" as const,
-        })),
-        outputArcs: produced.map(({ id }) => ({ placeId: id, weight: 1 })),
-      })),
-      types: [],
-      differentialEquations: [],
-      parameters: [],
-    };
-    const composed: SDCPN = {
-      ...sdcpn,
-      components: [wide],
-      componentInstances: Array.from({ length: 20 }, (_, index) => ({
-        id: `wide-${index}`,
-        name: `Wide ${index}`,
-        component: { id: "wide" },
-        parameterValues: {},
-        x: 0,
-        y: index * 100,
-      })),
-    };
-
-    const started = Date.now();
-    const { nodes } = buildCanvasScene({
-      ...input,
-      sdcpn: composed,
-      net: {
-        ...composed,
-        componentInstances: composed.componentInstances ?? [],
-        fusions: [],
-      },
-    });
-    const elapsed = Date.now() - started;
-
-    const instances = nodes.filter((node) => node.kind === "componentInstance");
-    expect(instances).toHaveLength(20);
-    for (const instance of instances) {
-      expect(instance.ports).toHaveLength(200);
-      expect(instance.ports.slice(0, 2)).toMatchObject([
-        { id: "port-0", name: "port-0", direction: "in" },
-        { id: "port-1", name: "port-1", direction: "out" },
-      ]);
-    }
-    expect(elapsed).toBeLessThan(1000);
   });
 
   describe("components and ports", () => {
@@ -656,98 +597,6 @@ describe("buildCanvasScene", () => {
       });
     });
 
-    it("reads the arcs of the net it shows once for the directions of its own ports", () => {
-      // A thousand ports that declare no direction, under 20,000 arcs that
-      // consume from them.
-      const ports = Array.from({ length: 1000 }, (_, index) => ({
-        ...place(`port-${index}`, 0, 0),
-        isPort: true,
-      }));
-      const wide: Component = {
-        ...fast,
-        id: "wide",
-        name: "Wide",
-        places: ports,
-        transitions: Array.from({ length: 20 }, (_, index) => ({
-          ...transition(`take-${index}`, [], []),
-          inputArcs: ports.map(({ id }) => ({
-            placeId: id,
-            weight: 1,
-            type: "standard" as const,
-          })),
-        })),
-      };
-
-      const started = Date.now();
-      const { nodes } = buildCanvasScene({
-        ...input,
-        sdcpn: { ...sdcpn, components: [wide] },
-        net: { ...wide, componentInstances: [], fusions: [] },
-      });
-      const elapsed = Date.now() - started;
-
-      expect(
-        new Set(
-          nodes.flatMap((node) =>
-            node.kind === "place" ? [node.portDirection] : [],
-          ),
-        ),
-      ).toEqual(new Set(["in"]));
-      // Reading the arcs for each port takes several seconds.
-      expect(elapsed).toBeLessThan(1000);
-    });
-
-    it("looks up the token types of a component's ports once, however many ports and instances it has", () => {
-      // Four thousand ports, each of a token type of its own.
-      const names = Array.from({ length: 4000 }, (_, index) => `port-${index}`);
-      const wide: Component = {
-        ...fast,
-        id: "wide",
-        name: "Wide",
-        types: names.map((name) => ({
-          ...token,
-          id: `type-${name}`,
-          displayColor: `#${name}`,
-        })),
-        places: names.map((name) => ({
-          ...place(name, 0, 0),
-          isPort: true,
-          portDirection: "in" as const,
-          colorId: `type-${name}`,
-        })),
-      };
-      const many: SDCPN = {
-        ...sdcpn,
-        components: [wide],
-        componentInstances: Array.from({ length: 200 }, (_, index) =>
-          instance(`wide-${index}`, "wide"),
-        ),
-      };
-
-      const started = Date.now();
-      const { nodes } = buildCanvasScene({
-        ...input,
-        sdcpn: many,
-        net: activeNet(many),
-      });
-      const elapsed = Date.now() - started;
-
-      const instances = nodes.filter(
-        (node) => node.kind === "componentInstance",
-      );
-      expect(instances).toHaveLength(200);
-      for (const node of instances) {
-        expect(node.ports).toHaveLength(names.length);
-        expect(node.ports.at(-1)).toMatchObject({
-          id: "port-3999",
-          direction: "in",
-          typeColor: "#port-3999",
-        });
-      }
-      // A search of the types for each port of each instance takes seconds.
-      expect(elapsed).toBeLessThan(1000);
-    });
-
     it("gives each instance ports of its own", () => {
       const twice: SDCPN = {
         ...sdcpn,
@@ -769,93 +618,115 @@ describe("buildCanvasScene", () => {
       expect(portsOf("one")[0]).not.toBe(portsOf("two")[0]);
     });
 
-    it("finds the port at the end of each arc without a search of the instance's ports", () => {
-      // Ten thousand ports of one instance, each reached by ten arcs.
-      const names = Array.from(
-        { length: 10_000 },
-        (_, index) => `port-${index}`,
-      );
+    it("reads each list of a component and the defaults once, however many ports and instances there are", () => {
+      const arcs = countReads();
+      const types = countReads();
+      const places = countReads();
+      const defaults = countReads();
+      // Forty ports that declare no direction, each of a token type of its
+      // own, under four transitions that consume from the even ones and
+      // produce into the odd ones.
+      const names = Array.from({ length: 40 }, (_, index) => `port-${index}`);
       const wide: Component = {
         ...fast,
         id: "wide",
         name: "Wide",
-        places: names.map((name) => ({
-          ...place(name, 0, 0),
-          isPort: true,
-          portDirection: "in" as const,
-          colorId: "tok",
-        })),
-      };
-      const wired: SDCPN = {
-        ...sdcpn,
-        components: [wide],
-        componentInstances: [instance("w1", "wide")],
-        transitions: Array.from({ length: 10 }, (_, index) => ({
-          ...transition(`feed-${index}`, [], []),
-          outputArcs: names.map((portPlaceId) => ({
-            endpoint: {
-              kind: "componentPort" as const,
-              componentInstanceId: "w1",
-              portPlaceId,
-            },
-            weight: 1,
+        implements: undefined,
+        types: types.of(
+          names.map((name) => ({
+            ...token,
+            id: `type-${name}`,
+            displayColor: `#${name}`,
           })),
+        ),
+        places: places.of(
+          names.map((name) => ({
+            ...place(name, 0, 0),
+            isPort: true,
+            colorId: `type-${name}`,
+          })),
+        ),
+        transitions: Array.from({ length: 4 }, (_, index) => ({
+          ...transition(`work-${index}`, [], []),
+          inputArcs: arcs.of(
+            names
+              .filter((_name, port) => port % 2 === 0)
+              .map((placeId) => ({
+                placeId,
+                weight: 1,
+                type: "standard" as const,
+              })),
+          ),
+          outputArcs: arcs.of(
+            names
+              .filter((_name, port) => port % 2 === 1)
+              .map((placeId) => ({ placeId, weight: 1 })),
+          ),
         })),
       };
-
-      const started = Date.now();
-      const { arcs } = buildCanvasScene({
-        ...input,
-        sdcpn: wired,
-        net: activeNet(wired),
-      });
-      const elapsed = Date.now() - started;
-
-      expect(arcs).toHaveLength(100_000);
-      expect(new Set(arcs.map(({ color }) => color))).toEqual(
-        new Set([arcStrokeColor("#ff0000")]),
-      );
-      // A search of the ports for each arc takes several seconds.
-      expect(elapsed).toBeLessThan(1000);
-    });
-
-    it("resolves many instances against a long list of defaults, with one read of the list", () => {
-      const size = 30_000;
+      // Twenty instances of it, and twenty of an interface whose default is
+      // the last of a long list.
       const many: SDCPN = {
         ...sdcpn,
-        components: [iface, fast],
-        implementations: [
-          ...Array.from({ length: size }, (_, index) => ({
+        components: [iface, fast, wide],
+        implementations: defaults.of([
+          ...Array.from({ length: 40 }, (_, index) => ({
             interface: { id: `other${index}` },
             component: { id: "fast" },
           })),
           { interface: { id: "iface" }, component: { id: "fast" } },
-        ],
-        componentInstances: Array.from({ length: size }, (_, index) =>
+        ]),
+        componentInstances: Array.from({ length: 20 }, (_, index) => [
+          instance(`wide-${index}`, "wide"),
           instance(`bound-${index}`, "iface"),
-        ),
+        ]).flat(),
       };
 
-      const started = Date.now();
       const { nodes } = buildCanvasScene({
         ...input,
         sdcpn: many,
         net: activeNet(many),
       });
-      const elapsed = Date.now() - started;
 
-      const bindings = new Set(
-        nodes.flatMap((node) =>
-          node.kind === "componentInstance"
-            ? [JSON.stringify(node.binding)]
-            : [],
-        ),
+      const instances = nodes.filter(
+        (node) => node.kind === "componentInstance",
       );
-      expect([...bindings]).toEqual([
-        JSON.stringify({ kind: "interface", implementationName: "Fast" }),
-      ]);
-      // A search of the defaults for every instance takes several seconds.
-      expect(elapsed).toBeLessThan(1000);
+      expect(instances).toHaveLength(40);
+      for (const node of instances) {
+        if (node.id.startsWith("wide")) {
+          expect(node.ports).toHaveLength(40);
+          expect(node.ports.slice(0, 2)).toMatchObject([
+            { id: "port-0", direction: "in", typeColor: "#port-0" },
+            { id: "port-1", direction: "out", typeColor: "#port-1" },
+          ]);
+        } else {
+          expect(node.binding).toEqual({
+            kind: "interface",
+            implementationName: "Fast",
+          });
+        }
+      }
+      // A search per port or per instance makes twenty passes or more.
+      expect(arcs.reads()).toBeLessThanOrEqual(3 * 160);
+      expect(types.reads()).toBeLessThanOrEqual(3 * names.length);
+      expect(places.reads()).toBeLessThanOrEqual(3 * names.length);
+      expect(defaults.reads()).toBeLessThanOrEqual(3 * 41);
+
+      // Inside the component its ports are places of the net, and its arcs
+      // are drawn as well.
+      const readsBefore = arcs.reads();
+      const inside = buildCanvasScene({
+        ...input,
+        sdcpn: many,
+        net: { ...wide, componentInstances: [], fusions: [] },
+      });
+
+      expect(
+        inside.nodes.flatMap((node) =>
+          node.kind === "place" ? [node.portDirection] : [],
+        ),
+      ).toEqual(names.map((_name, port) => (port % 2 === 0 ? "in" : "out")));
+      expect(arcs.reads() - readsBefore).toBeLessThanOrEqual(3 * 160);
     });
   });
 });

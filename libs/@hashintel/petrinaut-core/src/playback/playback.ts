@@ -29,26 +29,6 @@ export function formatPlaybackSpeed(speed: PlaybackSpeed): string {
   return speed === Number.POSITIVE_INFINITY ? "Max" : `${speed}x`;
 }
 
-/**
- * Backpressure configuration for a compute play mode. Used to tell the
- * simulation worker how aggressively to compute new frames.
- *
- * `viewOnly` intentionally has no backpressure shape: it is a frame viewing
- * mode, not a worker computation mode.
- */
-export type PlayModeBackpressure = {
-  maxFramesAhead: number;
-  batchSize: number;
-};
-
-export function getPlayModeBackpressure(
-  mode: ComputePlayMode,
-): PlayModeBackpressure {
-  return mode === "computeBuffer"
-    ? { maxFramesAhead: 40, batchSize: 10 }
-    : { maxFramesAhead: 10000, batchSize: 500 };
-}
-
 export type PlaybackSnapshot = {
   playState: PlaybackState;
   frameIndex: number;

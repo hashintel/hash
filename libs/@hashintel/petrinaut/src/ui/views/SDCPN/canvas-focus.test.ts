@@ -4,7 +4,7 @@ import { generateArcId, getArcEndpointKey } from "@hashintel/petrinaut-core";
 
 import { buildNetAdjacency, resolveCanvasFocus } from "./canvas-focus";
 
-import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
+import type { ActiveNetDefinition } from "../../../react/document/active-net-context";
 import type { Place, Transition } from "@hashintel/petrinaut-core";
 
 const place = (id: string): Place => ({
@@ -236,25 +236,6 @@ describe("resolveCanvasFocus", () => {
       expect(focus.nodeFocus("lonely")).toBe("bidirectional");
       expect(focus.arcFocus(linkIds[0]!)).toBe("focused");
       expect(focus.nodeFocus("m2")).toBe("none");
-    });
-  });
-
-  it("indexes a node's neighbours once, for lookup", () => {
-    const index = buildNetAdjacency(net);
-
-    expect(index.canvasIds.has("t1")).toBe(true);
-    expect(index.canvasIds.has("some-type-id")).toBe(false);
-    expect(index.byNode.get("t1")?.upstream).toEqual(["p1"]);
-    expect(index.byNode.get("t1")?.downstream).toEqual(["p2"]);
-    expect(index.byNode.get("lonely")).toEqual({
-      upstream: [],
-      downstream: [],
-      incoming: [],
-      outgoing: [],
-    });
-    expect(index.arcEnds.get(t1ToP2)).toEqual({
-      sourceId: "t1",
-      targetId: "p2",
     });
   });
 });

@@ -6,12 +6,12 @@
  * disclosure. From the line, ArrowRight opens them and ArrowLeft closes them.
  */
 
-import { use, useId, useState } from "react";
+import { useId, useState } from "react";
 
 import { Chip, Icon, type IconName, Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
+import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
 import {
   describePluginContributions,
   type PluginContributionItem,
@@ -240,7 +240,9 @@ export interface PluginRowProps {
 }
 
 export const PluginRow = ({ manifest, status }: PluginRowProps) => {
-  const { setPluginEnabled } = use(UserSettingsContext);
+  const setPluginEnabled = useUserSettings(
+    (settings) => settings.setPluginEnabled,
+  );
   const [open, setOpen] = useState(false);
   const id = useId();
   const contributions = describePluginContributions(manifest);

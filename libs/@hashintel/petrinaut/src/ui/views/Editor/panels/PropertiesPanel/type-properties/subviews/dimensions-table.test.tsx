@@ -3,27 +3,19 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { selectedRowCellStyle } from "../../../../../../components/spreadsheet-kit/form-table";
+import { PetrinautInstanceContext } from "../../../../../../../react/document/instance-context";
+import { ReadOnlyReasonContext } from "../../../../../../../react/editing/use-read-only-reason";
+import { selectedRowCellStyle } from "../../../../../../spreadsheet-kit/form-table";
 import { TypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";
 
-import type { TypePropertiesContextValue } from "../context";
-import type { Color } from "@hashintel/petrinaut-core";
+import type {
+  Color,
+  Petrinaut,
+  PetrinautMutations,
+} from "@hashintel/petrinaut-core";
 
 afterEach(cleanup);
-
-// The select's positioner observes its anchor; jsdom has no observer.
-if (typeof window.ResizeObserver === "undefined") {
-  class ResizeObserverStub {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
-  }
-  Object.defineProperty(window, "ResizeObserver", {
-    value: ResizeObserverStub,
-    configurable: true,
-  });
-}
 
 const satellite: Color = {
   id: "satellite",
@@ -35,6 +27,35 @@ const satellite: Color = {
     { elementId: "v", name: "velocity", type: "real" },
   ],
 };
+
+type ElementMutations = Pick<
+  PetrinautMutations,
+  | "addTypeElement"
+  | "updateTypeElement"
+  | "removeTypeElement"
+  | "moveTypeElement"
+>;
+
+/** The table of an editable type, over an instance with these mutations. */
+const Table = ({
+  type,
+  mutations,
+  readOnly = false,
+}: {
+  type: Color;
+  mutations: ElementMutations;
+  readOnly?: boolean;
+}) => (
+  <PetrinautInstanceContext
+    value={{ mutations, mutationRefusal: () => null } as unknown as Petrinaut}
+  >
+    <ReadOnlyReasonContext value={null}>
+      <TypePropertiesContext value={{ type }}>
+        <DimensionsTable readOnly={readOnly} />
+      </TypePropertiesContext>
+    </ReadOnlyReasonContext>
+  </PetrinautInstanceContext>
+);
 
 /** Applies the element mutations to local state, the way the net does. */
 const Harness = ({
@@ -49,9 +70,7 @@ const Harness = ({
   const [type, setType] = useState(initialType);
   onType?.(type);
 
-  const value: TypePropertiesContextValue = {
-    type,
-    updateType: vi.fn(),
+  const mutations: ElementMutations = {
     addTypeElement: ({ element }) =>
       setType((current) => ({
         ...current,
@@ -83,11 +102,7 @@ const Harness = ({
       }),
   };
 
-  return (
-    <TypePropertiesContext value={value}>
-      <DimensionsTable readOnly={readOnly} />
-    </TypePropertiesContext>
-  );
+  return <Table type={type} mutations={mutations} readOnly={readOnly} />;
 };
 
 const nameCell = (row: number) =>
@@ -143,9 +158,7 @@ describe("Dimensions table", () => {
     let added: Color["elements"][number] | undefined;
     // The type comes from outside, the way the net replays its history.
     const view = (type: Color) => {
-      const value: TypePropertiesContextValue = {
-        type,
-        updateType: vi.fn(),
+      const mutations: ElementMutations = {
         addTypeElement: ({ element }) => {
           added = element;
         },
@@ -153,11 +166,7 @@ describe("Dimensions table", () => {
         removeTypeElement: vi.fn(),
         moveTypeElement: vi.fn(),
       };
-      return (
-        <TypePropertiesContext value={value}>
-          <DimensionsTable readOnly={false} />
-        </TypePropertiesContext>
-      );
+      return <Table type={type} mutations={mutations} />;
     };
     const { rerender } = render(view(satellite));
     fireEvent.click(screen.getByRole("button", { name: "Add a dimension" }));

@@ -1,0 +1,68 @@
+---
+title: Sub-views
+description: A sub-view is a descriptor that names the components a panel shows as one section or one tab.
+sidebar_order: 10
+---
+
+A sub-view is an object of type `SubView` that names the components a panel shows as one section or one tab.
+The panel decides which descriptors show. A container, or the panel itself, renders the components they name.
+
+![A panel chooses descriptors from a sub-views.ts file, and a container renders the components they name](./sub-views.d2)
+
+## Entry point
+
+`SubView` in `ui/sub-view/types.ts` is the interface. A panel keeps its descriptors in a `sub-views.ts` file beside its entry file, as one exported constant per sub-view or as one exported array.
+
+Two sets of components draw them:
+
+- `VerticalSubViewsContainer` takes the descriptors as `subViews`, stacks them as sections and renders their components. The left sidebar and every properties panel use it.
+- `HorizontalTabsHeader`, in `BottomPanel/tabs.tsx`, draws a tab bar from the `id`, `title` and `tooltip` of each descriptor, and `HorizontalTabPanel` wraps the content of one tab. `BottomPanel` uses them and renders the `component` and `headerAction` of the active descriptor itself.
+
+## Interface
+
+| Field                                          | What it sets                                                                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `id`, `title`, `tooltip`, `icon`               | The identity of the section or tab and what its header shows                                                            |
+| `component`                                    | The content                                                                                                             |
+| `headerAction`                                 | A component at the right of the header, such as an add button                                                           |
+| `alwaysShowHeaderAction`                       | The action shows at all times, as it does on every `main` sub-view. Without it the action shows on hover and focus.     |
+| `headerActionMutates`                          | The action is hidden while `usePetrinautPresentation().showMutationActions` is false                                    |
+| `titleComponent`                               | A component that replaces the title text of a `main` sub-view                                                           |
+| `main`                                         | A fixed header that does not collapse. The first `main` of a list also gives a maximized section its breadcrumb parent. |
+| `defaultCollapsed`, `minHeight`, `canMaximize` | How a section opens, resizes and fills its container                                                                    |
+| `retainOnCollapse`                             | A visited section stays mounted while collapsed                                                                         |
+| `fullWidthCodeEditor`                          | A section uses the maximized code-editor layout at all times                                                            |
+| `noPadding`                                    | A bottom tab's content fills the panel with no padding                                                                  |
+
+`createDeferredSubView` builds a descriptor whose components arrive through a dynamic import. Its `load` option returns a promise of the `component` and `headerAction` to show. The load starts when the content or the action first mounts, or earlier when a module calls `preload` on the result, as the `sub-views.ts` of the place properties does for the visualizer. The result always sets `headerAction`, so the header renders an empty action container when `load` returns no action. Use it for a section that has an action.
+
+## Data flow
+
+A user collapses a section of the properties panel:
+
+1. The panel entry, for example `PlaceProperties`, chooses a list from its `sub-views.ts` and passes it as `subViews` with a container `name`.
+2. `VerticalSubViewsContainer` renders each open section through the `component` and `headerAction` of its descriptor.
+3. A click on a header calls `updateSubViewSection`, which saves `collapsed` in `subViewPanels` of the [user settings](layer:react.state), under the container name and the section `id`. A resize saves `height` the same way, 300 ms after the last change.
+4. The collapsed section unmounts its content, unless `retainOnCollapse` is set and the section was opened before.
+
+A section and a bottom tab scroll their content. Under a `KeptState`, each keeps its scroll offset with `useKeptScroll`, a section by its `id`, and mounts at that offset again after it was unmounted with its panel. See [The editor shell](doc:ui.views.editor/editor-shell).
+
+Maximizing a section does not go through the settings. The container writes `expandedSubView`, with its `name` as `container`, to the [navigation state](layer:react.navigation), so Back and Forward restore it. Two containers with the same `name` would share saved state, so each panel uses its own.
+
+A plugin's `bottomPanelViews` entry never becomes a `SubView`. `usePluginBottomPanelViews` turns it into a tab with an `id`, a `title`, a `tooltip` and rendered `content`, and the bottom panel lists it after its own tabs. See [Writing a plugin](doc:ui.plugins/writing-a-plugin).
+
+## Rules
+
+**A descriptor file is a `.ts` file.** A module that exports an object beside a component loses Fast Refresh: every save re-runs its importers and resets their state. `tsc` rejects JSX in a `.ts` file, so a component cannot be written there. No check stops a descriptor from being exported by a `.tsx` file.
+
+**A descriptor names components and sets no render function.** A component field keeps the descriptor free of closures, and the container renders it as an element that React can keep between renders.
+
+**The maximize animation changes no layout property.** The section is laid out once at the size of the container, then moved with `transform` and clipped with `clip-path`, while its title and the other sections change `opacity`. Its content is not laid out again on each frame. The test "animates how the section is drawn in both directions and can reverse an unfinished expansion" in `vertical-sub-views-container.test.tsx` holds this.
+
+**A collapsible section that holds a code editor sets `retainOnCollapse`.** Creating a Monaco editor costs more than keeping one, so a visited section keeps its editor while collapsed. The test "retains visited code while collapsed and releases it when selecting another item" in the same file holds this. See [Monaco](doc:ui.monaco/monaco).
+
+## Pitfalls
+
+- A panel that builds a descriptor during render, as `PlaceProperties` does to add the place name to the title, must spread a constant from `sub-views.ts`. A descriptor with a component defined during render remounts that component on every render.
+- The `id` is the key of the saved collapse state and height. Renaming it discards what users saved.
+- `CodeNavigationProvider` in `ui/views/Editor/editor-view/code-navigation-provider.tsx` names three container names and four section ids as strings. After a rename of one of them, `open` from `useCodeNavigation` no longer expands the section, and no check reports it.

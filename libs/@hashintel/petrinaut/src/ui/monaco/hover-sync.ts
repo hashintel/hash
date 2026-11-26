@@ -1,0 +1,84 @@
+import { use, useEffect } from "react";
+
+import { type Hover, Position } from "@hashintel/petrinaut-core";
+
+import { LanguageClientContext } from "../../react/lsp/context";
+
+import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
+
+/** Extract display string from LSP Hover contents. */
+function hoverContentsToMarkdown(hover: Hover): Monaco.IMarkdownString[] {
+  const { contents } = hover;
+
+  // MarkupContent, Markdown or plain text
+  if (typeof contents === "object" && "kind" in contents) {
+    return [{ value: contents.value }];
+  }
+
+  // string
+  if (typeof contents === "string") {
+    return [{ value: contents }];
+  }
+
+  // MarkedString[]
+  if (Array.isArray(contents)) {
+    return contents.map((item) => {
+      if (typeof item === "string") {
+        return { value: item };
+      }
+      return { value: `\`\`\`${item.language}\n${item.value}\n\`\`\`` };
+    });
+  }
+
+  // MarkedString { language, value }
+  if ("language" in contents) {
+    return [
+      {
+        value: `\`\`\`${contents.language}\n${contents.value}\n\`\`\``,
+      },
+    ];
+  }
+
+  return [];
+}
+
+/** Registers a Monaco HoverProvider backed by the language server. */
+export const useHoverSync = (monaco: typeof Monaco) => {
+  const { notifyDocumentChanged, requestHover } = use(LanguageClientContext);
+
+  useEffect(() => {
+    const disposable = monaco.languages.registerHoverProvider("typescript", {
+      async provideHover(model, monacoPosition) {
+        const uri = model.uri.toString();
+        // TODO(FE-497): Sync current content to ensure the worker has the latest text.
+        notifyDocumentChanged(uri, model.getValue());
+        // Convert Monaco 1-based position to LSP 0-based Position
+        const position = Position.create(
+          monacoPosition.lineNumber - 1,
+          monacoPosition.column - 1,
+        );
+        const info = await requestHover(uri, position);
+
+        if (!info) {
+          return null;
+        }
+
+        const contents = hoverContentsToMarkdown(info);
+
+        // Convert LSP 0-based range to Monaco 1-based range
+        const range: Monaco.IRange | undefined = info.range
+          ? {
+              startLineNumber: info.range.start.line + 1,
+              startColumn: info.range.start.character + 1,
+              endLineNumber: info.range.end.line + 1,
+              endColumn: info.range.end.character + 1,
+            }
+          : undefined;
+
+        return { range, contents };
+      },
+    });
+
+    return () => disposable.dispose();
+  }, [monaco, notifyDocumentChanged, requestHover]);
+};

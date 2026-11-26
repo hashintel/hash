@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import {
   deserializeGraphVertices,
   mapGraphApiSubgraphToSubgraph,
@@ -43,8 +45,8 @@ export const hasPermissionForPropertyTypes = (
   >,
 ): Promise<VersionedUrl[]> =>
   graphAPI
-    .hasPermissionForPropertyTypes(authentication.actorId, params)
-    .then(({ data: permitted }) => permitted as VersionedUrl[]);
+    .hasPermissionForPropertyTypes(params, actorHeaders(authentication.actorId))
+    .then((permitted) => permitted as VersionedUrl[]);
 
 export type QueryPropertyTypesParams = Omit<
   QueryPropertyTypesParamsGraphApi,
@@ -71,8 +73,8 @@ export const queryPropertyTypes = (
   params: QueryPropertyTypesParams,
 ): Promise<QueryPropertyTypesResponse> =>
   graphApi
-    .queryPropertyTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryPropertyTypes(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       propertyTypes: mapGraphApiPropertyTypesToPropertyTypes(
         response.propertyTypes,
@@ -110,8 +112,8 @@ export const queryPropertyTypeSubgraph = (
   params: QueryPropertyTypeSubgraphParams,
 ): Promise<QueryPropertyTypeSubgraphResponse> =>
   graphApi
-    .queryPropertyTypeSubgraph(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryPropertyTypeSubgraph(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
       cursor: response.cursor as VersionedUrl | undefined,

@@ -15,6 +15,7 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
+import { actorHeaders } from "@local/hash-graph-client";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
@@ -270,13 +271,15 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
      */
-    const { data: dataTypeMetadata } =
-      await context.graphApi.loadExternalDataType(systemActorMachineId, {
+    const dataTypeMetadata = await context.graphApi.loadExternalDataType(
+      {
         // Specify the schema so that self-hosted instances don't need network access to hash.ai
         schema: dataTypeSchema,
         conversions,
         provenance: context.provenance,
-      });
+      },
+      actorHeaders(systemActorMachineId),
+    );
 
     return {
       schema: dataTypeSchema,
@@ -351,15 +354,18 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
      * in-instance web, although they will be created by a machine actor associated with an equivalently named web.
      */
     const propertyTypeMetadata =
-      await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
-        // Specify the schema so that self-hosted instances don't need network access to hash.ai
-        schema: propertyTypeSchema,
-        provenance: context.provenance,
-      });
+      await context.graphApi.loadExternalPropertyType(
+        {
+          // Specify the schema so that self-hosted instances don't need network access to hash.ai
+          schema: propertyTypeSchema,
+          provenance: context.provenance,
+        },
+        actorHeaders(systemActorMachineId),
+      );
 
     return {
       schema: propertyTypeSchema,
-      metadata: propertyTypeMetadata.data as PropertyTypeMetadata,
+      metadata: propertyTypeMetadata as PropertyTypeMetadata,
     };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
@@ -570,17 +576,17 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
      * although they will be created by a machine actor associated with an equivalently named web.
      */
     const entityTypeMetadata = await context.graphApi.loadExternalEntityType(
-      systemActorMachineId,
       {
         // Specify the schema so that self-hosted instances don't need network access to hash.ai
         schema: entityTypeSchema,
         provenance: context.provenance,
       },
+      actorHeaders(systemActorMachineId),
     );
 
     return {
       schema: entityTypeSchema,
-      metadata: entityTypeMetadata.data as EntityTypeMetadata,
+      metadata: entityTypeMetadata as EntityTypeMetadata,
     };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
@@ -752,22 +758,24 @@ export const updateSystemEntityType: ImpureGraphFunction<
   };
 
   const updatedTypeMetadata = isSelfHostedInstance
-    ? await context.graphApi
-        .loadExternalEntityType(authentication.actorId, {
+    ? await context.graphApi.loadExternalEntityType(
+        {
           schema: {
             ...schemaWithConsistentSelfReferences,
             $id: nextEntityTypeId,
           },
           provenance: context.provenance,
-        })
-        .then((resp) => resp.data)
-    : await context.graphApi
-        .updateEntityType(authentication.actorId, {
+        },
+        actorHeaders(authentication.actorId),
+      )
+    : await context.graphApi.updateEntityType(
+        {
           typeToUpdate: currentEntityTypeId,
           schema: schemaWithConsistentSelfReferences,
           provenance: context.provenance,
-        })
-        .then((resp) => resp.data);
+        },
+        actorHeaders(authentication.actorId),
+      );
 
   const { version: newVersion } =
     updatedTypeMetadata.recordId as unknown as OntologyTypeRecordId;
@@ -834,22 +842,24 @@ export const updateSystemPropertyType: ImpureGraphFunction<
   const { $id: _, ...schemaWithout$id } = newSchema;
 
   const updatedPropertyTypeMetadata = isSelfHostedInstance
-    ? await context.graphApi
-        .loadExternalPropertyType(authentication.actorId, {
+    ? await context.graphApi.loadExternalPropertyType(
+        {
           schema: {
             ...newSchema,
             $id: nextPropertyTypeId,
           },
           provenance: context.provenance,
-        })
-        .then((resp) => resp.data)
-    : await context.graphApi
-        .updatePropertyType(authentication.actorId, {
+        },
+        actorHeaders(authentication.actorId),
+      )
+    : await context.graphApi.updatePropertyType(
+        {
           typeToUpdate: currentPropertyTypeId,
           schema: schemaWithout$id,
           provenance: context.provenance,
-        })
-        .then((resp) => resp.data);
+        },
+        actorHeaders(authentication.actorId),
+      );
 
   const { version: newVersion } =
     updatedPropertyTypeMetadata.recordId as unknown as OntologyTypeRecordId;

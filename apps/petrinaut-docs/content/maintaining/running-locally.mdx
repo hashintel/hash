@@ -31,14 +31,15 @@ Then open `apps/petrinaut-docs/bundle/architecture.md` for the whole model in on
 yarn workspace @apps/petrinaut-docs lint:arch-docs
 ```
 
-Around two seconds, and it needs no `d2`, because it builds the model and reports on it without rendering anything. This is the fastest way to find out whether a declaration you just wrote is valid.
+It needs no `d2`, because it builds the model and reports on it without rendering anything. The first run reads every source file through the TypeScript compiler; later runs reuse the facts it cached. This is the fastest way to find out whether a declaration you just wrote is valid.
 
 ## When a page looks stale
 
 The site serves a copy of the bundle, so two steps sit between an annotation
 and what the browser shows: the build that writes the bundle, and the sync
 that copies what changed into the site tree. Both run on every change the dev
-server sees, and the log line names what was written.
+server sees, and the log line counts the bundle files and the site files
+written.
 
 **A page is missing or out of date.** Save the file again, or restart the dev
 server: the first build after a start compares the whole bundle with the site

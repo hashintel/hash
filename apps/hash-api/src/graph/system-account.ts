@@ -17,7 +17,7 @@ export const ensureHashSystemAccountExists = async (params: {
 
   systemAccountId = await context.graphApi
     .getOrCreateSystemMachine("h")
-    .then(({ data: machineId }) => machineId as MachineId);
+    .then((machineId) => machineId as MachineId);
 
   logger.info(`Using system account ${systemAccountId}`);
 };

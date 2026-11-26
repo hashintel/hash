@@ -7,11 +7,11 @@
  * side — type checking and interpretation — lives in `compileScenario`,
  * which takes the result of this function as an argument.
  */
-import { synthesizeAdHocScenario } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+import { synthesizeAdHocScenario } from "../scenario/ad-hoc/ad-hoc-scenario";
 import { createUserKeyedRecord } from "../validation/record-keys";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
-import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+import type { AdHocSynthesisContext } from "../scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario } from "../types/sdcpn";
 import type { HirDiagnostic, HirFunction } from "./hir";
 

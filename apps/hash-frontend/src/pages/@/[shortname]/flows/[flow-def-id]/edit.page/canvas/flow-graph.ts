@@ -1,6 +1,13 @@
 import { getStepsBefore } from "../shared/step-order";
 import { getStepPaths } from "../shared/step-paths";
-import { collapsedForEachSize, stepCardSize, stepGap } from "./sizes";
+import {
+  collapsedForEachSize,
+  forEachBoxPadding,
+  getForEachBoxSize,
+  getStepCardSize,
+  stepCardSize,
+  stepGap,
+} from "./sizes";
 
 import type { TriggerKind } from "../shared/flow-triggers";
 import type { StepPath } from "../shared/step-paths";
@@ -18,6 +25,7 @@ import type {
 import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import type { Edge, Node } from "@xyflow/react";
 
+/** Where an automatic layout puts a box's steps, for those with no saved place. */
 export type ForEachLayout = {
   size: { width: number; height: number };
   /** By step id, relative to the box. */
@@ -41,7 +49,7 @@ export type CardRun = {
 
 type StepNodeDataBase = {
   problems: FlowDefinitionDiagnosticWithStepId[];
-  /** Inside a for-each step, so read-only. */
+  /** Inside a for-each step. */
   inner: boolean;
   run?: CardRun;
 };
@@ -97,7 +105,7 @@ type ConnectionEdgeData =
   | { kind: "trigger"; ghost: boolean }
   /** From Start to a top-level step with nothing before it; not stored. */
   | { kind: "start"; stepId: string }
-  /** Between steps inside a for-each step; read-only. */
+  /** Into a collapsed box, for the steps inside it that run after a step outside; read-only. */
   | { kind: "inner" };
 
 export type ConnectionEdge = Edge<ConnectionEdgeData, "connection">;
@@ -116,6 +124,23 @@ const getNestedRunAfter = (steps: StepDefinition<string>[]): RunAfterEntry[] =>
     ...(step.runAfter ?? []),
     ...(step.kind === "for-each" ? getNestedRunAfter(step.steps) : []),
   ]);
+
+/** Where a step inside a box goes when neither it nor a layout gives it a place: the box's first. */
+export const firstPlaceInBox = {
+  x: forEachBoxPadding.side,
+  y: forEachBoxPadding.header,
+};
+
+const getInnerPosition = (
+  step: StepDefinition<string>,
+  layout: ForEachLayout | undefined,
+) => step.position ?? layout?.positions.get(step.stepId) ?? firstPlaceInBox;
+
+/** A card's size; a box inside a box, which a flow can't have, is drawn collapsed. */
+export const getCardSize = (step: StepDefinition<string>) =>
+  step.kind === "action"
+    ? getStepCardSize(getStepPaths(step).length)
+    : collapsedForEachSize;
 
 /** Start isn't stored: it sits a gap to the left of the leftmost top-level step with nothing before it. */
 export const getStartPosition = (
@@ -136,8 +161,8 @@ export const getStartPosition = (
 const triggerGap = 16;
 
 /**
- * A for-each step's inner steps go where `forEachLayouts` puts them; unsaved positions are drawn at the origin. A
- * top-level for-each step in `collapsedStepIds` is drawn without its steps.
+ * A step inside a for-each step goes where it was saved, relative to its box, else where `forEachLayouts` puts it. A
+ * box is sized to the steps inside it. A top-level for-each step in `collapsedStepIds` is drawn without its steps.
  */
 export const getFlowGraph = ({
   flowDefinition,
@@ -211,19 +236,13 @@ export const getFlowGraph = ({
         problems: problemsByStepId.get(step.stepId) ?? [],
         inner,
       };
-      const position = (parent
-        ? parent.layout?.positions.get(step.stepId)
-        : step.position) ?? { x: 0, y: 0 };
+      const position = parent
+        ? getInnerPosition(step, parent.layout)
+        : (step.position ?? { x: 0, y: 0 });
       const placement = {
         id,
         position,
-        deletable: !inner,
-        draggable: !inner,
-        connectable: !inner,
-        ...(parent && {
-          parentId: getStepNodeId(parent.stepId),
-          extent: "parent" as const,
-        }),
+        ...(parent && { parentId: getStepNodeId(parent.stepId) }),
       };
 
       if (step.kind === "action") {
@@ -236,7 +255,14 @@ export const getFlowGraph = ({
       } else {
         const layout = forEachLayouts.get(step.stepId);
         const collapsed = !inner && collapsedStepIds.has(step.stepId);
-        const size = collapsed ? collapsedForEachSize : layout?.size;
+        const size = collapsed
+          ? collapsedForEachSize
+          : getForEachBoxSize(
+              step.steps.map((innerStep) => ({
+                position: getInnerPosition(innerStep, layout),
+                ...getCardSize(innerStep),
+              })),
+            );
 
         nodes.push({
           ...placement,
@@ -298,10 +324,7 @@ export const getFlowGraph = ({
           source: getStepNodeId(from),
           sourceHandle: outputName,
           target: id,
-          data: inner ? { kind: "inner" } : { kind: "connection", connection },
-          deletable: !inner,
-          selectable: !inner,
-          focusable: !inner,
+          data: { kind: "connection", connection },
         });
       }
     }

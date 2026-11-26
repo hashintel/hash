@@ -11,24 +11,16 @@ import {
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import {
-  PetrinautNavigationProvider,
-  usePetrinautNavigation,
-} from "../../../../../../react/navigation";
+import { usePetrinautNavigation } from "../../../../../../react/navigation/navigation";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation/navigation-provider";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../../../react/state/user-settings-context";
-import { Table } from "../../../../../components/table";
+import { Table } from "../../../../../spreadsheet-kit/table";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { SimulationPanel, SimulationPanelPresence } from "./simulation-panel";
 
-class ObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 afterEach(cleanup);
 
 it("opens resources with one click and keeps arrow selection in the list as panels change", () => {

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { parseClipboardPayload, serializeSelection } from "./serialize";
 import { CLIPBOARD_FORMAT_VERSION } from "./types";
 
+import type { SelectionItem, SelectionMap } from "../document/selection";
 import type { SDCPN } from "../types/sdcpn";
-import type { SelectionItem, SelectionMap } from "../types/selection";
 
 // ---------------------------------------------------------------------------
 // Helpers

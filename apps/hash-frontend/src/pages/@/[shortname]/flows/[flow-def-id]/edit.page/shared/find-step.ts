@@ -1,20 +1,28 @@
 import { getStepDisplay } from "./step-display";
 
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ForEachStepDefinition,
+  StepDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 
-/** A step at any depth, and whether it's inside a for-each step, and so read-only. */
+/** A step at any depth, and the for-each step it's directly inside, if any. */
 export const findStep = (
   steps: StepDefinition<string>[],
   stepId: string,
-  inner = false,
-): { step: StepDefinition<string>; inner: boolean } | undefined => {
+  parent: ForEachStepDefinition<string> | null = null,
+):
+  | {
+      step: StepDefinition<string>;
+      parent: ForEachStepDefinition<string> | null;
+    }
+  | undefined => {
   for (const step of steps) {
     if (step.stepId === stepId) {
-      return { step, inner };
+      return { step, parent };
     }
 
     if (step.kind === "for-each") {
-      const found = findStep(step.steps, stepId, true);
+      const found = findStep(step.steps, stepId, step);
 
       if (found) {
         return found;

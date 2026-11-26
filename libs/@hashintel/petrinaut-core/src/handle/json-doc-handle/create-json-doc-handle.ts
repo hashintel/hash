@@ -6,17 +6,20 @@ import {
 } from "immer";
 
 import {
+  generatePetrinautId,
+  toPetrinautId,
+} from "../../document/petrinaut-id";
+import {
   resolvePetrinautHandleCapabilities,
   sanitizeSDCPNForExtensions,
   stripDisabledExtensionData,
   type PetrinautHandleCapabilities,
-} from "../../extensions";
-import { generatePetrinautId, toPetrinautId } from "../../petrinaut-id";
+} from "../../extensions/extensions";
+import { normalizeSDCPN } from "../../file-format/sdcpn-input";
 import { createReadableStore } from "../../store";
-import { normalizeSDCPN } from "../../types/sdcpn-input";
 
+import type { SDCPNInput } from "../../file-format/sdcpn-input";
 import type { SDCPN } from "../../types/sdcpn";
-import type { SDCPNInput } from "../../types/sdcpn-input";
 import type {
   DocChangeEvent,
   DocHandleState,

@@ -1,4 +1,4 @@
-import { normalizeSDCPN } from "../types/sdcpn-input";
+import { normalizeSDCPN } from "../file-format/sdcpn-input";
 import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 import { actualModeRecordingSchema } from "./schemas";
 import { parseRequiredActualModeTimestampMs } from "./time";

@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import type { AuthenticationContext } from "./authentication-context.js";
 import type {
   Policy,
@@ -23,8 +25,8 @@ export const createPolicy = (
   policy: PolicyCreationParams,
 ): Promise<PolicyId> =>
   graphAPI
-    .createPolicy(authentication.actorId, policy)
-    .then(({ data: policyId }) => policyId as PolicyId);
+    .createPolicy(policy, actorHeaders(authentication.actorId))
+    .then((policyId) => policyId as PolicyId);
 
 /**
  * Retrieves a policy by its ID.
@@ -37,8 +39,8 @@ export const getPolicyById = (
   policyId: PolicyId,
 ): Promise<Policy | null> =>
   graphAPI
-    .getPolicyById(authentication.actorId, policyId)
-    .then(({ data: policy }) => policy as Policy | null);
+    .getPolicyById(policyId, actorHeaders(authentication.actorId))
+    .then((policy) => policy as Policy | null);
 
 /**
  * Queries for policies in the local store that match the provided filter.
@@ -57,8 +59,8 @@ export const queryPolicies = (
   filter: PolicyFilter,
 ): Promise<Policy[]> =>
   graphAPI
-    .queryPolicies(authentication.actorId, filter)
-    .then(({ data: policies }) => policies as Policy[]);
+    .queryPolicies(filter, actorHeaders(authentication.actorId))
+    .then((policies) => policies as Policy[]);
 
 /**
  * Searches for policies that apply to the given actor.
@@ -79,8 +81,8 @@ export const resolvePoliciesForActor = (
   params: ResolvePoliciesParams,
 ): Promise<ResolvedPolicy[]> =>
   graphAPI
-    .resolvePoliciesForActor(authentication.actorId, params)
-    .then(({ data: policies }) => policies as ResolvedPolicy[]);
+    .resolvePoliciesForActor(params, actorHeaders(authentication.actorId))
+    .then((policies) => policies as ResolvedPolicy[]);
 
 /**
  * Updates the policy specified by its ID.
@@ -94,8 +96,12 @@ export const updatePolicyById = (
   operations: PolicyUpdateOperation[],
 ): Promise<Policy> =>
   graphAPI
-    .updatePolicyById(authentication.actorId, policyId, operations)
-    .then(({ data: policy }) => policy as Policy);
+    .updatePolicyById(
+      policyId,
+      operations,
+      actorHeaders(authentication.actorId),
+    )
+    .then((policy) => policy as Policy);
 
 /**
  * Removes the policy specified by its ID.
@@ -108,7 +114,9 @@ export const deletePolicyById = (
   policyId: PolicyId,
   options: { permanent: boolean } = { permanent: false },
 ): Promise<void> =>
-  (options.permanent
-    ? graphAPI.deletePolicyById(authentication.actorId, policyId)
-    : graphAPI.archivePolicyById(authentication.actorId, policyId)
-  ).then(({ data }) => data);
+  options.permanent
+    ? graphAPI.deletePolicyById(policyId, actorHeaders(authentication.actorId))
+    : graphAPI.archivePolicyById(
+        policyId,
+        actorHeaders(authentication.actorId),
+      );
