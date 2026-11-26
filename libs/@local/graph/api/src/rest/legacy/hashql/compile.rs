@@ -1,7 +1,9 @@
+use alloc::alloc::Global;
+
 use hash_graph_authorization::policies::action::ActionName;
 use hashql_ast::{error::AstDiagnosticCategory, node::expr::Expr};
 use hashql_core::{
-    heap::{self, Heap, ResetAllocator as _, ScopeAllocator as _, Scratch},
+    heap::{self, CollectIn as _, Heap, ScopeAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     symbol::{Symbol, sym},
@@ -19,10 +21,12 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     error::MirDiagnosticCategory,
+    interpret::Inputs,
     pass::{
         LowerConfig,
         execution::{ExecutionAnalysisResidual, VertexType},
     },
+    reify::from_hir_value_in,
 };
 use hashql_syntax_jexpr::{
     JsonPointers, ParserOptions, error::JExprDiagnosticCategory, span::Span,
@@ -57,6 +61,7 @@ pub(crate) struct Compilation<'heap> {
     pub env: Environment<'heap>,
 
     pub entrypoint: DefId,
+    pub inputs: Inputs<'heap, Global>,
     pub artifact: CodeCompilationArtifact<'heap>,
     pub permissions: CodeExecutionPermissions<'heap>,
 }
@@ -163,7 +168,12 @@ impl<'heap> Compilation<'heap> {
             advisories,
         } = scope
             .scoped(|scope| {
-                hashql_hir::lower::checking::check_inputs(&env, &parameters, inputs, scope)
+                hashql_hir::lower::checking::check_inputs(
+                    &env,
+                    &parameters,
+                    inputs.iter().copied(),
+                    scope,
+                )
             })
             .map_category(|category| {
                 HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
@@ -178,25 +188,38 @@ impl<'heap> Compilation<'heap> {
             interner: &interner,
             diagnostics: DiagnosticIssues::new(),
         };
-        let mut reify_context = hashql_mir::reify::ReifyContext {
-            bodies: &mut bodies,
-            mir: &mut mir_context,
-            hir: &hir_context,
-            scratch: &*scratch,
-        };
 
         // Reify the MIR from the HIR
+        let mir_value = scope.scoped(|scope| {
+            let mut reify_context = hashql_mir::reify::ReifyContext {
+                bodies: &mut bodies,
+                mir: &mut mir_context,
+                hir: &hir_context,
+                scratch: &scope,
+            };
+
+            hashql_mir::reify::from_hir(hir, &mut reify_context)
+                .map_category(|category| {
+                    HashQlDiagnosticCategory::Mir(MirDiagnosticCategory::Reify(category))
+                })
+                .with_diagnostics(advisories)
+        });
+
         let Success {
             value: entrypoint,
             advisories,
-        } = hashql_mir::reify::from_hir(hir, &mut reify_context)
-            .map_category(|category| {
-                HashQlDiagnosticCategory::Mir(MirDiagnosticCategory::Reify(category))
-            })
-            .with_diagnostics(advisories)?;
-        scratch.reset();
+        } = mir_value?;
 
-        let scope = scratch.as_mut_scope();
+        let inputs: Inputs<_> = inputs
+            .into_iter()
+            .map(|(name, value)| {
+                (
+                    name,
+                    scope
+                        .scoped(|scope| from_hir_value_in(value, &interner.symbols, Global, scope)),
+                )
+            })
+            .collect_in(Global);
 
         // Lower the MIR
         let Success {
@@ -257,6 +280,7 @@ impl<'heap> Compilation<'heap> {
             env,
             interner,
             entrypoint,
+            inputs,
             artifact: CodeCompilationArtifact {
                 assignment: execution,
                 interpreter: bodies,

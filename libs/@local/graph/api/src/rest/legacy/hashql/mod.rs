@@ -27,7 +27,6 @@ use hashql_eval::{
     orchestrator::Orchestrator,
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
-use hashql_mir::interpret::Inputs;
 use hashql_syntax_jexpr::{JsonPointers, span::Span};
 use http::StatusCode;
 use serde_json::value::RawValue;
@@ -113,8 +112,6 @@ where
     let mut scratch = ctx.scratches.get();
     let heap = ctx.heaps.get();
 
-    let inputs = Inputs::new(); // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
-
     let (compiled, pointers) = Compilation::compile(&heap, &mut scratch, spans, source);
     let status = async {
         let Success {
@@ -166,7 +163,7 @@ where
         let context = compilation.context();
         let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
         orchestrator
-            .run(&inputs, compilation.entrypoint, [])
+            .run(&compilation.inputs, compilation.entrypoint, [])
             .await
             .into_status()
             .map_category(|category| {
