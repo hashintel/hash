@@ -8,6 +8,7 @@
     "hash-graph-test-data",
     "hash-integrations-definition",
     "hash-integrations-engine",
+    "hash-integrations-ledger",
     "type-system"
   ],
   "tasks": {

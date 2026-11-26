@@ -1,3 +1,5 @@
+mod minio;
+
 use alloc::{collections::BTreeSet, sync::Arc};
 use core::str::FromStr as _;
 use std::{
@@ -17,22 +19,17 @@ use hash_crypto::Secret;
 use hash_integrations_definition::Definition;
 use parquet::arrow::ArrowWriter;
 use serde_json::Value;
-use testcontainers::{
-    ContainerAsync, ImageExt as _,
-    core::{CmdWaitFor, ExecCommand},
-    runners::AsyncRunner as _,
-};
-use testcontainers_modules::minio::MinIO;
 use time::OffsetDateTime;
 use tokio::net::TcpListener;
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use url::Url;
 use uuid::Uuid;
 
+pub(crate) use self::minio::minio;
 use crate::{GraphClient, IntegrationNamespace, RunId, S3Bucket, StartInput, Storage, start};
 
 /// The example definition of the `aviation` connector.
-pub(crate) const AVIATION: &str = include_str!("../../definition/examples/aviation.yaml");
+pub(crate) const AVIATION: &str = include_str!("../../../definition/examples/aviation.yaml");
 
 /// Starts `run` of the `aviation` example in `storage`.
 pub(crate) async fn started(storage: &Storage, run: RunId) {
@@ -67,33 +64,6 @@ pub(crate) fn parquet(path: &Path, ids: &[i64]) {
         ArrowWriter::try_new(file, batch.schema(), None).expect("should open the Parquet writer");
     writer.write(&batch).expect("should write the rows");
     writer.close().expect("should finish the Parquet file");
-}
-
-/// Starts MinIO with an empty `captures` bucket and returns it with its API port.
-pub(crate) async fn minio() -> (ContainerAsync<MinIO>, u16) {
-    let minio = MinIO::default()
-        .with_name("ghcr.io/hashdeps/minio")
-        .with_tag("RELEASE.2025-09-07T16-13-09Z")
-        .start()
-        .await
-        .expect("the MinIO fixture should start");
-    minio
-        .exec(
-            ExecCommand::new([
-                "sh",
-                "-c",
-                "mc alias set local http://localhost:9000 minioadmin minioadmin && mc mb \
-                 local/captures",
-            ])
-            .with_cmd_ready_condition(CmdWaitFor::exit_code(0)),
-        )
-        .await
-        .expect("should create the bucket");
-    let port = minio
-        .get_host_port_ipv4(9000)
-        .await
-        .expect("the MinIO port should be mapped");
-    (minio, port)
 }
 
 /// The namespace of the `aviation` connector in a fixed web.

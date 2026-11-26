@@ -15,16 +15,20 @@ hash-graph-store             = { workspace = true }
 hash-graph-test-data         = { workspace = true }
 hash-integrations-definition = { workspace = true }
 hash-integrations-engine     = { workspace = true }
+hash-integrations-ledger     = { workspace = true }
 type-system                  = { workspace = true }
 
 # Private third-party dependencies
-insta             = { workspace = true, features = ["json"] }
-pretty_assertions = { workspace = true }
-reqwest           = { workspace = true }
-serde             = { workspace = true, features = ["derive"] }
-serde_json        = { workspace = true }
-tempfile          = { workspace = true }
-tokio             = { workspace = true, features = ["macros"] }
+insta                  = { workspace = true, features = ["json"] }
+pretty_assertions      = { workspace = true }
+reqwest                = { workspace = true }
+serde                  = { workspace = true, features = ["derive"] }
+serde_json             = { workspace = true }
+tempfile               = { workspace = true }
+testcontainers         = { workspace = true }
+testcontainers-modules = { workspace = true, features = ["minio"] }
+time                   = { workspace = true }
+tokio                  = { workspace = true, features = ["macros"] }
 
 [lints]
 workspace = true
@@ -32,3 +36,7 @@ workspace = true
 [[test]]
 name = "aviation"
 path = "aviation/mod.rs"
+
+[[test]]
+name = "ledger"
+path = "ledger/mod.rs"
