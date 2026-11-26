@@ -10,6 +10,7 @@ use alloc::sync::Arc;
 use error_stack::{Report, ResultExt as _};
 use object_store::{ObjectStore, path::Path as Location};
 
+pub(crate) use self::versioned::CasVersion;
 pub use self::{namespace::IntegrationNamespace, s3::S3Bucket};
 
 /// Reports why a file in the bucket could not be read or written.

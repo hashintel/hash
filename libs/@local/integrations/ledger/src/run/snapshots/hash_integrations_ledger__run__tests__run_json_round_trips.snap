@@ -1,0 +1,55 @@
+---
+source: libs/@local/integrations/ledger/src/run/tests.rs
+expression: "String::from_utf8(bytes).expect(\"run.json should be UTF-8\")"
+---
+{
+  "input": {
+    "run": "00000000-0000-4000-8000-000000000003",
+    "web": "00000000-0000-4000-8000-000000000001",
+    "connector": "aviation",
+    "actor": "00000000-0000-4000-8000-000000000002",
+    "definition": "connector: aviation\n",
+    "id_namespace": "aviation",
+    "submitted_at": "2026-07-22T10:00:00Z"
+  },
+  "batch": {
+    "max_writes": 128,
+    "max_bytes": 1500000
+  },
+  "capture": {
+    "sources": {
+      "aircraft": {
+        "key": "runs/00000000-0000-4000-8000-000000000003/capture/aircraft.parquet",
+        "size": 2140,
+        "rows": 4
+      }
+    }
+  },
+  "prepare": {
+    "rows": 4,
+    "issues": "runs/00000000-0000-4000-8000-000000000003/issues.jsonl",
+    "issue_count": 1
+  },
+  "send": {
+    "created": 2,
+    "updated": 1,
+    "archived": 0,
+    "create_existed": 0,
+    "update_missing": 0,
+    "archive_missing": 0,
+    "failed": [
+      {
+        "batch": 0,
+        "index": 3,
+        "entity_id": "00000000-0000-4000-8000-000000000001~00000000-0000-4000-8000-000000000004",
+        "status": 400,
+        "message": "the entity type is not known"
+      }
+    ]
+  },
+  "failure": {
+    "stage": "send",
+    "code": "graph_refused",
+    "message": "the Graph refused the batch"
+  }
+}

@@ -3,7 +3,8 @@
   "dependencies": [
     "error-stack",
     "hash-crypto",
-    "hash-integrations-definition"
+    "hash-integrations-definition",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
