@@ -10846,6 +10846,24 @@ export const systemDataTypes = {
     titlePlural: "Energies per Area (Metric)",
     description: "Energy per Area expressed in SI units and metric multiples.",
   },
+  energyPerLength: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/energy-per-length/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-per-length/" as BaseUrl,
+    title: "Energy per Length",
+    titlePlural: "Energies per Length",
+    description: "Numeric values in convertible units of energy per length.",
+  },
+  "energyPerLength(metric)": {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/energy-per-length-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-per-length-metric/" as BaseUrl,
+    title: "Energy per Length (Metric)",
+    titlePlural: "Energies per Length (Metric)",
+    description:
+      "Energy per Length expressed in SI units and metric multiples.",
+  },
   "energy(usCustomary)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/energy-us-customary/v/1",
     dataTypeBaseUrl:
@@ -13010,8 +13028,7 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/joule-per-meter/" as BaseUrl,
     title: "Joule per Meter",
     titlePlural: "Joules per Meter",
-    description:
-      "A wavelength spectral density expressed in J/m; its spectral variable is wavelength in meters.",
+    description: "A value expressed in joules per meter.",
   },
   joulePerMole: {
     dataTypeId: "https://hash.ai/@h/types/data-type/joule-per-mole/v/1",
@@ -13036,7 +13053,7 @@ export const systemDataTypes = {
     title: "Joule per Nanometer",
     titlePlural: "Joules per Nanometer",
     description:
-      "A wavelength spectral density expressed in J/nm; equal to 10^9 J/m.",
+      "A value expressed in joules per nanometer; equal to 10^9 J/m.",
   },
   joulePerSquareMeter: {
     dataTypeId: "https://hash.ai/@h/types/data-type/joule-per-square-meter/v/1",
@@ -19083,26 +19100,6 @@ export const systemDataTypes = {
     titlePlural: "Spectral Energy Densities per Wavelength (Metric)",
     description:
       "Spectral Energy Density per Wavelength expressed in SI units and metric multiples.",
-  },
-  spectralEnergyPerWavelength: {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/spectral-energy-per-wavelength/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/spectral-energy-per-wavelength/" as BaseUrl,
-    title: "Spectral Energy per Wavelength",
-    titlePlural: "Spectral Energies per Wavelength",
-    description:
-      "Numeric values in convertible units of spectral energy per wavelength.",
-  },
-  "spectralEnergyPerWavelength(metric)": {
-    dataTypeId:
-      "https://hash.ai/@h/types/data-type/spectral-energy-per-wavelength-metric/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@h/types/data-type/spectral-energy-per-wavelength-metric/" as BaseUrl,
-    title: "Spectral Energy per Wavelength (Metric)",
-    titlePlural: "Spectral Energies per Wavelength (Metric)",
-    description:
-      "Spectral Energy per Wavelength expressed in SI units and metric multiples.",
   },
   spectralExposurePerWavelength: {
     dataTypeId:

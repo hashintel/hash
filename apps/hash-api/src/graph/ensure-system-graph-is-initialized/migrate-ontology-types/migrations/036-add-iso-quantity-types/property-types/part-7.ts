@@ -52,7 +52,7 @@ export const part7PropertyTypes: IsoPropertyType[] = [
         "The spectral radiant energy of the specified system or process in light and radiation. This value is a density per wavelength, not per frequency; state the wavelength at which it is evaluated.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.spectralEnergyPerWavelength.dataTypeId,
+          dataTypeId: systemDataTypes.energyPerLength.dataTypeId,
         },
       ],
     },

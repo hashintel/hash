@@ -4,13 +4,11 @@ import type { IsoDataType } from "../data-types";
 
 export const spectralUnitsDataTypes: IsoDataType[] = [
   {
-    dataTypeBaseUrl:
-      systemDataTypes.spectralEnergyPerWavelength.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.energyPerLength.dataTypeBaseUrl,
     definition: {
-      title: "Spectral Energy per Wavelength",
-      titlePlural: "Spectral Energies per Wavelength",
-      description:
-        "Numeric values in convertible units of spectral energy per wavelength.",
+      title: "Energy per Length",
+      titlePlural: "Energies per Length",
+      description: "Numeric values in convertible units of energy per length.",
       type: "number",
       allOf: [
         {
@@ -22,17 +20,16 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl:
-      systemDataTypes["spectralEnergyPerWavelength(metric)"].dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes["energyPerLength(metric)"].dataTypeBaseUrl,
     definition: {
-      title: "Spectral Energy per Wavelength (Metric)",
-      titlePlural: "Spectral Energies per Wavelength (Metric)",
+      title: "Energy per Length (Metric)",
+      titlePlural: "Energies per Length (Metric)",
       description:
-        "Spectral Energy per Wavelength expressed in SI units and metric multiples.",
+        "Energy per Length expressed in SI units and metric multiples.",
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes.spectralEnergyPerWavelength.dataTypeId,
+          $ref: systemDataTypes.energyPerLength.dataTypeId,
         },
       ],
       abstract: true,
@@ -44,13 +41,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     definition: {
       title: "Joule per Meter",
       titlePlural: "Joules per Meter",
-      description:
-        "A wavelength spectral density expressed in J/m; its spectral variable is wavelength in meters.",
+      description: "A value expressed in joules per meter.",
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
-            .dataTypeId,
+          $ref: systemDataTypes["energyPerLength(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -65,12 +60,11 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       title: "Joule per Nanometer",
       titlePlural: "Joules per Nanometer",
       description:
-        "A wavelength spectral density expressed in J/nm; equal to 10^9 J/m.",
+        "A value expressed in joules per nanometer; equal to 10^9 J/m.",
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
-            .dataTypeId,
+          $ref: systemDataTypes["energyPerLength(metric)"].dataTypeId,
         },
       ],
       label: {
@@ -712,8 +706,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
-            .dataTypeId,
+          $ref: systemDataTypes["energyPerLength(metric)"].dataTypeId,
         },
       ],
       label: {
