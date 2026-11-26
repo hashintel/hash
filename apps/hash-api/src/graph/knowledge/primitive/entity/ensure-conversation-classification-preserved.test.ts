@@ -73,13 +73,11 @@ const createMockContext = (
   definitions: Record<VersionedUrl, { parents?: readonly VersionedUrl[] }>,
 ) => {
   const getClosedMultiEntityTypes = vi.fn(
-    async (_actorId: string, params: { entityTypeIds: VersionedUrl[][] }) => ({
-      data: {
-        entityTypes: buildClosedMultiEntityTypeMap(
-          definitions,
-          params.entityTypeIds,
-        ),
-      },
+    async (params: { entityTypeIds: VersionedUrl[][] }) => ({
+      entityTypes: buildClosedMultiEntityTypeMap(
+        definitions,
+        params.entityTypeIds,
+      ),
     }),
   );
 
