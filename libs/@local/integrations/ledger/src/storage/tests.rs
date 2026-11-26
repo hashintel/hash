@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use bytes::Bytes;
 use futures_util::TryStreamExt as _;
 use hash_crypto::Secret;
-use object_store::{ObjectStore as _, PutPayload, path::Path as Location};
+use object_store::{ObjectStoreExt as _, PutPayload, path::Path as Location};
 use rstest::rstest;
 use tempfile::TempDir;
 use testcontainers::ContainerAsync;

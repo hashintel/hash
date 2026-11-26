@@ -10,13 +10,13 @@ Rewritten on 2026-11-19, after the design and the spec were agreed. Earlier vers
 
 **Linear:** BE-1162, BE-1175.
 
-**Chosen for now:** Apache Iceberg in the integration's bucket, with the pointer to its current state in a small file (`plan.md`, step 3, "The sync table"). Two functions touch the storage, so a change of format stays inside one module.
+**Decided:** Delta, in the integration's bucket, partitioned by run (`spec/decisions.md`, D17). Two functions touch the storage, so a change of format stays inside one module.
 
 **Open:**
 
-- The team's choice between Iceberg, Delta Lake, DuckLake and a log.
-- Iceberg writes a new metadata file on every append and never deletes the old ones. A crashed attempt leaves files that nothing refers to. Nothing cleans up yet.
-- The Iceberg crate is pinned to an unreleased commit until its version 0.12 is released.
+- A crashed write leaves data files that no commit names. Nothing cleans them up yet.
+- Delta's checkpoints and log cleanup run with their defaults: a checkpoint every 100 commits. With one commit per write that is cheap; a continuous sync would need them tuned.
+- `deltalake-core` is patched to the head of delta-io/delta-rs#5017, which is not merged. It moves to a release once one includes it. The release before, 1.1.4, brings `brotli-decompressor` and `quick-xml` versions with open advisories.
 
 ### Link changes in incremental runs
 

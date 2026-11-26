@@ -93,9 +93,9 @@ pub enum StorageError { Read, Write }
 ```
 
 - **Origin:** `upload` and `download` are `ArtifactStorage::upload` and `materialize` of hashintel/hash#10392, without the content hash. `IntegrationNamespace` is `ArtifactNamespace` of hashintel/hash#10392, which follows labs `BlobNamespace` (`blob.rs`). All integrations share one bucket, and the web and the connector name an integration's place in it. `read_versioned`, `replace_if` and `CasVersion` are taken unchanged from `versioned.rs` on the branch `pe/ledger-r1-conditional-write`, which ported them from labs `blob.rs`. `S3Bucket` is the struct of hashintel/hash#10392.
-- **Two functions cover all small files.** `replace_if` with `None` is "create if absent". With a version it is "replace if unchanged". `run.json`, `current.json` and the sync table's pointer all use them. The file in the module tree is therefore `storage/versioned.rs`, not `storage/json.rs`. Turning a type into JSON is done by the caller.
-- **Chosen:** a key is a `&str`. The keys are built in two places: `run` for a run's files, `sync_table` for the table.
-- **Fact:** `replace_if` works against MinIO with the workspace's `object_store` 0.12.5 (`../background/spikes.md`).
+- **Two functions cover all small files.** `replace_if` with `None` is "create if absent". With a version it is "replace if unchanged". `run.json` and `current.json` use them. The file in the module tree is therefore `storage/versioned.rs`, not `storage/json.rs`. Turning a type into JSON is done by the caller.
+- **Chosen:** a key is a `&str`. The keys are built in `run`, for a run's files. The sync table opens its own store at `sync/`.
+- **Fact:** `replace_if` works against MinIO with the workspace's `object_store` 0.12.5 (`../background/spikes.md`). Milestone 4 moves the workspace to 0.14.2, the version `deltalake-core` uses, and the storage tests pass on it.
 - **Only `Storage`, `Storage::s3`, `S3Bucket`, `IntegrationNamespace` and `StorageError` are public.** A caller of the crate opens the integration's place in the bucket and passes it to the stages. For Start it reads the connector from the definition, and for a stage it is given the web and the connector. The four functions on it are called only inside the crate.
 - **No local folder as a second kind of storage** (D6). Tests use `Storage::memory`, and the storage and sync table tests use a MinIO container.
 - `read_versioned` and `replace_if` refuse a file larger than 16 MiB. The code they are ported from has 1 MiB (`versioned.rs:19` on the branch). The limit was raised so that `run.json` can hold the failed entities of a large run (D8).
@@ -222,15 +222,17 @@ pub struct SyncRow {
     pub properties: PropertyObjectWithMetadata,       // JSON text in the table
 }
 
-/// Appends the rows of `run`. Does nothing if the run's rows are already in the table.
+/// Replaces the rows of `run` with `rows`, in one commit.
 pub async fn write(storage: &Storage, run: RunId, rows: Vec<SyncRow>) -> Result<(), Report<SyncTableError>>;
 /// The rows of `run`, ordered by `seq`, then by entity id (`order_key`).
-/// `EntityId` has no order of its own. `order_key` gives its web id and its entity id as two UUIDs, as `engine` sorts.
-pub(crate) fn order_key(id: &EntityId) -> (Uuid, Uuid);
+/// `EntityId` has no order of its own. `order_key` gives its web id and its entity UUID, as `engine` sorts.
+pub(crate) struct OrderKey { web_id: Uuid, entity_uuid: Uuid }   // ordered by its fields
+pub(crate) fn order_key(id: &EntityId) -> OrderKey;
 pub async fn read(storage: &Storage, run: RunId) -> Result<Vec<SyncRow>, Report<SyncTableError>>;
 ```
 
 - **Origin:** the columns are those of `../plan.md`, step 3. `EntityId`, `VersionedUrl` and `PropertyObjectWithMetadata` are the Graph's own types, which `engine` already uses for the same values.
+- **Stored as Delta** (D17): a table under `sync/` in the integration's place, partitioned by run, one commit per write. `write` and `read` open their own connection to the bucket with `Storage::bucket`.
 - `SyncTableError` has two cases. `Storage`: the bucket could not be reached, and a rerun can help. `Invalid`: a row cannot be written or read, or the storage has no bucket, and a rerun cannot help.
 - **A run's rows are held in memory as one list** (D5).
 - An update with an empty `properties` adds no property, and Send removes none. An archive carries an empty `properties`.
