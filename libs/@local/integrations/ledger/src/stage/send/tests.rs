@@ -1,20 +1,8 @@
-use alloc::{
-    collections::{BTreeMap, BTreeSet},
-    sync::Arc,
-};
+use alloc::collections::{BTreeMap, BTreeSet};
 use core::{assert_matches, str::FromStr as _};
-use std::sync::Mutex;
 
-use axum::{
-    Router,
-    extract::State,
-    http::{Method, StatusCode},
-    routing::any,
-};
-use hash_crypto::Secret;
+use axum::http::Method;
 use pretty_assertions::assert_eq;
-use serde_json::Value;
-use tokio::net::TcpListener;
 use type_system::{
     knowledge::entity::{
         id::{EntityId, EntityUuid},
@@ -24,12 +12,10 @@ use type_system::{
     principal::{actor::ActorEntityUuid, actor_group::WebId},
     provenance::{Location, SourceProvenance, SourceType},
 };
-use url::Url;
 use uuid::Uuid;
 
 use super::{
     batch::{Batch, Write},
-    client::GraphClient,
     delivery::Delivery,
     request::integration_provenance,
     send,
@@ -40,125 +26,8 @@ use crate::{
     stage::StageError,
     storage::Storage,
     sync_table::{self, Op, SyncRow},
-    testing::{bucket, minio, namespace, started},
+    testing::{Graph, bucket, minio, namespace, started},
 };
-
-/// A request the Graph answered: its method, whether it was a bulk request, and the UUIDs of the
-/// entities its bodies name.
-type Received = (Method, bool, Vec<u128>);
-
-#[derive(Debug, Default)]
-struct Entities {
-    held: BTreeSet<u128>,
-    refused: BTreeSet<u128>,
-    /// How many more requests the Graph answers before it answers every request with 503.
-    answers_left: Option<usize>,
-    received: Vec<Received>,
-}
-
-impl Entities {
-    /// Answers a request of `method` for `entities`, and applies it if the Graph accepts it.
-    fn answer(&mut self, method: &Method, bulk: bool, entities: Vec<u128>) -> (StatusCode, String) {
-        match &mut self.answers_left {
-            Some(0) => return (StatusCode::SERVICE_UNAVAILABLE, String::new()),
-            Some(left) => *left -= 1,
-            None => {}
-        }
-        self.received.push((method.clone(), bulk, entities.clone()));
-        if let Some(entity) = entities.iter().find(|entity| self.refused.contains(entity)) {
-            return (StatusCode::BAD_REQUEST, format!("refused {entity}"));
-        }
-        let conflict = if *method == Method::POST {
-            entities
-                .iter()
-                .any(|entity| self.held.contains(entity))
-                .then_some(StatusCode::CONFLICT)
-        } else {
-            entities
-                .iter()
-                .any(|entity| !self.held.contains(entity))
-                .then_some(StatusCode::NOT_FOUND)
-        };
-        if let Some(status) = conflict {
-            return (status, String::new());
-        }
-        self.held.extend(entities);
-        (StatusCode::OK, String::new())
-    }
-}
-
-/// The Graph's entity API as far as Send uses it. It applies or refuses a bulk request as a
-/// whole: 400 if a body names a refused entity, 409 for a create of an entity it holds, 404 for a
-/// patch of one it does not hold.
-#[derive(Debug, Clone, Default)]
-struct Graph(Arc<Mutex<Entities>>);
-
-impl Graph {
-    fn holding(held: &[u128]) -> Self {
-        let graph = Self::default();
-        graph.lock().held.extend(held);
-        graph
-    }
-
-    fn lock(&self) -> std::sync::MutexGuard<'_, Entities> {
-        self.0.lock().expect("should not be poisoned")
-    }
-
-    fn received(&self) -> Vec<Received> {
-        core::mem::take(&mut self.lock().received)
-    }
-
-    async fn serve(&self) -> GraphClient {
-        let router = Router::new()
-            .route("/entities", any(answer::<false>))
-            .route("/entities/bulk", any(answer::<true>))
-            .with_state(self.clone());
-        let listener = TcpListener::bind("127.0.0.1:0")
-            .await
-            .expect("should bind the test Graph");
-        let address = listener.local_addr().expect("should get the address");
-        tokio::spawn(async move {
-            axum::serve(listener, router)
-                .await
-                .expect("should serve the test Graph");
-        });
-        GraphClient::new(
-            &Url::parse(&format!("http://{address}/")).expect("should be a valid URL"),
-            &Secret::from_string("service-secret".to_owned()),
-        )
-        .expect("should configure the client")
-    }
-}
-
-async fn answer<const BULK: bool>(
-    State(graph): State<Graph>,
-    method: Method,
-    body: String,
-) -> (StatusCode, String) {
-    let body = serde_json::from_str::<Value>(&body).expect("the body should be JSON");
-    let bodies = if BULK {
-        body.as_array()
-            .expect("a bulk body should be a list")
-            .clone()
-    } else {
-        vec![body]
-    };
-    let entities = bodies.iter().map(entity_of).collect::<Vec<_>>();
-    graph.lock().answer(&method, BULK, entities)
-}
-
-/// The UUID of the entity a body names: `entityUuid` in a create, `entityId` in a patch.
-fn entity_of(body: &Value) -> u128 {
-    let uuid = match (body["entityUuid"].as_str(), body["entityId"].as_str()) {
-        (Some(uuid), _) => uuid,
-        (None, Some(entity_id)) => entity_id
-            .rsplit_once('~')
-            .map(|(_, uuid)| uuid)
-            .expect("an entity id should hold a `~`"),
-        (None, None) => panic!("a body should name its entity"),
-    };
-    Uuid::from_str(uuid).expect("should be a UUID").as_u128()
-}
 
 fn entity(uuid: u128) -> EntityId {
     EntityId {
