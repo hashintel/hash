@@ -1627,8 +1627,9 @@ describe("constant evaluation", () => {
       return;
     }
     expect(outcome.errors.map((error) => error.itemId)).toEqual(["reader"]);
-    expect(outcome.errors[0]?.message).toContain("`scenario.broken`");
-    expect(outcome.errors[0]?.message).toContain("Unknown identifier `wear`");
+    expect(outcome.errors[0]?.message).toContain(
+      "Unknown scenario parameter `broken`",
+    );
   });
 
   it("resolves an expression the formatter wrapped over several lines", () => {

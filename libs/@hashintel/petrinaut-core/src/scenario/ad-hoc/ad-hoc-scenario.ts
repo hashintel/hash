@@ -44,17 +44,14 @@
  */
 
 import { toPetrinautId } from "../../document/petrinaut-id";
-import { walkHir } from "../../hir/hir";
 import { interpretHirExpr } from "../../hir/interpret";
 import { parseHirExpression } from "../../hir/parse-expression";
 import {
   createUserKeyedRecord,
   defineOwn,
-  getOwn,
   isDangerousRecordKey,
 } from "../../validation/record-keys";
 
-import type { HirValue } from "../../hir/interpret";
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationDomain,
@@ -417,56 +414,43 @@ function referencedNames(expression: string): Set<string> {
 // -- Constant evaluation for bounds, defaults and totals ------------------------
 
 /**
- * Evaluates one expression to a constant. The text is parsed into HIR by
- * `parseHirExpression` (synthesis runs synchronously while the form renders,
- * where the TypeScript lowering, worker-only in the browser, is unavailable)
- * and run by the HIR interpreter, so no text from the form executes as
- * JavaScript. The non-optimized top-level Variables are in scope as
- * `scenario.<name>`, evaluated in declaration order so later Variables may
- * read earlier ones; a Variable that does not evaluate fails only the
- * expressions that read it. Used for bound expressions (which must resolve
- * to constants at synthesis time), for generated parameters' preview
- * defaults, and for place totals. Throws with a readable message when the
- * expression does not parse or evaluate.
+ * Builds the evaluator for one synthesis's constant expressions: bounds
+ * (which must resolve at synthesis time), generated parameters' preview
+ * defaults, and place totals. Each expression is parsed into HIR by
+ * `parseHirExpression` and run by the HIR interpreter, so no text from the
+ * form executes as JavaScript. Synthesis runs synchronously while the form
+ * renders, where the TypeScript lowering (worker-only in the browser) is
+ * unavailable.
+ *
+ * The non-optimized top-level Variables are evaluated once, here, in
+ * declaration order, so later ones may read earlier ones as
+ * `scenario.<name>`. One that does not evaluate stays undefined, which fails
+ * only the expressions that read it. The evaluator throws with a readable
+ * message when an expression does not parse or evaluate.
  */
-function evaluateConstant(
-  expression: string,
+function constantEvaluator(
   parameters: Record<string, number | boolean>,
   variables: readonly { name: string; expression: string }[],
-): unknown {
+): (expression: string) => unknown {
   const scenario = createUserKeyedRecord<number | boolean>();
-  const failures = createUserKeyedRecord<string>();
-  const evaluate = (source: string): HirValue => {
-    const parsed = parseHirExpression(source);
+  const evaluate = (expression: string): unknown => {
+    const parsed = parseHirExpression(expression);
     if (!parsed.ok) {
       throw new Error(parsed.diagnostic.message);
     }
-    walkHir(parsed.expr, (node) => {
-      const failure =
-        node.kind === "scenarioRef" ? getOwn(failures, node.name) : undefined;
-      if (failure !== undefined) {
-        throw new Error(failure);
-      }
-    });
     return interpretHirExpr(parsed.expr, new Map(), { parameters, scenario });
   };
   for (const variable of variables) {
-    let failure: string | undefined;
     try {
       const value = evaluate(variable.expression);
       if (typeof value === "number" || typeof value === "boolean") {
         defineOwn(scenario, variable.name, value);
-      } else {
-        failure = `\`scenario.${variable.name}\` is not a number or boolean.`;
       }
-    } catch (error) {
-      failure = `\`scenario.${variable.name}\`: ${error instanceof Error ? error.message : String(error)}`;
-    }
-    if (failure !== undefined) {
-      defineOwn(failures, variable.name, failure);
+    } catch {
+      // Left undefined: the expressions that read it report it as unknown.
     }
   }
-  return evaluate(expression);
+  return evaluate;
 }
 
 function netParameterDefaults(
@@ -904,8 +888,10 @@ export function createAdHocPlaceTotalResolver(
   // Empty expressions read as their neutral here too, so an emptied count
   // never leaks "" into the printed total.
   const normalized = withNeutralAdHocExpressions(state, context, true);
-  const parameters = netParameterDefaults(context);
-  const constants = constantVariables(normalized);
+  const evaluateConstant = constantEvaluator(
+    netParameterDefaults(context),
+    constantVariables(normalized),
+  );
 
   const optimizedNames = new Set<string>();
   for (const variable of normalized.variables) {
@@ -948,11 +934,7 @@ export function createAdHocPlaceTotalResolver(
       }
     }
     try {
-      const value = evaluateConstant(
-        inline(count.expression),
-        parameters,
-        constants,
-      );
+      const value = evaluateConstant(inline(count.expression));
       if (typeof value === "number" && Number.isFinite(value)) {
         return Math.max(0, Math.round(value));
       }
@@ -1374,8 +1356,10 @@ function resolveOptimized(
   const scenarioParameters: ScenarioParameter[] = [];
   const optimizedFields: AdHocOptimizedField[] = [];
 
-  const parameterDefaults = netParameterDefaults(context);
-  const constants = constantVariables(state);
+  const evaluateConstant = constantEvaluator(
+    netParameterDefaults(context),
+    constantVariables(state),
+  );
 
   const evaluateBound = (
     entity: OptimizedEntity,
@@ -1395,7 +1379,7 @@ function resolveOptimized(
       }
     }
     try {
-      const value = evaluateConstant(expression, parameterDefaults, constants);
+      const value = evaluateConstant(expression);
       if (typeof value !== "number" || !Number.isFinite(value)) {
         plan.errors.push({
           source: "bounds",
@@ -1557,11 +1541,7 @@ function resolveOptimized(
     // exactly what the user typed; otherwise the domain midpoint stands in.
     let defaultValue = fallbackDefault;
     try {
-      const current = evaluateConstant(
-        entity.expression,
-        parameterDefaults,
-        constants,
-      );
+      const current = evaluateConstant(entity.expression);
       if (typeof current === "number" && Number.isFinite(current)) {
         defaultValue =
           entity.type === "integer" ? Math.round(current) : current;
@@ -1632,8 +1612,10 @@ function resolveExposed(
   includeOptimize: boolean,
 ): ScenarioParameter[] {
   const scenarioParameters: ScenarioParameter[] = [];
-  const parameterDefaults = netParameterDefaults(context);
-  const constants = constantVariables(state);
+  const evaluateConstant = constantEvaluator(
+    netParameterDefaults(context),
+    constantVariables(state),
+  );
 
   const takenIdentifiers = new Set<string>();
   for (const [index, variable] of state.variables.entries()) {
@@ -1677,11 +1659,7 @@ function resolveExposed(
     takenIdentifiers.add(identifier);
     let defaultValue: number;
     try {
-      const value = evaluateConstant(
-        variable.expression,
-        parameterDefaults,
-        constants,
-      );
+      const value = evaluateConstant(variable.expression);
       if (typeof value === "boolean") {
         defaultValue = value ? 1 : 0;
       } else if (typeof value === "number" && Number.isFinite(value)) {
