@@ -1,8 +1,12 @@
 use core::alloc::Allocator;
 
 use hashql_core::{
-    heap::{BumpAllocator, CollectIn},
-    r#type::{self, Type, TypeId, environment::Environment, kind::TypeKind},
+    heap::{PhaseAllocator, ScopeAllocator},
+    r#type::{
+        self, TypeId,
+        environment::Environment,
+        kind::{TypeKind, UnionType},
+    },
     value::Primitive,
 };
 
@@ -35,7 +39,11 @@ impl<'heap> Value<'heap> {
         self.0
     }
 
-    pub fn r#type<S: BumpAllocator>(self, env: &Environment<'heap>, scratch: &mut S) -> TypeId {
+    pub fn r#type<'alloc, S>(self, env: &Environment<'heap>, mut scratch: S) -> TypeId
+    where
+        S: ScopeAllocator<'alloc>,
+        'heap: 'alloc,
+    {
         let kind = match &self.0.kind {
             NodeKind::Data(data::Data::Primitive(Primitive::Boolean(_))) => {
                 TypeKind::Primitive(hashql_core::r#type::kind::PrimitiveType::Boolean)
@@ -54,12 +62,10 @@ impl<'heap> Value<'heap> {
             }
             NodeKind::Data(data::Data::Struct(data::Struct { fields })) => {
                 let out = scratch
-                    .allocate_slice_uninit::<r#type::kind::r#struct::StructField<'heap>>(
-                        fields.len(),
-                    );
+                    .alloc_slice_uninit::<r#type::kind::r#struct::StructField<'heap>>(fields.len());
 
                 let (fields, rest) = out.write_iter(fields.iter().map(|field| {
-                    let r#type = scratch.scoped_mut(|scope| Self(field.value).r#type(env, scope));
+                    let r#type = scratch.scoped(|scope| Self(field.value).r#type(env, scope));
 
                     r#type::kind::r#struct::StructField {
                         name: field.name.value,
@@ -74,15 +80,74 @@ impl<'heap> Value<'heap> {
 
                 TypeKind::Struct(r#type::kind::StructType { fields })
             }
-            NodeKind::Data(data::Data::Tuple(data::Tuple { fields: _fields })) => {
-                todo!()
+            NodeKind::Data(data::Data::Tuple(data::Tuple { fields })) => {
+                let out = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
+
+                let (fields, rest) = out.write_iter(fields.iter().map(|&field| {
+                    let r#type = scratch.scoped(|scope| Self(field).r#type(env, scope));
+
+                    r#type
+                }));
+                debug_assert!(rest.is_empty());
+
+                let fields = env.intern_type_ids(fields);
+                TypeKind::Tuple(r#type::kind::TupleType { fields })
             }
-            NodeKind::Data(data::Data::Dict(data::Dict { fields: _fields })) => {
-                todo!()
+            NodeKind::Data(data::Data::Dict(data::Dict { fields })) => {
+                let out_key = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
+                let out_value = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
+
+                let (keys, rest) =
+                    out_key.write_iter(fields.iter().map(|&data::DictField { key, value: _ }| {
+                        scratch.scoped(|scope| Self(key).r#type(env, scope))
+                    }));
+                debug_assert!(rest.is_empty());
+                let keys = env.intern_type_ids(keys);
+
+                let (values, rest) = out_value.write_iter(fields.iter().map(
+                    |&data::DictField { key: _, value }| {
+                        scratch.scoped(|scope| Self(value).r#type(env, scope))
+                    },
+                ));
+                debug_assert!(rest.is_empty());
+                let values = env.intern_type_ids(values);
+
+                let key = TypeKind::Union(UnionType { variants: keys });
+                let value = TypeKind::Union(UnionType { variants: values });
+                let key = env.intern_type(r#type::PartialType {
+                    span: self.0.span,
+                    kind: env.intern_kind(key),
+                });
+                let value = env.intern_type(r#type::PartialType {
+                    span: self.0.span,
+                    kind: env.intern_kind(value),
+                });
+
+                TypeKind::Intrinsic(r#type::kind::IntrinsicType::Dict(
+                    r#type::kind::intrinsic::DictType { key, value },
+                ))
             }
-            NodeKind::Data(data::Data::List(data::List {
-                elements: _elements,
-            })) => todo!(),
+            NodeKind::Data(data::Data::List(data::List { elements })) => {
+                let out = scratch.alloc_slice_uninit::<r#type::TypeId>(elements.len());
+
+                let (elements, rest) = out.write_iter(
+                    elements
+                        .iter()
+                        .map(|&element| scratch.scoped(|scope| Self(element).r#type(env, scope))),
+                );
+                debug_assert!(rest.is_empty());
+                let elements = env.intern_type_ids(elements);
+
+                let element = TypeKind::Union(UnionType { variants: elements });
+                let element = env.intern_type(r#type::PartialType {
+                    span: self.0.span,
+                    kind: env.intern_kind(element),
+                });
+
+                TypeKind::Intrinsic(r#type::kind::IntrinsicType::List(
+                    r#type::kind::intrinsic::ListType { element },
+                ))
+            }
             _ => {
                 unreachable!("Value may only contain data nodes")
             }
