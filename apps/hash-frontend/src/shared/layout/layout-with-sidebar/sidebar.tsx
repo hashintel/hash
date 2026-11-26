@@ -161,12 +161,16 @@ export const PageSidebar: FunctionComponent = () => {
         ],
       },
       ...processesSection,
-      {
-        title: "Environments",
-        path: "/processes",
-        icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
-        activeIfPathMatches: /^\/processes(\/|[?#]|$)/,
-      },
+      ...(enabledFeatureFlags.workers
+        ? [
+            {
+              title: "Environments",
+              path: "/processes",
+              icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
+              activeIfPathMatches: /^\/processes(\/|[?#]|$)/,
+            },
+          ]
+        : []),
       {
         title: "Entities",
         path: "/entities",
@@ -196,6 +200,7 @@ export const PageSidebar: FunctionComponent = () => {
     numberOfUnreadNotifications,
     pendingInvites.length,
     enabledFeatureFlags.notes,
+    enabledFeatureFlags.workers,
   ]);
 
   return (

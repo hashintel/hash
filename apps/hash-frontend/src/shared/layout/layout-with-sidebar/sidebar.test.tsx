@@ -143,9 +143,9 @@ test.each([
   ).toBe("page");
 });
 
-test("keeps Processes behind the workers flag", () => {
+test("keeps Processes and Environments behind the workers flag", () => {
   state.flags.workers = false;
   renderSidebar();
   expect(screen.queryByRole("link", { name: "Processes" })).toBeNull();
-  expect(screen.getByRole("link", { name: "Environments" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Environments" })).toBeNull();
 });
