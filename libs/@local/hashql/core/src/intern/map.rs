@@ -1,15 +1,16 @@
 use core::{
     borrow::Borrow,
+    fmt,
     hash::{BuildHasher as _, Hash},
 };
 
-use hashbrown::hash_map::RawEntryMut;
+use hashbrown::HashTable;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
-    heap::{Heap, PhaseAllocator as _},
-    id::{HasId, Id, IdProducer},
+    collections::FastHasher,
+    heap::{Heap, PhaseAllocator},
+    id::{HasId, Id, IdLocalChunkVec, IdLocalProducer},
     sync::lock::LocalLock,
 };
 
@@ -47,6 +48,7 @@ where
     T: Id,
 {
     /// Returns the underlying ID value.
+    #[inline]
     pub const fn value(self) -> T {
         self.0
     }
@@ -56,6 +58,7 @@ impl<T> AsRef<T> for Provisioned<T>
 where
     T: Id,
 {
+    #[inline]
     fn as_ref(&self) -> &T {
         &self.0
     }
@@ -65,13 +68,14 @@ impl<T> Borrow<T> for Provisioned<T>
 where
     T: Id,
 {
+    #[inline]
     fn borrow(&self) -> &T {
         &self.0
     }
 }
 
-/// A thread-safe map that interns partial representations of values and associates them with unique
-/// IDs.
+/// A thread-local map that interns partial representations of values and associates them with
+/// unique IDs.
 ///
 /// `InternMap` maintains bidirectional mappings between:
 /// 1. Partial representations and their IDs (forward mapping)
@@ -139,12 +143,10 @@ where
 ///
 /// # Thread Safety
 ///
-/// This implementation uses [`LocalLock`] and is **not thread-safe**. The architecture supports
-/// upgrading to [`SharedLock`] for thread-safety, but the underlying [`Heap`] allocator would
-/// also need to become thread-safe first.
+/// This implementation uses [`LocalLock`] and is **not thread-safe** because it relies on
+/// thread-local interior mutability and a thread-local [`Heap`] arena.
 ///
 /// [`LocalLock`]: crate::sync::lock::LocalLock
-/// [`SharedLock`]: crate::sync::lock::SharedLock
 ///
 /// # Examples
 ///
@@ -177,33 +179,11 @@ where
 /// let retrieved = map.get(value.id()).unwrap();
 /// assert_eq!(value, retrieved);
 /// ```
-#[derive(derive_more::Debug)]
-#[debug(bound(T::Partial: Eq))]
-pub struct InternMap<'heap, T: Decompose<'heap>> {
-    heap: &'heap Heap,
-
-    // For more information about the tradeoff and decision on the use of `LocalLock`, see
-    // the documentation on `InternSet`.
-    inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id>>,
-
-    // In theory, this isn't as efficient as it could be, but it makes the implementation simpler.
-    // A more optimized approach would be to:
-    // - Use a dense Vec for O(1) lookup based on ID values
-    // - Implement ID recycling with a bitmap to track free IDs
-    // - Maintain a tighter ID space to avoid sparse ID allocation
-    //
-    // This would require us to not liberally increment the counter and manage ID reuse.
-    // However, we've chosen the current approach as it has less overhead and complexity.
-    // We haven't benchmarked the performance difference yet - if this becomes a bottleneck,
-    // we can implement the more complex approach.
-    //
-    // For reference, even with the current approach and 32-bit IDs:
-    // - Each map entry requires ~24 bytes (12 bytes per hashmap entry × 2 maps).
-    // - The entire ID space would require ~96GB just for the map structures.
-    // - Memory constraints will be hit long before ID exhaustion.
-    lookup: LocalLock<FastHashMap<T::Id, &'heap T::Partial>>,
-
-    next: IdProducer<T::Id>,
+pub struct InternMap<'heap, T: Decompose<'heap>, A: PhaseAllocator<'heap> = &'heap Heap> {
+    hasher: FastHasher,
+    inner: LocalLock<HashTable<T::Id, A>>,
+    store: IdLocalChunkVec<'heap, T::Id, T::Partial, A>,
+    next: IdLocalProducer<T::Id>,
 }
 
 impl<'heap, T> InternMap<'heap, T>
@@ -215,26 +195,20 @@ where
     /// The lifetime of interned values is tied to the lifetime of the heap, not the
     /// map itself. This means that interned values remain valid even after the
     /// map is dropped, as long as the heap is still alive.
+    #[inline]
     pub fn new(heap: &'heap Heap) -> Self {
-        Self {
-            heap,
-            inner: LocalLock::new(fast_hash_map()),
-
-            lookup: LocalLock::new(fast_hash_map()),
-
-            next: IdProducer::new(),
-        }
+        Self::new_in(heap)
     }
 
     /// Creates a new `InternMap` with the specified initial capacity.
     ///
-    /// Pre-allocates memory for both the forward (partial → ID) and reverse (ID → partial)
-    /// mappings to avoid rehashing when the approximate number of unique values is known
-    /// in advance. This can significantly improve performance during bulk interning operations,
-    /// particularly during AST construction or type system initialization.
+    /// Pre-allocates memory for the forward (partial -> ID) hash table to avoid rehashing when the
+    /// approximate number of unique values is known in advance. This avoids repeated growth during
+    /// bulk interning operations, particularly during AST construction or type system
+    /// initialization.
     ///
     /// The capacity represents the number of unique values the map can hold before needing
-    /// to reallocate its internal hash tables.
+    /// to reallocate its internal hash table.
     ///
     /// # Examples
     ///
@@ -300,41 +274,83 @@ where
     ///     type_map.intern_partial(prim);
     /// }
     /// ```
+    #[inline]
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
+        Self::with_capacity_in(capacity, heap)
+    }
+}
+
+impl<'heap, T, A> InternMap<'heap, T, A>
+where
+    T: Decompose<'heap>,
+    A: PhaseAllocator<'heap>,
+{
+    /// Creates an empty `InternMap` backed by `alloc`.
+    ///
+    /// Interned values stay valid for `'heap`, even after the map is dropped.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Scratch, intern::{InternMap, Decompose, Interned}, id::{HasId, Id, newtype}};
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, PartialEq, Eq, Hash)]
+    /// # struct Value { id: ValueId, value: i32 }
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
+    /// #     fn id(&self) -> Self::Id { self.id }
+    /// # }
+    /// # impl<'heap> Decompose<'heap> for Value {
+    /// #     type Partial = i32;
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
+    /// #         Self { id, value: *partial.as_ref() }
+    /// #     }
+    /// # }
+    /// let scratch = Scratch::new();
+    /// let map = InternMap::<Value, _>::new_in(&scratch);
+    /// let value = map.intern_partial(7);
+    /// assert_eq!(map.get(value.id()), Some(value));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn new_in(alloc: A) -> Self {
         Self {
-            heap,
-            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
-            lookup: LocalLock::new(fast_hash_map_with_capacity(capacity)),
-            next: IdProducer::new(),
+            hasher: FastHasher::default(),
+            inner: LocalLock::new(HashTable::new_in(alloc)),
+            store: IdLocalChunkVec::new_in(alloc),
+            next: IdLocalProducer::new(),
         }
     }
 
-    /// Generates the next unique ID for this map.
-    ///
-    /// This method atomically increments the internal counter and returns a new ID.
-    /// The IDs are guaranteed to be unique within this map instance.
-    ///
-    /// Relaxed ordering is used since this is the only place where the atomic counter
-    /// is accessed and no ordering constraints are required.
-    fn next_id(&self) -> T::Id {
+    /// Creates an empty `InternMap` backed by `alloc` with capacity for at least `capacity`
+    /// unique entries.
+    #[inline]
+    #[must_use]
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+        Self {
+            hasher: FastHasher::default(),
+            inner: LocalLock::new(HashTable::with_capacity_in(capacity, alloc)),
+            store: IdLocalChunkVec::with_capacity_in(capacity, alloc),
+            next: IdLocalProducer::new(),
+        }
+    }
+
+    #[inline]
+    const fn next_id(&self) -> T::Id
+    where
+        T::Id: [const] Id,
+    {
         self.next.next()
     }
 }
 
-impl<'heap, T> InternMap<'heap, T>
+impl<'heap, T, A> InternMap<'heap, T, A>
 where
     T: Decompose<'heap, Partial: Eq + Hash>,
+    A: PhaseAllocator<'heap>,
 {
-    /// Core interning function that handles both provisioned and non-provisioned cases.
-    ///
-    /// This method performs the actual interning logic, looking up existing values
-    /// or allocating new ones as needed. It's used internally by the public interning
-    /// methods.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - Optional pre-provisioned ID to use, or `None` to generate a new ID
-    /// * `partial` - The partial representation to intern
+    #[expect(unsafe_code, reason = "every ID in `inner` is present in `store`")]
+    #[inline]
     fn intern_parts(&self, id: Option<T::Id>, partial: T::Partial) -> T {
         const {
             assert!(
@@ -349,38 +365,39 @@ where
             );
         };
 
-        self.inner.map(|inner| {
-            // The use of the raw API here is safe, the hash we compare to is *only* ever the one of
-            // the partial (so the key). For the lookup we still hash the id of the id instead.
-            let hash_partial = inner.hasher().hash_one(&partial);
+        let hash = self.hasher.hash_one(&partial);
 
-            let (partial, id) = match inner
-                .raw_entry_mut()
-                .from_key_hashed_nocheck(hash_partial, &partial)
-            {
-                RawEntryMut::Vacant(entry) => {
-                    let id = id.unwrap_or_else(|| self.next_id());
+        let (id, partial_ref) = self.inner.map(|inner| {
+            let mut matched: Option<&'heap T::Partial> = None;
+            if let Some(&existing_id) = inner.find(hash, |&existing_id| {
+                // SAFETY: Every ID stored in `inner` was inserted into `self.store`.
+                let existing = unsafe { self.store.get_unchecked(existing_id) };
 
-                    let partial = self.heap.alloc(partial);
-                    let (key, value) = entry.insert_hashed_nocheck(hash_partial, &*partial, id);
-
-                    let lookup_ret = self.lookup.map(|lookup| lookup.insert(id, partial));
-                    debug_assert!(
-                        lookup_ret.is_none(),
-                        "lookup should not have duplicate items associated with an id"
-                    );
-
-                    (*key, *value)
+                if *existing == partial {
+                    matched = Some(existing);
+                    true
+                } else {
+                    false
                 }
-                RawEntryMut::Occupied(entry) => {
-                    let (key, value) = entry.get_key_value();
+            }) {
+                // SAFETY: `find` returns `Some` only after the predicate returned `true`, which
+                // stored `Some(existing)` into `matched`.
+                return (existing_id, unsafe { matched.unwrap_unchecked() });
+            }
 
-                    (*key, *value)
-                }
-            };
+            let new_id = id.unwrap_or_else(|| self.next_id());
+            let partial_ref = self.store.insert(new_id, partial);
 
-            T::from_parts(id, Interned::new_unchecked(partial))
-        })
+            inner.insert_unique(hash, new_id, |&existing_id| {
+                // SAFETY: Every ID stored in `inner` was inserted into `self.store`.
+                let existing = unsafe { self.store.get_unchecked(existing_id) };
+                self.hasher.hash_one(existing)
+            });
+
+            (new_id, partial_ref)
+        });
+
+        T::from_parts(id, Interned::new_unchecked(partial_ref))
     }
 
     /// Interns a partial representation and returns the complete object.
@@ -418,6 +435,7 @@ where
     /// let obj2 = map.intern_partial(42);
     /// assert_eq!(obj.id(), obj2.id());
     /// ```
+    #[inline]
     pub fn intern_partial(&self, partial: T::Partial) -> T {
         self.intern_parts(None, partial)
     }
@@ -460,7 +478,11 @@ where
     /// let obj = map.intern_provisioned(id, 42);
     /// assert_eq!(obj.id(), id.value());
     /// ```
-    pub fn provision(&self) -> Provisioned<T::Id> {
+    #[inline]
+    pub const fn provision(&self) -> Provisioned<T::Id>
+    where
+        T::Id: [const] Id,
+    {
         Provisioned(self.next_id())
     }
 
@@ -498,6 +520,7 @@ where
     /// # Returns
     ///
     /// The complete reconstructed object of type `T`.
+    #[inline]
     pub fn intern_provisioned(&self, id: Provisioned<T::Id>, partial: T::Partial) -> T {
         self.intern_parts(Some(id.0), partial)
     }
@@ -568,6 +591,7 @@ where
     /// let tail = map.index(middle.next.unwrap());
     /// assert_eq!(tail.next, Some(head.id())); // Tail points back to head!
     /// ```
+    #[inline]
     pub fn intern(&self, closure: impl FnOnce(Provisioned<T::Id>) -> T::Partial) -> T {
         let id = self.provision();
         let partial = closure(id);
@@ -577,7 +601,7 @@ where
 
     /// Retrieves a value by its ID.
     ///
-    /// This method performs a lookup in the reverse mapping to find the partial representation
+    /// This method performs a direct indexed lookup to find the partial representation
     /// associated with the given ID, and then reconstructs the complete object.
     ///
     /// # Examples
@@ -614,8 +638,9 @@ where
     /// let non_existent = map.get(ValueId::from_u32(999));
     /// assert!(non_existent.is_none());
     /// ```
+    #[inline]
     pub fn get(&self, id: T::Id) -> Option<T> {
-        let partial = self.lookup.map(|lookup| lookup.get(&id).copied())?;
+        let partial = self.store.get(id)?;
 
         Some(T::from_parts(id, Interned::new_unchecked(partial)))
     }
@@ -656,8 +681,9 @@ where
     /// // Check a non-existent ID
     /// assert!(!map.contains(ValueId::from_u32(999)));
     /// ```
+    #[inline]
     pub fn contains(&self, id: T::Id) -> bool {
-        self.lookup.map(|lookup| lookup.contains_key(&id))
+        self.store.contains(id)
     }
 
     /// Returns the interned value for the given ID.
@@ -701,6 +727,7 @@ where
     /// // This would panic:
     /// // let non_existent = map.index(ValueId::from_u32(999));
     /// ```
+    #[inline]
     pub fn index(&self, id: T::Id) -> T {
         let partial = self.index_partial(id);
 
@@ -755,13 +782,24 @@ where
     /// // This would panic:
     /// // let non_existent = map.index(ValueId::from_u32(999));
     /// ```
+    #[inline]
     pub fn index_partial(&self, id: T::Id) -> Interned<'heap, T::Partial> {
-        let partial = self
-            .lookup
-            .map(|lookup| lookup.get(&id).copied())
-            .expect("id should exist in map");
+        let partial = self.store.get(id).expect("id should exist in map");
 
         Interned::new_unchecked(partial)
+    }
+}
+
+impl<'heap, T, A> fmt::Debug for InternMap<'heap, T, A>
+where
+    T: Decompose<'heap>,
+    A: PhaseAllocator<'heap>,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("InternMap")
+            .field("len", &self.inner.map(|inner| inner.len()))
+            .field("next", &self.next)
+            .finish_non_exhaustive()
     }
 }
 
@@ -1096,5 +1134,52 @@ mod tests {
 
         // This should use the provisioned ID since it's a new value
         assert_eq!(value3.id(), id.value());
+    }
+
+    #[test]
+    fn overflow_chunks_and_out_of_order_provisioning() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+
+        let ids: Vec<_> = core::iter::repeat_with(|| map.provision())
+            .take(1000)
+            .collect();
+        for (index, &id) in ids.iter().enumerate().rev() {
+            let expected = i32::try_from(index).expect("index fits in i32");
+            assert!(!map.contains(id.value()));
+            assert!(map.get(id.value()).is_none());
+            let value = map.intern_provisioned(id, expected);
+            assert_eq!(value.id(), id.value());
+            assert!(map.contains(id.value()));
+            assert_eq!(map.index(id.value()), value);
+        }
+
+        let partials: Vec<_> = ids.iter().map(|id| map.index_partial(id.value())).collect();
+        drop(map);
+        for (index, partial) in partials.iter().enumerate() {
+            let expected = i32::try_from(index).expect("index fits in i32");
+            assert_eq!(**partial, expected);
+        }
+    }
+
+    #[test]
+    fn scratch_allocator_constructors() {
+        let scratch = crate::heap::Scratch::new();
+        let map = InternMap::<TaggedValue, _>::with_capacity_in(16, &scratch);
+
+        let first = map.intern_partial(42);
+        let second = map.intern_partial(42);
+        assert_eq!(first.id(), second.id());
+        assert_eq!(map.index(first.id()), first);
+    }
+
+    #[test]
+    #[should_panic(expected = "lookup should not have duplicate items associated with an id")]
+    fn duplicate_provisioned_id_panics() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+        let id = map.provision();
+        let _: TaggedValue = map.intern_provisioned(id, 1);
+        let _: TaggedValue = map.intern_provisioned(id, 2);
     }
 }

@@ -66,7 +66,7 @@ use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
-use std::sync::{Mutex, MutexGuard};
+use std::sync::nonpoison::{Mutex, MutexGuard};
 
 /// Trait for types that can parameterize [`Lock`] to be either thread-local or thread-safe.
 ///
@@ -147,8 +147,7 @@ enum LockGuardInner<'lock, T, L: LockType> {
 ///
 /// # Panics
 ///
-/// Operations on this guard will panic if the underlying lock has been poisoned (for [`Mutex`])
-/// or if borrow rules are violated (for [`RefCell`]).
+/// Operations on this guard panic if borrow rules are violated (for [`RefCell`]).
 ///
 /// # Examples
 ///
@@ -172,6 +171,7 @@ pub struct LockGuard<'lock, T, L: LockType> {
 impl<T, L: LockType> Deref for LockGuard<'_, T, L> {
     type Target = T;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         match &self.inner {
             LockGuardInner::Local(inner, _) => inner,
@@ -181,6 +181,7 @@ impl<T, L: LockType> Deref for LockGuard<'_, T, L> {
 }
 
 impl<T, L: LockType> DerefMut for LockGuard<'_, T, L> {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         match &mut self.inner {
             LockGuardInner::Local(inner, _) => inner,
@@ -289,6 +290,7 @@ impl<T> Lock<T, Local> {
     ///
     /// let lock = Lock::<_, Local>::new(42);
     /// ```
+    #[inline]
     pub const fn new(value: T) -> Self {
         Self {
             inner: LockInner::Local(RefCell::new(value), ()),
@@ -309,6 +311,7 @@ impl<T> Lock<T, Shared> {
     ///
     /// let lock = Lock::<_, Shared>::new(42);
     /// ```
+    #[inline]
     pub const fn new(value: T) -> Self {
         Self {
             inner: LockInner::Shared(Mutex::new(value), ()),
@@ -325,9 +328,7 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// # Panics
     ///
-    /// Panics if:
-    /// - The lock is poisoned (for [`Mutex`]-based locks)
-    /// - The value is already borrowed (for [`RefCell`]-based locks)
+    /// Panics if the value is already borrowed (for [`RefCell`]-based locks).
     ///
     /// # Examples
     ///
@@ -344,6 +345,7 @@ impl<T, L: LockType> Lock<T, L> {
     /// lock.map(|data| data.push(4));
     /// assert_eq!(lock.map(|data| data.len()), 4);
     /// ```
+    #[inline]
     pub fn map<U>(&self, closure: impl FnOnce(&mut T) -> U) -> U {
         match &self.inner {
             LockInner::Local(cell, _) => {
@@ -352,7 +354,7 @@ impl<T, L: LockType> Lock<T, L> {
                 closure(&mut *data)
             }
             LockInner::Shared(mutex, _) => {
-                let mut data = mutex.lock().expect("lock shouldn't have been poisoned");
+                let mut data = mutex.lock();
 
                 closure(&mut *data)
             }
@@ -370,9 +372,7 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// # Panics
     ///
-    /// Panics if:
-    /// - The lock is poisoned (for [`Mutex`]-based locks)
-    /// - The value is already borrowed (for [`RefCell`]-based locks)
+    /// Panics if the value is already borrowed (for [`RefCell`]-based locks).
     ///
     /// # Examples
     ///
@@ -390,6 +390,7 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// assert_eq!(lock.lock().len(), 5);
     /// ```
+    #[inline]
     pub fn lock(&self) -> LockGuard<'_, T, L> {
         match &self.inner {
             LockInner::Local(cell, _) => {
@@ -400,7 +401,7 @@ impl<T, L: LockType> Lock<T, L> {
                 }
             }
             LockInner::Shared(mutex, _) => {
-                let data = mutex.lock().expect("lock shouldn't have been poisoned");
+                let data = mutex.lock();
 
                 LockGuard {
                     inner: LockGuardInner::Shared(data, PhantomData),
@@ -415,10 +416,6 @@ impl<T, L: LockType> Lock<T, L> {
     /// ensures exclusive access. This is the most efficient way to access the data when
     /// you have exclusive ownership of the lock.
     ///
-    /// # Panics
-    ///
-    /// For [`Mutex`]-based locks, panics if the mutex has been poisoned.
-    ///
     /// # Examples
     ///
     /// ```
@@ -431,12 +428,11 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// assert_eq!(lock.lock().len(), 4);
     /// ```
+    #[inline]
     pub fn get_mut(&mut self) -> &mut T {
         match &mut self.inner {
             LockInner::Local(cell, _) => cell.get_mut(),
-            LockInner::Shared(mutex, _) => {
-                mutex.get_mut().expect("lock shouldn't have been poisoned")
-            }
+            LockInner::Shared(mutex, _) => mutex.get_mut(),
         }
     }
 }
