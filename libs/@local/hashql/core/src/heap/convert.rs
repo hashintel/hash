@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, rc::Rc, vec::Vec};
+use alloc::{boxed::Box, rc::Rc};
 use core::alloc::Allocator;
 
 /// [`From`] with an allocator argument.
@@ -64,35 +64,14 @@ impl<T, A: Allocator> FromIn<T, A> for Box<T, A> {
 impl<A: Allocator> FromIn<&str, A> for Box<str, A> {
     #[inline]
     fn from_in(value: &str, alloc: A) -> Self {
-        let mut bytes = Vec::with_capacity_in(value.len(), alloc);
-        bytes.extend_from_slice(value.as_bytes());
-
-        let (ptr, alloc) = Box::into_raw_with_allocator(bytes.into_boxed_slice());
-
-        // SAFETY: `ptr` comes from a `Box<[u8], A>` that allocated in `alloc`, and `str` has the
-        // layout of `[u8]`. The bytes are a copy of `value`, which is valid UTF-8.
-        unsafe { Self::from_raw_in(ptr as *mut str, alloc) }
+        Self::clone_from_ref_in(value, alloc)
     }
 }
 
 impl<A: Allocator> FromIn<&str, A> for Rc<str, A> {
     #[inline]
     fn from_in(value: &str, alloc: A) -> Self {
-        let mut bytes = Rc::new_uninit_slice_in(value.len(), alloc);
-
-        // SAFETY: No other `Rc` or `Weak` points to the allocation of `bytes`: this function
-        // created it above and has not cloned it.
-        let uninit = unsafe { Rc::get_mut_unchecked(&mut bytes) };
-        uninit.write_copy_of_slice(value.as_bytes());
-
-        // SAFETY: The call above initialized every byte of the slice.
-        let bytes = unsafe { bytes.assume_init() };
-
-        let (ptr, alloc) = Rc::into_raw_with_allocator(bytes);
-
-        // SAFETY: `ptr` comes from an `Rc<[u8], A>` that allocated in `alloc`, and `str` has the
-        // layout of `[u8]`. The bytes are a copy of `value`, which is valid UTF-8.
-        unsafe { Self::from_raw_in(ptr as *const str, alloc) }
+        Self::clone_from_ref_in(value, alloc)
     }
 }
 

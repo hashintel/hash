@@ -34,7 +34,6 @@
     extend_one,
     extern_types,
     get_disjoint_mut_helpers,
-    get_mut_unchecked,
     impl_restriction,
     iter_intersperse,
     iter_map_windows,
