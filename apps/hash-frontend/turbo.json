@@ -16,7 +16,7 @@
     "build": {
       "dependsOn": ["^build", "codegen"],
       // `vercel.json` sets `outputDirectory` to `./.next`, and nothing in
-      // `next.config.js` moves it. `.next/cache` is webpack's own cache rather
+      // `next.config.js` moves it. `.next/cache` is the bundler's own cache rather
       // than part of the deployable output, and is what makes the directory too
       // big to be worth storing. `next-env.d.ts` is written at the package root
       // and read back by `tsconfig.json`.
@@ -29,7 +29,6 @@
       // and the only build-time reader of any of them is `buildstamp.js`, which
       // names the Sentry release.
       "env": [
-        "ANALYZE",
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",

@@ -78,7 +78,7 @@ export const buildCspHeader = ({
       "'self'",
       // set via middleware.page.ts
       `'nonce-${nonce}'`,
-      // WebAssembly instantiation (webpack asyncWebAssembly is enabled)
+      // WebAssembly instantiation
       "'wasm-unsafe-eval'",
       // Next.js dev mode uses eval() for Fast Refresh / HMR.
       // Petrinaut, rendered in the process editor, compiles its programs and

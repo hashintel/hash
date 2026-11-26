@@ -1,14 +1,3 @@
-/**
- * Petrinaut's stylesheet. Within HASH's pages its Panda-generated
- * atomic utilities are intentionally shadowed by `ds-components-styles.gen.css`
- * (imported in `_app.page.tsx`), which compiles Petrinaut's shipped Panda
- * build info through the app's single Panda pipeline at a strictly higher
- * polyfilled layer specificity — see `panda.config.ts` and FE-1228. This
- * import still supplies everything Panda generation does not: vendor CSS
- * (xyflow, uplot, Monaco, fonts) and the `.petrinaut-root`-scoped preflight,
- * token variables and global styles.
- */
-import "@hashintel/petrinaut/dist/main.css";
 import { Box } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
 import {
@@ -30,6 +19,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { usePetrinautStylesheet } from "../../../../shared/use-petrinaut-stylesheet";
 import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
 import {
@@ -240,6 +230,8 @@ export const PetrinautEditor = ({
    */
   onSave: (save: PetrinautEditorSave) => Promise<PetrinautEditorSaved>;
 }) => {
+  usePetrinautStylesheet();
+
   const [session, setSession] = useState<EditorSession | null>(null);
 
   if (load !== (session?.load ?? null)) {

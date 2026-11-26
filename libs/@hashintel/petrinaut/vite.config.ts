@@ -96,6 +96,25 @@ export default defineConfig(({ command }) => ({
     }),
 
     command === "build" && dts({ generator: "tsgo" }),
+
+    // Vite emits the relative worker URL from `renderBuiltUrl` wrapped as
+    // `new URL(new URL(<path>, import.meta.url).href, "" + import.meta.url)`.
+    // Turbopack resolves the URL in `new Worker(new URL(…))` at build time and
+    // fails on the nested one, so the wrapper is removed.
+    {
+      name: "unwrap-worker-url",
+      enforce: "post",
+      generateBundle(_options, bundle) {
+        for (const chunk of Object.values(bundle)) {
+          if (chunk.type === "chunk") {
+            chunk.code = chunk.code.replace(
+              /new URL\(\s*(?:\/\* @vite-ignore \*\/\s*)?(new URL\("[^"]+", import\.meta\.url\))\.href,\s*"" \+ import\.meta\.url\s*\)/g,
+              "$1",
+            );
+          }
+        }
+      },
+    },
   ],
 
   test: {
