@@ -29,15 +29,7 @@
       "command": ["just", "clippy"]
     },
     "test:unit": {
-      "command": [
-        "mise",
-        "run",
-        "test:unit",
-        "hash-graph-audit",
-        "--",
-        "--no-tests",
-        "warn"
-      ]
+      "command": ["mise", "run", "test:unit", "hash-graph-audit"]
     }
   }
 }
