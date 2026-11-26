@@ -9,7 +9,10 @@ use hash_integrations_definition::SourceName;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub(crate) use self::record::{CapturePart, CapturedFile, Failure, Input, PreparePart, RunRecord};
+pub(crate) use self::record::{
+    BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart, RunRecord,
+    SendPart,
+};
 pub use self::{
     record::Stage,
     start::{StartError, StartInput, start},
@@ -43,10 +46,6 @@ pub(crate) enum RunError {
     #[display("the file changed since it was read")]
     Changed,
     #[display("`current.json` names another run")]
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "Send is the first caller of `complete`")
-    )]
     NotActive,
     #[display("the bucket could not be read or written")]
     Storage,

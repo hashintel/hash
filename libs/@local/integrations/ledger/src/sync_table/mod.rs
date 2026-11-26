@@ -26,10 +26,6 @@ use error_stack::{Report, ResultExt as _};
 use futures_util::TryStreamExt as _;
 use url::Url;
 
-#[cfg_attr(
-    not(test),
-    expect(unused_imports, reason = "only the tests read the sync table")
-)]
 pub(crate) use self::{
     read::read,
     row::{Op, SyncRow, order_key},
