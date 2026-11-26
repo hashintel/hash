@@ -160,11 +160,13 @@ export const SourceMenu = ({
           } satisfies MenuItem,
         ]
       : []),
-    ...(options.length > 0 && matching.length === 0
+    ...(matching.length === 0 &&
+    (options.length > 0 || (newFlowInputLabel === null && typeLabel === null))
       ? [
           {
             id: "no-matches",
-            text: "No matching values",
+            text:
+              options.length > 0 ? "No matching values" : "No values to pick",
             disabled: true,
             onClick: () => {},
           } satisfies MenuItem,
