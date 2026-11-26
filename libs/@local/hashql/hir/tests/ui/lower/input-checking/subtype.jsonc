@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: A value is accepted when its type is a subtype of the declared type, here an `Integer` for a `Number`.
+{
+  "#struct": {
+    "query": ["input", "x", "Number"],
+    "inputs": { "#struct": { "x": { "#literal": 1 } } }
+  }
+}

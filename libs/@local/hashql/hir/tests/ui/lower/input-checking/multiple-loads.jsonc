@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: A value is checked against the meet of the types of every load of its input, a `Number` that fits one load does not fit the `Integer` of the other.
+{
+  "#struct": {
+    "query": [
+      "let",
+      "foo",
+      ["input", "x", "Number"],
+      ["let", "bar", ["input", "x", "Integer"], "foo"]
+    ],
+    "inputs": { "#struct": { "x": { "#literal": 1.5 } } }
+    //~^ ERROR This is of type `Number`
+  }
+}

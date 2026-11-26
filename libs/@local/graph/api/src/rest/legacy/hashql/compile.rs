@@ -1,18 +1,20 @@
 use hash_graph_authorization::policies::action::ActionName;
 use hashql_ast::{error::AstDiagnosticCategory, node::expr::Expr};
 use hashql_core::{
-    heap::{self, Heap, ResetAllocator as _, ScopeAllocator, Scratch},
+    heap::{self, Heap, ResetAllocator as _, ScopeAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
-    symbol::sym,
+    symbol::{Symbol, sym},
     r#type::environment::Environment,
 };
-use hashql_diagnostics::{DiagnosticIssues, IteratorStatusExt, Status, StatusExt as _, Success};
+use hashql_diagnostics::{
+    DiagnosticIssues, IteratorStatusExt as _, Status, StatusExt as _, Success,
+};
 use hashql_eval::{
     context::{CodeExecutionContext, CodeGenerationContext},
     postgres::{PostgresCompiler, PreparedQueries},
 };
-use hashql_hir::{error::HirDiagnosticCategory, lower::Lowered};
+use hashql_hir::{error::HirDiagnosticCategory, lower::LoweringResidual};
 use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
@@ -87,7 +89,11 @@ impl<'heap> Compilation<'heap> {
         heap: &'heap Heap,
         scratch: &mut Scratch,
         parsed: Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
-        inputs: Status<Vec<hashql_ast::node::value::Value<'heap>>, JExprDiagnosticCategory, SpanId>,
+        inputs: Status<
+            Vec<(Symbol<'heap>, hashql_ast::node::value::Value<'heap>)>,
+            JExprDiagnosticCategory,
+            SpanId,
+        >,
     ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
         let scope = scratch.as_mut_scope();
 
@@ -123,10 +129,12 @@ impl<'heap> Compilation<'heap> {
         });
         let inputs_status = inputs
             .into_iter()
-            .map(|input| {
-                scope.scoped(|scope| {
-                    hashql_hir::node::Value::from_ast_in(input, &mut hir_context, scope)
-                })
+            .map(|(name, input)| {
+                scope
+                    .scoped(|scope| {
+                        hashql_hir::node::Value::from_ast_in(input, &mut hir_context, scope)
+                    })
+                    .map_value(|input| (name, input))
             })
             .collect_status::<Vec<_>>();
 
@@ -141,11 +149,7 @@ impl<'heap> Compilation<'heap> {
 
         // Lower the HIR
         let Success {
-            value:
-                Lowered {
-                    node: hir,
-                    inputs: input_names,
-                },
+            value: (hir, LoweringResidual { inputs: parameters }),
             advisories,
         } = hashql_hir::lower::lower(hir, &types, &mut env, &mut hir_context)
             .map_category(|category| {
@@ -154,6 +158,17 @@ impl<'heap> Compilation<'heap> {
             .with_diagnostics(advisories)?;
 
         // now that we're HIR (pun intended), ensure that the inputs have the correct subtypes.
+        let Success {
+            value: (),
+            advisories,
+        } = scope
+            .scoped(|scope| {
+                hashql_hir::lower::checking::check_inputs(&env, &parameters, inputs, scope)
+            })
+            .map_category(|category| {
+                HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
+            })
+            .with_diagnostics(advisories)?;
 
         let interner = hashql_mir::intern::Interner::new(heap);
         let mut bodies = DefIdVec::new_in(heap);

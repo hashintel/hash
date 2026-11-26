@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: An empty dictionary has the key type `!` and fits a dictionary of any key type, although keys are invariant.
+{
+  "#struct": {
+    "query": ["input", "xs", "Dict<String, Integer>"],
+    "inputs": { "#struct": { "xs": { "#dict": {} } } }
+  }
+}

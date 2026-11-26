@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: A value whose type is not a subtype of the declared type is rejected.
+{
+  "#struct": {
+    "query": ["input", "x", "Integer"],
+    "inputs": { "#struct": { "x": { "#literal": "a" } } }
+    //~^ ERROR This is of type `String`
+  }
+}

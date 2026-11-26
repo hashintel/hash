@@ -24,7 +24,7 @@ use core::{
 };
 
 use hashql_core::{
-    heap::{Heap, PhaseAllocator, ResetAllocator as _, ScopeAllocator, Scratch},
+    heap::{Heap, PhaseAllocator, ScopeAllocator},
     span::SpanId,
 };
 use hashql_diagnostics::Status;

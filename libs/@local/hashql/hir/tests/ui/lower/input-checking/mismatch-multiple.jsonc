@@ -1,0 +1,20 @@
+//@ run: fail
+//@ description: Every value that does not fit is reported, not only the first.
+{
+  "#struct": {
+    "query": [
+      "let",
+      "x",
+      ["input", "x", "Integer"],
+      ["let", "y", ["input", "y", "String"], "x"]
+    ],
+    "inputs": {
+      "#struct": {
+        "x": { "#literal": "a" },
+        //~^ ERROR This is of type `String`
+        "y": { "#literal": 1 }
+        //~^ ERROR This is of type `Integer`
+      }
+    }
+  }
+}

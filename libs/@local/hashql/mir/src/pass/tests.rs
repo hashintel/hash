@@ -31,7 +31,7 @@ fn assert_lower<'heap>(
     let mut scratch = Scratch::new();
     let config = LowerConfig::default();
 
-    let status = lower(context, &mut scratch, bodies, &config);
+    let status = lower(context, scratch.as_mut_scope(), bodies, &config);
     let _success = status.expect("lowering should not produce critical diagnostics");
 
     let formatter = Formatter::new(context.heap);

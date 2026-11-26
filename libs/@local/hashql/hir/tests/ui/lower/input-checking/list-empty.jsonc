@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: An empty list has the element type `!` and fits a list of any element type.
+{
+  "#struct": {
+    "query": ["input", "xs", "List<Integer>"],
+    "inputs": { "#struct": { "xs": { "#list": [] } } }
+  }
+}

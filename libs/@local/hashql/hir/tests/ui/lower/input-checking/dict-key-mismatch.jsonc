@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: Dictionary keys are invariant, an `Integer` key does not fit a `Number` key.
+{
+  "#struct": {
+    "query": ["input", "xs", "Dict<Number, Integer>"],
+    "inputs": {
+      "#struct": {
+        "xs": { "#dict": [[{ "#literal": 1 }, { "#literal": 2 }]] }
+        //~^ ERROR This is of type `Integer`
+      }
+    }
+  }
+}

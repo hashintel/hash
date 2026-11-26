@@ -3,7 +3,7 @@ use hashql_core::{
     r#type::{
         self, TypeId,
         environment::LatticeEnvironment,
-        kind::{TypeKind, UnionType},
+        kind::{PrimitiveType, TypeKind, UnionType},
     },
     value::Primitive,
 };
@@ -37,6 +37,12 @@ impl<'heap> Value<'heap> {
         self.0
     }
 
+    /// Computes the type of this value from its literals.
+    ///
+    /// The element type of a list is the union of the types of its elements. A dictionary takes the
+    /// union of the types of its keys and the union of the types of its values in the same way. The
+    /// union of no types is `!`, which makes it the element type of an empty list and the key and
+    /// value type of an empty dictionary.
     pub fn r#type<'alloc, S>(
         self,
         env: &mut LatticeEnvironment<'_, 'heap>,
@@ -46,23 +52,19 @@ impl<'heap> Value<'heap> {
         S: ScopeAllocator<'alloc>,
         'heap: 'alloc,
     {
-        let kind = match &self.0.kind {
-            NodeKind::Data(data::Data::Primitive(Primitive::Boolean(_))) => {
-                TypeKind::Primitive(hashql_core::r#type::kind::PrimitiveType::Boolean)
-            }
-            NodeKind::Data(data::Data::Primitive(Primitive::Float(_))) => {
-                TypeKind::Primitive(hashql_core::r#type::kind::PrimitiveType::Number)
-            }
-            NodeKind::Data(data::Data::Primitive(Primitive::Integer(_))) => {
-                TypeKind::Primitive(hashql_core::r#type::kind::PrimitiveType::Integer)
-            }
-            NodeKind::Data(data::Data::Primitive(Primitive::String(_))) => {
-                TypeKind::Primitive(hashql_core::r#type::kind::PrimitiveType::String)
-            }
-            NodeKind::Data(data::Data::Primitive(Primitive::Null)) => {
-                TypeKind::Primitive(hashql_core::r#type::kind::PrimitiveType::Null)
-            }
-            NodeKind::Data(data::Data::Struct(data::Struct { fields })) => {
+        let NodeKind::Data(data) = &self.0.kind else {
+            unreachable!("Value may only contain data nodes")
+        };
+
+        let kind = match data {
+            data::Data::Primitive(primitive) => TypeKind::Primitive(match primitive {
+                Primitive::Boolean(_) => PrimitiveType::Boolean,
+                Primitive::Float(_) => PrimitiveType::Number,
+                Primitive::Integer(_) => PrimitiveType::Integer,
+                Primitive::String(_) => PrimitiveType::String,
+                Primitive::Null => PrimitiveType::Null,
+            }),
+            data::Data::Struct(data::Struct { fields }) => {
                 let out = scratch
                     .alloc_slice_uninit::<r#type::kind::r#struct::StructField<'heap>>(fields.len());
 
@@ -82,7 +84,7 @@ impl<'heap> Value<'heap> {
 
                 TypeKind::Struct(r#type::kind::StructType { fields })
             }
-            NodeKind::Data(data::Data::Tuple(data::Tuple { fields })) => {
+            data::Data::Tuple(data::Tuple { fields }) => {
                 let out = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
 
                 let (fields, rest) = out.write_iter(
@@ -95,7 +97,7 @@ impl<'heap> Value<'heap> {
                 let fields = env.intern_type_ids(fields);
                 TypeKind::Tuple(r#type::kind::TupleType { fields })
             }
-            NodeKind::Data(data::Data::Dict(data::Dict { fields })) => {
+            data::Data::Dict(data::Dict { fields }) => {
                 let out_key = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
                 let out_value = scratch.alloc_slice_uninit::<r#type::TypeId>(fields.len());
 
@@ -133,7 +135,7 @@ impl<'heap> Value<'heap> {
                     r#type::kind::intrinsic::DictType { key, value },
                 ))
             }
-            NodeKind::Data(data::Data::List(data::List { elements })) => {
+            data::Data::List(data::List { elements }) => {
                 let out = scratch.alloc_slice_uninit::<r#type::TypeId>(elements.len());
 
                 let (elements, rest) = out.write_iter(
@@ -155,30 +157,12 @@ impl<'heap> Value<'heap> {
                     r#type::kind::intrinsic::ListType { element },
                 ))
             }
-            _ => {
-                unreachable!("Value may only contain data nodes")
-            }
         };
 
         env.intern_type(hashql_core::r#type::PartialType {
             span: self.0.span,
             kind: env.intern_kind(kind),
         })
-    }
-
-    pub(crate) fn is_subtype_of<'alloc, S>(
-        self,
-        env: &mut LatticeEnvironment<'_, 'heap>,
-        r#type: TypeId,
-        scratch: S,
-    ) -> bool
-    where
-        S: ScopeAllocator<'alloc>,
-        'heap: 'alloc,
-    {
-        let this = self.r#type(env, scratch);
-
-        env.is_subtype_of(r#type::environment::Variance::Covariant, this, r#type)
     }
 
     #[cfg(debug_assertions)]

@@ -1,0 +1,58 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+let foo:0 = if $exists(x) 
+            then ?x
+            else 0 as Integer,
+    bar:0 = $x
+in
+foo:0
+
+════ HIR after type checking ═══════════════════════════════════════════════════
+
+let foo:0 = if $exists(x) 
+            then ?x
+            else 0 as Integer,
+    bar:0 = $x
+in
+foo:0
+
+════ Inputs ════════════════════════════════════════════════════════════════════
+
+
+┌─ $x
+└→ Integer
+
+
+════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ let foo:0 = if $exists(x) 
+│              then ?x
+│              else 0 as Integer,
+│      bar:0 = $x
+│  in
+│  foo:0
+└→ Integer
+
+┌─ if $exists(x) 
+│  then ?x
+│  else 0 as Integer
+└→ Integer
+
+┌─ 0
+└→ Integer
+
+┌─ ?x
+└→ Integer
+
+┌─ $exists(x)
+└→ Boolean
+
+┌─ 0 as Integer
+└→ Integer
+
+┌─ $x
+└→ Integer
+
+┌─ foo:0
+└→ Integer
+

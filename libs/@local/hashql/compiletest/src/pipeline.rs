@@ -175,7 +175,7 @@ impl<'heap> Pipeline<'heap> {
         ));
         self.scratch.reset();
 
-        let node = tri!(hashql_hir::lower::lower(
+        let (node, _) = tri!(hashql_hir::lower::lower(
             node,
             &types,
             &mut self.env,

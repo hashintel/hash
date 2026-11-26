@@ -1055,14 +1055,78 @@ impl<T, C, S> IntoStatus<T, C, S> for Result<T, Diagnostic<C, S, Critical>> {
     }
 }
 
+/// Extension trait for iterators over [`Status`] values.
 pub impl(self) trait IteratorStatusExt:
-    Iterator<Item = Status<Self::Value, Self::Category, Self::Severity>>
+    Iterator<Item = Status<Self::Value, Self::Category, Self::Span>>
 {
+    /// The value of a successful item.
     type Value;
+    /// The category of the diagnostics of an item.
     type Category;
-    type Severity;
+    /// The span of the diagnostics of an item.
+    type Span;
 
-    fn collect_status<C>(self) -> Status<C, Self::Category, Self::Severity>
+    /// Collects the values of the items into a single [`Status`].
+    ///
+    /// If every item is successful, returns a successful status with the collected values and the
+    /// advisory diagnostics of every item.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`Failure`] if an item is a failure, with the primary diagnostic of the first
+    /// failed item as its own. A failed item does not end the iteration. `collect_status` consumes
+    /// the iterator to its end, and the failure carries the diagnostics of every item, including
+    /// the items after the first failure.
+    ///
+    /// # Examples
+    ///
+    /// Every item successful:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, IteratorStatusExt, Label, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut first = Status::success(1);
+    /// first.push_diagnostic(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
+    /// let second = Status::success(2);
+    ///
+    /// let collected = [first, second]
+    ///     .into_iter()
+    ///     .collect_status::<Vec<_>>()
+    ///     .expect("should be successful");
+    /// assert_eq!(collected.value, [1, 2]);
+    /// assert_eq!(collected.advisories.len(), 1);
+    /// ```
+    ///
+    /// A failure before and after a successful item:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, IteratorStatusExt, Label, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let failure = |span| {
+    ///     let diagnostic =
+    ///         Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(span, "error here"));
+    ///
+    ///     Status::<i32, _, _>::failure(diagnostic.specialize().expect_err("should be critical"))
+    /// };
+    ///
+    /// let collected = [failure(0..5), Status::success(2), failure(10..15)]
+    ///     .into_iter()
+    ///     .collect_status::<Vec<_>>()
+    ///     .expect_err("should be a failure");
+    /// assert_eq!(collected.primary.labels.primary().span(), &(0..5));
+    /// assert_eq!(collected.secondary.len(), 1);
+    /// ```
+    fn collect_status<C>(self) -> Status<C, Self::Category, Self::Span>
     where
         C: Default + Extend<Self::Value>,
         Self: Sized,
@@ -1094,6 +1158,6 @@ pub impl(self) trait IteratorStatusExt:
 
 impl<I: Iterator<Item = Status<T, C, S>> + ?Sized, T, C, S> IteratorStatusExt for I {
     type Category = C;
-    type Severity = S;
+    type Span = S;
     type Value = T;
 }

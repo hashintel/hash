@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: The element type of a list value is the union of the types of its elements.
+{
+  "#struct": {
+    "query": ["input", "xs", "List<Integer | String>"],
+    "inputs": {
+      "#struct": {
+        "xs": { "#list": [{ "#literal": 1 }, { "#literal": "a" }] }
+      }
+    }
+  }
+}
