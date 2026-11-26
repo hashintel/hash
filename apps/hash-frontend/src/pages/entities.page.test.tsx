@@ -10,9 +10,12 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import EntitiesPage from "./entities.page";
 import { EntitiesVisualizer } from "./shared/entities-visualizer";
 
+import type { VersionedUrl } from "@blockprotocol/type-system";
+
 const state = vi.hoisted(() => ({
   flags: { pages: true, dashboards: true, documents: true, canvases: true },
   pagesAreEnabled: true,
+  entityTypeIds: null as VersionedUrl[] | null,
   router: {
     asPath: "/pages",
     pathname: "/entities",
@@ -51,7 +54,11 @@ vi.mock("../shared/entity-types-context/hooks", () => ({
 vi.mock(
   "../shared/entity-types-context/hooks/use-entity-types-context-required",
   () => ({
-    useEntityTypesContextRequired: () => ({ isSpecialEntityTypeLookup: null }),
+    useEntityTypesContextRequired: () => ({
+      isSpecialEntityTypeLookup: null,
+      entityTypes:
+        state.entityTypeIds?.map(($id) => ({ schema: { $id } })) ?? null,
+    }),
   }),
 );
 vi.mock("../shared/use-user-permissions-on-entity-type", () => ({
@@ -91,6 +98,13 @@ beforeEach(() => {
   state.flags.pages = true;
   state.flags.dashboards = true;
   state.pagesAreEnabled = true;
+  state.entityTypeIds = [
+    systemEntityTypes.page.entityTypeId,
+    `${systemEntityTypes.page.entityTypeBaseUrl}v/2` as VersionedUrl,
+    systemEntityTypes.dashboard.entityTypeId,
+    `${systemEntityTypes.dashboard.entityTypeBaseUrl}v/2` as VersionedUrl,
+    systemEntityTypes.document.entityTypeId,
+  ];
   state.router.asPath = "/pages";
 });
 
@@ -114,19 +128,49 @@ test.each([
     expected: ["dashboard"],
   },
   { pages: true, dashboards: false, pagesAreEnabled: true, expected: ["page"] },
-])("lists only enabled page types: %j", ({ expected, ...flags }) => {
-  Object.assign(state.flags, flags);
-  state.pagesAreEnabled = flags.pagesAreEnabled;
-  renderPage();
+])(
+  "lists every version of enabled page types: %j",
+  ({ expected, ...flags }) => {
+    Object.assign(state.flags, flags);
+    state.pagesAreEnabled = flags.pagesAreEnabled;
+    renderPage();
 
-  expect(vi.mocked(EntitiesVisualizer).mock.lastCall?.[0]).toMatchObject({
-    entityTypeBaseUrl: undefined,
-    entityTypeId: undefined,
-    entityTypeIds: expected.map(
-      (kind) => systemEntityTypes[kind as "page" | "dashboard"].entityTypeId,
-    ),
-    isViewingPages: true,
-  });
+    expect(vi.mocked(EntitiesVisualizer).mock.lastCall?.[0]).toMatchObject({
+      entityTypeBaseUrl: undefined,
+      entityTypeId: undefined,
+      entityTypeIds: expected.flatMap((kind) => {
+        const baseUrl =
+          systemEntityTypes[kind as "page" | "dashboard"].entityTypeBaseUrl;
+        return [`${baseUrl}v/1`, `${baseUrl}v/2`];
+      }),
+      isViewingPages: true,
+    });
+  },
+);
+
+test("waits for all type versions before querying pages", () => {
+  const entityTypeIds = state.entityTypeIds;
+  state.entityTypeIds = null;
+  const { rerender } = renderPage();
+  expect(EntitiesVisualizer).not.toHaveBeenCalled();
+  expect(screen.getByText("Loading pages…")).toBeTruthy();
+
+  state.entityTypeIds = entityTypeIds;
+  rerender(
+    <ThemeProvider theme={theme}>
+      <EntitiesPage />
+    </ThemeProvider>,
+  );
+  expect(
+    vi.mocked(EntitiesVisualizer).mock.lastCall?.[0].entityTypeIds,
+  ).toEqual(entityTypeIds?.slice(0, 4));
+});
+
+test("does not query all entities when no page types are available", () => {
+  state.entityTypeIds = [];
+  renderPage();
+  expect(EntitiesVisualizer).not.toHaveBeenCalled();
+  expect(screen.getByText("No pages to display.")).toBeTruthy();
 });
 
 test.each([false, true])(

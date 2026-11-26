@@ -180,20 +180,26 @@ const EntitiesPage: NextPageWithLayout = () => {
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
+  const { entityTypes } = useEntityTypesContextRequired();
 
   const isPagesRoute = router.asPath.split(/[?#]/)[0] === "/pages";
   const pageEntityTypeIds = useMemo(
     () =>
-      atLeastOne<VersionedUrl>([
-        ...(enabledFeatureFlags.pages &&
-        hashInstance?.properties.pagesAreEnabled
-          ? [systemEntityTypes.page.entityTypeId]
-          : []),
-        ...(enabledFeatureFlags.dashboards
-          ? [systemEntityTypes.dashboard.entityTypeId]
-          : []),
-      ]),
+      atLeastOne(
+        entityTypes?.flatMap(({ schema }) => {
+          const baseUrl = extractBaseUrl(schema.$id);
+          const isEnabledPageType =
+            (baseUrl === systemEntityTypes.page.entityTypeBaseUrl &&
+              enabledFeatureFlags.pages &&
+              hashInstance?.properties.pagesAreEnabled) ||
+            (baseUrl === systemEntityTypes.dashboard.entityTypeBaseUrl &&
+              enabledFeatureFlags.dashboards);
+
+          return isEnabledPageType ? [schema.$id] : [];
+        }) ?? [],
+      ),
     [
+      entityTypes,
       enabledFeatureFlags.pages,
       enabledFeatureFlags.dashboards,
       hashInstance?.properties.pagesAreEnabled,
@@ -383,7 +389,9 @@ const EntitiesPage: NextPageWithLayout = () => {
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         {isPagesRoute && !pageEntityTypeIds ? (
-          <Typography>No pages to display.</Typography>
+          <Typography>
+            {entityTypes === null ? "Loading pages…" : "No pages to display."}
+          </Typography>
         ) : (
           <EntitiesVisualizer
             entityTypeBaseUrl={isPagesRoute ? undefined : entityTypeBaseUrl}
