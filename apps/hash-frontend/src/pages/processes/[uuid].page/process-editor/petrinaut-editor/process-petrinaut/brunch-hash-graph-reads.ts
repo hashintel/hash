@@ -375,7 +375,7 @@ export const decodeHashEntityReadCursor = (
       return malformedCursor;
     }
     return {
-      cursor: parsed.data.cursor as EntityQueryCursor,
+      cursor: parsed.data.cursor,
       ...(parsed.data.temporalAxes === undefined
         ? {}
         : { temporalAxes: parsed.data.temporalAxes }),

@@ -2216,9 +2216,7 @@ const joinQuery = (fails?: { title: string; page: number }) => {
     return Promise.resolve(
       joinPage(
         records.slice(start, end),
-        end < records.length
-          ? ([String(end)] as unknown as EntityQueryCursor)
-          : undefined,
+        end < records.length ? [String(end)] : undefined,
       ),
     );
   });
