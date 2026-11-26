@@ -199,9 +199,6 @@ export default withSentryConfig(
           as: "*.js",
         },
       },
-      resolveAlias: {
-        canvas: "./src/lib/empty-module.ts",
-      },
     },
 
     transpilePackages: [
