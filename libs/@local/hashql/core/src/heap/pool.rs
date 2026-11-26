@@ -106,7 +106,7 @@ where
     /// If the pool is empty, this creates an arena with [`Default`].
     #[inline]
     pub fn get(&self) -> PoolGuard<'_, T, A> {
-        let arena = self.arenas.lock().pop().unwrap_or_default();
+        let arena = self.arenas.with_mut(Vec::pop).unwrap_or_default();
 
         PoolGuard {
             pool: self,
@@ -191,10 +191,13 @@ const _: () = {
 #[cfg(test)]
 mod tests {
     use alloc::alloc::Global;
-    use core::ptr;
+    use core::{
+        ptr,
+        sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    };
 
     use super::Pool;
-    use crate::heap::{Heap, PhaseAllocator, Scratch, SymbolAllocator as _};
+    use crate::heap::{Heap, PhaseAllocator, ResetAllocator, Scratch, SymbolAllocator as _};
 
     fn sum_in<'alloc, A>(alloc: A, values: &[u32]) -> u32
     where
@@ -237,14 +240,58 @@ mod tests {
     }
 
     #[test]
+    fn get_creates_arena_unlocked() {
+        static POOL: Pool<Probe, Global> = Pool::new();
+        static UNLOCKED: AtomicBool = AtomicBool::new(false);
+
+        struct Probe;
+
+        impl Default for Probe {
+            fn default() -> Self {
+                UNLOCKED.store(POOL.arenas.try_lock().is_ok(), Ordering::Relaxed);
+
+                Self
+            }
+        }
+
+        // SAFETY: A `Probe` owns no memory and hands out no references.
+        unsafe impl ResetAllocator for Probe {
+            fn reset(&mut self) {}
+        }
+
+        drop(POOL.get());
+
+        assert!(UNLOCKED.load(Ordering::Relaxed));
+    }
+
+    #[test]
     fn bounded_drops_excess_arena() {
-        let pool = Pool::<Scratch, Global>::bounded(1);
+        static DROPS: AtomicUsize = AtomicUsize::new(0);
+
+        #[derive(Default)]
+        struct Counted;
+
+        impl Drop for Counted {
+            fn drop(&mut self) {
+                DROPS.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+
+        // SAFETY: A `Counted` owns no memory and hands out no references.
+        unsafe impl ResetAllocator for Counted {
+            fn reset(&mut self) {}
+        }
+
+        let pool = Pool::<Counted, Global>::bounded(1);
 
         let first = pool.get();
         let second = pool.get();
-        drop(first);
-        drop(second);
 
+        drop(first);
+        assert_eq!(DROPS.load(Ordering::Relaxed), 0);
+
+        drop(second);
+        assert_eq!(DROPS.load(Ordering::Relaxed), 1);
         assert_eq!(pool.arenas.lock().len(), 1);
     }
 

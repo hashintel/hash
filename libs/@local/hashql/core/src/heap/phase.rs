@@ -45,7 +45,8 @@ impl<A> AllocatorPointer for &A where A: Allocator + ?Sized {}
 /// Both conditions must hold whatever safe code does with the allocator in the meantime, which
 /// includes dropping it.
 ///
-/// A returned slice must have exactly the requested length.
+/// A returned slice must have exactly the requested length. The slice that [`try_alloc_slice_copy`]
+/// returns must hold the elements of its argument, in the same order.
 ///
 /// # Example
 ///
@@ -74,6 +75,7 @@ impl<A> AllocatorPointer for &A where A: Allocator + ?Sized {}
 /// ```
 ///
 /// [scope]: super::ScopeAllocator
+/// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
 pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     /// Allocates the result of calling `value`, without checking that `T` needs no destructor.
     ///
@@ -216,7 +218,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
             Ok(slice) => slice,
             Err(_) => {
                 let Ok(layout) = Layout::array::<mem::MaybeUninit<T>>(len) else {
-                    panic!("stack overflow");
+                    panic!("capacity overflow");
                 };
 
                 handle_alloc_error(layout)
@@ -239,7 +241,6 @@ pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     /// [`try_alloc_slice_copy`] to handle that failure yourself.
     ///
     /// [`try_alloc_slice_copy`]: Self::try_alloc_slice_copy
-    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
     fn alloc_slice_copy<T>(self, slice: &[T]) -> &'alloc mut [T]
     where
@@ -247,13 +248,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     {
         match self.try_alloc_slice_copy(slice) {
             Ok(slice) => slice,
-            Err(_) => {
-                let Ok(layout) = Layout::array::<T>(slice.len()) else {
-                    panic!("stack overflow");
-                };
-
-                handle_alloc_error(layout)
-            }
+            Err(_) => handle_alloc_error(Layout::for_value(slice)),
         }
     }
 
@@ -298,7 +293,6 @@ pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     ///
     /// [`alloc_slice_copy`]: Self::alloc_slice_copy
     /// [`try_alloc_slice_clone`]: Self::try_alloc_slice_clone
-    #[expect(clippy::single_match_else, reason = "clarity")]
     #[inline]
     fn alloc_slice_clone<T>(self, slice: &[T]) -> &'alloc mut [T]
     where
@@ -306,13 +300,7 @@ pub const unsafe trait PhaseAllocator<'alloc>: AllocatorPointer {
     {
         match self.try_alloc_slice_clone(slice) {
             Ok(slice) => slice,
-            Err(_) => {
-                let Ok(layout) = Layout::array::<T>(slice.len()) else {
-                    panic!("stack overflow");
-                };
-
-                handle_alloc_error(layout)
-            }
+            Err(_) => handle_alloc_error(Layout::for_value(slice)),
         }
     }
 }

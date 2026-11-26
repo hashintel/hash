@@ -47,6 +47,10 @@ impl Scratch {
     }
 
     /// Creates an empty arena that requests about `capacity` bytes of memory up front.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `capacity` rounded up to the size that the arena requests overflows [`usize`].
     #[inline]
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
@@ -122,6 +126,12 @@ mod tests {
         values.extend(0..1024_u32);
 
         assert_eq!(values.iter().sum::<u32>(), 523_776);
+    }
+
+    #[test]
+    #[should_panic(expected = "capacity overflow")]
+    fn with_capacity_overflow() {
+        let _scratch = Scratch::with_capacity(usize::MAX);
     }
 
     #[test]

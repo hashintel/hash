@@ -19,7 +19,9 @@
     bound_copied,
     clone_from_ref,
     clone_to_uninit,
+    const_alloc_error,
     const_clone,
+    const_closures,
     const_cmp,
     const_convert,
     const_destruct,
@@ -33,9 +35,11 @@
     extern_types,
     get_disjoint_mut_helpers,
     get_mut_unchecked,
+    impl_restriction,
     iter_intersperse,
     iter_map_windows,
     iter_next_chunk,
+    lock_value_accessors,
     maybe_uninit_fill,
     nonpoison_mutex,
     slice_partition_dedup,
@@ -45,9 +49,6 @@
     try_trait_v2,
     variant_count,
     vec_repeat,
-    const_alloc_error,
-    const_closures,
-    impl_restriction
 )]
 #![cfg_attr(
     feature = "zerocopy",

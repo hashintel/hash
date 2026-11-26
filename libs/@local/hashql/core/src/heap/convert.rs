@@ -20,7 +20,9 @@ use core::alloc::Allocator;
 /// assert_eq!(*number, 3);
 /// ```
 pub trait FromIn<T, A: Allocator>: Sized {
-    /// Converts `value` into `Self`, with the allocations of the result in `alloc`.
+    /// Converts `value` into `Self`.
+    ///
+    /// A conversion that allocates takes the memory from `alloc`.
     fn from_in(value: T, alloc: A) -> Self;
 }
 
@@ -29,7 +31,9 @@ pub trait FromIn<T, A: Allocator>: Sized {
 /// `T` implements `IntoIn<U, A>` whenever `U` implements `FromIn<T, A>`. Implement [`FromIn`], and
 /// call `into_in` on the source of a conversion.
 pub trait IntoIn<T, A: Allocator>: Sized {
-    /// Converts `self` into a `T`, with the allocations of the result in `alloc`.
+    /// Converts `self` into a `T`.
+    ///
+    /// A conversion that allocates takes the memory from `alloc`.
     fn into_in(self, alloc: A) -> T;
 }
 

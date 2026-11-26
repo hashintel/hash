@@ -50,16 +50,18 @@ delegate_allocator!(BumpScope<'_>, 0, ::bump_scope::alloc::Allocator);
 // ownership into the returned reference. A `BumpScope` exists only behind a reference, so safe code
 // cannot drop one. `mem::swap` on two `&mut BumpScope<'alloc>` moves the memory of their
 // allocations to the `Bump` of the other reference, and both references borrow their `Bump` for
-// `'alloc`. The slices have the requested length, because bump-scope allocates `len` elements and
-// one element for each element of `slice`.
+// `'alloc`. A slice has the requested length, because bump-scope allocates `len` elements.
+// `try_alloc_slice_copy` requests one element for each element of `slice` and copies `slice` into
+// them with `write_copy_of_slice`.
 //
 // A `BumpScopeGuard` records the position of the arena at its creation. Its `Drop` releases the
 // memory allocated after that position and nothing before it. Both scope methods drop the guard
 // after `func` returns, which keeps the memory of the scope valid until then. Between the creation
 // of the guard and its drop, only the scope allocates: `scoped` holds `&mut self`, and `scoped_ref`
-// holds a claim, during which bump-scope fails every allocation through `self`. The comment on
-// `BumpScope` shows that safe code cannot exchange the arena of the scope for another arena in the
-// meantime. Therefore the guard releases only memory of the scope and of scopes nested in it.
+// holds a claim, during which bump-scope fails every allocation through `self` that takes memory of
+// the arena. The comment on `BumpScope` shows that safe code cannot exchange the arena of the scope
+// for another arena in the meantime. Therefore the guard releases only memory of the scope and of
+// scopes nested in it.
 unsafe impl<'alloc> ScopeAllocator<'alloc> for BumpScope<'alloc> {
     type Scoped<'scope> = BumpScope<'scope>;
 
@@ -93,10 +95,11 @@ unsafe impl<'alloc> ScopeAllocator<'alloc> for BumpScope<'alloc> {
     where
         T: Copy,
     {
-        this.0
-            .try_alloc_slice_copy(slice)
-            .map(BumpBox::leak)
-            .map_err(|_err| alloc::AllocError)
+        // `bump_scope::BumpScope::try_alloc_slice_copy` calls `Clone::clone` for every element of a
+        // zero-sized `T`.
+        let uninit = PhaseAllocator::try_alloc_slice_uninit(this, slice.len())?;
+
+        Ok(uninit.write_copy_of_slice(slice))
     }
 
     #[inline]
@@ -199,11 +202,12 @@ unsafe impl<'alloc> PhaseAllocator<'alloc> for &'alloc Bump {
     }
 }
 
-// SAFETY: Every allocator of the arena borrows the `Bump`: `&Bump` is that borrow, and `as_scope`
-// and `as_mut_scope` return a `BumpScope` whose lifetime is the lifetime of the borrow. The
-// allocations of those allocators live no longer than that lifetime, and `Bump` itself implements
-// no `ScopeAllocator`. `reset` takes `&mut self`. Therefore no memory of the arena is reachable
-// when it runs.
+// SAFETY: An allocator that shares the arena borrows the `Bump`: `&Bump` is that borrow, and
+// `as_scope` and `as_mut_scope` return a `BumpScope` whose lifetime is the lifetime of the borrow.
+// The allocations of those allocators live no longer than that lifetime, and `Bump` itself
+// implements no `ScopeAllocator`. A collection that allocates in the `Bump` by value owns it and
+// lends it by shared reference alone. `reset` takes `&mut self`. Therefore no memory of the arena
+// is reachable when it runs.
 unsafe impl ResetAllocator for Bump {
     #[inline]
     fn reset(&mut self) {
@@ -214,7 +218,11 @@ unsafe impl ResetAllocator for Bump {
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
-    use core::{alloc::AllocError, assert_matches, mem, ptr};
+    use core::{
+        alloc::AllocError,
+        assert_matches, mem, ptr,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     use super::Bump;
     use crate::heap::{PhaseAllocator, ResetAllocator as _, ScopeAllocator};
@@ -406,5 +414,39 @@ mod tests {
 
         let empty = alloc.alloc_slice_clone::<Token>(&[]);
         assert_eq!(empty, []);
+    }
+
+    #[test]
+    fn alloc_slice_copy_zero_sized() {
+        static CLONES: AtomicUsize = AtomicUsize::new(0);
+
+        #[derive(Copy)]
+        struct Marker;
+
+        #[expect(
+            clippy::expl_impl_clone_on_copy,
+            clippy::non_canonical_clone_impl,
+            reason = "counts the calls that a copy must not make"
+        )]
+        impl Clone for Marker {
+            fn clone(&self) -> Self {
+                CLONES.fetch_add(1, Ordering::Relaxed);
+                *self
+            }
+        }
+
+        let bump = Bump::new();
+        let copies = bump.alloc_slice_copy(&[Marker; 3]);
+
+        assert_eq!(copies.len(), 3);
+        assert_eq!(CLONES.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "capacity overflow")]
+    fn alloc_slice_uninit_layout_overflow() {
+        let bump = Bump::new();
+
+        let _slice = bump.alloc_slice_uninit::<u64>(usize::MAX);
     }
 }

@@ -80,8 +80,8 @@ delegate_scope_allocator!(
 /// Until the closure of a scope returns, the arena allocates only through that scope and the scopes
 /// nested in it. [`scoped`][Self::scoped] borrows `self` exclusively until the closure returns, and
 /// the compiler rejects an allocation through `self` in the meantime.
-/// [`scoped_ref`][Self::scoped_ref] leaves `self` usable, and an allocation through it fails until
-/// the closure returns.
+/// [`scoped_ref`][Self::scoped_ref] leaves `self` usable, and an allocation through it that takes
+/// memory fails until the closure returns.
 ///
 /// Taking `this` in place of `self` keeps the allocation functions of this trait out of method
 /// resolution. A call such as `scope.try_alloc_slice_copy(slice)` therefore always resolves to the
@@ -104,7 +104,8 @@ delegate_scope_allocator!(
 ///
 /// Both conditions must hold whatever safe code does with the implementor in the meantime, which
 /// includes dropping it and opening scopes on it. A returned slice must have exactly the requested
-/// length.
+/// length. The slice that [`try_alloc_slice_copy`][Self::try_alloc_slice_copy] returns must hold
+/// the elements of its argument, in the same order.
 ///
 /// Implementors must also ensure that:
 ///
@@ -189,9 +190,10 @@ pub const unsafe trait ScopeAllocator<'alloc>: Allocator {
     /// # Allocation failure during the scope
     ///
     /// Do not allocate through `self` until `func` returns, and do not grow a collection that
-    /// allocates through it. Such an allocation fails with [`AllocError`]. A caller that cannot
-    /// report the failure, such as [`Vec::push`], calls [`handle_alloc_error`]. You can drop or
-    /// shrink such a collection during the scope, which frees no memory.
+    /// allocates through it. Such an allocation fails with [`AllocError`] if it takes memory. An
+    /// allocation of zero size takes none and may succeed. A caller that cannot report the failure,
+    /// such as [`Vec::push`], calls [`handle_alloc_error`]. You can drop or shrink such a
+    /// collection during the scope, which frees no memory.
     ///
     /// # Panics
     ///

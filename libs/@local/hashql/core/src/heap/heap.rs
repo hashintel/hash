@@ -78,6 +78,10 @@ impl Heap {
     }
 
     /// Creates an empty arena that requests about `capacity` bytes of memory up front.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `capacity` rounded up to the size that the arena requests overflows [`usize`].
     #[inline]
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
@@ -88,7 +92,7 @@ impl Heap {
     ///
     /// The returned arena opens scopes through [`scoped_ref`] alone. Until such a scope ends,
     /// interning a string that the table does not hold fails, as every allocation through the
-    /// `Heap` does. Intern the symbols that the scope needs before you open it.
+    /// `Heap` that takes memory does. Intern the symbols that the scope needs before you open it.
     ///
     /// [`scoped_ref`]: super::ScopeAllocator::scoped_ref
     #[inline]
@@ -130,11 +134,12 @@ delegate_phase_allocator!('alloc, &'alloc Heap, bump);
 //
 // The `'alloc` borrow of the `Heap` keeps it from being reset or dropped during `'alloc`. The end
 // of a scope releases only memory that the scope allocated. `&Heap` opens scopes through `as_scope`
-// alone, and until such a scope ends, every allocation from `self.bump` fails. `try_intern` returns
-// that failure before it adds an entry to the table. The table and the memory it points into stay
-// in one `Heap`: no method returns a `&mut` reference to either of them, and the comment on
-// `BumpScope` shows that safe code cannot exchange the arena of a scope for another arena. No code
-// writes to the string of a symbol after `try_intern` returns.
+// alone, and until such a scope ends, every allocation from `self.bump` that takes memory fails.
+// `try_intern` allocates the length of a string in front of its bytes, which takes memory for every
+// string, and returns that failure before it adds an entry to the table. The table and the memory
+// it points into stay in one `Heap`: no method returns a `&mut` reference to either of them, and
+// the comment on `BumpScope` shows that safe code cannot exchange the arena of a scope for another
+// arena. No code writes to the string of a symbol after `try_intern` returns.
 //
 // Therefore the string of every returned symbol stays valid and unchanged for all of `'alloc`.
 unsafe impl<'alloc> SymbolAllocator<'alloc> for &'alloc Heap {
@@ -154,12 +159,14 @@ unsafe impl<'alloc> SymbolAllocator<'alloc> for &'alloc Heap {
     }
 }
 
-// SAFETY: Every allocator of the arena borrows the `Heap`: `&Heap` is that borrow, and `as_scope`
-// and `as_mut_scope` return a `BumpScope` and a `HeapScope` whose lifetime is the lifetime of the
-// borrow. The allocations and the symbols of those allocators live no longer than that lifetime,
-// and `Heap` itself implements no `ScopeAllocator`. The symbol table keeps pointers into the arena
-// beyond such a borrow, and `reset` clears the table before it releases the memory. `reset` takes
-// `&mut self`. Therefore no memory of the arena is reachable when it runs.
+// SAFETY: An allocator that shares the arena borrows the `Heap`: `&Heap` is that borrow, and
+// `as_scope` and `as_mut_scope` return a `BumpScope` and a `HeapScope` whose lifetime is the
+// lifetime of the borrow. The allocations and the symbols of those allocators live no longer than
+// that lifetime, and `Heap` itself implements no `ScopeAllocator`. A collection that allocates in
+// the `Heap` by value owns it and lends it by shared reference alone. The symbol table keeps
+// pointers into the arena beyond such a borrow, and `reset` clears the table before it releases the
+// memory. `reset` takes `&mut self`. Therefore safe code cannot reach an allocation of the arena
+// after `reset` has released its memory.
 unsafe impl ResetAllocator for Heap {
     #[inline]
     fn reset(&mut self) {
@@ -201,11 +208,12 @@ delegate_scope_allocator!('alloc, HeapScope<'alloc>, bump, BumpScope<'alloc>);
 // `Heap::as_mut_scope` borrowed the `Heap` exclusively for `'alloc`, which keeps it from being
 // reset or dropped during `'alloc`. The end of a scope releases only memory that the scope
 // allocated. `scoped` borrows the `HeapScope` exclusively, and no `&HeapScope` interns until it
-// returns. During `scoped_ref` every allocation from `self.bump` fails, and `try_intern` returns
-// that failure before it adds an entry to the table. `self.bump` and `self.symbols` stay together:
-// both fields are private and move only as one `HeapScope`, and the comment on `BumpScope` shows
-// that safe code cannot exchange the arena of a scope for another arena. No code writes to the
-// string of a symbol after `try_intern` returns.
+// returns. During `scoped_ref` every allocation from `self.bump` that takes memory fails.
+// `try_intern` allocates the length of a string in front of its bytes, which takes memory for every
+// string, and returns that failure before it adds an entry to the table. `self.bump` and
+// `self.symbols` stay together: both fields are private and move only as one `HeapScope`, and the
+// comment on `BumpScope` shows that safe code cannot exchange the arena of a scope for another
+// arena. No code writes to the string of a symbol after `try_intern` returns.
 //
 // Therefore the string of every returned symbol stays valid and unchanged for all of `'alloc`.
 unsafe impl<'alloc> SymbolAllocator<'alloc> for &HeapScope<'alloc> {
@@ -252,6 +260,12 @@ mod tests {
         let symbol = (&*alloc).alloc_symbol(name);
 
         alloc.scoped(|scope| scope.alloc(symbol).as_str().len())
+    }
+
+    #[test]
+    #[should_panic(expected = "capacity overflow")]
+    fn with_capacity_overflow() {
+        let _heap = Heap::with_capacity(usize::MAX);
     }
 
     #[test]

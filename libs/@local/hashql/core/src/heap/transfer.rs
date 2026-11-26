@@ -96,7 +96,9 @@ where
     fn try_transfer_into(&self, alloc: A) -> Result<Self::Output, AllocError> {
         let bytes = alloc.try_alloc_slice_copy(self.as_bytes())?;
 
-        // SAFETY: `bytes` is a copy of the bytes of `self`, which are valid UTF-8.
+        // SAFETY: A `PhaseAllocator` must return from `try_alloc_slice_copy` the elements of its
+        // argument, in the same order. `bytes` therefore holds the bytes of `self`, which are valid
+        // UTF-8.
         Ok(unsafe { Self::from_utf8_unchecked_mut(bytes) })
     }
 }
