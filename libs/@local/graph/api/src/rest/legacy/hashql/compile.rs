@@ -12,7 +12,7 @@ use hashql_eval::{
     context::{CodeExecutionContext, CodeGenerationContext},
     postgres::{PostgresCompiler, PreparedQueries},
 };
-use hashql_hir::error::HirDiagnosticCategory;
+use hashql_hir::{error::HirDiagnosticCategory, lower::Lowered};
 use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
@@ -141,7 +141,11 @@ impl<'heap> Compilation<'heap> {
 
         // Lower the HIR
         let Success {
-            value: hir,
+            value:
+                Lowered {
+                    node: hir,
+                    inputs: input_names,
+                },
             advisories,
         } = hashql_hir::lower::lower(hir, &types, &mut env, &mut hir_context)
             .map_category(|category| {
@@ -149,7 +153,7 @@ impl<'heap> Compilation<'heap> {
             })
             .with_diagnostics(advisories)?;
 
-        // now that we're HIR (pun intended), endure that the inputs have the correct subtypes.
+        // now that we're HIR (pun intended), ensure that the inputs have the correct subtypes.
 
         let interner = hashql_mir::intern::Interner::new(heap);
         let mut bodies = DefIdVec::new_in(heap);

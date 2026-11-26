@@ -476,8 +476,10 @@ impl<'heap> Lattice<'heap> for DictType {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        // A dict with an uninhabited key type has no entries, and invariance only protects lookups
-        // of entries.
+        // HACK(BE-645): An empty dict is a member of `Dict<K, V>` for every `K`, which no single
+        // key type can state while keys are invariant. This check accepts a key type of `!` under
+        // any key type instead, because a dict whose key type is `!` has no entries to hash or look
+        // up. Join, meet and constraint collection still treat the key as invariant.
         (env.is_bottom(self.kind.key)
             || env.is_subtype_of(Variance::Invariant, self.kind.key, supertype.kind.key))
             && env.is_subtype_of(Variance::Covariant, self.kind.value, supertype.kind.value)

@@ -1,5 +1,9 @@
 use hashql_ast::lower::ExtractedTypes;
-use hashql_core::r#type::environment::Environment;
+use hashql_core::{
+    collections::FastHashMap,
+    symbol::Symbol,
+    r#type::{TypeId, environment::Environment},
+};
 use hashql_diagnostics::{DiagnosticIssues, StatusExt as _, Success};
 
 use self::{
@@ -26,6 +30,11 @@ pub mod normalization;
 pub mod specialization;
 pub mod thunking;
 
+pub struct Lowered<'heap> {
+    pub node: Node<'heap>,
+    pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
+}
+
 /// Lowers the given node by performing different phases.
 ///
 /// This will set the "substitution" field of the environment given.
@@ -40,7 +49,7 @@ pub fn lower<'env, 'heap>(
     types: &'env ExtractedTypes<'heap>,
     env: &'env mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
-) -> LoweringDiagnosticStatus<Node<'heap>> {
+) -> LoweringDiagnosticStatus<Lowered<'heap>> {
     let mut diagnostics = DiagnosticIssues::new();
     let mut replacement = AliasReplacement::new(context, &mut diagnostics);
     let Ok(node) = replacement.fold_node(node);
@@ -111,5 +120,8 @@ pub fn lower<'env, 'heap>(
     let normalization = Normalization::new(context, env, &mut norm_state);
     let node = normalization.run(node);
 
-    diagnostics.into_status(node)
+    diagnostics.into_status(Lowered {
+        node,
+        inputs: residual.inputs,
+    })
 }
