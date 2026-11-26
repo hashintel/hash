@@ -416,6 +416,12 @@ describe("flow net paths", () => {
   });
 });
 
+/** The hardcoded flows, and a test flow with an output that is both consumed and read, so a `copyOutput` runs. */
+const flowDefinitionsThatRunToEnd = [
+  ...hardcodedFlowDefinitions,
+  ["sharedOutputFlowDefinition", sharedOutputFlowDefinition] as const,
+];
+
 describe("startFlowNetRun", () => {
   it("starts a step once its inputs are there, and holds its attempt's end", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
@@ -1187,118 +1193,118 @@ describe("startFlowNetRun", () => {
     expect(run.isPending({ stepId: "get", itemPath: [] })).toBe(false);
   });
 
-  describe.each([
-    ...hardcodedFlowDefinitions,
-    ["sharedOutputFlowDefinition", sharedOutputFlowDefinition] as const,
-  ])("the %s flow", (_, flowDefinition) => {
-    const flowInputNames = flowDefinition.inputs.map(({ name }) => name);
+  describe.each(flowDefinitionsThatRunToEnd)(
+    "the %s flow",
+    (_, flowDefinition) => {
+      const flowInputNames = flowDefinition.inputs.map(({ name }) => name);
 
-    /** Checks a run that ran to its end left nothing behind but values, and no failures. */
-    const expectCompleted = (net: SDCPN, run: FlowNetRun) => {
-      expect(run.held()).toEqual([]);
+      /** Checks a run that ran to its end left nothing behind but values, and no failures. */
+      const expectCompleted = (net: SDCPN, run: FlowNetRun) => {
+        expect(run.held()).toEqual([]);
 
-      for (const kind of leftoverKinds(run)) {
-        expect(["value", "signal"]).toContain(kind);
-      }
-
-      for (const stepId of allStepIds(flowDefinition.steps)) {
-        expect(tokensAt(run, placeAt(generatePendingPlaceKey(stepId)))).toEqual(
-          [],
-        );
-      }
-
-      for (const { name } of flowDefinition.outputs) {
-        expect(tokensAt(run, flowOutputPath(net, name))).toContainEqual(
-          expect.objectContaining({ kind: "value", present: true }),
-        );
-      }
-
-      expectFiringsFollowArcs(net, run);
-      expectActualModeReplays(run);
-    };
-
-    it("ends with its outputs when every step succeeds", async () => {
-      const net = await compileFlowDefinition(flowDefinition);
-      const run = startFlowNetRun(net, { flowInputNames });
-
-      runToEnd(run, succeedingEverything(flowDefinition));
-
-      expectCompleted(net, run);
-    });
-
-    it("ends with its outputs when every step fails once, then succeeds, later items first", async () => {
-      const net = await compileFlowDefinition(flowDefinition);
-      const run = startFlowNetRun(net, { flowInputNames });
-      const succeed = succeedingEverything(flowDefinition);
-
-      runToEnd(
-        run,
-        (held) =>
-          (held.role === "succeedAttempt" || held.role === "failAttempt") &&
-          held.attempt === 1
-            ? { role: "failAttempt", stepRun: held.stepRun }
-            : succeed(held),
-        { take: "last" },
-      );
-
-      expectCompleted(net, run);
-      expect(
-        run.firings.filter(({ role }) => role === "retryAttempt").length,
-      ).toBe(
-        run.firings.filter(({ role }) => role === "succeedAttempt").length,
-      );
-    });
-
-    it("ends with its outputs when it waits for each step to start", async () => {
-      const net = await compileFlowDefinition(flowDefinition);
-      const run = startFlowNetRun(net, {
-        flowInputNames,
-        waitForStepStarts: true,
-      });
-
-      runToEnd(run, succeedingEverything(flowDefinition));
-
-      expectCompleted(net, run);
-    });
-
-    it("ends with its outputs when every forEach step has no items", async () => {
-      const net = await compileFlowDefinition(flowDefinition);
-      const run = startFlowNetRun(net, { flowInputNames });
-
-      runToEnd(run, succeedingEverything(flowDefinition, { itemCount: 0 }));
-
-      expectCompleted(net, run);
-    });
-
-    it("records the first step that gives up, and goes no further on it", async () => {
-      const net = await compileFlowDefinition(flowDefinition);
-      const run = startFlowNetRun(net, { flowInputNames });
-      const succeed = succeedingEverything(flowDefinition);
-      let gaveUp: string | undefined;
-
-      runToEnd(run, (held) => {
-        if (
-          (held.role === "succeedAttempt" || held.role === "failAttempt") &&
-          gaveUp === undefined
-        ) {
-          gaveUp = held.stepRun.stepId;
-
-          return { role: "failAttempt", stepRun: held.stepRun };
+        for (const kind of leftoverKinds(run)) {
+          expect(["value", "signal"]).toContain(kind);
         }
 
-        if (held.role === "retryAttempt" || held.role === "giveUp") {
-          return { role: "giveUp", stepRun: held.stepRun };
+        for (const stepId of allStepIds(flowDefinition.steps)) {
+          expect(
+            tokensAt(run, placeAt(generatePendingPlaceKey(stepId))),
+          ).toEqual([]);
         }
 
-        return succeed(held);
+        for (const { name } of flowDefinition.outputs) {
+          expect(tokensAt(run, flowOutputPath(net, name))).toContainEqual(
+            expect.objectContaining({ kind: "value", present: true }),
+          );
+        }
+
+        expectFiringsFollowArcs(net, run);
+        expectActualModeReplays(run);
+      };
+
+      it("ends with its outputs when every step succeeds", async () => {
+        const net = await compileFlowDefinition(flowDefinition);
+        const run = startFlowNetRun(net, { flowInputNames });
+
+        runToEnd(run, succeedingEverything(flowDefinition));
+
+        expectCompleted(net, run);
       });
 
-      expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([
-        expect.objectContaining({ kind: "stepFailure", stepId: gaveUp }),
-      ]);
-      expect(leftoverKinds(run)).not.toContain("attempt");
-      expectFiringsFollowArcs(net, run);
-      expectActualModeReplays(run);
-    });
-  });
+      it("ends with its outputs when every step fails once, then succeeds, later items first", async () => {
+        const net = await compileFlowDefinition(flowDefinition);
+        const run = startFlowNetRun(net, { flowInputNames });
+        const succeed = succeedingEverything(flowDefinition);
+
+        runToEnd(
+          run,
+          (held) =>
+            (held.role === "succeedAttempt" || held.role === "failAttempt") &&
+            held.attempt === 1
+              ? { role: "failAttempt", stepRun: held.stepRun }
+              : succeed(held),
+          { take: "last" },
+        );
+
+        expectCompleted(net, run);
+        expect(
+          run.firings.filter(({ role }) => role === "retryAttempt").length,
+        ).toBe(
+          run.firings.filter(({ role }) => role === "succeedAttempt").length,
+        );
+      });
+
+      it("ends with its outputs when it waits for each step to start", async () => {
+        const net = await compileFlowDefinition(flowDefinition);
+        const run = startFlowNetRun(net, {
+          flowInputNames,
+          waitForStepStarts: true,
+        });
+
+        runToEnd(run, succeedingEverything(flowDefinition));
+
+        expectCompleted(net, run);
+      });
+
+      it("ends with its outputs when every forEach step has no items", async () => {
+        const net = await compileFlowDefinition(flowDefinition);
+        const run = startFlowNetRun(net, { flowInputNames });
+
+        runToEnd(run, succeedingEverything(flowDefinition, { itemCount: 0 }));
+
+        expectCompleted(net, run);
+      });
+
+      it("records the first step that gives up, and goes no further on it", async () => {
+        const net = await compileFlowDefinition(flowDefinition);
+        const run = startFlowNetRun(net, { flowInputNames });
+        const succeed = succeedingEverything(flowDefinition);
+        let gaveUp: string | undefined;
+
+        runToEnd(run, (held) => {
+          if (
+            (held.role === "succeedAttempt" || held.role === "failAttempt") &&
+            gaveUp === undefined
+          ) {
+            gaveUp = held.stepRun.stepId;
+
+            return { role: "failAttempt", stepRun: held.stepRun };
+          }
+
+          if (held.role === "retryAttempt" || held.role === "giveUp") {
+            return { role: "giveUp", stepRun: held.stepRun };
+          }
+
+          return succeed(held);
+        });
+
+        expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([
+          expect.objectContaining({ kind: "stepFailure", stepId: gaveUp }),
+        ]);
+        expect(leftoverKinds(run)).not.toContain("attempt");
+        expectFiringsFollowArcs(net, run);
+        expectActualModeReplays(run);
+      });
+    },
+  );
 });

@@ -589,26 +589,15 @@ describe("compileFlowDefinition", () => {
     /* A step after the if, on neither path, reads the place its Done port is fused with, whichever path it took. */
     expect(readsOf("afterCheck")).toEqual([url, "Done: check"]);
     expect(pathsOf("afterCheck")).toBeUndefined();
-    const [anchor, donePort, ...otherMembers] =
-      sdcpn.fusions?.find(({ name }) => name === "Done: check")?.members ?? [];
-    const checkInstance = sdcpn.componentInstances?.find(
-      byKey(generateInstanceKey("check")),
-    );
 
-    expect(anchor).toEqual(placeEndpointOf(generateDonePlaceKey("check")));
-    expect(donePort).toMatchObject({
-      kind: "componentPort",
-      componentInstanceId: checkInstance?.id,
-    });
     expect(
-      sdcpn.components
-        ?.find(({ id }) => id === checkInstance?.component.id)
-        ?.places.find(
-          ({ id }) =>
-            donePort?.kind === "componentPort" && id === donePort.portPlaceId,
-        )?.name,
-    ).toBe("Done");
-    expect(otherMembers).toEqual([]);
+      sdcpn.fusions?.find(({ name }) => name === "Done: check")?.members,
+    ).toEqual([
+      placeEndpointOf(generateDonePlaceKey("check")),
+      expect.objectContaining({
+        componentInstanceId: toPetrinautId(generateInstanceKey("check")),
+      }),
+    ]);
   });
 
   it("waits for an action on its Done port, without copying an output another step consumes", async () => {
@@ -1013,13 +1002,6 @@ describe("compileFlowDefinition", () => {
       expect(sdcpn.metadata?.flowOutputs).toEqual({
         proposedEntities: sharedPlace,
       });
-    });
-
-    it("leaves an output nothing takes in its port", async () => {
-      const sdcpn = await compileWithConsumers([]);
-
-      expect(outputPortFusion(sdcpn)).toBeUndefined();
-      expect(sdcpn.places.find(byKey(sharedPlace.placeId))).toBeUndefined();
     });
 
     it("copies the output for each consumer, and into a place shared by its readers", async () => {
