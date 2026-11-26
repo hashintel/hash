@@ -78,7 +78,7 @@ export type FlowNetPath = readonly [string, ...string[]];
 
 /**
  * A key for a path in maps and sets: its ids joined with `::`, the id Petrinaut's flattener gives the item. This
- * mirrors `scopedId` in `@hashintel/petrinaut-core`'s `simulation/engine/scoped-id.ts`, which isn't exported.
+ * mirrors `scopedId` in `@hashintel/petrinaut-core`'s `composition/scoped-id.ts`, which isn't exported.
  * Petrinaut ids are lowercase UUIDs, so `::` can't appear in one.
  */
 export const flowNetPathKey = (path: FlowNetPath) => path.join("::");
@@ -260,7 +260,7 @@ const pathIn = (scope: InstanceScope | null, id: string): FlowNetPath =>
   scope ? [scope.instance.id, id] : [id];
 
 const instancePlaceName = (scope: InstanceScope, path: FlowNetPath) =>
-  path.length === 2
+  path.length === 2 && path[0] === scope.instance.id
     ? scope.subnet.subnet.places.find(({ id }) => id === path[1])?.name
     : undefined;
 

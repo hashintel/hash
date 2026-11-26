@@ -133,7 +133,7 @@ const stepRunsFromNet = (replay: FlowRunReplay) => {
   for (const { role, stepRun, transitionPath } of replay.firings) {
     const stepRunId = stepRunIdOf(stepRun);
     const componentInstanceId =
-      transitionPath.length > 1 ? transitionPath[0] : undefined;
+      transitionPath.length === 2 ? transitionPath[0] : undefined;
     const current = stepRuns.get(stepRunId) ?? {
       stepRun,
       status: "pending",
@@ -292,7 +292,7 @@ describe("replayFlowRunEvents on recorded runs", () => {
         const attemptTokens = replay.marking.filter(
           ({ path, token }) =>
             token.kind === "attempt" &&
-            path.length > 1 &&
+            path.length === 2 &&
             path[0] === fromNet.componentInstanceId &&
             stepRunIdOf({ ...fromNet.stepRun, itemPath: token.itemPath }) ===
               stepRunId,

@@ -309,21 +309,15 @@ const leftoverKinds = (run: FlowNetRun) =>
 describe("flow net paths", () => {
   const placeId = toPetrinautId("p.place");
   const instanceId = toPetrinautId(generateInstanceKey("a"));
-  const otherInstanceId = toPetrinautId(generateInstanceKey("b"));
+  const otherPlaceId = toPetrinautId("p.otherPlace");
 
-  it("keys a root place apart from the place with its id in an instance", () => {
-    expect(flowNetPathKey([placeId])).not.toBe(
-      flowNetPathKey([instanceId, placeId]),
-    );
-    expect(isSameFlowNetPath([placeId], [instanceId, placeId])).toBe(false);
-  });
-
-  it("keys the same place in two instances apart", () => {
-    expect(flowNetPathKey([instanceId, placeId])).not.toBe(
-      flowNetPathKey([otherInstanceId, placeId]),
-    );
+  it("tells a path apart from its prefix and from a path that differs after it", () => {
     expect(
-      isSameFlowNetPath([instanceId, placeId], [otherInstanceId, placeId]),
+      isSameFlowNetPath([instanceId, placeId], [instanceId, placeId]),
+    ).toBe(true);
+    expect(isSameFlowNetPath([instanceId], [instanceId, placeId])).toBe(false);
+    expect(
+      isSameFlowNetPath([instanceId, placeId], [instanceId, otherPlaceId]),
     ).toBe(false);
   });
 
