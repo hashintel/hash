@@ -54,7 +54,6 @@ pub(crate) fn start_input(run: RunId, yaml: &str) -> StartInput {
         web: WebId::new(Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0001)),
         actor: ActorEntityUuid::new(Uuid::from_u128(0x0000_0000_0000_4000_8000_0000_0000_0002)),
         definition: yaml.into(),
-        id_namespace: None,
         submitted_at: OffsetDateTime::UNIX_EPOCH,
     }
 }

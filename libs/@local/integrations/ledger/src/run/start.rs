@@ -17,8 +17,6 @@ pub struct StartInput {
     pub actor: ActorEntityUuid,
     /// The definition as written, in YAML, which is kept with the run.
     pub definition: Box<str>,
-    /// The namespace entity ids are derived in, or `None` for the connector's id.
-    pub id_namespace: Option<Box<str>>,
     /// When the run was asked for.
     pub submitted_at: OffsetDateTime,
 }

@@ -38,7 +38,7 @@ fn input(run: RunId) -> Input {
         connector: "aviation".into(),
         actor: ActorEntityUuid::new(id(2)),
         definition: "connector: aviation\n".into(),
-        id_namespace: "aviation".into(),
+        id_namespace: format!("{WEB}/aviation").into(),
         submitted_at: submitted_at(),
     }
 }
@@ -57,7 +57,6 @@ fn start_input(run: RunId) -> StartInput {
         web: WebId::new(WEB),
         actor: ActorEntityUuid::new(id(2)),
         definition: AVIATION.into(),
-        id_namespace: None,
         submitted_at: submitted_at(),
     }
 }
@@ -289,11 +288,7 @@ async fn complete_other_run() {
 async fn start_new_run() {
     let storage = Storage::memory();
     let run = RunId(id(10));
-    let input = StartInput {
-        id_namespace: Some("flights".into()),
-        ..start_input(run)
-    };
-    start(&storage, &aviation(), input)
+    start(&storage, &aviation(), start_input(run))
         .await
         .expect("should start the run");
 

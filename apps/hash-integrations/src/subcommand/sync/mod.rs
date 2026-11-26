@@ -286,7 +286,6 @@ async fn execute_start(args: StartArgs) -> Result<RunId, Report<SyncError>> {
         web: WebId::new(args.web),
         actor: ActorEntityUuid::new(args.actor),
         definition: text.into(),
-        id_namespace: None,
         submitted_at: OffsetDateTime::now_utc(),
     };
     start(&storage, &definition, input)
