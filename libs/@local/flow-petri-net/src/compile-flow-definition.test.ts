@@ -40,6 +40,7 @@ import {
   forEachFlowDefinition,
   hardcodedFlowDefinitions,
   ifPathsFlowDefinition,
+  sharedOutputFlowDefinition,
 } from "./testing/flow-definitions.js";
 
 import type { TransitionMetadata } from "./flow-net-metadata.js";
@@ -224,6 +225,7 @@ describe("compileFlowDefinition", () => {
     ["fileFlowDefinition", fileFlowDefinition],
     ["forEachFlowDefinition", forEachFlowDefinition],
     ["ifPathsFlowDefinition", ifPathsFlowDefinition],
+    ["sharedOutputFlowDefinition", sharedOutputFlowDefinition],
   ] as const)(
     "fuses %s's ports into places that pass Petrinaut's composition checks",
     async (_, flowDefinition) => {
