@@ -155,7 +155,11 @@ export const EntitiesVisualizer: FunctionComponent<{
    * Limit the entities displayed to only those matching this exact type version
    */
   entityTypeId?: VersionedUrl;
-  entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
+  /**
+   * Limit the entities displayed to only those matching any version of any of
+   * these types. Supersedes {@link entityTypeBaseUrl}.
+   */
+  entityTypeBaseUrls?: [BaseUrl, ...BaseUrl[]];
   isViewingPages?: boolean;
   /**
    * Hide specific columns from the table
@@ -164,14 +168,20 @@ export const EntitiesVisualizer: FunctionComponent<{
 }> = ({
   entityTypeBaseUrl,
   entityTypeId,
-  entityTypeIds: providedEntityTypeIds,
+  entityTypeBaseUrls: providedEntityTypeBaseUrls,
   isViewingPages = false,
   hideColumns,
 }) => {
   const theme = useTheme();
+  const requestedEntityTypeBaseUrls = useMemo(
+    () =>
+      providedEntityTypeBaseUrls ??
+      (entityTypeBaseUrl ? [entityTypeBaseUrl] : undefined),
+    [providedEntityTypeBaseUrls, entityTypeBaseUrl],
+  );
   const requestedEntityTypeIds = useMemo(
-    () => providedEntityTypeIds ?? (entityTypeId ? [entityTypeId] : undefined),
-    [providedEntityTypeIds, entityTypeId],
+    () => (entityTypeId ? [entityTypeId] : undefined),
+    [entityTypeId],
   );
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -295,7 +305,8 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
-  const isTypePinned = !!entityTypeBaseUrl || !!requestedEntityTypeIds?.length;
+  const isTypePinned =
+    !!requestedEntityTypeBaseUrls?.length || !!requestedEntityTypeIds?.length;
 
   const usesTableEndpoint = view === "Table";
 
@@ -365,7 +376,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   } = useAvailableTypes({
     filterState,
     internalWebs,
-    entityTypeBaseUrl,
+    entityTypeBaseUrls: requestedEntityTypeBaseUrls,
     entityTypeIds: requestedEntityTypeIds,
     summarySource,
   });
@@ -400,7 +411,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const entitiesData = useEntitiesVisualizerData({
     conversions,
     cursor: subgraphCursor,
-    entityTypeBaseUrl,
+    entityTypeBaseUrls: requestedEntityTypeBaseUrls,
     entityTypeIds: requestedEntityTypeIds,
     filterState,
     internalWebs,
@@ -588,14 +599,14 @@ export const EntitiesVisualizer: FunctionComponent<{
           propertyFilters,
         },
         internalWebIds: internalWebs.map(({ webId }) => webId),
-        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeBaseUrls: requestedEntityTypeBaseUrls,
         pinnedEntityTypeIds: requestedEntityTypeIds,
       }),
     );
   }, [
     filterState,
     internalWebs,
-    entityTypeBaseUrl,
+    requestedEntityTypeBaseUrls,
     requestedEntityTypeIds,
     linkEntityTypeIds,
     linkOnlyPropertyBaseUrls,

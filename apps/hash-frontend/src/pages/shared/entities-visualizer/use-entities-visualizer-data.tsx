@@ -67,7 +67,7 @@ export type EntitiesVisualizerData = Partial<
 export const useEntitiesVisualizerData = (params: {
   conversions?: ConversionRequest[];
   cursor?: EntityQueryCursor;
-  entityTypeBaseUrl?: BaseUrl;
+  entityTypeBaseUrls?: BaseUrl[];
   entityTypeIds?: VersionedUrl[];
   filterState: EntitiesFilterState;
   internalWebs: { webId: WebId }[];
@@ -91,7 +91,7 @@ export const useEntitiesVisualizerData = (params: {
   const {
     conversions,
     cursor,
-    entityTypeBaseUrl,
+    entityTypeBaseUrls,
     entityTypeIds,
     filterState,
     internalWebs,
@@ -112,14 +112,14 @@ export const useEntitiesVisualizerData = (params: {
       buildEntitiesFilter({
         filterState,
         internalWebIds,
-        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeBaseUrls: entityTypeBaseUrls,
         pinnedEntityTypeIds: entityTypeIds,
         typeUniverse,
       }),
     [
       filterState,
       internalWebIds,
-      entityTypeBaseUrl,
+      entityTypeBaseUrls,
       entityTypeIds,
       typeUniverse,
     ],
@@ -127,7 +127,7 @@ export const useEntitiesVisualizerData = (params: {
 
   const awaitingTypeUniverse =
     typeUniverse === null &&
-    !entityTypeBaseUrl &&
+    !entityTypeBaseUrls?.length &&
     !entityTypeIds?.length &&
     filterState.type.selectedTypeIds === null;
 

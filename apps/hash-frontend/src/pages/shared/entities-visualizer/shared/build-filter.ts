@@ -54,21 +54,20 @@ const buildWebClause = (
 };
 
 const buildTypeClause = ({
-  pinnedEntityTypeBaseUrl,
+  pinnedEntityTypeBaseUrls,
   pinnedEntityTypeIds,
   selectedTypeIds,
 }: {
-  pinnedEntityTypeBaseUrl?: BaseUrl;
+  pinnedEntityTypeBaseUrls?: BaseUrl[];
   pinnedEntityTypeIds?: VersionedUrl[];
   selectedTypeIds: Set<VersionedUrl> | null;
 }): { clause: Filter | null; isPinned: boolean } => {
-  if (pinnedEntityTypeBaseUrl) {
+  if (pinnedEntityTypeBaseUrls?.length) {
     return {
       clause: {
-        equal: [
-          { path: ["type", "baseUrl"] },
-          { parameter: pinnedEntityTypeBaseUrl },
-        ],
+        any: pinnedEntityTypeBaseUrls.map((baseUrl) => ({
+          equal: [{ path: ["type", "baseUrl"] }, { parameter: baseUrl }],
+        })),
       },
       isPinned: true,
     };
@@ -119,13 +118,13 @@ const buildTypeClause = ({
 export const buildEntitiesFilter = ({
   filterState,
   internalWebIds,
-  pinnedEntityTypeBaseUrl,
+  pinnedEntityTypeBaseUrls,
   pinnedEntityTypeIds,
   typeUniverse,
 }: {
   filterState: EntitiesFilterState;
   internalWebIds: WebId[];
-  pinnedEntityTypeBaseUrl?: BaseUrl;
+  pinnedEntityTypeBaseUrls?: BaseUrl[];
   pinnedEntityTypeIds?: VersionedUrl[];
   /**
    * The type universe: the entity type ids present in the current result set,
@@ -153,7 +152,7 @@ export const buildEntitiesFilter = ({
   }
 
   const { clause: typeClause, isPinned: isTypePinned } = buildTypeClause({
-    pinnedEntityTypeBaseUrl,
+    pinnedEntityTypeBaseUrls,
     pinnedEntityTypeIds,
     selectedTypeIds: filterState.type.selectedTypeIds,
   });

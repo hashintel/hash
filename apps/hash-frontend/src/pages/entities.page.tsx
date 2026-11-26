@@ -50,6 +50,7 @@ import { useActiveWorkspace } from "./shared/workspace-context";
 import type { NextPageWithLayout } from "../shared/layout";
 import type { Breadcrumb } from "./shared/breadcrumbs";
 import type {
+  BaseUrl,
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
@@ -182,15 +183,19 @@ const EntitiesPage: NextPageWithLayout = () => {
   const { hashInstance } = useHashInstance();
 
   const isPagesRoute = router.asPath.split(/[?#]/)[0] === "/pages";
-  const pageEntityTypeIds = useMemo(
+  /**
+   * Matched by base URL, not by versioned id: a page's Document or Canvas type
+   * may inherit from an earlier version of the Page type.
+   */
+  const pageEntityTypeBaseUrls = useMemo(
     () =>
-      atLeastOne<VersionedUrl>([
+      atLeastOne<BaseUrl>([
         ...(enabledFeatureFlags.pages &&
         hashInstance?.properties.pagesAreEnabled
-          ? [systemEntityTypes.page.entityTypeId]
+          ? [systemEntityTypes.page.entityTypeBaseUrl]
           : []),
         ...(enabledFeatureFlags.dashboards
-          ? [systemEntityTypes.dashboard.entityTypeId]
+          ? [systemEntityTypes.dashboard.entityTypeBaseUrl]
           : []),
       ]),
     [
@@ -382,13 +387,15 @@ const EntitiesPage: NextPageWithLayout = () => {
         </Container>
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
-        {isPagesRoute && !pageEntityTypeIds ? (
+        {isPagesRoute && !pageEntityTypeBaseUrls ? (
           <Typography>No pages to display.</Typography>
         ) : (
           <EntitiesVisualizer
             entityTypeBaseUrl={isPagesRoute ? undefined : entityTypeBaseUrl}
             entityTypeId={isPagesRoute ? undefined : entityTypeId}
-            entityTypeIds={isPagesRoute ? pageEntityTypeIds : undefined}
+            entityTypeBaseUrls={
+              isPagesRoute ? pageEntityTypeBaseUrls : undefined
+            }
             isViewingPages={isPagesRoute}
             hideColumns={hideColumns}
           />

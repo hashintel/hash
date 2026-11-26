@@ -122,8 +122,9 @@ test.each([
   expect(vi.mocked(EntitiesVisualizer).mock.lastCall?.[0]).toMatchObject({
     entityTypeBaseUrl: undefined,
     entityTypeId: undefined,
-    entityTypeIds: expected.map(
-      (kind) => systemEntityTypes[kind as "page" | "dashboard"].entityTypeId,
+    entityTypeBaseUrls: expected.map(
+      (kind) =>
+        systemEntityTypes[kind as "page" | "dashboard"].entityTypeBaseUrl,
     ),
     isViewingPages: true,
   });
@@ -147,7 +148,7 @@ test("keeps ordinary Page entity lists pinned to their requested type", () => {
   renderPage();
   expect(vi.mocked(EntitiesVisualizer).mock.lastCall?.[0]).toMatchObject({
     entityTypeBaseUrl: systemEntityTypes.page.entityTypeBaseUrl,
-    entityTypeIds: undefined,
+    entityTypeBaseUrls: undefined,
     isViewingPages: false,
   });
 });

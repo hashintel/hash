@@ -47,13 +47,13 @@ export type SummarySource =
 export const useAvailableTypes = ({
   filterState,
   internalWebs,
-  entityTypeBaseUrl,
+  entityTypeBaseUrls,
   entityTypeIds,
   summarySource,
 }: {
   filterState: EntitiesFilterState;
   internalWebs: { webId: WebId }[];
-  entityTypeBaseUrl?: BaseUrl;
+  entityTypeBaseUrls?: BaseUrl[];
   entityTypeIds?: VersionedUrl[];
   summarySource: SummarySource;
 }): {
@@ -99,7 +99,7 @@ export const useAvailableTypes = ({
   const { dataTypes } = useDataTypesContext();
   const { propertyTypes } = usePropertyTypes();
 
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeIds?.length;
+  const isTypePinned = !!entityTypeBaseUrls?.length || !!entityTypeIds?.length;
   const shouldFetchAvailableTypes =
     !isTypePinned && summarySource.mode === "fetch";
 
@@ -108,16 +108,16 @@ export const useAvailableTypes = ({
       return entityTypeIds;
     }
 
-    if (entityTypeBaseUrl && entityTypes) {
+    if (entityTypeBaseUrls?.length && entityTypes) {
       return entityTypes
-        .filter(
-          ({ schema }) => extractBaseUrl(schema.$id) === entityTypeBaseUrl,
+        .filter(({ schema }) =>
+          entityTypeBaseUrls.includes(extractBaseUrl(schema.$id)),
         )
         .map(({ schema }) => schema.$id);
     }
 
     return null;
-  }, [entityTypeBaseUrl, entityTypeIds, entityTypes]);
+  }, [entityTypeBaseUrls, entityTypeIds, entityTypes]);
 
   // No typeUniverse here — this query defines the universe. Feeding it back in
   // would ratchet it shut against newly appearing types.
