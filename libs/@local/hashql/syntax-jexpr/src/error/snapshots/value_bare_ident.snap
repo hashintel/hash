@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#struct\": {\"x\": foo}}"
+---
+error[jexpr::lexer::invalid-token]: Invalid token
+  ╭▸ 
+1 │ {"#struct": {"x": foo}}
+  │                   ━━━ unexpected bare identifier `foo`
+  │
+  ├ help: write a string value as `{"#literal": "foo"}`, or wrap object keys in double quotes
+  ╰ note: J-Expr uses JSON syntax, where strings and object keys must be double-quoted

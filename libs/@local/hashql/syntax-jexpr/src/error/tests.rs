@@ -174,6 +174,71 @@ diagnostic_snapshots! {
 // a limit small enough for a document past it to fit on one line of a snapshot
 const NESTING_OPTIONS: ParserOptions = ParserOptions { nesting_limit: 3 };
 
+fn render_value_errors(input: &str) -> String {
+    render_value_errors_with(input, ParserOptions::default())
+}
+
+fn render_value_errors_with(input: &str, options: ParserOptions) -> String {
+    let heap = Heap::new();
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0));
+    let mut parser = Parser::new(&heap, &mut spans, options);
+
+    let failure = parser
+        .parse_value_in(input, Global)
+        .expect_err("expected value input to produce at least one diagnostic");
+
+    let mut sources = Sources::new();
+    sources.push(Source::new(input));
+
+    let mut options = RenderOptions::new(Format::Ansi, &sources);
+    options.color_depth = ColorDepth::Monochrome;
+
+    failure.into_issues().render(options, &mut &spans)
+}
+
+macro_rules! value_diagnostic_snapshots {
+    ($($name:ident => $input:expr,)*) => {
+        $(
+            #[test]
+            fn $name() {
+                let input = $input;
+                let rendered = render_value_errors(input);
+                ::insta::with_settings!({
+                    prepend_module_to_snapshot => false,
+                }, {
+                    ::insta::assert_snapshot!(stringify!($name), rendered, input);
+                });
+            }
+        )*
+    };
+}
+
+value_diagnostic_snapshots! {
+    value_eof_empty => "",
+    value_empty_object => "{}",
+    value_bare_number => "42",
+    value_bare_string => r#""hello""#,
+    value_array_call => r##"["add", {"#literal": 1}, {"#literal": 2}]"##,
+    value_nested_array => r##"{"#struct": {"items": [1, 2]}}"##,
+    value_type_annotation => r##"{"#literal": 42, "#type": "Int"}"##,
+    value_orphaned_type => r##"{"#type": "Int"}"##,
+    value_trailing_content => r##"{"#literal": 1} {"#literal": 2}"##,
+    value_dict_entry_too_few => r##"{"#dict": [[{"#literal": "k"}]]}"##,
+    value_bare_ident => r##"{"#struct": {"x": foo}}"##,
+}
+
+#[test]
+fn value_nesting_limit() {
+    let input = r##"{"#list": [{"#list": [{"#list": [{"#literal": 1}]}]}]}"##;
+    let rendered = render_value_errors_with(input, NESTING_OPTIONS);
+
+    insta::with_settings!({
+        prepend_module_to_snapshot => false,
+    }, {
+        insta::assert_snapshot!("value_nesting_limit", rendered, input);
+    });
+}
+
 #[test]
 fn nesting_limit() {
     let input = r#"[[[[["x"]]]]]"#;

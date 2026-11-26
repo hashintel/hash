@@ -8,6 +8,7 @@ use hashql_ast::node::{
     id::NodeId,
     path::{Path, PathSegment},
     r#type::Type,
+    value::Value,
 };
 use hashql_core::{
     heap::{self, Heap},
@@ -23,7 +24,7 @@ use crate::{
         EmbeddedString, parse_expr_from_string_in, parse_ident_labelled_argument_from_string_in,
         parse_type_from_string_in,
     },
-    error::{JExprDiagnosticCategory, array},
+    error::{GrammarKind, JExprDiagnosticCategory, array},
     parser::Document,
     span::Span,
     stack::ensure_sufficient_stack,
@@ -40,6 +41,29 @@ where
     match (first, second) {
         (Some(first), Some(second)) => first.offset() < second.offset(),
         _ => false,
+    }
+}
+
+pub(crate) trait LowerItem<'tree>: Node<'tree> {
+    fn lower<'heap, A: Allocator>(self, lowerer: &mut Lowerer<'heap, '_, A>)
+    -> Option<Expr<'heap>>;
+}
+
+impl<'tree> LowerItem<'tree> for cst::Expr<'tree> {
+    fn lower<'heap, A: Allocator>(
+        self,
+        lowerer: &mut Lowerer<'heap, '_, A>,
+    ) -> Option<Expr<'heap>> {
+        lowerer.lower_expr(self)
+    }
+}
+
+impl<'tree> LowerItem<'tree> for cst::Value<'tree> {
+    fn lower<'heap, A: Allocator>(
+        self,
+        lowerer: &mut Lowerer<'heap, '_, A>,
+    ) -> Option<Expr<'heap>> {
+        lowerer.lower_value(self)
     }
 }
 
@@ -393,12 +417,34 @@ impl<'heap, 'spans, A: Allocator> Lowerer<'heap, 'spans, A> {
         ensure_sufficient_stack(|| match expr {
             cst::Expr::Path(node) => self.lower_path(node),
             cst::Expr::Call(node) => self.lower_call(node),
-            cst::Expr::Literal(node) => constructor::lower_literal(self, node),
-            cst::Expr::Struct(node) => constructor::lower_struct(self, node),
-            cst::Expr::Tuple(node) => constructor::lower_tuple(self, node),
-            cst::Expr::List(node) => constructor::lower_list(self, node),
-            cst::Expr::Dict(node) => constructor::lower_dict(self, node),
+            cst::Expr::Literal(node) => constructor::lower_literal(self, node, node.type_field()),
+            cst::Expr::Struct(node) => constructor::lower_struct(self, node, node.type_field()),
+            cst::Expr::Tuple(node) => constructor::lower_tuple(self, node, node.type_field()),
+            cst::Expr::List(node) => constructor::lower_list(self, node, node.type_field()),
+            cst::Expr::Dict(node) => constructor::lower_dict(self, node, node.type_field()),
         })
+    }
+
+    pub(crate) fn lower_value(&mut self, value: cst::Value<'_>) -> Option<Expr<'heap>> {
+        ensure_sufficient_stack(|| match value {
+            cst::Value::Literal(node) => constructor::lower_literal(self, node, None),
+            cst::Value::Struct(node) => constructor::lower_struct(self, node, None),
+            cst::Value::Tuple(node) => constructor::lower_tuple(self, node, None),
+            cst::Value::List(node) => constructor::lower_list(self, node, None),
+            cst::Value::Dict(node) => constructor::lower_dict(self, node, None),
+        })
+    }
+
+    fn sort_diagnostics(&mut self) {
+        // Orders accumulated diagnostics by primary span start offset so multi-phase errors appear
+        // in source order.
+        self.diagnostics.sort_by_key(|diagnostic| {
+            let &span = diagnostic.labels.primary().span();
+
+            self.spans
+                .absolute(span)
+                .map_or(TextSize::new(u32::MAX), |span| span.range().start())
+        });
     }
 }
 
@@ -413,7 +459,7 @@ pub(crate) fn lower_expr_in<'heap, A: Allocator>(
 
     for error in parse.errors() {
         let diagnostic = error
-            .to_diagnostic_in(lowerer.heap, lowerer.spans)
+            .to_diagnostic_in(lowerer.heap, lowerer.spans, GrammarKind::Expr)
             .generalize();
         lowerer.diagnostics.push(diagnostic);
     }
@@ -426,17 +472,34 @@ pub(crate) fn lower_expr_in<'heap, A: Allocator>(
         None
     };
 
-    // Orders accumulated diagnostics by primary span start offset so multi-phase errors appear in
-    // source order.
-    lowerer.diagnostics.sort_by_key(|diagnostic| {
-        let &span = diagnostic.labels.primary().span();
-
-        lowerer
-            .spans
-            .absolute(span)
-            .map_or(TextSize::new(u32::MAX), |span| span.range().start())
-    });
+    lowerer.sort_diagnostics();
     lowerer.diagnostics.into_status_with(|| {
         expr.expect("valid CST with no critical diagnostics must lower to an expression")
+    })
+}
+
+pub(crate) fn lower_value_in<'heap, A: Allocator>(
+    heap: &'heap Heap,
+    spans: &mut SpanTable<Span>,
+    options: ParserOptions,
+    parse: &Document<cst::ValueRoot, A>,
+    alloc: A,
+) -> Status<Value<'heap>, JExprDiagnosticCategory, SpanId> {
+    let mut lowerer = Lowerer::new_in(heap, spans, options, alloc);
+
+    for error in parse.errors() {
+        let diagnostic = error
+            .to_diagnostic_in(lowerer.heap, lowerer.spans, GrammarKind::Value)
+            .generalize();
+        lowerer.diagnostics.push(diagnostic);
+    }
+
+    let root = parse.tree();
+    let value = root.item().and_then(|item| lowerer.lower_value(item));
+
+    lowerer.sort_diagnostics();
+    lowerer.diagnostics.into_status_with(|| {
+        let expr = value.expect("valid CST with no critical diagnostics must lower to a value");
+        Value::new_unchecked(expr)
     })
 }

@@ -5,6 +5,7 @@ mod rvalue;
 mod terminator;
 mod transform;
 mod types;
+mod value;
 
 use alloc::alloc::Global;
 use core::{alloc::Allocator, debug_assert_matches};
@@ -37,13 +38,16 @@ use hashql_hir::{
     },
 };
 
-pub use self::error::{ReifyDiagnostic, ReifyDiagnosticCategory, ReifyDiagnosticIssues};
 use self::{
     current::CurrentBlock,
     error::{
         expected_anf_thunk, expected_anf_variable, external_modules_unsupported, local_not_thunk,
     },
     types::unwrap_closure_type,
+};
+pub use self::{
+    error::{ReifyDiagnostic, ReifyDiagnosticCategory, ReifyDiagnosticIssues},
+    value::from_hir_value_in,
 };
 use crate::{
     body::{

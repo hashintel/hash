@@ -42,7 +42,7 @@ pub(crate) use crate::lexer::string::StringError;
 
 const EXPECTED_EOF: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "expected-eof",
-    name: "Unexpected token after expression",
+    name: "Unexpected trailing content",
 };
 
 const NESTING_LIMIT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -353,6 +353,13 @@ pub(crate) enum EofContext<A: Allocator> {
     UnclosedDelimiters(UnclosedDelimiters<A>),
 }
 
+/// Grammar flavor that determines diagnostic wording and suggestions.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum GrammarKind {
+    Expr,
+    Value,
+}
+
 /// Syntactic context at an unexpected token.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum UnexpectedTokenContext {
@@ -371,33 +378,41 @@ pub(crate) enum UnexpectedTokenContext {
     MissingFieldValue {
         key: TextRange,
     },
-    BarePrimitiveInExpr {
+    BarePrimitive {
         text: String,
     },
+    ArrayInValue,
     ObjectKey,
 }
 
-pub(crate) fn expected_eof(span: SpanId) -> JExprDiagnostic {
+pub(crate) fn expected_eof(span: SpanId, grammar: GrammarKind) -> JExprDiagnostic {
+    let (label, help, note) = match grammar {
+        GrammarKind::Expr => (
+            "unexpected trailing content after expression",
+            "remove the trailing content, or check for an extra closing delimiter in the \
+             preceding expression",
+            "a J-Expr document must contain a single top-level expression",
+        ),
+        GrammarKind::Value => (
+            "unexpected trailing content after value",
+            "remove the trailing content, or check for an extra closing delimiter in the \
+             preceding value",
+            "a J-Expr value document must contain a single top-level value",
+        ),
+    };
+
     let mut diagnostic = Diagnostic::new(
         JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::ExpectedEof),
         Critical::ERROR,
     )
-    .primary(Label::new(
-        span,
-        "unexpected trailing content after expression",
-    ));
+    .primary(Label::new(span, label));
 
-    diagnostic.add_message(Message::help(
-        "remove the trailing content, or check for an extra closing delimiter in the preceding \
-         expression",
-    ));
-    diagnostic.add_message(Message::note(
-        "a J-Expr document must contain a single top-level expression",
-    ));
+    diagnostic.add_message(Message::help(help));
+    diagnostic.add_message(Message::note(note));
     diagnostic
 }
 
-pub(crate) fn nesting_limit(span: SpanId, limit: u16) -> JExprDiagnostic {
+pub(crate) fn nesting_limit(span: SpanId, limit: u16, grammar: GrammarKind) -> JExprDiagnostic {
     let mut diagnostic = Diagnostic::new(
         JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::NestingLimit),
         Critical::ERROR,
@@ -407,13 +422,26 @@ pub(crate) fn nesting_limit(span: SpanId, limit: u16) -> JExprDiagnostic {
         format!("nested more than {limit} levels deep"),
     ));
 
-    diagnostic.add_message(Message::help(
-        "reduce the nesting, for example by binding an inner expression with `let` and referring \
-         to it by name",
-    ));
-    diagnostic.add_message(Message::note(format!(
-        "a J-Expr document nests values at most {limit} levels deep"
-    )));
+    match grammar {
+        GrammarKind::Expr => {
+            diagnostic.add_message(Message::help(
+                "reduce the nesting, for example by binding an inner expression with `let` and \
+                 referring to it by name",
+            ));
+            diagnostic.add_message(Message::note(format!(
+                "a J-Expr document nests values at most {limit} levels deep"
+            )));
+        }
+        GrammarKind::Value => {
+            diagnostic.add_message(Message::help(format!(
+                "flatten or simplify the nested structure to at most {limit} levels"
+            )));
+            diagnostic.add_message(Message::note(format!(
+                "a J-Expr value nests at most {limit} levels deep"
+            )));
+        }
+    }
+
     diagnostic
 }
 

@@ -3,7 +3,7 @@ use hashql_ast::{
     node::expr::Expr,
 };
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
@@ -33,8 +33,12 @@ pub(crate) fn hir_reify<'heap>(
         &mut scratch,
     );
     let types = process_status(diagnostics, result)?;
+    scratch.reset();
 
-    let node = process_status(diagnostics, NodeData::from_ast(expr, context, &types))?;
+    let node = process_status(
+        diagnostics,
+        NodeData::from_ast_in(expr, context, &types, &scratch),
+    )?;
     Ok((node, types))
 }
 

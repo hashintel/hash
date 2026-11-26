@@ -7,7 +7,7 @@ use hashql_diagnostics::{
 use winnow::error::ContextError;
 
 use super::{
-    ValueKind,
+    GrammarKind, ValueKind,
     object::{ObjectDiagnostic, ObjectDiagnosticCategory},
 };
 use crate::{
@@ -192,17 +192,25 @@ pub(crate) fn dict_entry_too_few_items(
     span: SpanId,
     dict_key_span: SpanId,
     found: usize,
+    grammar: GrammarKind,
 ) -> ObjectDiagnostic {
-    let (label, help) = if found == 0 {
-        (
+    let (label, help) = match (found, grammar) {
+        (0, GrammarKind::Expr) => (
             "empty dictionary entry; expected `[key, value]`",
             "add a key and value expression: `[key, value]`",
-        )
-    } else {
-        (
+        ),
+        (0, GrammarKind::Value) => (
+            "empty dictionary entry; expected `[key, value]`",
+            "add a key and value: `[key, value]`",
+        ),
+        (_, GrammarKind::Expr) => (
             "dictionary entry is missing a value; expected `[key, value]`",
             "add a value expression after the key: `[key, value]`",
-        )
+        ),
+        (_, GrammarKind::Value) => (
+            "dictionary entry is missing a value; expected `[key, value]`",
+            "add a value after the key: `[key, value]`",
+        ),
     };
 
     let mut diagnostic = Diagnostic::new(

@@ -2,8 +2,8 @@
 //!
 //! Parser and HashQL AST lowerer for J-Expr.
 //!
-//! Start with [`Parser`] for parsing a J-Expr document into a [`hashql_ast::node::expr::Expr`],
-//! or [`JsonPointers`] for RFC 6901 JSON Pointer resolution.
+//! Start with [`Parser`] for parsing a J-Expr document into a [`hashql_ast::node::expr::Expr`] or
+//! [`hashql_ast::node::value::Value`], or [`JsonPointers`] for RFC 6901 JSON Pointer resolution.
 //!
 //! # Example
 //!
@@ -42,7 +42,7 @@ extern crate alloc;
 
 use core::alloc::Allocator;
 
-use hashql_ast::node::expr::Expr;
+use hashql_ast::node::{expr::Expr, value::Value};
 use hashql_core::{
     heap::Heap,
     span::{SpanId, SpanTable},
@@ -116,6 +116,11 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
 
     /// Parses a J-Expr document into an [`Expr`] alongside an RFC 6901 [`JsonPointers`] resolver.
     ///
+    /// # Errors
+    ///
+    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical, syntactic, and
+    /// embedded-DSL diagnostics collected across the document.
+    ///
     /// # Panics
     ///
     /// Panics if `source.len()` exceeds `u32::MAX` bytes.
@@ -152,5 +157,58 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
         alloc: A,
     ) -> Status<Expr<'heap>, JExprDiagnosticCategory, SpanId> {
         self.parse_expr_with_pointers_in(source, alloc).0
+    }
+
+    /// Parses a J-Expr value into a [`Value`] alongside an RFC 6901 [`JsonPointers`] resolver.
+    ///
+    /// Only primitive literals and compound data constructors (`#literal`, `#struct`, `#tuple`,
+    /// `#list`, and `#dict`) are accepted. Type annotations, paths, and function calls are
+    /// rejected.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical and syntactic diagnostics
+    /// collected across the document.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `source.len()` exceeds `u32::MAX` bytes.
+    pub fn parse_value_with_pointers_in<A: Allocator>(
+        &mut self,
+        source: &str,
+        alloc: A,
+    ) -> (
+        Status<Value<'heap>, JExprDiagnosticCategory, SpanId>,
+        JsonPointers,
+    ) {
+        let parse = parser::Parser::<parser::value::ValueGrammar, _>::parse_cst_in(
+            source,
+            self.options,
+            &alloc,
+        );
+        let status = lower::lower_value_in(self.heap, self.spans, self.options, &parse, &alloc);
+        (status, JsonPointers::from_green(parse.into_green()))
+    }
+
+    /// Parses a J-Expr value into an arena-allocated HashQL [`Value`].
+    ///
+    /// Only primitive literals and compound data constructors (`#literal`, `#struct`, `#tuple`,
+    /// `#list`, and `#dict`) are accepted. Type annotations, paths, and function calls are
+    /// rejected.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`hashql_diagnostics::Failure`] containing all lexical and syntactic diagnostics
+    /// collected across the document.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `source.len()` exceeds `u32::MAX` bytes.
+    pub fn parse_value_in<A: Allocator>(
+        &mut self,
+        source: &str,
+        alloc: A,
+    ) -> Status<Value<'heap>, JExprDiagnosticCategory, SpanId> {
+        self.parse_value_with_pointers_in(source, alloc).0
     }
 }

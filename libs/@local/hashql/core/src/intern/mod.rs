@@ -34,11 +34,10 @@ pub struct Interned<'heap, T: ?Sized>(pub &'heap T, pub private::Marker);
 impl<'heap, T: ?Sized> Interned<'heap, T> {
     /// Create a new `Interned` value.
     ///
-    /// The value referred to *must* be interned
-    /// and thus be unique, and it *must* remain unique in the future. This
-    /// function has `_unchecked` in the name but is not `unsafe`, because if
-    /// the uniqueness condition is violated condition it will cause incorrect
-    /// behaviour but will not affect memory safety.
+    /// The value referred to *must* be interned and thus be unique, and it *must* remain unique in
+    /// the future. This function has `_unchecked` in the name but is not `unsafe`, because if the
+    /// uniqueness condition is violated condition it will cause incorrect behaviour but will
+    /// not affect memory safety.
     #[inline]
     pub const fn new_unchecked(value: &'heap T) -> Self {
         Interned(value, private::Marker)

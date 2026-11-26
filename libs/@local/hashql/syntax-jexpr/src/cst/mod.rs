@@ -16,6 +16,7 @@ mod dict;
 mod expr;
 pub(crate) mod kind;
 mod token;
+mod value;
 
 pub(crate) use self::{
     constructor::{List, ListBody, Literal, LiteralValue, Struct, StructBody, Tuple, TupleBody},
@@ -23,6 +24,7 @@ pub(crate) use self::{
     expr::{CallArg, CallExpr, Expr, LabeledArgEntry, PathExpr, ShorthandLabeledArg},
     kind::{NodeKind, TokenKind},
     token::{LiteralToken, StringToken},
+    value::Value,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -302,6 +304,12 @@ pub(crate) struct ExprRoot(!);
 
 impl TreeRoot for ExprRoot {
     type Item<'tree> = Expr<'tree>;
+}
+
+pub(crate) struct ValueRoot(!);
+
+impl TreeRoot for ValueRoot {
+    type Item<'tree> = Value<'tree>;
 }
 
 pub(crate) type Root<'tree, T> = SyntaxNode<'tree, kind::Root<T>>;

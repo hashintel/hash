@@ -8,7 +8,7 @@ use hashql_diagnostics::{
     severity::Critical,
 };
 
-use super::{ConstructorKind, format_backticked_or_list, suggest_similar};
+use super::{ConstructorKind, GrammarKind, format_backticked_or_list, suggest_similar};
 
 const LEADING_COMMA: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "leading-comma",
@@ -186,10 +186,18 @@ const EMPTY_NOTE_UNTYPED: &str = r##"J-Expr objects must contain a constructor k
 - `{"#tuple": [...]}` for fixed-size tuples
 - `{"#list": [...]}` for lists"##;
 
-pub(crate) fn empty(span: SpanId, allow_type_annotations: bool) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Critical::ERROR).primary(
-        Label::new(span, "empty objects are not allowed as expressions"),
-    );
+pub(crate) fn empty(
+    span: SpanId,
+    allow_type_annotations: bool,
+    grammar: GrammarKind,
+) -> ObjectDiagnostic {
+    let label = match grammar {
+        GrammarKind::Expr => "empty objects are not allowed as expressions",
+        GrammarKind::Value => "empty objects are not allowed as values",
+    };
+
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Critical::ERROR)
+        .primary(Label::new(span, label));
     diagnostic.add_message(Message::help(EMPTY_HELP));
     diagnostic.add_message(Message::note(if allow_type_annotations {
         EMPTY_NOTE_TYPED
@@ -334,23 +342,38 @@ pub(crate) fn unknown_key(
     expected: &[&'static str],
     primary_context: Option<(ConstructorKind, SpanId)>,
     type_annotations_disallowed: bool,
+    grammar: GrammarKind,
     heap: &Heap,
 ) -> ObjectDiagnostic {
     // Labels are not escaped by annotate-snippets, so escape control characters in user keys.
     let escaped_key = key.escape_debug().to_string();
 
     if type_annotations_disallowed {
-        let mut diagnostic =
-            Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR).primary(
-                Label::new(span, "`#type` annotations are not allowed in this grammar"),
-            );
+        let label = match grammar {
+            GrammarKind::Value => "`#type` annotations are not allowed in values",
+            GrammarKind::Expr => "`#type` annotations are not allowed in this grammar",
+        };
+
+        let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Critical::ERROR)
+            .primary(Label::new(span, label));
         if let Some((ctor, primary_span)) = primary_context {
+            let noun = match grammar {
+                GrammarKind::Value => "value",
+                GrammarKind::Expr => "object",
+            };
             diagnostic.add_label(Label::new(
                 primary_span,
-                format!("in this `{}` object", ctor.key()),
+                format!("in this `{}` {noun}", ctor.key()),
             ));
         }
         diagnostic.add_message(Message::help("remove the `#type` field"));
+        if grammar == GrammarKind::Value {
+            diagnostic.add_message(Message::note(
+                "values use constructor objects (`#literal`, `#struct`, `#tuple`, `#list`, or \
+                 `#dict`) without `#type` annotations",
+            ));
+        }
+
         return diagnostic;
     }
 

@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"add\", {\"#literal\": 1}, {\"#literal\": 2}]"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ ["add", {"#literal": 1}, {"#literal": 2}]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ expected a value object, found an array
+  │
+  ├ help: use `{"#list": [...]}` for a list or `{"#tuple": [...]}` for a tuple
+  ╰ note: function calls are not allowed in values; collections must use a `#list` or `#tuple` constructor

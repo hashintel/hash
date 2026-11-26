@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "\"hello\""
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ "hello"
+  │ ━━━━━━━ expected a value, found string
+  │
+  ╰ note: strings in J-Expr values must be wrapped in `{"#literal": ...}`; variable and path expressions are not allowed in values
+help: wrap the string in a `#literal` object
+  ╭╴
+1 - "hello"
+1 + {"#literal": "hello"}
+  ╰╴
