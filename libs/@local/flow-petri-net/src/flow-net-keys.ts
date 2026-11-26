@@ -4,7 +4,11 @@ import type {
   ActionLifecycleRole,
   TransitionRole,
 } from "./flow-net-metadata.js";
-import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ActionDefinition,
+  FlowActionDefinitionId,
+  PayloadKind,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 /*
  * The keys a compiled flow net is built from. Every place, transition, instance, subnet, parameter and colour has a
@@ -173,9 +177,27 @@ export const generateOutputPortKey = (subnetName: string, outputName: string) =>
 export const generateStartPortKey = (subnetName: string) =>
   generateSubnetElementKey("p", subnetName, "in", "start");
 
-/** The port an action with no outputs signals success through. */
+/** The port an action signals success through, alongside its outputs. */
 export const generateDonePortKey = (subnetName: string) =>
   generateSubnetElementKey("p", subnetName, "done");
+
+/**
+ * The name of an action's `Done` port. Kernels address places by name and an input or output can have any name, so
+ * it's `Done` with as many `_` appended as it takes to be no other port's.
+ */
+export const generateDonePortName = ({
+  inputs,
+  outputs,
+}: Pick<ActionDefinition<FlowActionDefinitionId>, "inputs" | "outputs">) => {
+  const portNames = new Set([...inputs, ...outputs].map(({ name }) => name));
+  let name = "Done";
+
+  while (portNames.has(name)) {
+    name = `${name}_`;
+  }
+
+  return name;
+};
 
 export const generateGaveUpPortKey = (subnetName: string) =>
   generateSubnetElementKey("p", subnetName, "gaveUp");

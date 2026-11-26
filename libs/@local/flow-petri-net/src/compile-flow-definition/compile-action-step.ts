@@ -116,11 +116,7 @@ export const compileActionStep = ({
     }
   }
 
-  const {
-    arcs: runAfterArcs,
-    runAfter,
-    paths,
-  } = values.runAfterArcs(step, valueArcs);
+  const { arcs: runAfterArcs, paths } = values.runAfterArcs(step, valueArcs);
 
   const startStepKey = generateStepTransitionKey("startStep", step.stepId);
 
@@ -135,9 +131,6 @@ export const compileActionStep = ({
         role: "startStep",
         stepId: step.stepId,
         inputSources,
-        ...(runAfter.length > 0
-          ? { runAfter: runAfter.map(toPetrinautEndpoint) }
-          : {}),
         ...(paths.length > 0 ? { paths: paths.map(toPetrinautEndpoint) } : {}),
       },
       inputArcs: [

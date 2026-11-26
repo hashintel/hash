@@ -59,7 +59,7 @@ describe("generateActionSubnet", () => {
         resolvedKinds,
       );
 
-      it("has a port per input and output, and one it gives up through", async () => {
+      it("has a port per input and output, and ones it succeeds and gives up through", async () => {
         const subnet = await generateActionSubnet(
           actionDefinition,
           resolvedKinds,
@@ -77,11 +77,10 @@ describe("generateActionSubnet", () => {
                   generateInputPortKey(subnetName, name),
                 )
               : [generateStartPortKey(subnetName)]),
-            ...(actionDefinition.outputs.length > 0
-              ? actionDefinition.outputs.map(({ name }) =>
-                  generateOutputPortKey(subnetName, name),
-                )
-              : [generateDonePortKey(subnetName)]),
+            ...actionDefinition.outputs.map(({ name }) =>
+              generateOutputPortKey(subnetName, name),
+            ),
+            generateDonePortKey(subnetName),
             generateGaveUpPortKey(subnetName),
           ].sort(),
         );
@@ -162,6 +161,7 @@ describe("generateActionSubnet", () => {
       to: [
         generateOutputPortKey("persistEntities", "persistedEntities"),
         generateOutputPortKey("persistEntities", "failedEntityProposals"),
+        generateDonePortKey("persistEntities"),
       ],
     });
     expect(
@@ -176,6 +176,31 @@ describe("generateActionSubnet", () => {
       from: [generateSubnetElementKey("p", "persistEntities", "failed")],
       to: [generateGaveUpPortKey("persistEntities")],
     });
+  });
+
+  it("names the Done port apart from an output called Done, as kernels address places by name", async () => {
+    const subnet = await generateActionSubnet({
+      kind: "action",
+      actionDefinitionId: "finish",
+      name: "Finish",
+      description: "",
+      inputs: [],
+      outputs: [
+        { name: "Done", payloadKind: "Text", array: false, required: true },
+      ],
+    } as unknown as ActionDefinition<FlowActionDefinitionId>);
+
+    const nameOf = (placeId: string) =>
+      subnet.places.find(({ id }) => id === placeId)?.name;
+
+    expect(nameOf(generateOutputPortKey("finish", "Done"))).toBe("Done");
+    expect(nameOf(generateDonePortKey("finish"))).toBe("Done_");
+    expect(
+      subnet.transitions.find(
+        ({ id }) =>
+          id === generateSubnetElementKey("t", "finish", "succeedAttempt"),
+      )?.transitionKernelCode,
+    ).toMatch(/"Done": \[.*\n.*"Done_": \[/);
   });
 
   it("types the ports of an action with derived kinds by the kinds resolved for a step", async () => {

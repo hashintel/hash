@@ -3,6 +3,7 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 
 import {
   generateAccumulatorPlaceKey,
+  generateDonePortName,
   generateIteratorPlaceKey,
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
@@ -54,7 +55,7 @@ import type {
  *
  * An action step's attempts go round its instance of its action's subnet:
  *
- *   startStep ─▶ input ports ─▶ startAttempt ─▶ InProgress ─┬─▶ succeedAttempt ─▶ output ports
+ *   startStep ─▶ input ports ─▶ startAttempt ─▶ InProgress ─┬─▶ succeedAttempt ─▶ output ports, Done port
  *                                                  ▲        └─▶ failAttempt ─▶ Failed ─┬─▶ giveUp ─▶ GaveUp port
  *                                                  └──────────── retryAttempt ◀────────┘
  *
@@ -116,7 +117,7 @@ export type FlowNetToken = {
   | { kind: "value"; present: true; ref: FlowNetValueRef }
   /** A value that's missing, such as an optional input nothing is connected to. */
   | { kind: "value"; present: false }
-  /** Starts an action with no inputs, or records that an action with no outputs succeeded. */
+  /** Starts an action with no inputs, or records that an action succeeded. */
   | { kind: "signal" }
   | { kind: "attempt"; attempts: number }
   | { kind: "stepFailure"; stepId: string }
@@ -780,18 +781,20 @@ export const startFlowNetRun = (
       ),
     );
 
-  /** A `forEach` step can't start while its array is missing; what it reads for `runAfter` isn't its array. */
+  /**
+   * A `forEach` step can't start while its array is missing. Only its array counts: a path's output it reads to run
+   * after can be marked absent too.
+   */
   const hasMissingArray = (
-    metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
+    { array }: Extract<TransitionMetadata, { role: "startForEach" }>,
     bindings: Binding[],
   ) =>
+    array !== undefined &&
     bindings.some(
       ({ path, token }) =>
+        isSameFlowNetPath(path, rootPath(array)) &&
         token.kind === "value" &&
-        !token.present &&
-        !(metadata.runAfter ?? []).some((endpoint) =>
-          isSameFlowNetPath(path, rootPath(endpoint)),
-        ),
+        !token.present,
     );
 
   /** Whether a held start can fire with `bindings`, which the executor decides the same way. */
@@ -1263,7 +1266,7 @@ export const startFlowNetRun = (
       case "succeedAttempt": {
         const { scope, path, token } = attemptToEnd(stepRun);
         const { itemPath } = token;
-        const { outputs } = scope.actionDefinition;
+        const donePortName = generateDonePortName(scope.actionDefinition);
         const { outputNames } = held;
 
         return fireAttemptTransition({
@@ -1271,11 +1274,11 @@ export const startFlowNetRun = (
           role: "succeedAttempt",
           from: { path, token },
           produce: (outputPath): FlowNetToken => {
-            if (outputs.length === 0) {
+            const outputName = instancePlaceName(scope, outputPath);
+
+            if (outputName === donePortName) {
               return { kind: "signal", itemPath };
             }
-
-            const outputName = instancePlaceName(scope, outputPath);
 
             if (!outputName) {
               throw new FlowNetInterpreterError(

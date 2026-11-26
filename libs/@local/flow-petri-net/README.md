@@ -78,6 +78,7 @@ flowchart LR
     startAttempt --> inProgress(("InProgress"))
     inProgress --> succeedAttempt["succeedAttempt"]
     succeedAttempt --> outPorts(("out.‹output›<br/>ports"))
+    succeedAttempt --> done(("Done<br/>port"))
     inProgress --> failAttempt["failAttempt"]
     failAttempt --> failed(("Failed"))
     failed --> retryAttempt["retryAttempt"]
@@ -92,6 +93,7 @@ flowchart LR
   outPorts -- "otherwise" --> copy["t.copyOutput.‹step›~‹output›"]
   copy --> shared(("output.‹step›~‹output›<br/>shared by readers"))
   copy --> copies(("copy.output…~‹consumer›<br/>a copy per consumer"))
+  done -. read .-> follower["t.startStep of a step<br/>that runs after it"]
   gaveUp --> recordStepFailure["t.recordStepFailure.‹step›"]
   recordStepFailure --> failedStepRuns(("FailedStepRuns"))
 ```
@@ -128,17 +130,16 @@ flowchart LR
   - a constant, recorded in the instance's `metadata.constants`;
   - or, for an optional input with nothing connected and no default, a token marked absent (`present: false`).
 - **`runAfter`.** Each step a step runs after adds a read arc to its `t.startStep` or `t.startForEach`, unless the step already reads it. `position` doesn't change the net.
-  - A plain entry reads that step's first output (its collected output for a for-each step, its `Done` port for an action with no outputs). A token marked absent there still means it finished.
-  - An entry with `outputName` (a path) reads that output. `metadata.paths` lists them for a step only on paths: when every one is marked absent, no path to it was taken, so it doesn't start and the executor skips it.
-  - `metadata.runAfter` lists the endpoints of these arcs.
-  - The net can't skip a step, so a step where paths rejoin never starts in the net, though the executor runs it (FE-2143).
-- **Ports.** Actions have a port per input and per output. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
+  - A plain entry reads an action's `Done` port, and a for-each step's collected output, which then has a place no consumer takes it from.
+  - An entry with `outputName` (a path) reads that output, which likewise has a place no consumer takes it from. `metadata.paths` lists them for a step only on paths: when every one is marked absent, no path to it was taken, so it doesn't start and the executor skips it. A path's output can be marked absent and the step still start, so a for-each step only counts its own array (`metadata.array`) as missing.
+  - The net can't skip a step, so a step where paths rejoin never starts in the net, though the executor runs it.
+- **Ports.** Actions have a port per input and per output, a `Done` port that `succeedAttempt` puts a signal in alongside the outputs, and a `GaveUp` port. Kernels address places by name, so `Done` gets a `_` for each port already called that. An action with no inputs has a `Start` port instead of input ports. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
 - **Outputs.** A transition is only added where one token has to become several. A step's output stays in its instance's output port:
   - steps that only read it read the port, with read arcs;
   - a single step that consumes it, with no readers, takes it from the port;
   - otherwise a `t.copyOutput.<step>~<output>` transition puts it in a place shared by the readers (and by a flow output), and in a copy for each step that consumes it, so consumers never race for a token.
 
-  So a step's output has no fixed place: it's the port of the step's instance or a copy place, and anything that needs to find a value looks it up. An action with no outputs leaves its `done` token in its port.
+  So a step's output has no fixed place: it's the port of the step's instance or a copy place, and anything that needs to find a value looks it up. Every action leaves its `Done` token in its port.
 
 - **Flow inputs and collected outputs.** The executor, when a run starts, and a for-each step's `t.finishCollecting` put a value straight into a place shared by its readers and a copy for each step that consumes it.
 - **For-each steps.** A for-each step iterates over its array:
@@ -153,7 +154,7 @@ flowchart LR
   - An input or output whose kind another input decides (`kindFrom`) is typed by the kind a step connects, so an action gets a subnet per combination of kinds its steps use.
   - Any other input accepting several kinds has a `oneOf` colour, such as `Text | WebPage`, with a `kind` element saying which kind the token carries.
   - A `for-each` step's iterator is typed by the kind of array it walks (`Iterator<Text>`).
-- **Metadata.** The root carries `metadata.flowInputs`: for each flow input, the places a run puts it in; `metadata.pendingAtStart`: the `Pending` places of the top-level steps; and `metadata.flowOutputs`: for each flow output, the arc endpoint it's found at, a place of the root net or an instance's output port. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the arc endpoint its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. Each transition carries `metadata.role` (see `TransitionRole` in `src/flow-net-metadata.ts`), which tells the executor how to treat it:
+- **Metadata.** The root carries `metadata.flowInputs`: for each flow input, the places a run puts it in; `metadata.pendingAtStart`: the `Pending` places of the top-level steps; and `metadata.flowOutputs`: for each flow output, the arc endpoint it's found at, a place of the root net or an instance's output port. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the arc endpoint its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. A for-each step's `t.startForEach` carries its array's endpoint in `array`, or the array itself in `constant`. Each transition carries `metadata.role` (see `TransitionRole` in `src/flow-net-metadata.ts`), which tells the executor how to treat it:
   - `succeedAttempt` and `failAttempt` fire when an action's activity completes, and `retryAttempt` or `giveUp` as the retry policy decides; `startForEach` fires once its array's length is known, unless it's a constant (see `interpret-flow-net` above);
   - every other transition fires as soon as it's enabled, including `recordStepFailure`, which moves a step that gave up into `FailedStepRuns` and so fails the run.
 

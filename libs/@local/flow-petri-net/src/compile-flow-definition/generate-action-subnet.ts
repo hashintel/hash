@@ -1,6 +1,7 @@
 import {
   generateActionSubnetName,
   generateDonePortKey,
+  generateDonePortName,
   generateGaveUpPortKey,
   generateInputPortKey,
   generateOutputPortKey,
@@ -84,7 +85,8 @@ const portColor = (
  * - Every input port receives a token when a step starts – the value's reference, or a token with `present`
  *   false for an optional input that isn't connected – so `startAttempt` consumes one token from each.
  * - `succeedAttempt` puts a token in every output port (with `present` false for an optional output the action didn't
- *   produce). `failAttempt` and `retryAttempt` loop until `giveUp`, bounded by the `max_retries` parameter.
+ *   produce), and one in the `Done` port, which a step that runs after it reads. `failAttempt` and `retryAttempt`
+ *   loop until `giveUp`, bounded by the `max_retries` parameter.
  */
 export const generateActionSubnet = async (
   actionDefinition: ActionDefinition<FlowActionDefinitionId>,
@@ -130,29 +132,27 @@ export const generateActionSubnet = async (
           }),
         ];
 
-  const outputPorts =
-    outputs.length > 0
-      ? outputs.map((output) =>
-          createPlace({
-            id: generateOutputPortKey(subnetName, output.name),
-            name: output.name,
-            description: [
-              output.description ?? `The ${output.name} output.`,
-              output.required ? "Always produced." : "May be missing.",
-            ].join(" "),
-            colorId: addColor(portColor(output, resolvedKinds)),
-            isPort: true,
-          }),
-        )
-      : [
-          createPlace({
-            id: generateDonePortKey(subnetName),
-            name: "Done",
-            description: "The action succeeded (it has no outputs).",
-            colorId: lifecycleColor.id,
-            isPort: true,
-          }),
-        ];
+  const outputPorts = [
+    ...outputs.map((output) =>
+      createPlace({
+        id: generateOutputPortKey(subnetName, output.name),
+        name: output.name,
+        description: [
+          output.description ?? `The ${output.name} output.`,
+          output.required ? "Always produced." : "May be missing.",
+        ].join(" "),
+        colorId: addColor(portColor(output, resolvedKinds)),
+        isPort: true,
+      }),
+    ),
+    createPlace({
+      id: generateDonePortKey(subnetName),
+      name: generateDonePortName(actionDefinition),
+      description: `${name} succeeded.`,
+      colorId: lifecycleColor.id,
+      isPort: true,
+    }),
+  ];
 
   const inProgress = createPlace({
     id: generateSubnetElementKey("p", subnetName, "inProgress"),
