@@ -46,12 +46,12 @@ flowchart LR
 - `@local/flow-petri-net/flow-net-keys` exports the functions every key in a compiled net is made with (see **Ids** below), so that anything reading a net, such as an executor or a run's view, can work out an element's id.
 - `@local/flow-petri-net/flow-net-metadata` exports the types of what a compiled net records in its metadata (see **Metadata** below): `TransitionRole`, each role's `TransitionMetadata`, `InputSource`, and the root's, instances' and subnets' metadata.
 - `@local/flow-petri-net/interpret-flow-net` exports `startFlowNetRun(net, { flowInputNames, waitForStepStarts }): FlowNetRun`. It runs a compiled net by its transitions' roles, working out the tokens itself. Each transition is either internal or held:
-  - an internal transition fires as soon as it's enabled: `startAttempt`, `copyOutput`, `startItem`, `startCollecting`, `collectItem`, `finishCollecting` and `recordStepFailure`;
+  - an internal transition fires as soon as it's enabled: `startAttempt`, `copyOutput`, `startItem`, `startCollecting`, `collectItem` and `finishCollecting`;
   - a held transition (`heldRoles`) can be enabled and still wait, because what happens outside the net decides whether it fires, and the driver fires it: an attempt's `succeedAttempt`, `failAttempt`, `retryAttempt` and `giveUp` always; `startForEach` unless its array is a constant, as it needs the array's length; and `startStep` only with `waitForStepStarts`. A failure that's retried is two firings, `failAttempt` then `retryAttempt`.
 
-  `held()` lists the held transitions that are enabled, each for a step run, and `fire(heldFiring)` fires one, with an item count or the outputs an attempt produced, then every internal transition that enables, and returns those firings. `isHeld(role, stepRun)` and `attemptInProgress(stepRun)` answer for one step run without listing every other one, so a replay of a large `forEach` doesn't redo the whole list on each event. `attemptInputs(firing)` gives the inputs a `startAttempt` firing started its action with, for an executor to call the action with. A token's place and a firing's transition are given by a `FlowNetPath`, their ids from the root net down: `[placeId]` in the root net, and `[componentInstanceId, placeId]` inside a step's instance, since every instance of a subnet shares its places' and transitions' ids. `flowNetPathKey(path)` joins a path's ids with `::`, which is the id Petrinaut's flattener gives the same item. Read arcs from one place can read the same token, as when two inputs of a step read the same value.
+  `held()` lists the held transitions that are enabled, each for a step run, and `fire(heldFiring)` fires one, with an item count or the outputs an attempt produced, then every internal transition that enables, and returns those firings. `isHeld(role, stepRun)` and `attemptInProgress(stepRun)` answer for one step run without listing every other one, so a replay of a large `forEach` doesn't redo the whole list on each event. `attemptInputs(firing)` gives the inputs a `startAttempt` firing started its action with, for an executor to call the action with. A token's place and a firing's transition are given by a `FlowNetPath`, their ids from the root net down: `[placeId]` in the root net, and `[componentInstanceId, placeId]` inside a step's instance, since every instance of a subnet shares its places' and transitions' ids. A port fused with a place of the root net is that place, at `[placeId]`, as Petrinaut's flattener keeps the root place's id. `flowNetPathKey(path)` joins a path's ids with `::`, which is the id Petrinaut's flattener gives the same item. Read arcs from one place can read the same token, as when two inputs of a step read the same value.
 
-- `@local/flow-petri-net/replay-flow-run-events` exports `replayFlowRunEvents(net, events)`, which fires the held transitions a run's `FlowRunEvent`s record. It returns the run's initial marking, each firing with the event that caused it, the marking and the held transitions enabled after the last event, and the events the net couldn't follow. It holds each action step's `startStep` until its `stepStarted` event: the executor only starts the steps that are ready once every step of the batch before has finished, so a step can have its inputs well before it starts. `toRootNetActualModeExecution(replay)` turns a replay into an execution for Petrinaut's Actual Mode, of the root net alone: the tokens and firings whose paths have a single id.
+- `@local/flow-petri-net/replay-flow-run-events` exports `replayFlowRunEvents(net, events)`, which fires the held transitions a run's `FlowRunEvent`s record. It returns the run's initial marking, each firing with the event that caused it, the marking and the held transitions enabled after the last event, and the events the net couldn't follow. It holds each action step's `startStep` until its `stepStarted` event: the executor only starts the steps that are ready once every step of the batch before has finished, so a step can have its inputs well before it starts. `toRootNetActualModeExecution(replay)` turns a replay into an execution for Petrinaut's Actual Mode, of the root net alone: the tokens whose paths have a single id, and the firings that move them, including a subnet's transition that puts a token into a fused port.
 
 Its implementation is in `src/compile-flow-definition/`:
 
@@ -61,7 +61,7 @@ Its implementation is in `src/compile-flow-definition/`:
 
 ## What a compiled net looks like
 
-Places are circles and transitions are boxes. Dashed arrows are read arcs, which don't consume the token. Places, transitions and instances are labelled by the keys their ids are made from (see **Ids** below).
+Places are circles and transitions are boxes. Dashed arrows are read arcs, which don't consume the token. Thick lines are fusions: a port and a place of the root net that are one place. Places, transitions and instances are labelled by the keys their ids are made from (see **Ids** below).
 
 ```mermaid
 flowchart LR
@@ -88,14 +88,15 @@ flowchart LR
   end
 
   startStep -- every input port --> inPorts
-  outPorts -. read .-> reader["a reader's t.startStep"]
-  outPorts -- "one consumer, no readers" --> consumer["its t.startStep"]
+  outPorts === fusedOutput(("output.‹step›~‹output›"))
+  fusedOutput -. read .-> reader["a reader's t.startStep"]
+  fusedOutput -- "one consumer, no readers" --> consumer["its t.startStep"]
   outPorts -- "otherwise" --> copy["t.copyOutput.‹step›~‹output›"]
   copy --> shared(("output.‹step›~‹output›<br/>shared by readers"))
   copy --> copies(("copy.output…~‹consumer›<br/>a copy per consumer"))
-  done -. read .-> follower["t.startStep of a step<br/>that runs after it"]
-  gaveUp --> recordStepFailure["t.recordStepFailure.‹step›"]
-  recordStepFailure --> failedStepRuns(("FailedStepRuns"))
+  done === donePlace(("Done: ‹step›"))
+  donePlace -. read .-> follower["t.startStep of a step<br/>that runs after it"]
+  gaveUp === failedStepRuns(("FailedStepRuns"))
 ```
 
 A for-each step adds an iterator and an accumulator around its nested steps:
@@ -115,7 +116,7 @@ flowchart LR
   item -. read .-> nested["nested steps<br/>(as above)"]
   itemCopies -- consume --> nested
   nestedPending --> nested
-  nested --> collected(("collected output<br/>its port, or a copy for collecting"))
+  nested --> collected(("collected output<br/>the place its port is fused with,<br/>or a copy for collecting"))
   collected --> collectItem["t.collectItem"]
   accumulator --> collectItem
   collectItem --> accumulator
@@ -130,17 +131,24 @@ flowchart LR
   - a constant, recorded in the instance's `metadata.constants`;
   - or, for an optional input with nothing connected and no default, a token marked absent (`present: false`).
 - **`runAfter`.** Each step a step runs after adds a read arc to its `t.startStep` or `t.startForEach`, unless the step already reads it. `position` doesn't change the net.
-  - A plain entry reads an action's `Done` port, or a for-each step's collected output.
+  - A plain entry reads the place an action's `Done` port is fused with (`p.done.<step>`), or a for-each step's collected output.
   - An entry with `outputName` (a path) reads that output. `metadata.paths` lists them for a step only on paths: when every one is marked absent, no path to it was taken, so it doesn't start and the executor skips it.
   - A collected output or path output a step reads this way always gets a place no consumer takes it from. A path's output can be marked absent while the step still starts, so a for-each step only counts its own array (`metadata.array`) as missing.
   - The net can't skip a step, so a step where paths rejoin never starts in the net, though the executor runs it.
-- **Ports.** Actions have a port per input (or a `Start` port, with no inputs), a port per output, a `Done` port that `succeedAttempt` signals alongside the outputs, and a `GaveUp` port. Kernels address places by name, so `Done` gets a `_` for each output already called that. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
-- **Outputs.** A transition is only added where one token has to become several. A step's output stays in its instance's output port:
-  - steps that only read it read the port, with read arcs;
-  - a single step that consumes it, with no readers, takes it from the port;
-  - otherwise a `t.copyOutput.<step>~<output>` transition puts it in a place shared by the readers (and by a flow output), and in a copy for each step that consumes it, so consumers never race for a token.
+- **Ports.** Actions have an `in` port per input (or a `Start` port, with no inputs), and `out` ports: one per output, a `Done` port that `succeedAttempt` signals alongside the outputs, and a `GaveUp` port. Kernels address places by name, so `Done` gets a `_` for each output already called that. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
+- **Fusions.** A port of a step's instance and a place of the root net, the fusion's anchor, can be one place (`fusions`, keyed `f.<anchor>`). The fused place takes the fusion's name, so each fusion is named after its anchor. Steps are fused into the root net where nothing has to happen between them:
+  - an output port with its value's place, when the value needs no copy (below);
+  - a `Done` port with `p.done.<step>`, when a step runs after the action with a plain line;
+  - every instance's `GaveUp` port with `FailedStepRuns`, so a step that gives up fails its run with no transition of its own. `GaveUp` has `FailedStepRuns`' colour, as fused places must agree on their tokens.
 
-  So a step's output has no fixed place: it's the port of the step's instance or a copy place, and anything that needs to find a value looks it up. Every action leaves its `Done` token in its port.
+  A step's start stays a transition: `t.startStep` gates a step on its `Pending` token, what it runs after and its guards, and puts constants and absent tokens in its input ports, so no output port is fused with an input port.
+
+- **Outputs.** A transition is only added where one token has to become several. A step's output:
+  - when only steps that read it, or a flow output, need it, is fused with the place `p.output.<step>~<output>` they read;
+  - when a single step consumes it, with no readers, is fused with that place, which the step takes it from;
+  - otherwise stays in the port, from which a `t.copyOutput.<step>~<output>` transition puts it in a place shared by the readers (and by a flow output), and in a copy for each step that consumes it, so consumers never race for a token. Fusing the port with the shared place would have `copyOutput` take from and put into one place.
+
+  So every value a step reads or takes is in a place of the root net, but which one depends on its consumers, and anything that needs to find a value looks it up. An output nothing takes, and a `Done` port nothing runs after, stays in its port.
 
 - **Flow inputs and collected outputs.** The executor, when a run starts, and a for-each step's `t.finishCollecting` put a value straight into a place shared by its readers and a copy for each step that consumes it.
 - **For-each steps.** A for-each step iterates over its array:
@@ -155,9 +163,9 @@ flowchart LR
   - An input or output whose kind another input decides (`kindFrom`) is typed by the kind a step connects, so an action gets a subnet per combination of kinds its steps use.
   - Any other input accepting several kinds has a `oneOf` colour, such as `Text | WebPage`, with a `kind` element saying which kind the token carries.
   - A `for-each` step's iterator is typed by the kind of array it walks (`Iterator<Text>`).
-- **Metadata.** The root carries `metadata.flowInputs`: for each flow input, the places a run puts it in; `metadata.pendingAtStart`: the `Pending` places of the top-level steps; and `metadata.flowOutputs`: for each flow output, the arc endpoint it's found at, a place of the root net or an instance's output port. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the arc endpoint its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. A for-each step's `t.startForEach` carries its array's endpoint in `array`, or the array itself in `constant`. Each transition carries `metadata.role` (see `TransitionRole` in `src/flow-net-metadata.ts`), which tells the executor how to treat it:
+- **Metadata.** The root carries `metadata.flowInputs`: for each flow input, the places a run puts it in; `metadata.pendingAtStart`: the `Pending` places of the top-level steps; and `metadata.flowOutputs`: for each flow output, the place it's found at. Every endpoint the metadata records is a place of the root net. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the place its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. A for-each step's `t.startForEach` carries its array's place in `array`, or the array itself in `constant`. Each transition carries `metadata.role` (see `TransitionRole` in `src/flow-net-metadata.ts`), which tells the executor how to treat it:
   - `succeedAttempt` and `failAttempt` fire when an action's activity completes, and `retryAttempt` or `giveUp` as the retry policy decides; `startForEach` fires once its array's length is known, unless it's a constant (see `interpret-flow-net` above);
-  - every other transition fires as soon as it's enabled, including `recordStepFailure`, which moves a step that gave up into `FailedStepRuns` and so fails the run.
+  - every other transition fires as soon as it's enabled.
 
 ## Limitations
 
