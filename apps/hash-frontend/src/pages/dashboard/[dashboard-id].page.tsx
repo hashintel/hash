@@ -403,8 +403,9 @@ const DashboardPage: NextPageWithLayout = () => {
 
     await archiveEntities({
       variables: { entityIds: [...entityIds] },
+      refetchQueries: ["querySidebarDashboards"],
     });
-    await router.push("/dashboards");
+    await router.push("/");
   }, [archiveEntities, dashboard, router]);
 
   const handleTitleOrDescriptionChange = useCallback(
@@ -414,6 +415,7 @@ const DashboardPage: NextPageWithLayout = () => {
       }
 
       await updateEntity({
+        refetchQueries: ["querySidebarDashboards"],
         variables: {
           entityUpdate: {
             entityId: dashboard.entityId,

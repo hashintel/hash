@@ -37,7 +37,7 @@ const SectionHeading = ({ children }: { children: React.ReactNode }) => (
  * Lists Petri net "processes" — both those in the db visible to the user,
  * and examples imported from `@hashintel/petrinaut-core/examples`.
  */
-const ProcessesPage: NextPageWithLayout = () => {
+const EnvironmentsPage: NextPageWithLayout = () => {
   const { persistedNets, loading } = usePersistedNets();
 
   const sortedNets = useMemo(
@@ -50,7 +50,7 @@ const ProcessesPage: NextPageWithLayout = () => {
 
   return (
     <>
-      <NextSeo title="Processes" />
+      <NextSeo title="Environments" />
       <Box
         sx={({ palette }) => ({
           backgroundColor: palette.common.white,
@@ -75,7 +75,7 @@ const ProcessesPage: NextPageWithLayout = () => {
                 })}
               />
             </Box>
-            Processes
+            Environments
           </Typography>
           <Stack direction="row" justifyContent="flex-end">
             <CreateButton
@@ -83,7 +83,7 @@ const ProcessesPage: NextPageWithLayout = () => {
               variant="tertiary_quiet"
               endIcon={<PlusRegularIcon />}
             >
-              Create process
+              Create environment
             </CreateButton>
           </Stack>
         </Container>
@@ -104,7 +104,7 @@ const ProcessesPage: NextPageWithLayout = () => {
                   fontSize: 14,
                 })}
               >
-                You haven&apos;t created any processes yet —{" "}
+                You haven&apos;t created any environments yet —{" "}
                 <Link href="/processes/draft">start from scratch</Link> or open
                 an example below.
               </Typography>
@@ -163,9 +163,9 @@ const ProcessesPage: NextPageWithLayout = () => {
   );
 };
 
-ProcessesPage.getLayout = (page) =>
+EnvironmentsPage.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
   });
 
-export default ProcessesPage;
+export default EnvironmentsPage;

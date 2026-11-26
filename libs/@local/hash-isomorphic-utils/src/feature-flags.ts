@@ -15,6 +15,7 @@ export const featureFlags = [
    * Whether notes can be viewed on the notes page, and created/edited via the UI
    */
   "notes",
+  "favorites",
   /**
    * Whether workers are enabled (if 'ai' is disabled, 'goals' and AI-related flow steps will not be present)
    */

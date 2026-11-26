@@ -264,7 +264,7 @@ export const ProcessEditor = ({
           view: { kind: "draft", seedKey: target.seedKey },
           load: {
             definition: target.seed?.petriNetDefinition ?? emptySDCPN,
-            title: target.seed?.title ?? "Process",
+            title: target.seed?.title ?? "Environment",
             mode: { kind: "draft", seedKey: target.seedKey },
             savedSnapshot: null,
             reason: "open",

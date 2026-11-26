@@ -327,6 +327,7 @@ const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
   documents: [],
   canvases: [],
   notes: ["/notes"],
+  favorites: [],
   workers: ["/goals", "/flows", "/workers", "/agents"],
   ai: ["/goals"],
   supplyChain: [],

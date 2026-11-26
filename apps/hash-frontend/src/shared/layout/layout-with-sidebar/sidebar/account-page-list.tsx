@@ -58,6 +58,7 @@ import type { FunctionComponent } from "react";
 
 type AccountPageListProps = {
   webId: WebId;
+  sectionTitle?: string;
   currentPageEntityUuid?: EntityUuid;
 };
 
@@ -70,6 +71,7 @@ const measuringConfig = {
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
   webId,
+  sectionTitle = "Pages",
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(webId);
 
@@ -424,7 +426,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         <NavLink
           expanded={expanded}
           toggleExpanded={togglePagesExpanded}
-          title="Pages"
+          title={sectionTitle}
           loading={loading}
           endAdornment={
             <Tooltip title="Create new page">

@@ -34,6 +34,7 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
     <Tooltip title={tooltipTitle}>
       <Link
         href={href}
+        aria-current={active ? "page" : undefined}
         noLinkStyle
         draggable={false}
         sx={[
@@ -90,6 +91,7 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
         <Box
           sx={{
             width: 20,
+            flexShrink: 0,
             marginRight: 1,
             display: "flex",
             alignItems: "center",
@@ -98,7 +100,12 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
         >
           {icon}
         </Box>
-        <Typography variant="smallTextLabels" fontWeight={500}>
+        <Typography
+          variant="smallTextLabels"
+          fontWeight={500}
+          noWrap
+          sx={{ minWidth: 0 }}
+        >
           {title}
         </Typography>
         <Fade in={typeof count !== "undefined"}>

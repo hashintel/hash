@@ -7,7 +7,7 @@ export const topBarPlugin = definePetrinautPlugin({
   id: "hash.process-embed",
   name: "Process controls",
   description:
-    "The Processes link, the process title, the version picker and Save, in the top bar.",
+    "The Environments link, the environment title, the version picker and Save, in the top bar.",
   author: "HASH",
   required: true,
   topBarItems: {

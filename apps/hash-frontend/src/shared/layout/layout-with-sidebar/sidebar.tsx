@@ -1,9 +1,5 @@
-import {
-  faChartColumn,
-  faHome,
-  faTruckFast,
-} from "@fortawesome/free-solid-svg-icons";
-import { Box, Collapse, Drawer } from "@mui/material";
+import { faHome, faTruckFast } from "@fortawesome/free-solid-svg-icons";
+import { Box, Collapse, Drawer, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import {
   Fragment,
@@ -19,7 +15,6 @@ import {
   ShapesRegularIcon,
 } from "@hashintel/design-system";
 
-import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntitiesCount } from "../../draft-entities-count-context";
@@ -31,14 +26,13 @@ import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useInvites } from "../../invites-context";
 import { useNotificationCount } from "../../notification-count-context";
-import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { useSidebarContext } from "./sidebar-context";
 import { AccountEntitiesList } from "./sidebar/account-entities-list";
 import { AccountEntityTypeList } from "./sidebar/account-entity-type-list";
-import { AccountPageList } from "./sidebar/account-page-list";
 import { FavoritesList } from "./sidebar/favorites-list";
+import { PagesSection } from "./sidebar/pages-section";
 import { TopNavLink } from "./sidebar/top-nav-link";
 import { WorkspaceSwitcher } from "./sidebar/workspace-switcher";
 
@@ -61,7 +55,7 @@ const isNavLinkActive = ({
   definition: NavLinkDefinition;
   currentPath: string;
 }): boolean =>
-  definition.path === currentPath ||
+  definition.path === currentPath.split(/[?#]/)[0] ||
   (definition.activeIfPathMatches &&
     !!currentPath.match(definition.activeIfPathMatches)) ||
   !!definition.children?.some((child) =>
@@ -72,14 +66,10 @@ export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { activeWorkspaceWebId } = useActiveWorkspace();
-  const { routePageEntityUuid } =
-    useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
 
   const preferences = useUserPreferences();
-
-  const { hashInstance } = useHashInstance();
 
   const { numberOfUnreadNotifications } = useNotificationCount();
 
@@ -87,12 +77,12 @@ export const PageSidebar: FunctionComponent = () => {
 
   const { pendingInvites } = useInvites();
 
-  const workersSection = useMemo<NavLinkDefinition[]>(
+  const processesSection = useMemo<NavLinkDefinition[]>(
     () =>
       enabledFeatureFlags.workers
         ? [
             {
-              title: "Agents",
+              title: "Processes",
               path: enabledFeatureFlags.ai ? "/goals" : "/flows",
               icon: <BoltLightIcon sx={{ fontSize: 16 }} />,
               tooltipTitle: "",
@@ -126,26 +116,10 @@ export const PageSidebar: FunctionComponent = () => {
             },
           ]
         : [],
-    [enabledFeatureFlags],
+    [enabledFeatureFlags.ai, enabledFeatureFlags.workers],
   );
 
   const navLinks = useMemo<NavLinkDefinition[]>(() => {
-    const toggleableLinks: NavLinkDefinition[] = [];
-    if (preferences.sidebarSections.entities.variant === "link") {
-      toggleableLinks.push({
-        title: "Entities",
-        path: "/entities",
-        icon: <AsteriskRegularIcon sx={{ fontSize: 16 }} />,
-      });
-    }
-    if (preferences.sidebarSections.entityTypes.variant === "link") {
-      toggleableLinks.push({
-        title: "Types",
-        path: "/types",
-        icon: <ShapesRegularIcon sx={{ fontSize: 16 }} />,
-      });
-    }
-
     const numberOfPendingActions = draftEntitiesCount ?? 0;
     const unreadNotifications = numberOfUnreadNotifications ?? 0;
 
@@ -156,32 +130,6 @@ export const PageSidebar: FunctionComponent = () => {
         icon: <FontAwesomeIcon icon={faHome} />,
         tooltipTitle: "",
       },
-      ...workersSection,
-      ...toggleableLinks,
-      {
-        title: "Supply Chain",
-        path: "/supply-chain",
-        icon: <FontAwesomeIcon icon={faTruckFast} />,
-        activeIfPathMatches: /^\/supply-chain(\/|$)/,
-        tooltipTitle: "",
-      },
-      {
-        title: "Processes",
-        path: "/processes",
-        icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
-        activeIfPathMatches: /^\/processes(\/|$)/,
-      },
-      ...(enabledFeatureFlags.dashboards
-        ? [
-            {
-              title: "Dashboards",
-              path: "/dashboards",
-              icon: <FontAwesomeIcon icon={faChartColumn} />,
-              activeIfPathMatches: /^\/dashboards?(\/|$)/,
-              tooltipTitle: "",
-            },
-          ]
-        : []),
       {
         title: "Inbox",
         path: getInboxHref({
@@ -212,6 +160,25 @@ export const PageSidebar: FunctionComponent = () => {
           },
         ],
       },
+      ...processesSection,
+      {
+        title: "Environments",
+        path: "/processes",
+        icon: <ChartNetworkRegularIcon sx={{ fontSize: 16 }} />,
+        activeIfPathMatches: /^\/processes(\/|[?#]|$)/,
+      },
+      {
+        title: "Entities",
+        path: "/entities",
+        icon: <AsteriskRegularIcon sx={{ fontSize: 16 }} />,
+        activeIfPathMatches: /^(\/entities(\/|[?#]|$)|\/@[^/]+\/entities\/)/,
+      },
+      {
+        title: "Types",
+        path: "/types",
+        icon: <ShapesRegularIcon sx={{ fontSize: 16 }} />,
+        activeIfPathMatches: /^(\/types(\/|[?#]|$)|\/@[^/]+\/types\/)/,
+      },
       ...(enabledFeatureFlags.notes
         ? [
             {
@@ -224,13 +191,10 @@ export const PageSidebar: FunctionComponent = () => {
         : []),
     ];
   }, [
-    preferences.sidebarSections.entities.variant,
-    preferences.sidebarSections.entityTypes.variant,
     draftEntitiesCount,
-    workersSection,
+    processesSection,
     numberOfUnreadNotifications,
     pendingInvites.length,
-    enabledFeatureFlags.dashboards,
     enabledFeatureFlags.notes,
   ]);
 
@@ -247,6 +211,7 @@ export const PageSidebar: FunctionComponent = () => {
       PaperProps={{
         sx: (theme) => ({
           width: SIDEBAR_WIDTH,
+          maxHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
           position: "relative",
           flex: 1,
           backgroundColor: theme.palette.white,
@@ -255,146 +220,123 @@ export const PageSidebar: FunctionComponent = () => {
       }}
       data-testid="page-sidebar"
     >
-      <Box
+      <Stack
+        direction="row"
         sx={{
           mx: 0.75,
           py: 0.5,
           pt: 0.5,
-          display: "flex",
           alignItems: "center",
+          flexShrink: 0,
         }}
       >
         <Box sx={{ flex: 1 }}>
           <WorkspaceSwitcher />
         </Box>
-        <IconButton aria-hidden size="medium" onClick={closeSidebar}>
+        <IconButton
+          aria-label="Close sidebar"
+          size="medium"
+          onClick={closeSidebar}
+        >
           <ArrowRightToLineIcon />
         </IconButton>
-      </Box>
-      {navLinks.map((navLink) => {
-        const currentPath = router.asPath;
-
-        const isActive = isNavLinkActive({
-          definition: navLink,
-          currentPath,
-        });
-
-        return (
-          <Fragment key={navLink.path}>
-            <TopNavLink
-              icon={navLink.icon}
-              title={navLink.title}
-              href={navLink.path}
-              tooltipTitle={navLink.tooltipTitle ?? ""}
-              count={navLink.count}
-              active={isActive}
-            />
-            <Collapse in={isActive}>
-              {navLink.children?.map((definition) => {
-                const { path, title, tooltipTitle, count } = definition;
-
-                const isChildActive = isNavLinkActive({
-                  definition,
-                  currentPath,
-                });
-
-                return (
-                  <TopNavLink
-                    key={path}
-                    title={title}
-                    href={path}
-                    tooltipTitle={tooltipTitle ?? ""}
-                    count={count}
-                    active={isChildActive}
-                    sx={{
-                      "&:hover": {
-                        background: "transparent",
-                      },
-                      ...(isChildActive ? { background: "transparent" } : {}),
-                    }}
-                  />
-                );
-              })}
-            </Collapse>
-          </Fragment>
-        );
-      })}
-      {/*
-        Commented out nav links whose functionality have not been
-        implemented yet
-
-        @todo uncomment when the functionalities are implemented
-      */}
-
-      {/*
-      <TopNavLink
-        icon={faHistory}
-        title="Recently visited"
-        href="/"
-        tooltipTitle="Pages you’ve recently visited"
-      /> */}
-
+      </Stack>
       <Box
-        sx={{
-          flex: 1,
-          overflowY: "auto",
-          pb: 4,
-        }}
+        component="nav"
+        aria-label="Main navigation"
+        sx={{ overflowY: "auto", minHeight: 0, flex: 1, pb: 4 }}
       >
-        {activeWorkspaceWebId ? (
-          <>
-            {preferences.favorites.length > 0 && <FavoritesList />}
-            {hashInstance?.properties.pagesAreEnabled &&
-            enabledFeatureFlags.pages ? (
-              <AccountPageList
-                currentPageEntityUuid={routePageEntityUuid}
-                webId={activeWorkspaceWebId}
+        {navLinks.map((navLink) => {
+          const currentPath = router.asPath;
+
+          const isActive = isNavLinkActive({
+            definition: navLink,
+            currentPath,
+          });
+
+          return (
+            <Fragment key={navLink.path}>
+              <TopNavLink
+                icon={navLink.icon}
+                title={navLink.title}
+                href={navLink.path}
+                tooltipTitle={navLink.tooltipTitle ?? ""}
+                count={navLink.count}
+                active={isActive}
               />
-            ) : null}
-            {preferences.sidebarSections.entities.variant === "list" && (
-              <AccountEntitiesList webId={activeWorkspaceWebId} />
-            )}
-            {preferences.sidebarSections.entityTypes.variant === "list" && (
-              <AccountEntityTypeList webId={activeWorkspaceWebId} />
-            )}
-          </>
-        ) : null}
+              <Collapse in={isActive} unmountOnExit>
+                {activeWorkspaceWebId &&
+                  navLink.path === "/entities" &&
+                  preferences.sidebarSections.entities.variant === "list" && (
+                    <AccountEntitiesList webId={activeWorkspaceWebId} />
+                  )}
+                {activeWorkspaceWebId &&
+                  navLink.path === "/types" &&
+                  preferences.sidebarSections.entityTypes.variant ===
+                    "list" && (
+                    <AccountEntityTypeList webId={activeWorkspaceWebId} />
+                  )}
+                {navLink.children?.map((definition) => {
+                  const { path, title, tooltipTitle, count } = definition;
+
+                  const isChildActive = isNavLinkActive({
+                    definition,
+                    currentPath,
+                  });
+
+                  return (
+                    <TopNavLink
+                      key={path}
+                      title={title}
+                      href={path}
+                      tooltipTitle={tooltipTitle ?? ""}
+                      count={count}
+                      active={isChildActive}
+                      sx={{
+                        "&:hover": {
+                          background: "transparent",
+                        },
+                        ...(isChildActive ? { background: "transparent" } : {}),
+                      }}
+                    />
+                  );
+                })}
+              </Collapse>
+            </Fragment>
+          );
+        })}
+        {enabledFeatureFlags.favorites && preferences.favorites.length > 0 && (
+          <FavoritesList />
+        )}
+        {enabledFeatureFlags.supplyChain && (
+          <Box component="section" aria-label="Apps" sx={{ mt: 2 }}>
+            <Typography
+              variant="smallCaps"
+              component="h2"
+              sx={{
+                px: 2.25,
+                py: 0.5,
+                color: ({ palette }) => palette.gray[70],
+              }}
+            >
+              Apps
+            </Typography>
+            <TopNavLink
+              title="Supply Chain"
+              href="/supply-chain"
+              icon={<FontAwesomeIcon icon={faTruckFast} />}
+              active={/^\/supply-chain(\/|[?#]|$)/.test(router.asPath)}
+              tooltipTitle=""
+            />
+          </Box>
+        )}
+        {activeWorkspaceWebId && (
+          <PagesSection
+            key={activeWorkspaceWebId}
+            webId={activeWorkspaceWebId}
+          />
+        )}
       </Box>
-
-      {/*
-        Commented this out because its functionality has not been
-        implemented yet
-        @todo uncomment when this is done
-      */}
-      {/* <Link
-        noLinkStyle
-        href="/"
-        sx={{
-          zIndex: 2,
-          padding: "18px 22px",
-          backgroundColor: ({ palette }) => palette.gray[10],
-          borderTop: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-
-          "&:hover": {
-            backgroundColor: ({ palette }) => palette.gray[20],
-          },
-        }}
-      >
-        <FontAwesomeIcon
-          sx={{ mr: 1.5, color: ({ palette }) => palette.gray[50] }}
-          color="inherit"
-          icon={faLifeRing}
-        />
-        <Typography
-          variant="smallTextLabels"
-          sx={{ color: ({ palette }) => palette.gray[70] }}
-        >
-          Help and Support
-        </Typography>
-      </Link> */}
     </Drawer>
   );
 };
