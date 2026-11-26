@@ -28,14 +28,15 @@ pub(crate) struct RunRecord {
 impl RunRecord {
     /// The record of a run that has just started: its `input` and `batch` parts.
     ///
-    /// The connector is the one `definition` names, and the id namespace defaults to it.
+    /// The connector is the one `definition` names. Entity ids are derived in the namespace
+    /// `{web}/{connector}`, as the Graph keeps each entity UUID unique across all webs.
     pub(crate) fn new(definition: &Definition, input: StartInput) -> Self {
         let connector: Box<str> = definition.connector().as_ref().into();
         Self {
             input: Input {
                 run: input.run,
                 web: input.web,
-                id_namespace: input.id_namespace.unwrap_or_else(|| connector.clone()),
+                id_namespace: format!("{}/{connector}", input.web).into(),
                 connector,
                 actor: input.actor,
                 definition: input.definition,

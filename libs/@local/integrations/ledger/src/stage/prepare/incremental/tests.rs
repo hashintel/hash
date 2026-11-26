@@ -20,6 +20,7 @@ use crate::{
         capture,
         failure::permanent,
         prepare::{
+            entity_id::derive_entity_id,
             pipeline::PreparationError,
             workspace::{Workspace, WorkspaceConfig},
         },
@@ -412,6 +413,15 @@ async fn prepare_aviation() {
             (2, Op::ArchiveEntity),
         ],
         "each row should be in the sync table once"
+    );
+    let web = record.input.web;
+    let aircraft = "https://example.com/@demo/types/entity-type/aircraft/v/1"
+        .parse()
+        .expect("should be a versioned URL");
+    let se_xxx = derive_entity_id(web, &format!("{web}/aviation"), &aircraft, "SE-XXX");
+    assert!(
+        rows.iter().any(|row| row.entity_id == se_xxx),
+        "entity ids should be derived in the namespace of the web and the connector"
     );
     let file = storage
         .download(&issues, directory.path())

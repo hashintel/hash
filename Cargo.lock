@@ -7356,10 +7356,21 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_complete",
+ "derive_more",
+ "error-stack",
+ "hash-crypto",
+ "hash-integrations-definition",
+ "hash-integrations-ledger",
  "hash-telemetry",
  "mimalloc",
+ "serde",
+ "serde_json",
  "simple-mermaid",
+ "time",
  "tokio",
+ "type-system",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -7431,12 +7442,16 @@ dependencies = [
  "hash-graph-test-data",
  "hash-integrations-definition",
  "hash-integrations-engine",
+ "hash-integrations-ledger",
  "insta",
  "pretty_assertions",
  "reqwest 0.13.4",
  "serde",
  "serde_json",
  "tempfile",
+ "testcontainers",
+ "testcontainers-modules",
+ "time",
  "tokio",
  "type-system",
 ]

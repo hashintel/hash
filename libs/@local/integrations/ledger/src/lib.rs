@@ -11,7 +11,8 @@
 //! into the run's entity changes. [`send`] is the third stage. It writes the changes to the Graph
 //! through a [`GraphClient`] and completes the run.
 //!
-//! A stage that fails says with a [`StageError`] whether running it again can help.
+//! A stage that fails says with a [`StageError`] whether running it again can help. [`status`]
+//! reads where a run stands.
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
@@ -26,7 +27,7 @@ mod sync_table;
 mod testing;
 
 pub use self::{
-    run::{RunId, Stage, StartError, StartInput, start},
+    run::{RunId, RunState, RunStatus, Stage, StartError, StartInput, StatusError, start, status},
     stage::{GraphClient, GraphError, StageError, capture, prepare_incremental, send},
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };

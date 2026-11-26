@@ -1,0 +1,31 @@
+---
+source: libs/@local/integrations/ledger/src/run/tests.rs
+expression: "serde_json::to_string_pretty(&status).expect(\"the status should serialize\")"
+---
+{
+  "run": "00000000-0000-4000-8000-00000000000e",
+  "connector": "aviation",
+  "submitted_at": "2026-07-22T10:00:00Z",
+  "state": "failed",
+  "capture": {
+    "rows": {
+      "aircraft": 4
+    }
+  },
+  "prepare": {
+    "rows": 4,
+    "issues": 1
+  },
+  "send": {
+    "created": 2,
+    "updated": 1,
+    "archived": 0,
+    "mismatches": 0,
+    "failed": 1
+  },
+  "failure": {
+    "stage": "send",
+    "code": "graph_refused",
+    "message": "the Graph refused the batch"
+  }
+}

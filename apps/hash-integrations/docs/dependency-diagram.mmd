@@ -10,7 +10,47 @@ graph TD
     %% ---> : Build dependency
     0[hash-integrations]
     class 0 root
-    1[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
-    2[<a href="../error_stack/index.html">error-stack</a>]
-    0 --> 1
-    1 --> 2
+    1[<a href="../type_system/index.html">type-system</a>]
+    2[<a href="../hash_codec/index.html">hash-codec</a>]
+    3[<a href="../hash_codegen/index.html">hash-codegen</a>]
+    4[<a href="../hash_crypto/index.html">hash-crypto</a>]
+    5[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    6[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    7[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    8[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    9[<a href="../harpc_types/index.html">harpc-types</a>]
+    10[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    11[<a href="../hash_integrations_definition/index.html">hash-integrations-definition</a>]
+    12[<a href="../hash_integrations_ledger/index.html">hash-integrations-ledger</a>]
+    13[<a href="../hash_middleware/index.html">hash-middleware</a>]
+    14[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
+    15[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    16[<a href="../error_stack/index.html">error-stack</a>]
+    17[<a href="../problematic/index.html">problematic</a>]
+    18[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 12
+    0 --> 14
+    1 --> 7
+    1 -.-> 18
+    2 -.-> 3
+    2 --> 10
+    4 --> 16
+    5 --> 1
+    6 --> 5
+    6 --> 8
+    6 --> 15
+    7 --> 2
+    8 -.-> 18
+    10 -.-> 9
+    10 --> 9
+    10 --> 16
+    11 --> 1
+    12 -.-> 6
+    12 --> 11
+    12 --> 13
+    13 --> 1
+    13 --> 4
+    13 --> 17
+    14 --> 16
+    15 --> 1
+    18 --> 6
