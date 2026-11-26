@@ -4,7 +4,9 @@
     "error-stack",
     "hash-codec",
     "hash-crypto",
+    "hash-graph-store",
     "hash-integrations-definition",
+    "hash-middleware",
     "type-system"
   ],
   "tasks": {
