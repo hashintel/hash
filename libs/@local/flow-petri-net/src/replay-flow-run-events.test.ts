@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyActualModeTransitionFiring,
+  createActualModeRecording,
+  parseActualModeRecording,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 import { typedActionDefinitions as actions } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -565,23 +567,32 @@ describe("toRootNetActualModeExecution", () => {
     const replay = replayFlowRunEvents(net, placed(forEachRunEvents));
     const { initialState, transitionFirings } =
       toRootNetActualModeExecution(replay);
-    /* A subnet's transition fills a port fused with a root place, under the id Petrinaut flattens it to. */
+    /* A subnet's transition fills a port fused with a root place, under its instance's id. */
     const transitionIds = new Set([
       ...net.transitions.map(({ id }) => id),
-      ...(net.componentInstances ?? []).flatMap((instance) =>
-        (
-          net.components?.find(({ id }) => id === instance.component.id)
-            ?.transitions ?? []
-        ).map(({ id }) => `${instance.id}::${id}`),
-      ),
+      ...(net.componentInstances ?? []).map(({ id }) => id),
     ]);
     const rootPlaceIds = new Set(net.places.map(({ id }) => id));
 
     let marking: ActualModeMarking = initialState;
 
     expect(
-      transitionFirings.some(({ transitionId }) => transitionId.includes("::")),
+      transitionFirings.some(
+        ({ transitionId }) =>
+          !net.transitions.some(({ id }) => id === transitionId),
+      ),
     ).toBe(true);
+    expect(
+      parseActualModeRecording(
+        createActualModeRecording({
+          title: null,
+          source: null,
+          definition: net,
+          initialState,
+          transitionFirings,
+        }),
+      ).transitionFirings,
+    ).toEqual(transitionFirings);
 
     for (const firing of transitionFirings) {
       expect(transitionIds.has(firing.transitionId)).toBe(true);
