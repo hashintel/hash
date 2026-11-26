@@ -9,8 +9,10 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { querySidebarDashboardsQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../../ui/button";
@@ -64,10 +66,18 @@ export const DashboardList = ({ webId }: { webId: WebId }) => {
     );
 
     return getRoots(subgraph)
-      .map((entity) => ({
-        entityId: entity.metadata.recordId.entityId,
-        title: simplifyProperties(entity.properties).name,
-      }))
+      .flatMap((entity) => {
+        const title =
+          entity.properties[
+            blockProtocolPropertyTypes.name.propertyTypeBaseUrl
+          ];
+
+        if (typeof title !== "string") {
+          return [];
+        }
+
+        return [{ entityId: entity.metadata.recordId.entityId, title }];
+      })
       .sort((left, right) => left.title.localeCompare(right.title));
   }, [data]);
 
