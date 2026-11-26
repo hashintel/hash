@@ -121,7 +121,10 @@ const isHexDigits = (text: string): boolean => {
   }
   return true;
 };
-const MATH_FNS: ReadonlySet<string> = new Set(HIR_MATH_FNS);
+/** `Math.random` is left out: a constant has one value. */
+const MATH_FNS: ReadonlySet<string> = new Set(
+  HIR_MATH_FNS.filter((fn) => fn !== "random"),
+);
 
 /** Deeper nesting than this is refused before the parser's own stack is. */
 const MAX_DEPTH = 100;
@@ -472,6 +475,10 @@ class Parser {
             break;
           }
           this.advance();
+          // A trailing comma, as the formatter writes a wrapped call.
+          if (this.isPunctuator(")")) {
+            break;
+          }
         }
       }
       const close = this.expectPunctuator(")");

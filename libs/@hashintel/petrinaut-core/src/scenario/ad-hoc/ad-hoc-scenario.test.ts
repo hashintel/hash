@@ -1630,4 +1630,19 @@ describe("constant evaluation", () => {
     expect(outcome.errors[0]?.message).toContain("`scenario.broken`");
     expect(outcome.errors[0]?.message).toContain("Unknown identifier `wear`");
   });
+
+  it("resolves an expression the formatter wrapped over several lines", () => {
+    const outcome = synthesizeAdHocScenario(
+      withVariables(
+        exposed(
+          "wrapped",
+          "Math.max(\n  parameters.rate * 2,\n  parameters.lanes,\n)",
+        ),
+      ),
+      context,
+    );
+    expect(scenarioOf(outcome).scenarioParameters).toEqual([
+      { type: "real", identifier: "wrapped", default: 4 },
+    ]);
+  });
 });

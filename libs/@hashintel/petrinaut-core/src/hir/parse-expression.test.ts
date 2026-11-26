@@ -131,7 +131,22 @@ describe("parseHirExpression", () => {
       expect(parse("NaN")).toMatchObject({ kind: "constant", name: "NaN" });
     });
 
+    it("accepts a trailing comma in a wrapped call, as the formatter writes it", () => {
+      expect(
+        parse("Math.sqrt(\n  parameters.g / scenario.d,\n)"),
+      ).toMatchObject({
+        kind: "mathCall",
+        fn: "sqrt",
+        args: [{ kind: "binary", op: "/" }],
+      });
+      expect(parse("Math.max(1, 2,)")).toMatchObject({ args: [{}, {}] });
+      expect(failure("Math.max(,)").message).toBe("Unexpected `,`.");
+    });
+
     it("refuses the unsupported ones", () => {
+      expect(failure("Math.random()").message).toBe(
+        "`Math.random` is not supported.",
+      );
       expect(failure("Math.foo(1)").message).toBe(
         "`Math.foo` is not supported.",
       );
