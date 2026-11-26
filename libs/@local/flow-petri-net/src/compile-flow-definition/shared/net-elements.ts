@@ -7,10 +7,12 @@ import {
 import type { TransitionMetadata } from "../../flow-net-metadata.js";
 import type {
   ArcEndpoint,
+  ComponentPortArcEndpoint,
   InputArc,
   InputArcType,
   OutputArc,
   Place,
+  PlaceArcEndpoint,
   PortDirection,
   Transition,
 } from "@hashintel/petrinaut-core";
@@ -74,32 +76,28 @@ export const createTransition = ({
   y: 0,
 });
 
-export const placeEndpoint = (placeId: string): ArcEndpoint =>
+export const placeEndpoint = (placeId: string): PlaceArcEndpoint =>
   placeArcEndpoint(placeId);
 
 export const portEndpoint = (
   componentInstanceId: string,
   portPlaceId: string,
-): ArcEndpoint =>
+): ComponentPortArcEndpoint =>
   componentPortArcEndpoint({ componentInstanceId, portPlaceId });
 
 /**
- * An endpoint with its ids converted to Petrinaut ids, as `canonicalizePetrinautIds` converts the endpoints of
- * arcs, for an endpoint held in metadata, which it leaves as it is.
+ * A place's endpoint with its id converted to a Petrinaut id, as `canonicalizePetrinautIds` converts the endpoints
+ * of arcs, for an endpoint held in metadata, which it leaves as it is.
  */
-export const toPetrinautEndpoint = (endpoint: ArcEndpoint): ArcEndpoint =>
-  endpoint.kind === "place"
-    ? placeEndpoint(toPetrinautId(endpoint.placeId))
-    : portEndpoint(
-        toPetrinautId(endpoint.componentInstanceId),
-        toPetrinautId(endpoint.portPlaceId),
-      );
+export const toPetrinautEndpoint = (
+  endpoint: PlaceArcEndpoint,
+): PlaceArcEndpoint => placeEndpoint(toPetrinautId(endpoint.placeId));
 
 /** An arc into a transition. Unlike a Petrinaut `InputArc`, its `endpoint` is always set. */
-export const inputArc = (
-  endpoint: ArcEndpoint,
+export const inputArc = <Endpoint extends ArcEndpoint>(
+  endpoint: Endpoint,
   type: InputArcType = "standard",
-): InputArc & { endpoint: ArcEndpoint } => ({ endpoint, weight: 1, type });
+): InputArc & { endpoint: Endpoint } => ({ endpoint, weight: 1, type });
 
 export const outputArc = (endpoint: ArcEndpoint): OutputArc => ({
   endpoint,

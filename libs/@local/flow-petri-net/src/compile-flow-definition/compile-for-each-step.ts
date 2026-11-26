@@ -36,14 +36,14 @@ export const compileForEachStep = ({
 }) => {
   const overShape = steps.getForEachArrayShape(step);
 
-  const iteratorPlaceId = net.addPlace({
+  const { id: iteratorPlaceId } = net.addPlace({
     id: generateIteratorPlaceKey(step.stepId),
     name: `Iterator: ${step.stepId}`,
     description: `Iterates over the array step ${step.stepId} runs its steps for.`,
     colorId: net.registerColor(createIteratorColor(overShape.payloadKind)),
   });
 
-  const accumulatorPlaceId = net.addPlace({
+  const { id: accumulatorPlaceId } = net.addPlace({
     id: generateAccumulatorPlaceKey(step.stepId),
     name: `Accumulator: ${step.stepId}`,
     description: `Counts the items of step ${step.stepId} that have finished.`,

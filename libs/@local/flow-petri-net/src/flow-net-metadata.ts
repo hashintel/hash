@@ -1,4 +1,4 @@
-import type { ArcEndpoint, JsonValue } from "@hashintel/petrinaut-core";
+import type { JsonValue, PlaceArcEndpoint } from "@hashintel/petrinaut-core";
 import type {
   ForEachStepDefinition,
   ValueAccess,
@@ -6,7 +6,8 @@ import type {
 
 /*
  * What a compiled flow net records in its elements' metadata, for an executor that runs it and anything that
- * reads it, such as a run's view. Endpoints are given by Petrinaut id, as the net's arcs are.
+ * reads it, such as a run's view. Endpoints are given by Petrinaut id, as the net's arcs are. Every one is a place of
+ * the root net: a port it records a value at is fused with one.
  */
 
 /**
@@ -15,7 +16,6 @@ import type {
  * - `startStep`: starts an action step once its inputs are available, feeding every input port of its instance.
  * - `startForEach`: starts a `forEach` step once its array is available, turning it into an iterator.
  * - `copyOutput`: takes an output from a step's output port, and puts it where each of its readers and consumers takes it from. Only added when more than one place needs the value.
- * - `recordStepFailure`: moves a step's token from its instance's "gave up" port into `FailedStepRuns`, failing the run.
  * - `startItem` / `startCollecting`: start each item of a `forEach` step, then hand over to counting them as they finish.
  * - `collectItem` / `finishCollecting`: collect each item's output, and complete the `forEach` step once all are in.
  * - `startAttempt` / `succeedAttempt` / `failAttempt` / `retryAttempt` / `giveUp`: an action's lifecycle, inside its
@@ -36,8 +36,8 @@ export type ActionLifecycleRole =
 export type InputSource =
   | {
       kind: "value";
-      /** The place or port the value is taken or read from. */
-      from: ArcEndpoint;
+      /** The place the value is taken or read from. */
+      from: PlaceArcEndpoint;
       access: ValueAccess;
       wrap?: true;
       whenMissing?: "skip";
@@ -54,7 +54,7 @@ export type InputSource =
  * is marked absent, no path to the step was taken, so it doesn't start: the executor skips it. Empty for a step with a
  * plain line too, which is always followed.
  */
-export type PathEndpoints = ArcEndpoint[];
+export type PathEndpoints = PlaceArcEndpoint[];
 
 /** A transition's metadata, by its role. Every transition of the root net names the step it's for. */
 export type TransitionMetadata =
@@ -68,7 +68,7 @@ export type TransitionMetadata =
   | ({ role: "startForEach"; stepId: string; paths?: PathEndpoints } & (
       | { constant: JsonValue }
       /** Where it takes or reads its array from. */
-      | { array: ArcEndpoint }
+      | { array: PlaceArcEndpoint }
     ))
   | { role: "copyOutput"; stepId: string; outputName: string }
   | {
@@ -77,11 +77,7 @@ export type TransitionMetadata =
       collect: ForEachStepDefinition["collect"];
     }
   | {
-      role:
-        | "recordStepFailure"
-        | "startItem"
-        | "startCollecting"
-        | "finishCollecting";
+      role: "startItem" | "startCollecting" | "finishCollecting";
       stepId: string;
     }
   | { role: ActionLifecycleRole };
@@ -99,9 +95,9 @@ export type SubnetMetadata = { actionDefinitionId: string };
 /** The root net. */
 export type FlowNetMetadata = {
   /** Flow input name → the places a run puts its value in when it starts. */
-  flowInputs: Record<string, ArcEndpoint[]>;
+  flowInputs: Record<string, PlaceArcEndpoint[]>;
   /** The places a run puts a `Pending` token in when it starts: one per top-level step. */
-  pendingAtStart: ArcEndpoint[];
-  /** Flow output name → where its value is found. */
-  flowOutputs: Record<string, ArcEndpoint>;
+  pendingAtStart: PlaceArcEndpoint[];
+  /** Flow output name → the place its value is found at. */
+  flowOutputs: Record<string, PlaceArcEndpoint>;
 };

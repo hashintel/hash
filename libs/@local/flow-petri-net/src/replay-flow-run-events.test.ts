@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { applyActualModeTransitionFiring } from "@hashintel/petrinaut-core";
+import {
+  applyActualModeTransitionFiring,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 import { typedActionDefinitions as actions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   defineFlow,
@@ -9,6 +12,7 @@ import {
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
+import { failedStepRunsPlaceKey } from "./flow-net-keys.js";
 import { startFlowNetRun } from "./interpret-flow-net.js";
 import {
   replayFlowRunEvents,
@@ -212,8 +216,12 @@ describe("replayFlowRunEvents", () => {
     expect(
       replay.firings
         .map(({ role }) => role)
-        .filter((role) => role === "giveUp" || role === "recordStepFailure"),
-    ).toEqual(["giveUp", "recordStepFailure"]);
+        .filter((role) => role === "giveUp"),
+    ).toEqual(["giveUp"]);
+    expect(replay.marking).toContainEqual({
+      path: [toPetrinautId(failedStepRunsPlaceKey)],
+      token: { kind: "stepFailure", stepId: "get", itemPath: [] },
+    });
     expect(replay.held).toEqual([]);
   });
 
@@ -557,13 +565,26 @@ describe("toRootNetActualModeExecution", () => {
     const replay = replayFlowRunEvents(net, placed(forEachRunEvents));
     const { initialState, transitionFirings } =
       toRootNetActualModeExecution(replay);
-    const rootTransitionIds = new Set(net.transitions.map(({ id }) => id));
+    /* A subnet's transition fills a port fused with a root place, under the id Petrinaut flattens it to. */
+    const transitionIds = new Set([
+      ...net.transitions.map(({ id }) => id),
+      ...(net.componentInstances ?? []).flatMap((instance) =>
+        (
+          net.components?.find(({ id }) => id === instance.component.id)
+            ?.transitions ?? []
+        ).map(({ id }) => `${instance.id}::${id}`),
+      ),
+    ]);
     const rootPlaceIds = new Set(net.places.map(({ id }) => id));
 
     let marking: ActualModeMarking = initialState;
 
+    expect(
+      transitionFirings.some(({ transitionId }) => transitionId.includes("::")),
+    ).toBe(true);
+
     for (const firing of transitionFirings) {
-      expect(rootTransitionIds.has(firing.transitionId)).toBe(true);
+      expect(transitionIds.has(firing.transitionId)).toBe(true);
       expect(
         [...Object.keys(firing.input), ...Object.keys(firing.output)].every(
           (placeId) => rootPlaceIds.has(placeId),

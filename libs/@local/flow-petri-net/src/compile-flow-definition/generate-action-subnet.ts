@@ -15,6 +15,7 @@ import {
   createOneOfPayloadColor,
   createPayloadColor,
   lifecycleColor,
+  stepFailureColor,
 } from "./shared/colors.js";
 import { type KernelPlace, withKernel } from "./shared/kernels.js";
 import { layOut } from "./shared/lay-out.js";
@@ -168,11 +169,12 @@ export const generateActionSubnet = async (
     colorId: lifecycleColor.id,
   });
 
+  /* Typed as the run's failed steps it's fused with. */
   const gaveUp = createPlace({
     id: generateGaveUpPortKey(subnetName),
     name: "GaveUp",
     description: `${name} failed on every attempt.`,
-    colorId: lifecycleColor.id,
+    colorId: addColor(stepFailureColor),
     portDirection: "out",
   });
 

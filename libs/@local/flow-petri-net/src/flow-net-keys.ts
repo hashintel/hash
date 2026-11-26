@@ -89,6 +89,10 @@ export const generatePendingPlaceKey = (stepId: string) =>
 /** The place a step's token goes to when the step gives up, which fails its run. */
 export const failedStepRunsPlaceKey = joinKey("p", "failedStepRuns");
 
+/** The place an action step's `Done` port is fused with, for the steps that run after it. */
+export const generateDonePlaceKey = (stepId: string) =>
+  joinKey("p", "done", stepId);
+
 export const generateIteratorPlaceKey = (forEachStepId: string) =>
   joinKey("p", "forEach", forEachStepId, "iterator");
 
@@ -114,6 +118,13 @@ export const generateCopyOutputTransitionKey = (
   stepId: string,
   outputName: string,
 ) => joinKey("t", "copyOutput", generateStepOutputKey(stepId, outputName));
+
+/*
+ * Fusions of the root net, each of a place of the root net, its anchor, with ports of steps' instances.
+ */
+
+export const generateFusionKey = (anchorPlaceKey: string) =>
+  joinKey("f", anchorPlaceKey);
 
 /*
  * Component instances.

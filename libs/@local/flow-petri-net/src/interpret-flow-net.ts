@@ -35,7 +35,7 @@ import type {
  * Each transition is either internal or held:
  *
  * - An internal transition fires as soon as it's enabled. Nothing outside the net has a say in it: `startAttempt`,
- *   `copyOutput`, `startItem`, `startCollecting`, `collectItem`, `finishCollecting` and `recordStepFailure`.
+ *   `copyOutput`, `startItem`, `startCollecting`, `collectItem` and `finishCollecting`.
  * - A held transition can be enabled and still not fire, because what happens outside the net decides whether it
  *   does (see `heldRoles`). The driver fires it: the replay of a run's events now, and the executor eventually.
  *   - `startForEach` needs to know how many items its array has, unless the array is a constant, when it's internal.
@@ -60,8 +60,10 @@ import type {
  *                                                  └──────────── retryAttempt ◀────────┘
  *
  * The attempt token counts the attempts: `startAttempt` makes the first, and each `retryAttempt` adds one. A step
- * that gives up puts its token in its instance's `GaveUp` port, which the internal `recordStepFailure` moves into
- * `FailedStepRuns`.
+ * that gives up puts a token naming it in its instance's `GaveUp` port, which is fused with `FailedStepRuns`.
+ *
+ * A port fused with a place of the root net (see the net's `fusions`) is that place: a token put into the port is in
+ * the place, at the place's path.
  *
  * A held transition fires for one step run, which says which tokens it takes: the `Pending` token of the step
  * run's item for a start, and the step run's attempt token for an attempt's end. Firing one that isn't enabled for
@@ -73,7 +75,9 @@ export type FlowNetStepRun = { stepId: string; itemPath: number[] };
 
 /**
  * Where a place or transition is, as ids from the root net down, with the root implied: `[placeId]` in the root net,
- * `[componentInstanceId, placeId]` inside a step's instance. Not to be confused with a token's `itemPath`.
+ * `[componentInstanceId, placeId]` inside a step's instance. A port fused with a place of the root net is at that
+ * place's path, as Petrinaut's flattener keeps the root place's id for the fused place. Not to be confused with a
+ * token's `itemPath`.
  */
 export type FlowNetPath = readonly [string, ...string[]];
 
@@ -374,6 +378,29 @@ export const startFlowNetRun = (
     (net.components ?? []).map((subnet) => [subnet.id, indexSubnet(subnet)]),
   );
 
+  /* A fused port's path → the path of the place of the root net it's fused with. */
+  const fusedPaths = new Map<string, FlowNetPath>();
+
+  for (const fusion of net.fusions ?? []) {
+    const anchor = fusion.members.find(({ kind }) => kind === "place");
+
+    if (anchor?.kind !== "place") {
+      throw new FlowNetInterpreterError(
+        `Fusion "${fusion.name}" has no place of the root net`,
+      );
+    }
+
+    for (const member of fusion.members) {
+      if (member.kind === "componentPort") {
+        fusedPaths.set(flowNetPathKey(rootPath(member)), [anchor.placeId]);
+      }
+    }
+  }
+
+  /** Where a token at `path` is: the place of the root net a fused port is fused with. */
+  const placedAt = (path: FlowNetPath): FlowNetPath =>
+    fusedPaths.get(flowNetPathKey(path)) ?? path;
+
   const rootTransitions: RootTransition[] = net.transitions.map(
     (transition) => ({
       transition,
@@ -498,8 +525,8 @@ export const startFlowNetRun = (
    * Firing.
    */
 
-  /** Where an endpoint of a transition's arc points, in the root net or inside an instance. */
-  const pathOf = (
+  /** Where an endpoint of a transition's arc points, in the root net or inside an instance, fused or not. */
+  const endpointPath = (
     endpoint: ArcEndpoint,
     scope: InstanceScope | null,
   ): FlowNetPath => {
@@ -515,6 +542,10 @@ export const startFlowNetRun = (
 
     return pathIn(scope, endpoint.placeId);
   };
+
+  /** Where the tokens an endpoint of a transition's arc takes, reads or puts are. */
+  const pathOf = (endpoint: ArcEndpoint, scope: InstanceScope | null) =>
+    placedAt(endpointPath(endpoint, scope));
 
   /**
    * The tokens a transition would take and read, with `anchor` as the token at `anchorPath`. Every other input
@@ -544,7 +575,7 @@ export const startFlowNetRun = (
     }));
 
     const anchorArc = arcs.find(({ path }) =>
-      isSameFlowNetPath(path, anchorPath),
+      isSameFlowNetPath(path, placedAt(anchorPath)),
     );
 
     if (!anchorArc) {
@@ -553,7 +584,7 @@ export const startFlowNetRun = (
       );
     }
 
-    for (const anchor of tokensAt(anchorPath)) {
+    for (const anchor of tokensAt(placedAt(anchorPath))) {
       if (!anchorAccepts(anchor)) {
         continue;
       }
@@ -610,7 +641,7 @@ export const startFlowNetRun = (
     scope: InstanceScope | null;
     stepRun: FlowNetStepRun;
     bindings: Binding[];
-    /** The token each output arc puts in the place it points at. */
+    /** The token each output arc puts in the place it points at, given by its path before any fusion. */
     produce: (path: FlowNetPath) => FlowNetToken;
   }): FlowNetFiring => {
     const consumed = bindings
@@ -627,9 +658,9 @@ export const startFlowNetRun = (
 
     /* Each token is an object of its own: bindings tell tokens apart by identity. */
     const produced = transition.outputArcs.map((arc) => {
-      const path = pathOf(getArcEndpoint(arc), scope);
+      const path = endpointPath(getArcEndpoint(arc), scope);
 
-      return { path, token: { ...produce(path) } };
+      return { path: placedAt(path), token: { ...produce(path) } };
     });
 
     for (const placedToken of produced) {
@@ -905,8 +936,7 @@ export const startFlowNetRun = (
           produce: () => ({ kind: "iterator", itemCount, next: 0, itemPath }),
         });
       }
-      case "copyOutput":
-      case "recordStepFailure": {
+      case "copyOutput": {
         const bindings = bind({
           transition,
           scope: null,
@@ -924,14 +954,7 @@ export const startFlowNetRun = (
           scope: null,
           stepRun: { stepId: metadata.stepId, itemPath: token.itemPath },
           bindings,
-          produce: () =>
-            metadata.role === "copyOutput"
-              ? token
-              : {
-                  kind: "stepFailure",
-                  stepId: metadata.stepId,
-                  itemPath: token.itemPath,
-                },
+          produce: () => token,
         });
       }
       case "startItem":
@@ -1318,13 +1341,14 @@ export const startFlowNetRun = (
           scope,
           role: held.role,
           from: { path, token },
-          produce: () => ({
-            ...token,
-            attempts:
-              held.role === "retryAttempt"
-                ? token.attempts + 1
-                : token.attempts,
-          }),
+          produce: () =>
+            held.role === "retryAttempt"
+              ? { ...token, attempts: token.attempts + 1 }
+              : {
+                  kind: "stepFailure",
+                  stepId: scope.stepId,
+                  itemPath: token.itemPath,
+                },
         });
       }
     }
