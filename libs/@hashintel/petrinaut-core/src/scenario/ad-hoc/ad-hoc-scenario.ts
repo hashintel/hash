@@ -413,6 +413,9 @@ function referencedNames(expression: string): Set<string> {
 
 // -- Constant evaluation for bounds, defaults and totals ------------------------
 
+/** Evaluates one constant expression. Callers narrow the value themselves. */
+type ConstantEvaluator = (expression: string) => unknown;
+
 /**
  * Builds the evaluator for one synthesis's constant expressions: bounds
  * (which must resolve at synthesis time), generated parameters' preview
@@ -428,10 +431,10 @@ function referencedNames(expression: string): Set<string> {
  * only the expressions that read it. The evaluator throws with a readable
  * message when an expression does not parse or evaluate.
  */
-function constantEvaluator(
+const constantEvaluator = (
   parameters: Record<string, number | boolean>,
   variables: readonly { name: string; expression: string }[],
-): (expression: string) => unknown {
+): ConstantEvaluator => {
   const scenario = createUserKeyedRecord<number | boolean>();
   const evaluate = (expression: string): unknown => {
     const parsed = parseHirExpression(expression);
@@ -451,7 +454,7 @@ function constantEvaluator(
     }
   }
   return evaluate;
-}
+};
 
 function netParameterDefaults(
   context: AdHocSynthesisContext,
@@ -1349,17 +1352,13 @@ function resolveOptimized(
   plan: SynthesisPlan,
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
+  evaluateConstant: ConstantEvaluator,
 ): {
   scenarioParameters: ScenarioParameter[];
   optimizedFields: AdHocOptimizedField[];
 } {
   const scenarioParameters: ScenarioParameter[] = [];
   const optimizedFields: AdHocOptimizedField[] = [];
-
-  const evaluateConstant = constantEvaluator(
-    netParameterDefaults(context),
-    constantVariables(state),
-  );
 
   const evaluateBound = (
     entity: OptimizedEntity,
@@ -1608,14 +1607,10 @@ const SNAKE_CASE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 function resolveExposed(
   plan: SynthesisPlan,
   state: AdHocScenarioState,
-  context: AdHocSynthesisContext,
+  evaluateConstant: ConstantEvaluator,
   includeOptimize: boolean,
 ): ScenarioParameter[] {
   const scenarioParameters: ScenarioParameter[] = [];
-  const evaluateConstant = constantEvaluator(
-    netParameterDefaults(context),
-    constantVariables(state),
-  );
 
   const takenIdentifiers = new Set<string>();
   for (const [index, variable] of state.variables.entries()) {
@@ -2036,15 +2031,19 @@ function synthesize(
   );
   const plan = collectPlan(normalized, context, includeOptimize);
   collectCountErrors(plan, normalized, context, includeOptimize);
+  const evaluateConstant = constantEvaluator(
+    netParameterDefaults(context),
+    constantVariables(normalized),
+  );
   const exposedParameters = resolveExposed(
     plan,
     normalized,
-    context,
+    evaluateConstant,
     includeOptimize,
   );
   const { scenarioParameters: optimizedParameters, optimizedFields } =
     includeOptimize
-      ? resolveOptimized(plan, normalized, context)
+      ? resolveOptimized(plan, normalized, context, evaluateConstant)
       : { scenarioParameters: [], optimizedFields: [] };
   const scenarioParameters = [...exposedParameters, ...optimizedParameters];
   // Exposed identifiers are user-derived, generated ones sanitize user text
