@@ -155,12 +155,24 @@ export const EntitiesVisualizer: FunctionComponent<{
    * Limit the entities displayed to only those matching this exact type version
    */
   entityTypeId?: VersionedUrl;
+  entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
+  isViewingPages?: boolean;
   /**
    * Hide specific columns from the table
    */
   hideColumns?: (keyof EntitiesTableRow)[];
-}> = ({ entityTypeBaseUrl, entityTypeId, hideColumns }) => {
+}> = ({
+  entityTypeBaseUrl,
+  entityTypeId,
+  entityTypeIds: providedEntityTypeIds,
+  isViewingPages = false,
+  hideColumns,
+}) => {
   const theme = useTheme();
+  const requestedEntityTypeIds = useMemo(
+    () => providedEntityTypeIds ?? (entityTypeId ? [entityTypeId] : undefined),
+    [providedEntityTypeIds, entityTypeId],
+  );
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -283,7 +295,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+  const isTypePinned = !!entityTypeBaseUrl || !!requestedEntityTypeIds?.length;
 
   const usesTableEndpoint = view === "Table";
 
@@ -354,7 +366,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     filterState,
     internalWebs,
     entityTypeBaseUrl,
-    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    entityTypeIds: requestedEntityTypeIds,
     summarySource,
   });
 
@@ -389,7 +401,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     conversions,
     cursor: subgraphCursor,
     entityTypeBaseUrl,
-    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    entityTypeIds: requestedEntityTypeIds,
     filterState,
     internalWebs,
     limit: 500,
@@ -577,14 +589,14 @@ export const EntitiesVisualizer: FunctionComponent<{
         },
         internalWebIds: internalWebs.map(({ webId }) => webId),
         pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
-        pinnedEntityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        pinnedEntityTypeIds: requestedEntityTypeIds,
       }),
     );
   }, [
     filterState,
     internalWebs,
     entityTypeBaseUrl,
-    entityTypeId,
+    requestedEntityTypeIds,
     linkEntityTypeIds,
     linkOnlyPropertyBaseUrls,
   ]);
@@ -709,6 +721,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [isDisplayingFilesOnly, setView]);
 
   const isViewingOnlyPages =
+    isViewingPages ||
     entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl ||
     entityTypeId === systemEntityTypes.page.entityTypeId;
 

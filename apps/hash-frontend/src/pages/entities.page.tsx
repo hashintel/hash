@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
 import {
+  atLeastOne,
   extractBaseUrl,
   extractVersion,
   isBaseUrl,
@@ -179,6 +180,25 @@ const EntitiesPage: NextPageWithLayout = () => {
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
+
+  const isPagesRoute = router.asPath.split(/[?#]/)[0] === "/pages";
+  const pageEntityTypeIds = useMemo(
+    () =>
+      atLeastOne<VersionedUrl>([
+        ...(enabledFeatureFlags.pages &&
+        hashInstance?.properties.pagesAreEnabled
+          ? [systemEntityTypes.page.entityTypeId]
+          : []),
+        ...(enabledFeatureFlags.dashboards
+          ? [systemEntityTypes.dashboard.entityTypeId]
+          : []),
+      ]),
+    [
+      enabledFeatureFlags.pages,
+      enabledFeatureFlags.dashboards,
+      hashInstance?.properties.pagesAreEnabled,
+    ],
+  );
 
   const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
     if (router.isReady) {
@@ -362,11 +382,17 @@ const EntitiesPage: NextPageWithLayout = () => {
         </Container>
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
-        <EntitiesVisualizer
-          entityTypeBaseUrl={entityTypeBaseUrl}
-          entityTypeId={entityTypeId}
-          hideColumns={hideColumns}
-        />
+        {isPagesRoute && !pageEntityTypeIds ? (
+          <Typography>No pages to display.</Typography>
+        ) : (
+          <EntitiesVisualizer
+            entityTypeBaseUrl={isPagesRoute ? undefined : entityTypeBaseUrl}
+            entityTypeId={isPagesRoute ? undefined : entityTypeId}
+            entityTypeIds={isPagesRoute ? pageEntityTypeIds : undefined}
+            isViewingPages={isPagesRoute}
+            hideColumns={hideColumns}
+          />
+        )}
       </Container>
     </>
   );

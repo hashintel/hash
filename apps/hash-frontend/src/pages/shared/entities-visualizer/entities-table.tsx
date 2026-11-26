@@ -5,10 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  extractEntityUuidFromEntityId,
-  isBaseUrl,
-} from "@blockprotocol/type-system";
+import { isBaseUrl } from "@blockprotocol/type-system";
 import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
@@ -33,6 +30,7 @@ import {
   createRenderEntitiesTableValueCell,
   type EntitiesTableValueCellProps,
 } from "./entities-table/entities-table-value-cell";
+import { getPageHref } from "./entities-table/page-href";
 
 import type {
   ConversionTargetsByColumnKey,
@@ -468,12 +466,17 @@ export const EntitiesTable: FunctionComponent<{
                         },
                     iconFill: theme.palette.gray[50],
                     onClick: () => {
-                      if (isViewingOnlyPages) {
-                        void router.push(
-                          `/${row.webId}/${extractEntityUuidFromEntityId(
-                            row.entityId,
-                          )}`,
-                        );
+                      const pageHref = isViewingOnlyPages
+                        ? getPageHref({
+                            entityId: row.entityId,
+                            entityTypeIds: row.entityTypes.map(
+                              ({ entityTypeId }) => entityTypeId,
+                            ),
+                            webShortname: webNameByWebId[row.webId],
+                          })
+                        : null;
+                      if (pageHref) {
+                        void router.push(pageHref);
                       } else {
                         handleEntityClick(row.entityId);
                       }
