@@ -17,6 +17,7 @@ members         = [
     "libs/@local/durable-kernel",
     "libs/@local/graph/api",
     "libs/@local/graph/atlas",
+    "libs/@local/graph/audit",
     "libs/@local/graph/authentication/",
     "libs/@local/graph/authorization/rust",
     "libs/@local/graph/embeddings",

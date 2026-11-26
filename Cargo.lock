@@ -6693,6 +6693,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-graph-audit"
+version = "0.0.0"
+dependencies = [
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-graph-authentication"
 version = "0.0.0"
 dependencies = [
@@ -16430,7 +16437,7 @@ dependencies = [
  "cargo-platform",
  "cargo_metadata",
  "color-eyre",
- "colored 3.1.1",
+ "colored",
  "comma",
  "crossbeam-channel",
  "levenshtein",
