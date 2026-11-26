@@ -8,13 +8,19 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+time = { workspace = true, public = true, features = ["std"] }
+uuid = { workspace = true, public = true, features = ["std", "v7"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+enum-iterator = { workspace = true }
 
 [lints]
 workspace = true

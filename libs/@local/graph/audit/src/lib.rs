@@ -2,9 +2,21 @@
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 
+extern crate alloc;
+
+mod action;
+mod actor;
+mod context;
+mod event;
+mod target;
+
 #[cfg(test)]
-mod tests {
-    /// The coverage report of the unit test run fails for a crate that runs no test.
-    #[test]
-    fn placeholder() {}
-}
+mod tests;
+
+pub use self::{
+    action::{ActionName, AuditAction},
+    actor::AuditActor,
+    context::{AuditContext, TraceId, UserAgent},
+    event::{AuditEvent, AuditEventId, Outcome},
+    target::{Target, TargetId, TargetKind},
+};
