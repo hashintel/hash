@@ -11,6 +11,7 @@ import type {
   InputArcType,
   OutputArc,
   Place,
+  PortDirection,
   Transition,
 } from "@hashintel/petrinaut-core";
 
@@ -19,20 +20,21 @@ export const createPlace = ({
   name,
   description,
   colorId,
-  isPort = false,
+  portDirection,
 }: {
   id: string;
   name: string;
   description: string;
   colorId: string;
-  isPort?: boolean;
+  /** Makes the place a port of its subnet, which the subnet only consumes from (`in`) or only produces into (`out`). */
+  portDirection?: Exclude<PortDirection, "inout">;
 }): Place => ({
   id,
   name,
   description,
   colorId,
   dynamicsEnabled: false,
-  ...(isPort ? { isPort: true } : {}),
+  ...(portDirection ? { isPort: true, portDirection } : {}),
   x: 0,
   y: 0,
 });
