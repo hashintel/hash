@@ -2,11 +2,11 @@
 
 ## What it adds
 
-The command line tool that calls the four functions of the crate, and the tests that take a run through all stages. After this milestone a capture file can be taken to the Graph by hand.
+The command line tool that calls the four functions of the crate, and the tests that take a run through all stages. After this milestone the data of a source can be taken to the Graph by hand.
 
 ```text
 hash-integrations ledger start    --definition aviation.yaml --web … --actor …     prints the run id
-hash-integrations ledger capture  --web … --connector … --run … --file aircraft=… --file airfields=…
+hash-integrations ledger capture  --web … --connector … --run … --queries capture.yaml   # open, see Open points
 hash-integrations ledger prepare  --web … --connector … --run …
 hash-integrations ledger send     --web … --connector … --run …
 ```
@@ -37,9 +37,9 @@ Nothing in the crate changes. Each of the four functions was re-exported from `l
 pub enum Ledger {
     /// Start a run and print its id as JSON.
     Start(StartArgs),       // --definition <file>, --web, --actor, --id-namespace (optional)
-    /// Store the capture files of a run.
-    Capture(CaptureArgs),   // RunArgs, --file <table>=<path> (once per table)
-    /// Turn the capture files into entity changes.
+    /// Capture the tables of a run with the operator's queries.
+    Capture(CaptureArgs),   // RunArgs, and the queries: how they are given is open
+    /// Turn the captured rows into entity changes.
     Prepare(RunArgs),       // --web, --connector, --run
     /// Apply the run's entity changes to the Graph.
     Send(SendArgs),         // RunArgs, --graph-url; the service secret from the environment
@@ -73,7 +73,7 @@ impl Ledger {
                 };
                 println!("{}", json!({ "run": start(&storage, &definition, input).await? }));
             }
-            Self::Capture(args) => capture(&args.run.storage(bucket)?, args.run.run, &args.files).await?,
+            Self::Capture(args) => capture(&args.run.storage(bucket)?, args.run.run, &read_queries(args.queries)?).await?,
             Self::Prepare(args) => prepare_incremental(&args.storage(bucket)?, args.run).await?,
             Self::Send(args)    => send(&args.run.storage(bucket)?, args.run.run, &GraphClient::new(&args.graph_url, secret)?).await?,
         }
@@ -100,14 +100,12 @@ A stage that fails prints its error and the tool exits with a status other than 
 
 No existing test moves. The model is the test that runs the aviation example against a real Graph, `tests/integrations/graph/aviation/mod.rs` (from the repository's root).
 
-**New, two tests,** in `ledger/src/stage/tests.rs`. They call the four functions, not the command line tool. They are tests inside the crate, so that they can use the shared fixtures of `testing.rs` (`README.md`, the rules for every milestone).
+**New, two tests,** in `tests/integrations/graph/ledger/` (from the repository's root), the test `ledger` of `hash-integrations-graph-tests`. They call the four functions, not the command line tool. Capture reads two CSV files, `aircraft.csv` and `airfields.csv`, with the queries of `capture.yaml`, which stands for the operator's configuration.
 
-1. **A run through all stages,** against a MinIO container and a small HTTP server in the test that stands for the Graph. The aviation definition, with a capture file for each of its two tables holding inserts, updates and a delete. The test checks, after each stage: the files in the bucket, `run.json`, and at the end the requests the server received and `current.json`. A second Start is refused while the run is active, and allowed after Send.
-2. **Against a real Graph,** with the Graph and Postgres that the existing aviation test uses. The same run as test 1. It also observes what `../background/spikes.md` only read from the Graph's code: a bulk create with an entity that exists is refused as a whole with 409, a bulk patch with a missing entity with 404, and a patch that changes nothing writes no new edition.
+1. **`csv_to_graph`, a run through all stages,** against a MinIO container and a Graph that the test serves: Postgres from a container, migrated and seeded with the aviation ontology, and the Graph's REST router on a free port. After Send the Graph holds the two aircraft, the two airfields and the two links, each link ends at an airfield, and every entity is read-only. A second Send of the completed run changes nothing.
+2. **`csv_to_local_graph`, the same run against the local HASH stack,** so that its entities show in the HASH UI. It is ignored unless asked for, because the stack must be running. The Graph, its database and the bucket come from the repository's `.env` files.
 
 Running a stage twice is tested where the stage is: Capture in milestone 3, Prepare in milestone 8, Send in milestone 10. It is not repeated here.
-
-The capture files are written with the Parquet helper of `testing.rs`, which milestone 3 adds.
 
 The command line tool itself has no test. It parses arguments and calls four functions.
 
@@ -120,6 +118,7 @@ Nothing existing. Not built, as decided: the orchestration interface and the ser
 - **Chosen:** the id namespace defaults to the connector's id, as labs does (`../background/flow-map.md`, "Entity id and link id"). Start fills it in from the definition it is given.
 - **Chosen:** `start` parses the definition, because it needs the connector to open the storage, and hands the parsed definition to the crate (D9). Capture, Prepare and Send are given the web and the connector, which name the integration's place in the bucket, and parse nothing to open it.
 - **Chosen:** the settings of the tool are what the four functions need and nothing else: the bucket (address, region, endpoint, key id; the secret from the environment), and for `send` the Graph's address and the service secret from the environment.
+- **Open:** how the tool is given Capture's queries. The tests read a YAML map of each table to its DuckDB query (`capture.yaml`), and the sketch above assumes the tool reads such a file, but that is not decided. A query runs with the bucket's credentials, so it comes from the operator's configuration, never from the definition (D18).
 - **Chosen:** one error type, `LedgerError`, for what the tool itself can fail at: reading and parsing the definition file, and the settings. A stage's error is printed as it is.
 - **Chosen:** the tool prints the run id of `start` as JSON, as the subcommands of hashintel/hash#10458 do, and prints nothing for the three stages when they succeed.
 - **Chosen:** the tests of the whole pipeline call the crate's functions. The tool adds only argument parsing.

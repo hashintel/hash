@@ -69,13 +69,14 @@ If the `send` part is there, Send skips the Graph and only writes `current.json`
 
 Which failure is which:
 
-| Failure                                                                                         | Kind      | Code               |
-| ----------------------------------------------------------------------------------------------- | --------- | ------------------ |
-| Reading the sync table or `current.json` fails in storage                                       | retryable |                    |
-| The Graph is not available                                                                      | retryable |                    |
-| `run.json` or `current.json` was changed by someone else                                        | retryable |                    |
-| A row of the sync table cannot be read (`SyncTableError::Invalid`), or its body cannot be built | permanent | `send_row_invalid` |
-| `current.json` names another run when Send wants to complete this one                           | permanent | `run_not_active`   |
+| Failure                                                                                         | Kind      | Code                   |
+| ----------------------------------------------------------------------------------------------- | --------- | ---------------------- |
+| Reading the sync table or `current.json` fails in storage                                       | retryable |                        |
+| The Graph is not available                                                                      | retryable |                        |
+| `run.json` or `current.json` was changed by someone else                                        | retryable |                        |
+| A row of the sync table cannot be read (`SyncTableError::Invalid`), or its body cannot be built | permanent | `send_row_invalid`     |
+| The storage has no bucket for the sync table (`SyncTableError::Unconfigured`)                   | permanent | `storage_unconfigured` |
+| `current.json` names another run when Send wants to complete this one                           | permanent | `run_not_active`       |
 
 An error of `run` becomes a stage error by the table of `03-stage-frame-and-capture.md`. An entity the Graph refuses is not a failure of the stage. It is recorded, and Send goes on.
 

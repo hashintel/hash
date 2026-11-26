@@ -6,17 +6,17 @@ Rewritten on 2026-11-19, after the design and the spec were agreed. Earlier vers
 
 ## For the team
 
-### How the sync table is stored
+### How the sync table and the capture tables are stored
 
 **Linear:** BE-1162, BE-1175.
 
-**Decided:** Delta, in the integration's bucket, partitioned by run (`spec/decisions.md`, D17). Two functions touch the storage, so a change of format stays inside one module.
+**Decided:** Delta, in the integration's bucket, partitioned by run (`spec/decisions.md`, D17), read and written through DuckDB (D18). One module, `lake/`, reads and writes every table, so a change of format stays inside it.
 
 **Open:**
 
-- A crashed write leaves data files that no commit names. Nothing cleans them up yet.
-- Delta's checkpoints and log cleanup run with their defaults: a checkpoint every 100 commits. With one commit per write that is cheap; a continuous sync would need them tuned.
-- `deltalake-core` is patched to the head of delta-io/delta-rs#5017, which is not merged. It moves to a release once one includes it. The release before, 1.1.4, brings `brotli-decompressor` and `quick-xml` versions with open advisories.
+- A write that crashes before its commit may leave data files that no commit names. `deltalake-core` left them. Whether DuckDB's Delta writer leaves them, and whether it removes the files of a commit that fails, is not verified. Nothing cleans them up yet.
+- The lake writes a checkpoint when the number of runs in a table is a multiple of 100, and logs a checkpoint that fails. It does not clean up the log. A continuous sync would need both tuned.
+- The checkpoint can be skipped. The count is of runs with rows: a run without rows commits nothing and does not count. And each append counts the runs after its own commit. If another process commits a run between the two, the count passes the multiple, and no process writes a checkpoint at it. The log then grows until the next multiple.
 
 ### Link changes in incremental runs
 
@@ -62,9 +62,11 @@ Labs handles both, because it captures the whole source and compares the pairs o
 
 ### Capture once a data collection service exists
 
-**Chosen for now:** Capture stores local files that a command line tool hands it.
+**Chosen for now:** Capture runs one DuckDB query per table, which its caller reads from the integration's operator configuration, and appends the rows to the table's capture table (`spec/decisions.md`, D18). A query can read local files, files in a bucket or another Delta table.
 
 **Open, for when the service is designed:**
+
+- Where the queries of an integration are kept, and who may change them. Only the tests write them today (`tests/integrations/graph/ledger/capture.yaml`).
 
 - What the service pushes, and who creates the run.
 - What happens to data that arrives while a run is active. Runs are strictly sequential, so the data has to wait somewhere.
@@ -86,7 +88,7 @@ A failure that a rerun cannot fix is written into `run.json`, and the run stays 
 
 ### Two attempts of one stage at the same time
 
-**Covered:** a stage works only on the run that `current.json` names, and it saves `run.json` only if nobody changed the file since the stage read it. Of two attempts, the second to finish fails and overwrites nothing.
+**Covered:** a stage works only on the run that `current.json` names, and it saves `run.json` only if nobody changed the file since the stage read it. Of two attempts, the second to finish fails and overwrites nothing. Two attempts that append the same run to a table keep the rows of the first commit (`spec/decisions.md`, D19).
 
 **Open:** both attempts do their work before either saves. Two Sends at once send every batch twice. The upserts keep the Graph correct, but a queue that delivers a message twice would need a claim on the run before the work starts.
 
@@ -99,13 +101,19 @@ A failure that a rerun cannot fix is written into `run.json`, and the run stays 
 
 ### What the Graph answers, observed
 
-How the Graph answers bulk and single writes is read from its code (`background/spikes.md`). It is first observed against a running Graph by the test of the whole pipeline in milestone 11.
+How the Graph answers bulk and single writes is read from its code (`background/spikes.md`). The test of the whole pipeline, `csv_to_graph`, runs against a Graph it serves, but sends only creates that succeed. No refused bulk request, 409 or 404 is observed yet.
 
 ### A run's rows are held in memory
 
 Prepare builds all rows of a run before it writes them, and Send reads all of them before it sends (`spec/decisions.md`, D5). A run of several million rows needs gigabytes of memory.
 
-**Open:** writing and reading in pieces, which changes the two functions of the sync table.
+**Open:** writing and reading in pieces, which changes `SyncTable::write` and `SyncTable::read`.
+
+### The lake's DuckDB
+
+- The lake installs the DuckDB extensions `httpfs` and `delta` from the network each time it opens (`INSTALL httpfs; … INSTALL delta;` in `LakeSettings::open`). A stage therefore needs DuckDB's extension repository, and fails with a retryable error without it. The extensions should be part of the image the stages run in.
+- The lake's DuckDB is in memory and has none of the workspace's limits: no memory limit, no limit on its temporary directory, no thread count. A large capture or a large sync table read can take all the memory of the process.
+- Capture runs each query into a temporary table of the lake before it appends the rows, so that a failing query writes nothing. The whole capture of one table is therefore held in DuckDB at once.
 
 ## Kept for later
 

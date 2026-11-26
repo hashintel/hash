@@ -51,7 +51,7 @@ impl Workspace {
     pub(crate) fn pipeline_sql(&self, sql: &str) -> Result<String, Report<StatementError>>;
     pub(crate) fn query(&self, sql: &str) -> Result<Rows, Report<StatementError>>;
 }
-pub(crate) use self::sql::Identifier;            // for pipeline/mod.rs (6) and incremental/staging.rs (8)
+pub(crate) use crate::sql::Identifier;           // for pipeline/mod.rs (6) and incremental/staging.rs (8)
 
 // workspace/error.rs
 pub(crate) enum OpenError { Configure { setting: Setting, value: Box<str> }, Open { path: PathBuf } }
@@ -65,14 +65,14 @@ pub(crate) enum StatementError {
 
 **The files.** The plan's tree has `mod.rs`, `select.rs` and `rows.rs`. Three more each hold one responsibility that the code already has:
 
-| File        | Content                                                                                                                                        | Why a file of its own                                                                                                             |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `mod.rs`    | `Workspace`, `WorkspaceConfig`, `ByteSize`, `open`, `query`, `create_table`, `describe`, `count`, `pipeline_sql`, `select`, `parameter_values` | the entry point. `ByteSize` (18 lines) only types two settings of `WorkspaceConfig`, so it sits beside it                         |
-| `load.rs`   | `load_capture`, `load_batches`, `CaptureSchema`, `SchemaTable`                                                                                 | loading a Parquet file through Arrow, with a table function and `unsafe`. Not `capture.rs`, which would read as the Capture stage |
-| `select.rs` | `Select`, as it is                                                                                                                             | in the plan                                                                                                                       |
-| `rows.rs`   | `Rows`, as it is                                                                                                                               | in the plan                                                                                                                       |
-| `sql.rs`    | `Identifier`, as it is                                                                                                                         | quoting a name in generated SQL. Used by `mod.rs`, `load.rs`, `pipeline/mod.rs` (6) and `staging.rs` (8)                          |
-| `error.rs`  | `Setting`, `OpenError`, `StatementError`                                                                                                       | the error types the page names, about 65 lines                                                                                    |
+| File        | Content                                                                                                                                        | Why a file of its own                                                                                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mod.rs`    | `Workspace`, `WorkspaceConfig`, `ByteSize`, `open`, `query`, `create_table`, `describe`, `count`, `pipeline_sql`, `select`, `parameter_values` | the entry point. `ByteSize` (18 lines) only types two settings of `WorkspaceConfig`, so it sits beside it                                                                                 |
+| `load.rs`   | `load_capture`, `load_batches`, `CaptureSchema`, `SchemaTable`                                                                                 | loading a Parquet file through Arrow, with a table function and `unsafe`. Not `capture.rs`, which would read as the Capture stage                                                         |
+| `select.rs` | `Select`, as it is                                                                                                                             | in the plan                                                                                                                                                                               |
+| `rows.rs`   | `Rows`, as it is                                                                                                                               | in the plan                                                                                                                                                                               |
+| `sql.rs`    | `Identifier`, as it is                                                                                                                         | quoting a name in generated SQL. Used by `mod.rs`, `load.rs`, `pipeline/mod.rs` (6) and `staging.rs` (8). Since D18 at the crate root, beside `Literal`, because the lake (1) uses it too |
+| `error.rs`  | `Setting`, `OpenError`, `StatementError`                                                                                                       | the error types the page names, about 65 lines                                                                                                                                            |
 
 Dependencies added by this milestone:
 

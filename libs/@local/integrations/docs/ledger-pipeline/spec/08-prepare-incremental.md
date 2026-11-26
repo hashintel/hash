@@ -2,18 +2,18 @@
 
 ## What it adds
 
-Stage 2 for incremental updates. It takes the capture file of a run and leaves the run's entity changes in the sync table, an issues file, and the `prepare` part of `run.json`.
+Stage 2 for incremental updates. It takes the run's rows of each capture table and leaves the run's entity changes in the sync table, an issues file, and the `prepare` part of `run.json`.
 
 It is the milestone where the pieces of Prepare come together: the workspace (5), the SQL steps (6), ids and properties (7), the sync table (4) and the stage frame (3).
 
 ```text
 Capture ──► [ Prepare, incremental ] ──► Send
-              reads   runs/{run}/capture/{table}.parquet, one per table
+              reads   the run's rows of the Delta table capture/{table}, one per table
               writes  sync table rows, runs/{run}/issues.jsonl
               last    the `prepare` part of run.json
 ```
 
-**Decided in:** `../plan.md`, step 3, "Prepare, for incremental updates" and "How a stage writes".
+**Decided in:** `../plan.md`, step 3, "Prepare, for incremental updates" and "How a stage writes". It reads the capture tables through the lake: D18.
 
 ## Size
 
@@ -35,7 +35,7 @@ One function is called from outside the stage:
 pub async fn prepare_incremental(storage: &Storage, run: RunId) -> Result<(), Report<StageError>>
 ```
 
-Everything it calls from other milestones is in `contracts.md`: `stage::begin` and `end`, `Storage::download` and `upload`, the `Workspace` functions, `derive_entity_id` and `derive_link_id`, `SinkRow`, and `sync_table::write`.
+Everything it calls from other milestones is in `contracts.md`: `stage::begin` and `end`, `Storage::upload`, the lake's `Table::copy_run` and `Lake::attach_database`, the `Workspace` functions, `derive_entity_id` and `derive_link_id`, `SinkRow`, and `SyncTable::write`.
 
 ## Pseudo code
 
@@ -53,78 +53,82 @@ pub async fn prepare_incremental(storage, run) -> Result<(), Report<StageError>>
 async fn prepare(storage, record: &RunRecord) -> Result<PreparePart, Report<StageError>> {
     let definition = Definition::from_yaml(&record.input.definition)?;
     one_table_per_pipeline(&definition)?;                       // D14: no pipeline reads a second table
-    let tables = captured_tables(&definition, record.capture.as_ref()?)?;   // name, primary key, key in the bucket
-    let context = Context::new(&record.input, &definition);     // web, id namespace, unit maps: owned
-    let config = WorkspaceConfig { variables: definition.variables().clone(), ..Default::default() };
+    let tables = captured_tables(&definition, record.capture.as_ref()?)?;   // name, primary key, key, workspace names
 
     let scratch = tempdir()?;
-    let mut files = Vec::new();
-    for table in &tables {
-        files.push(storage.download(&table.key, scratch.path()).await?);
+    let database = scratch.path().join("prepare.duckdb");
+    // DuckDB blocks, so the lake and the workspace run in one blocking task, which owns what it uses.
+    let prepared = LakeSettings::of(storage)?.run(lake_failed, move |lake| {
+        let changes = stage_and_collect(lake, &database, &definition, &input, &tables)?;
+        let rows = SyncTable::open(lake)?.write(input.run, &changes.rows)?;   // the same lake
+        Ok(Prepared { changes, rows })
+    }).await?;
+
+    let issues = issues::write(storage, record.input.run, scratch.path(), &prepared.changes.issues).await?;
+    Ok(PreparePart { rows: prepared.rows, issues, issue_count: prepared.changes.issues.len() })
+}
+
+fn stage_and_collect(lake, database: &Path, definition, input, tables) -> Result<Changes, Report<StageError>> {
+    let target = lake.attach_database(database)?;
+    for table in tables {
+        // the run's rows in the order of `_seq`, without `run` and `_seq`
+        lake.table(&table.key)?.copy_run(input.run, &target, "_capture/{table.name}", "_seq")?;
     }
-
-    // DuckDB blocks, so everything on the workspace runs in one blocking task.
-    // The task owns what it uses and borrows nothing from this function.
-    let changes = spawn_blocking(move || {
-        let workspace = Workspace::open(&scratch.join("prepare.duckdb"), config)?;
-        let mut staged = BTreeMap::new();
-        for (table, file) in tables.iter().zip(&files) {
-            workspace.load_capture(file, "_capture/{table.name}")?;
-            staged.insert(table.name, staging::stage(&workspace, &table.name, &table.primary_key)?);   // incremental
-        }
-        let prepared = prepare::run_pipelines(&workspace, &definition, &staged)?;   // shared
-        prepare::collect_changes(&workspace, &prepared, &context)                   // shared
-    }).await??;
-
-    let (rows, issue_count) = (changes.rows.len(), changes.issues.len());     // rows of the sync table
-    let issues = issues::write(storage, record.input.run, scratch.path(), &changes.issues).await?;
-    sync_table::write(storage, record.input.run, changes.rows).await?;
-    Ok(PreparePart { rows, issues, issue_count })
+    target.detach()?;                                           // so that the workspace can open the file
+    let workspace = Workspace::open(database, config, &[])?;    // config: the definition's variables
+    let mut staged = BTreeMap::new();
+    for table in tables {
+        staging::stage(&workspace, "_capture/{table.name}", "_source/{table.name}", &table.primary_key)?;   // incremental
+        staged.insert(table.name, "_source/{table.name}");
+    }
+    let prepared = prepare::run_pipelines(&workspace, definition, &staged)?;   // shared
+    prepare::collect_changes(&workspace, &prepared, &context)                  // shared; context: web, id namespace, unit maps
 }
 ```
+
+Prepare opens one lake. It copies each capture table's rows of the run into the workspace's DuckDB file, and later writes the sync table through the same lake. Nothing is downloaded.
 
 In a definition a table is called a source. Two small functions decide whether Prepare can work on the definition:
 
 - `one_table_per_pipeline` refuses a definition in which a pipeline reads a second table. The definition format has two ways to do that: an entity pipeline with an extra input for its SQL (`EntityPipeline.inputs`), and a link pipeline that starts from more than one input (`LinkInput::Inputs`). A join of two tables would see only the changed rows of each and give wrong results without an error.
-- `captured_tables` pairs each table of the definition with its capture file from the `capture` part. A source that is a checkpoint of another pipeline has no file and is not counted. A table without a file, and a file without a table, fail the run. A table without changes needs an empty file.
+- `captured_tables` pairs each table of the definition with its capture table from the `capture` part. A source that is a checkpoint of another pipeline has none and is not counted. A table without a capture table (`MissingTable`), and a capture table without a table (`UnknownTable`), fail the run. A table without changes needs a capture query that gives no rows.
 
 Which failure is which. A code belongs to a step, not to a kind of error, and each step's error is given its code where the step is called, inside the blocking task. The `failure` part also holds the error's text, so the code can stay coarse:
 
-| Step                                                                                                                                             | Kind      | Code                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ---------------------------- |
-| The definition does not parse, or a pipeline reads a second table                                                                                | permanent | `prepare_definition_invalid` |
-| The capture files: their names, loading one into DuckDB, staging it (no `_change`, another value in it, a reserved column, a missing key column) | permanent | `prepare_capture_invalid`    |
-| The SQL steps: a step fails, drops `_op`, `_key` or `_seq`, or lacks a column a sink reads (D12)                                                 | permanent | `prepare_step_failed`        |
-| Rows into changes: a table cannot be read, or a row's `_op` is no longer insert, update or delete                                                | permanent | `prepare_rows_invalid`       |
-| A row that cannot be written to the sync table                                                                                                   | permanent | `prepare_rows_invalid`       |
-| Storage: downloading a capture file, uploading the issues file, the sync table's bucket                                                          | retryable |                              |
-| The workspace cannot be opened, or the blocking task stops unexpectedly                                                                          | retryable |                              |
+| Step                                                                                                                                                      | Kind      | Code                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------- |
+| The definition does not parse, or a pipeline reads a second table                                                                                         | permanent | `prepare_definition_invalid` |
+| The capture tables: their names, copying one that does not exist, staging it (no `_change`, another value in it, a reserved column, a missing key column) | permanent | `prepare_capture_invalid`    |
+| The SQL steps: a step fails, drops `_op`, `_key` or `_seq`, or lacks a column a sink reads (D12)                                                          | permanent | `prepare_step_failed`        |
+| Rows into changes: a table cannot be read, or a row's `_op` is no longer insert, update or delete                                                         | permanent | `prepare_rows_invalid`       |
+| A row that cannot be written to the sync table                                                                                                            | permanent | `prepare_rows_invalid`       |
+| A storage without a bucket                                                                                                                                | permanent | `storage_unconfigured`       |
+| Storage: reading a capture table, writing the sync table, uploading the issues file                                                                       | retryable |                              |
+| The workspace cannot be opened, or the blocking task stops unexpectedly                                                                                   | retryable |                              |
 
-Every error of the workspace inside a step is permanent, as D12 decided for an SQL step: the same files and the same definition fail the same way.
+Every error of the workspace inside a step is permanent, as D12 decided for an SQL step: the same capture tables and the same definition fail the same way.
 
 **`stage/prepare/incremental/staging.rs`: staging for incremental input** (adapted, 115 lines)
 
 ```rust
-pub(super) fn stage(workspace, source: &SourceName, primary_key: &PrimaryKey) -> Result<Box<str>, Report<PreparationError>> {
-    let columns = workspace.describe("SELECT * FROM {Identifier(_capture/{source})}")?;   // of a query
+pub(super) fn stage(workspace, capture: &str, table: &str, primary_key: &PrimaryKey) -> Result<(), Report<PreparationError>> {
+    let columns = workspace.describe("SELECT * FROM {Identifier(capture)}")?;   // of a query
     // fails with:
-    //   MissingChange     no column `_change`
-    //   ReservedColumn    a source column named `_op`, `_key` or `_seq`
-    //   MissingColumn     a primary key column that is missing
-    workspace.create_table("_source/{source}", "
-        SELECT source._change::VARCHAR                     AS _op,
+    //   MissingColumn     no column `_change`, or a primary key column that is missing
+    //   ReservedColumn    a column named `_op`, `_key`, `_seq` or `rowid`
+    workspace.create_table(table, "
+        SELECT _change::VARCHAR                            AS _op,
                to_json(struct_pack(K := K, ...))::VARCHAR  AS _key,
-               source.rowid                                AS _seq,
-               source.* EXCLUDE (_change)
-        FROM \"_capture/{source}\" AS source")?;
-    // fails with InvalidChange { rows } if `_op` is not 'insert', 'update' or 'delete' in some row
-    Ok("_source/{source}")
+               rowid                                       AS _seq,
+               * EXCLUDE (_change)
+        FROM {Identifier(capture)}")?;
+    // fails with InvalidChange if `_op` is null or not 'insert', 'update' or 'delete' in some row
 }
 ```
 
 This is `engine`'s `stage_table` with three changes: `_op` comes from `_change` and not from the constant `'snapshot'`, `_seq` is added, and the values of `_op` are checked. The source checks for row counts and empty columns are gone (`../plan.md`, step 2).
 
-`ReservedColumn` and `MissingColumn` are cases of `PreparationError`, which milestone 6 ports. This milestone adds two cases to it: `MissingChange` and `InvalidChange`.
+`ReservedColumn` and `MissingColumn` are cases of `PreparationError`, which milestone 6 ports. A capture table without `_change` is a `MissingColumn`. This milestone adds one case: `InvalidChange`.
 
 **`stage/prepare/mod.rs`: the steps every version shares** (new, 220 lines)
 
@@ -234,7 +238,7 @@ pub(super) async fn write(storage, run, scratch: &Path, issues: &[Issue]) -> Res
 | `changes.rs`                    | `link_changes`                                                                                   | `engine/graph/plan/mod.rs:316-354`, `Planner::plan_links` (39)                                                                | adapted | 70    |
 | `changes.rs`                    | source id, `resolve`, `Context`                                                                  | `engine/graph/plan/mod.rs:177-212` and `:252-280` (65)                                                                        | adapted | 70    |
 | `issues.rs`                     | `Issue`, `IssueKind`                                                                             | `engine/graph/plan/mod.rs:103-124`, `PlanIssue` (22)                                                                          | adapted | 30    |
-| `pipeline` (milestone 6's file) | `MissingChange`, `InvalidChange`                                                                 | two more cases of `PreparationError`                                                                                          | adapted | 10    |
+| `pipeline` (milestone 6's file) | `InvalidChange`                                                                                  | two more cases of `PreparationError`                                                                                          | adapted | 10    |
 | `issues.rs`                     | `write`                                                                                          | none                                                                                                                          | new     | 30    |
 | `mod.rs`                        | `run_pipelines`, `collect_changes`, `PreparedTables`, `Changes`                                  | modelled on `tests/integrations/graph/aviation/mod.rs:63` (repository root) and labs `engine/candidate.rs:40-162`, `:315-399` | new     | 220   |
 | `incremental/mod.rs`            | `prepare_incremental`, `prepare`, `one_table_per_pipeline`, `captured_tables`, the failure table | none                                                                                                                          | new     | 130   |
@@ -252,12 +256,12 @@ Adapted 370, new 380, total 750.
 
 **New, four tests:**
 
-1. A capture file without `_change`, one with another value in it, a definition whose pipeline reads a second table, and an SQL step that fails: each fails for good, and `run.json` gets the `failure` part with the code of its step and a message that names the cause. Four cases of one test.
+1. A capture table without `_change`, one with another value in it, a table of the definition without a capture table, a capture table of no table, an entity and a link pipeline that read a second table, an SQL step that fails, and a step that rewrites `_op`: each fails for good, and `run.json` gets the `failure` part with the code of its step and a message that names the cause. Eight cases of one test.
 2. Insert, update and delete rows become create, update and archive changes, for an entity and for a link. Each carries the `_seq` of its row, and an archive carries no properties. The two ends of a link are the ids of the entities that the same rows create. `engine` checks that last point in `link_endpoints_match_entities`, which cannot move as it is.
-3. The stage as a whole, on the aviation definition with a capture file per table and three kinds of change: the rows are in the sync table, the issues file is in the bucket, and the `prepare` part has the right counts.
-4. The stage run twice leaves each row in the sync table once.
+3. The stage as a whole, on the aviation definition with a capture query per table and three kinds of change, after an earlier attempt that wrote the sync table but not `run.json`: the rows of the first attempt are in the sync table once, the issues file is in the bucket, and the `prepare` part has the right counts.
+4. A second run of the integration sees only its own rows of the capture tables.
 
-Tests 3 and 4 need a MinIO container, because they write the sync table. Test 1 runs the stage on the in-memory store, with a run that was started and captured. Test 2 and the moved tests need no store.
+Tests 1, 3 and 4 need a MinIO container, because Capture and Prepare read and write Delta tables. Test 2 and the moved tests need no store.
 
 Not tested on their own: `captured_tables`, `run_pipelines`, `collect_changes` and the writing of the issues file. Tests 3 and 4 go through all of them.
 
@@ -269,7 +273,7 @@ Not tested on their own: `captured_tables`, `run_pipelines`, `collect_changes` a
 ## Open points
 
 - **Fact:** `_op` and `_seq` are read from a row's values by their position. `SinkRow` has no function for them and gets none.
-- **Fact, to be shown by the adapted `staging_composite_keys`:** `_seq` is DuckDB's `rowid` of the loaded capture table. It follows the order of the file as long as the file is loaded in one piece, which `load_capture` does.
+- **Fact:** `_seq` in staging is DuckDB's `rowid` of the table the run's rows are copied to. `copy_run` writes them in the order of the capture table's `_seq`, which is the order the capture query gave, so staging's `_seq` follows that order too (milestone 1, `copy_run_keeps_the_order_of_the_query`).
 - **Fact:** the aviation example has two tables and no join (`definition/examples/aviation.yaml:14-28`, `:58-63`). Its link reads the aircraft table only.
 - **Chosen:** four failure codes, one per step, in place of one per kind of error. The message in the `failure` part says what went wrong.
 - **Chosen:** `PreparePart.rows` is the number of rows written to the sync table, not the number of captured rows.
@@ -280,3 +284,4 @@ Not tested on their own: `captured_tables`, `run_pipelines`, `collect_changes` a
 - **Decided:** D1, D2, D3, see `decisions.md`.
 - **Decided:** D12, a failed SQL step is a permanent failure.
 - **Decided:** D13, the kind of change is read in the shared step. D14, a run carries several tables, and a pipeline that reads a second one is refused.
+- **Decided:** D18, Prepare copies the capture tables from the lake and writes the sync table through it. D19, a retry of Prepare leaves the sync table rows an earlier attempt wrote, and records their number. The changes it computed again are not written.

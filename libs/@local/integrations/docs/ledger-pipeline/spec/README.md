@@ -19,10 +19,10 @@ Lines are source lines without tests, with doc comments and blank lines. Moved a
 
 | #   | File                              | State                       | Total     | Moved     | Adapted   | New       | Reused  |
 | --- | --------------------------------- | --------------------------- | --------- | --------- | --------- | --------- | ------- |
-| 1   | `01-crate-and-storage.md`         | agreed                      | 316       | 51        | 237       | 28        | 91%     |
+| 1   | `01-crate-and-storage.md`         | agreed                      | 1,071     | 51        | 237       | 783       | 27%     |
 | 2   | `02-run-state.md`                 | agreed                      | 425       | 0         | 0         | 425       | 0%      |
-| 3   | `03-stage-frame-and-capture.md`   | agreed                      | 305       | 0         | 35        | 270       | 11%     |
-| 4   | `04-sync-table.md`                | waiting for Paul            | 545       | 0         | 35        | 510       | 6%      |
+| 3   | `03-stage-frame-and-capture.md`   | agreed                      | 275       | 0         | 0         | 275       | 0%      |
+| 4   | `04-sync-table.md`                | waiting for Paul            | 342       | 0         | 35        | 307       | 10%     |
 | 5   | `05-workspace.md`                 | agreed                      | 690       | 298       | 389       | 3         | 100%    |
 | 6   | `06-sql-steps.md`                 | agreed                      | 328       | 63        | 265       | 0         | 100%    |
 | 7   | `07-ids-and-properties.md`        | agreed                      | 705       | 681       | 20        | 4         | 99%     |
@@ -30,11 +30,11 @@ Lines are source lines without tests, with doc comments and blank lines. Moved a
 | 9   | `09-graph-requests-and-client.md` | agreed                      | 371       | 72        | 240       | 59        | 84%     |
 | 10  | `10-send.md`                      | waiting for Fedor's changes | 440       | 0         | 40        | 400       | 9%      |
 | 11  | `11-whole-pipeline.md`            | agreed                      | 260       | 0         | 20        | 240       | 8%      |
-|     | **All**                           |                             | **5,135** | **1,165** | **1,651** | **2,319** | **55%** |
+|     | **All**                           |                             | **5,657** | **1,165** | **1,616** | **2,876** | **49%** |
 
 The numbers of every milestone come from its source table. This table replaces the estimate in `../plan.md`, step 6.
 
-Batches: milestones 1 to 4, then 5 to 8, then 9 to 11. After each batch a check compares it with `contracts.md` and the plan, and Paul reviews it. Batch 1 was checked on 2026-11-19, its findings are applied, and Paul agreed to it. Batch 2 and batch 3 were checked on 2026-11-19 and their findings are applied. A final check over the whole spec ran on 2026-11-19, and its findings are applied too. Paul agreed to nine of the eleven milestones on 2026-11-19. Milestone 4, the sync table, has Fedor's changes: it is a Delta table (D17), and it waits for Paul. Milestone 10, Send, waits for changes by Fedor before Paul agrees to it.
+Batches: milestones 1 to 4, then 5 to 8, then 9 to 11. After each batch a check compares it with `contracts.md` and the plan, and Paul reviews it. Batch 1 was checked on 2026-11-19, its findings are applied, and Paul agreed to it. Batch 2 and batch 3 were checked on 2026-11-19 and their findings are applied. A final check over the whole spec ran on 2026-11-19, and its findings are applied too. Paul agreed to nine of the eleven milestones on 2026-11-19. Milestone 4, the sync table, has Fedor's changes: it is a Delta table (D17), and it waits for Paul. Milestone 10, Send, waits for changes by Fedor before Paul agrees to it. On 2026-11-26 Fedor changed milestones 1, 3, 4 and 8: the stages pass their data as Delta tables through DuckDB (D18), and a run is written to a table once (D19).
 
 ## Rules for every milestone
 

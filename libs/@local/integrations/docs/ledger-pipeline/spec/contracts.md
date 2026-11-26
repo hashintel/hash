@@ -6,19 +6,19 @@ Agreed by Paul on 2026-11-19. The types and functions that one milestone calls f
 
 Every milestone is in this table. A block further down exists for each milestone that others call into. Milestones 8, 10 and 11 have no block of their own. Nothing calls into milestones 8 and 10 except the caller of the crate, and their one function each is in the first block. Milestone 11 is that caller: the command line tool.
 
-| #   | Milestone                 | Provides to others                                                                                                  | Uses                                                            |
-| --- | ------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 1   | Crate and storage         | `Storage`, `CasVersion`, `S3Bucket`                                                                                 |                                                                 |
-| 2   | Run state                 | `RunId`, `RunRecord` and its parts, `Stage`, `load`, `save`, `current::read`, `current::complete`, `start`          | 1                                                               |
-| 3   | Stage frame and Capture   | `StageError`, `begin`, `end`, `permanent`, `retryable`; the function `capture`                                      | 1, 2                                                            |
-| 4   | Sync table                | `SyncRow`, `Op`, `write`, `read`, `order_key`                                                                       | 1, 2 (the run id)                                               |
-| 5   | Workspace                 | `Workspace` with `open`, `load_capture`, `create_table`, `describe`, `count`, `query`, `pipeline_sql`; `Identifier` | 3 (the `stage` folder)                                          |
-| 6   | SQL steps                 | `prepare_pipeline`, `prepare_link_pipeline`, `check_metadata`                                                       | 5                                                               |
-| 7   | Ids and properties        | `derive_entity_id`, `derive_link_id`, `SinkRow`, `SinkColumns`                                                      | 3 (the `stage` folder)                                          |
-| 8   | Prepare, incremental      | the function `prepare_incremental`                                                                                  | 1, 2, 3, 4, 5, 6, 7                                             |
-| 9   | Graph requests and client | the bodies `create`, `patch`, `archive`; `integration_provenance`; `GraphClient`, `Answer`                          | 2 (the run id), 3 (the `stage` folder), 4 (the row type)        |
-| 10  | Send                      | the function `send`                                                                                                 | 1, 2, 3, 4, 9                                                   |
-| 11  | The whole pipeline        | the command line tool                                                                                               | 2, 3, 8, 10 (`start`, `capture`, `prepare_incremental`, `send`) |
+| #   | Milestone                 | Provides to others                                                                                                   | Uses                                                            |
+| --- | ------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 1   | Crate and storage         | `Storage`, `CasVersion`, `S3Bucket`; the lake: `LakeSettings`, `Lake`, `Table`, `LakeError`; `Identifier`, `Literal` | 2 (the run id)                                                  |
+| 2   | Run state                 | `RunId`, `RunRecord` and its parts, `Stage`, `load`, `save`, `current::read`, `current::complete`, `start`           | 1                                                               |
+| 3   | Stage frame and Capture   | `StageError`, `begin`, `end`, `permanent`, `retryable`; the function `capture`                                       | 1, 2                                                            |
+| 4   | Sync table                | `SyncRow`, `Op`, `SyncTable` with `write` and `read`, `read`, `order_key`                                            | 1, 2 (the run id)                                               |
+| 5   | Workspace                 | `Workspace` with `open`, `load_capture`, `create_table`, `describe`, `count`, `query`, `pipeline_sql`; `Identifier`  | 3 (the `stage` folder)                                          |
+| 6   | SQL steps                 | `prepare_pipeline`, `prepare_link_pipeline`, `check_metadata`                                                        | 5                                                               |
+| 7   | Ids and properties        | `derive_entity_id`, `derive_link_id`, `SinkRow`, `SinkColumns`                                                       | 3 (the `stage` folder)                                          |
+| 8   | Prepare, incremental      | the function `prepare_incremental`                                                                                   | 1, 2, 3, 4, 5, 6, 7                                             |
+| 9   | Graph requests and client | the bodies `create`, `patch`, `archive`; `integration_provenance`; `GraphClient`, `Answer`                           | 2 (the run id), 3 (the `stage` folder), 4 (the row type)        |
+| 10  | Send                      | the function `send`                                                                                                  | 1, 2, 3, 4, 9                                                   |
+| 11  | The whole pipeline        | the command line tool                                                                                                | 2, 3, 8, 10 (`start`, `capture`, `prepare_incremental`, `send`) |
 
 **Visibility.** The page writes `pub` for everything another milestone calls, and the milestone files do the same in their sketches. In the code only the four functions a caller uses and the types in their signatures are public (`Storage`, `S3Bucket`, `IntegrationNamespace`, `StartInput`, `RunId`, `GraphClient` and the error types). Everything else is `pub(crate)`: the workspace's lints warn on a `pub` item that cannot be reached from outside (`unreachable_pub`).
 
@@ -45,18 +45,19 @@ Everything here is taken from `../plan.md` or from existing code. Each block nam
 
 ```rust
 pub async fn start(storage: &Storage, definition: &Definition, input: StartInput) -> Result<RunId, Report<StartError>>;
-pub async fn capture(storage: &Storage, run: RunId, files: &BTreeMap<SourceName, PathBuf>) -> Result<(), Report<StageError>>;
+pub async fn capture(storage: &Storage, run: RunId, queries: &BTreeMap<SourceName, Box<str>>) -> Result<(), Report<StageError>>;
 pub async fn prepare_incremental(storage: &Storage, run: RunId) -> Result<(), Report<StageError>>;
 pub async fn send(storage: &Storage, run: RunId, graph: &GraphClient) -> Result<(), Report<StageError>>;
 ```
 
-- **Origin:** `../plan.md`, step 3. Every stage takes the run id and reads the rest from `run.json`. Capture also takes the files, one per table of the definition (D14), and Send the Graph client. In a definition a table is called a source, so the name of a table is a `SourceName`.
+- **Origin:** `../plan.md`, step 3. Every stage takes the run id and reads the rest from `run.json`. Capture also takes one DuckDB query per table of the definition (D14, D18), and Send the Graph client. In a definition a table is called a source, so the name of a table is a `SourceName`.
+- **The queries come from the integration's operator configuration** (D18). They run with the bucket's credentials for the integration's place, so they never come from a definition.
 - **Chosen:** `start` creates the run id and returns it.
 - **The caller parses the definition, once** (D9). It needs the connector to open the integration's `Storage`, and passes the parsed definition to `start` with the text, which `run.json` keeps (D4). Start parses nothing.
 
 ## Storage (milestone 1)
 
-Used by `run`, `stage`, `sync_table`, Capture and Prepare.
+Used by `run`, `stage` and Prepare. The lake below uses its bucket's settings.
 
 ```rust
 pub struct Storage { .. }                    // one integration's place in the bucket
@@ -71,7 +72,7 @@ impl IntegrationNamespace {
 impl Storage {
     /// Opens the place of `namespace` below the prefix in the bucket's URI.
     pub fn s3(bucket: S3Bucket, namespace: &IntegrationNamespace) -> Result<Self, Report<StorageError>>;
-    /// The bucket's settings, with the namespace in its URI. The sync table opens its own connection with them.
+    /// The bucket's settings, with the namespace in its URI. The lake opens its own connection with them.
     pub(crate) fn bucket(&self) -> Option<&S3Bucket>;
     /// The in-memory store of `object_store`, for tests. It has no bucket.
     #[cfg(test)]
@@ -79,7 +80,7 @@ impl Storage {
 
     /// Uploads the file to `key` and returns its size.
     pub(crate) async fn upload(&self, file: &Path, key: &str) -> Result<u64, Report<StorageError>>;
-    /// Downloads `key` into `directory` and returns the path of the file.
+    /// Downloads `key` into `directory` and returns the path of the file. Only tests call it.
     pub(crate) async fn download(&self, key: &str, directory: &Path) -> Result<PathBuf, Report<StorageError>>;
 
     /// The bytes at `key` and their version, or `None` if the key is missing.
@@ -89,16 +90,69 @@ impl Storage {
     pub(crate) async fn replace_if(&self, key: &str, expected: Option<&CasVersion>, bytes: Vec<u8>) -> Result<bool, Report<StorageError>>;
 }
 
-pub enum StorageError { Read, Write }
+pub enum StorageError { InvalidBucket, InvalidKey, TooLarge, LocalFile, Read, Write }
 ```
 
 - **Origin:** `upload` and `download` are `ArtifactStorage::upload` and `materialize` of hashintel/hash#10392, without the content hash. `IntegrationNamespace` is `ArtifactNamespace` of hashintel/hash#10392, which follows labs `BlobNamespace` (`blob.rs`). All integrations share one bucket, and the web and the connector name an integration's place in it. `read_versioned`, `replace_if` and `CasVersion` are taken unchanged from `versioned.rs` on the branch `pe/ledger-r1-conditional-write`, which ported them from labs `blob.rs`. `S3Bucket` is the struct of hashintel/hash#10392.
 - **Two functions cover all small files.** `replace_if` with `None` is "create if absent". With a version it is "replace if unchanged". `run.json` and `current.json` use them. The file in the module tree is therefore `storage/versioned.rs`, not `storage/json.rs`. Turning a type into JSON is done by the caller.
-- **Chosen:** a key is a `&str`. The keys are built in `run`, for a run's files. The sync table opens its own store at `sync/`.
-- **Fact:** `replace_if` works against MinIO with the workspace's `object_store` 0.12.5 (`../background/spikes.md`). Milestone 4 moves the workspace to 0.14.2, the version `deltalake-core` uses, and the storage tests pass on it.
+- **Chosen:** a key is a `&str`. The keys are built in `run`, for a run's files. The Delta tables are reached through the lake, not through `Storage`.
+- **Fact:** `replace_if` works against MinIO with the workspace's `object_store` 0.12.5 (`../background/spikes.md`). Milestone 4 moved the workspace to 0.14.2, and the storage tests pass on it.
 - **Only `Storage`, `Storage::s3`, `S3Bucket`, `IntegrationNamespace` and `StorageError` are public.** A caller of the crate opens the integration's place in the bucket and passes it to the stages. For Start it reads the connector from the definition, and for a stage it is given the web and the connector. The four functions on it are called only inside the crate.
 - **No local folder as a second kind of storage** (D6). Tests use `Storage::memory`, and the storage and sync table tests use a MinIO container.
 - `read_versioned` and `replace_if` refuse a file larger than 16 MiB. The code they are ported from has 1 MiB (`versioned.rs:19` on the branch). The limit was raised so that `run.json` can hold the failed entities of a large run (D8).
+
+## Lake (milestone 1)
+
+Used by Capture, the sync table and Prepare. All functions block, because DuckDB does. `LakeSettings::run` opens a lake on a blocking thread.
+
+```rust
+pub(crate) enum LakeError { Storage, Invalid, Unconfigured }
+
+pub(crate) struct LakeSettings { .. }        // the bucket's settings, owned
+impl LakeSettings {
+    pub(crate) fn of(storage: &Storage) -> Result<Self, Report<LakeError>>;
+    pub(crate) async fn run<T, C>(self, from_lake: fn(Report<LakeError>) -> Report<C>,
+                                  work: impl FnOnce(&Lake) -> Result<T, Report<C>> + Send + 'static) -> Result<T, Report<C>>;
+    pub(crate) fn open(&self) -> Result<Lake, Report<LakeError>>;
+}
+
+pub(crate) struct Lake { .. }                // an in-memory DuckDB with `httpfs`, `delta` and a secret for the bucket
+impl Lake {
+    pub(crate) fn table(&self, key: &str) -> Result<Table<'_>, Report<LakeError>>;
+    pub(crate) fn stage_query(&self, query: &str) -> Result<Staged<'_>, Report<LakeError>>;
+    pub(crate) fn stage_rows(&self, columns: &Columns) -> Result<Staged<'_>, Report<LakeError>>;
+    pub(crate) fn attach_database(&self, path: &Path) -> Result<Database<'_>, Report<LakeError>>;
+}
+
+impl Staged<'_> {
+    pub(crate) const fn numbered(self, name: &'static str) -> Self;    // each row's position, as the column `name`
+    pub(crate) fn appender(&self) -> Result<Appender<'_>, Report<LakeError>>;
+}
+impl Database<'_> {
+    pub(crate) fn detach(self) -> Result<(), Report<LakeError>>;
+}
+
+impl Table<'_> {                             // a Delta table below the integration's place, partitioned by `run`
+    pub(crate) fn exists(&self) -> Result<bool, Report<LakeError>>;
+    pub(crate) fn has_run(&self, run: RunId) -> Result<bool, Report<LakeError>>;
+    pub(crate) fn rows(&self, run: RunId) -> Result<u64, Report<LakeError>>;
+    pub(crate) fn read_run<T, C>(&self, run: RunId, columns: &Columns, from_lake: fn(Report<LakeError>) -> Report<C>,
+                                 read: impl FnMut(&Row<'_>) -> Result<T, Report<C>>) -> Result<Vec<T>, Report<C>>;
+    pub(crate) fn copy_run(&self, run: RunId, database: &Database<'_>, into: &str, order: &str) -> Result<(), Report<LakeError>>;
+    /// Appends `staged` as the rows of `run`, in one commit tagged with `run`, and returns the run's
+    /// number of rows. A run that is in the table is left as it is.
+    pub(crate) fn append_run(&self, run: RunId, staged: &Staged<'_>) -> Result<u64, Report<LakeError>>;
+}
+
+// stage/failure.rs
+pub(crate) const STORAGE_UNCONFIGURED: &str = "storage_unconfigured";
+pub(crate) fn from_lake(stage: Stage, invalid: &'static str, report: Report<LakeError>) -> Report<StageError>;
+```
+
+- **Origin:** new with D18. Neither labs nor `engine` has it.
+- **A run is written to a table once** (D19). The commit carries the run id as Delta's application transaction id, so a second append of the run, also one by another process at the same time, commits nothing and returns the rows of the first.
+- **Columns are matched by name.** The first append creates the table with the columns of its rows, and `run` first. A later append must give the same names, in any order.
+- `LakeError` has three cases. `Storage`: the bucket, DuckDB or its extensions could not be used, or another process committed first; a rerun can help. `Invalid`: a statement, a query or the rows are wrong; a rerun cannot help. `Unconfigured`: the storage has no bucket, or its secret is not text. `from_lake` turns them into a retryable error, a permanent error with the stage's code, and a permanent error with `storage_unconfigured`.
 
 ## Run state (milestone 2)
 
@@ -127,8 +181,8 @@ pub struct Input {
 }
 pub struct BatchLimits { pub max_writes: u32, pub max_bytes: u64 }    // the `batch` part: 128 and 1,500,000
 
-pub struct CapturePart { pub sources: BTreeMap<Box<str>, CapturedFile> }   // one entry per table, by its name (D14)
-pub struct CapturedFile { pub key: Box<str>, pub size: u64, pub rows: u64 }
+pub struct CapturePart { pub sources: BTreeMap<Box<str>, CapturedTable> }  // one entry per table, by its name (D14)
+pub struct CapturedTable { pub key: Box<str>, pub rows: u64 }                // capture/{table}, and the run's rows in it
 pub struct PreparePart { pub rows: u64, pub issues: Option<Box<str>>, pub issue_count: u64 }
 pub struct SendPart {
     pub created: u64, pub updated: u64, pub archived: u64,
@@ -143,7 +197,6 @@ pub struct Current { pub active: Option<RunId>, pub last_completed: Option<RunId
 
 // run/mod.rs
 pub(crate) fn run_file(run: RunId) -> String;        // runs/{run}/run.json
-pub(crate) fn capture_file(run: RunId, source: &SourceName) -> String;    // runs/{run}/capture/{source}.parquet
 pub(crate) fn issues_file(run: RunId) -> String;     // runs/{run}/issues.jsonl
 pub(crate) async fn load(storage: &Storage, run: RunId) -> Result<(RunRecord, CasVersion), Report<RunError>>;
 pub(crate) async fn save(storage: &Storage, record: &RunRecord, expected: Option<&CasVersion>) -> Result<(), Report<RunError>>;
@@ -190,10 +243,10 @@ pub(crate) async fn end(storage: &Storage, open: Open, result: Result<(), Report
 A stage then has this shape. The three stages differ only in the middle:
 
 ```rust
-pub async fn capture(storage, run, files) -> Result<(), Report<StageError>> {
+pub async fn capture(storage, run, queries) -> Result<(), Report<StageError>> {
     let mut open = stage::begin(storage, run, Stage::Capture).await?;
     if open.record.capture.is_some() { return Ok(()); }     // finished before
-    let result = store(storage, run, files).await           // the steps of the stage
+    let result = store(storage, run, queries.clone()).await // the steps of the stage
         .map(|part| open.record.capture = Some(part));
     stage::end(storage, open, result).await
 }
@@ -222,18 +275,26 @@ pub struct SyncRow {
     pub properties: PropertyObjectWithMetadata,       // JSON text in the table
 }
 
-/// Replaces the rows of `run` with `rows`, in one commit.
-pub async fn write(storage: &Storage, run: RunId, rows: Vec<SyncRow>) -> Result<(), Report<SyncTableError>>;
-/// The rows of `run`, ordered by `seq`, then by entity id (`order_key`).
+pub struct SyncTable<'lake> { .. }                     // the table, attached to a lake
+impl<'lake> SyncTable<'lake> {
+    pub fn open(lake: &'lake Lake) -> Result<Self, Report<SyncTableError>>;
+    /// Writes `rows` as the rows of `run`, in one commit, and returns the run's number of rows.
+    /// A run that is in the table is left as it is (D19).
+    pub fn write(&self, run: RunId, rows: &[SyncRow]) -> Result<u64, Report<SyncTableError>>;
+    /// The rows of `run`, ordered by `seq`, then by entity id (`order_key`).
+    pub fn read(&self, run: RunId) -> Result<Vec<SyncRow>, Report<SyncTableError>>;
+}
+/// Opens a lake and reads `run`, for Send.
+pub async fn read(storage: &Storage, run: RunId) -> Result<Vec<SyncRow>, Report<SyncTableError>>;
+
 /// `EntityId` has no order of its own. `order_key` gives its web id and its entity UUID, as `engine` sorts.
 pub(crate) struct OrderKey { web_id: Uuid, entity_uuid: Uuid }   // ordered by its fields
 pub(crate) fn order_key(id: &EntityId) -> OrderKey;
-pub async fn read(storage: &Storage, run: RunId) -> Result<Vec<SyncRow>, Report<SyncTableError>>;
 ```
 
 - **Origin:** the columns are those of `../plan.md`, step 3. `EntityId`, `VersionedUrl` and `PropertyObjectWithMetadata` are the Graph's own types, which `engine` already uses for the same values.
-- **Stored as Delta** (D17): a table under `sync/` in the integration's place, partitioned by run, one commit per write. `write` and `read` open their own connection to the bucket with `Storage::bucket`.
-- `SyncTableError` has two cases. `Storage`: the bucket could not be reached, and a rerun can help. `Invalid`: a row cannot be written or read, or the storage has no bucket, and a rerun cannot help.
+- **Stored as Delta** (D17): a table under `sync/` in the integration's place, partitioned by run, one commit per run, read and written through the lake (D18). Prepare writes through the lake it opened for the capture tables. Send's `read` opens a lake of its own.
+- `SyncTableError` has three cases, one per case of `LakeError`. `Storage`: the bucket could not be reached, and a rerun can help. `Invalid`: a row cannot be written or read, and a rerun cannot help. `Unconfigured`: the storage has no bucket.
 - **A run's rows are held in memory as one list** (D5).
 - An update with an empty `properties` adds no property, and Send removes none. An archive carries an empty `properties`.
 
@@ -262,8 +323,8 @@ impl Workspace {
 ```
 
 - **Origin:** these are the functions of `engine`'s `Connection` (`workspace/connection/`), with the names they have there. Today they are reached through `Workspace`, which sends each call to a thread. That layer is left behind (`../plan.md`, step 2), so the new `Workspace` is the old `Connection`.
-- `Rows`, `PreparedPipeline`, `PreparedLink`, `PreparationError`, `StatementError` and `OpenError` keep their names and shapes. `PreparedSink` loses its `step` field, which nothing reads. `PreparationError` loses the cases for cancelling, a stopped thread and source checks. `StatementError` has one case for a statement DuckDB could not run, with DuckDB's message in the report (D11). Milestone 8 adds two cases to `PreparationError`: `MissingChange` and `InvalidChange`.
-- `Identifier` (`sql.rs`) quotes a table or column name. Milestones 6 and 8 use it.
+- `Rows`, `PreparedPipeline`, `PreparedLink`, `PreparationError`, `StatementError` and `OpenError` keep their names and shapes. `PreparedSink` loses its `step` field, which nothing reads. `PreparationError` loses the cases for cancelling, a stopped thread and source checks. `StatementError` has one case for a statement DuckDB could not run, with DuckDB's message in the report (D11). Milestone 8 adds one case to `PreparationError`: `InvalidChange`.
+- `Identifier` (`sql.rs` at the crate root) quotes a table or column name. Milestones 1, 6 and 8 use it.
 - `describe`, `count` and `pipeline_sql` belong to milestone 5 and return `StatementError`. In `engine` they return `PreparationError`, which milestone 6 defines.
 - `check_metadata` requires `_op`, `_key` and `_seq`, on entity tables and on link tables (D1). In `engine` it requires `_op` and `_key`, on entity tables only.
 - A sink step writes no table. `PreparedSink.table` names the table the step received, which carries the three columns.
