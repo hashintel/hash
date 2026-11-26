@@ -621,6 +621,8 @@ mod tests {
 
     use core::hash::BuildHasher as _;
 
+    use hashql_core::heap::SymbolAllocator as _;
+
     use crate::interpret::value::Int;
 
     #[test]
@@ -892,7 +894,7 @@ mod tests {
         };
 
         let heap = Heap::new();
-        let integer = Integer::new_unchecked(heap.intern_symbol("42"));
+        let integer = Integer::new_unchecked(heap.alloc_symbol("42"));
         let int =
             Int::try_from(Primitive::Integer(integer)).expect("should be able to convert integer");
         assert_eq!(int.size(), 128);

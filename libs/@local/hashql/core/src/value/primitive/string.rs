@@ -32,10 +32,13 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::String};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::String,
+    /// };
     ///
     /// let heap = Heap::new();
-    /// let literal = String::new(heap.intern_symbol("Hello, world!"));
+    /// let literal = String::new(heap.alloc_symbol("Hello, world!"));
     ///
     /// assert_eq!(literal.as_str(), "Hello, world!");
     /// ```
@@ -49,10 +52,13 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::String};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::String,
+    /// };
     ///
     /// let heap = Heap::new();
-    /// let literal = String::new(heap.intern_symbol("Hello, world!"));
+    /// let literal = String::new(heap.alloc_symbol("Hello, world!"));
     ///
     /// assert_eq!(literal.as_str(), "Hello, world!");
     /// ```
@@ -66,10 +72,13 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::String};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::String,
+    /// };
     ///
     /// let heap = Heap::new();
-    /// let literal = String::new(heap.intern_symbol("Hello"));
+    /// let literal = String::new(heap.alloc_symbol("Hello"));
     ///
     /// assert_eq!(literal.as_bytes(), b"Hello");
     /// ```
@@ -83,12 +92,15 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::String};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::String,
+    /// };
     ///
     /// let heap = Heap::new();
-    /// let literal = String::new(heap.intern_symbol("Hello"));
+    /// let literal = String::new(heap.alloc_symbol("Hello"));
     ///
-    /// assert_eq!(literal.as_symbol(), heap.intern_symbol("Hello"));
+    /// assert_eq!(literal.as_symbol(), heap.alloc_symbol("Hello"));
     /// ```
     #[must_use]
     pub const fn as_symbol(self) -> Symbol<'heap> {

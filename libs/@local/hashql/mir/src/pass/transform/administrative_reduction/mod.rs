@@ -65,7 +65,7 @@ use core::{
 
 use hashql_core::{
     graph::{Successors as _, Traverse as _},
-    heap::BumpAllocator,
+    heap::PhaseAllocator,
 };
 
 use self::{
@@ -185,11 +185,11 @@ impl<'heap, A: Allocator> ScratchMemory<'heap, A> {
 /// let mut pass = AdministrativeReduction::new_in(&bump_allocator);
 /// pass.run(&mut context, &mut bodies);
 /// ```
-pub struct AdministrativeReduction<A: Allocator> {
+pub struct AdministrativeReduction<A> {
     alloc: A,
 }
 
-impl<A: Allocator> AdministrativeReduction<A> {
+impl<A> AdministrativeReduction<A> {
     /// Creates a new administrative reduction pass using the given allocator.
     ///
     /// The allocator is used for temporary data structures during the pass (call graph,
@@ -199,8 +199,9 @@ impl<A: Allocator> AdministrativeReduction<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap>
-    for AdministrativeReduction<A>
+impl<'env, 'heap, 'alloc, A> GlobalTransformPass<'env, 'heap> for AdministrativeReduction<A>
+where
+    A: PhaseAllocator<'alloc>,
 {
     fn run(
         &mut self,
@@ -208,24 +209,24 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap>
         state: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
-        let mut reducable = Reducable::new(bodies, &self.alloc);
+        let mut reducable = Reducable::new(bodies, self.alloc);
         if reducable.is_empty() {
             return Changed::No;
         }
 
         // Build the call graph (edges: caller → callee) and seed the reducibility set.
-        let callgraph = CallGraph::analyze_in(bodies, &self.alloc);
+        let callgraph = CallGraph::analyze_in(bodies, self.alloc);
 
         // Compute DFS postorder over the call graph. Since edges go caller → callee, postorder
         // yields callees before callers. This ensures that when we process a caller, all its
         // callees have already been transformed and (if applicable) reclassified as reducible.
-        let postorder_slice = self.alloc.allocate_slice_uninit(bodies.len());
+        let postorder_slice = self.alloc.alloc_slice_uninit(bodies.len());
         let (postorder, rest) =
             postorder_slice.write_iter(callgraph.depth_first_forest_post_order());
         debug_assert!(rest.is_empty());
         let postorder = &*postorder;
 
-        let mut scratch = ScratchMemory::new(bodies, &self.alloc);
+        let mut scratch = ScratchMemory::new(bodies, self.alloc);
         let mut changed = Changed::No;
 
         for &id in postorder {

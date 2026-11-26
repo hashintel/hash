@@ -1,361 +1,308 @@
-//! Allocator pools for parallel bump allocation.
-//!
-//! [`ScratchPool`] provides thread-safe scratch allocation. Each thread borrows
-//! its own [`ScratchPoolGuard`] via [`get`](ScratchPool::get), which derefs to
-//! [`Scratch`].
-//!
-//! [`HeapPool`] provides thread-safe heap allocation with symbol interning.
-//! Each thread borrows its own [`HeapPoolGuard`] via [`get`](HeapPool::get),
-//! which derefs to [`Heap`].
-
+use alloc::{alloc::Global, vec::Vec};
 use core::{
+    alloc::Allocator,
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
 };
 use std::sync::nonpoison::Mutex;
 
-use super::{Heap, ResetAllocator as _, Scratch};
+use super::ResetAllocator;
 
-/// A pool of [`Scratch`] allocators for parallel bump allocation.
+/// A pool of arenas for code that allocates on more than one thread.
 ///
-/// Each thread obtains its own [`Scratch`] via [`get`](Self::get). The
-/// allocator is returned to the pool and reset when the guard is dropped.
+/// [`get`] hands the calling thread an arena of its own as a [`PoolGuard`], because an arena such
+/// as a [`Scratch`] or a [`Heap`] serves one thread at a time. Dropping the guard resets the arena
+/// and returns it to the pool, and a later [`get`] reuses its memory.
 ///
-/// By default the pool is unbounded. Use [`bounded`](Self::bounded) to cap
-/// the number of retained allocators; excess allocators are dropped instead
-/// of returned.
-pub struct ScratchPool {
-    pool: Mutex<Vec<Scratch>>,
+/// A pool keeps every arena that returns to it. Create the pool with [`bounded`] to limit that
+/// number.
+///
+/// # Example
+///
+/// ```
+/// use std::thread;
+///
+/// use hashql_core::heap::{PhaseAllocator as _, Pool, Scratch};
+///
+/// let pool: Pool<Scratch, _> = Pool::new();
+///
+/// let total: u32 = thread::scope(|threads| {
+///     let workers: Vec<_> = (1..=4_u32)
+///         .map(|worker| {
+///             let pool = &pool;
+///
+///             threads.spawn(move || {
+///                 let scratch = pool.get();
+///                 let values = scratch.alloc_slice_copy(&[worker; 8]);
+///
+///                 values.iter().sum::<u32>()
+///             })
+///         })
+///         .collect();
+///
+///     workers
+///         .into_iter()
+///         .map(|worker| worker.join().expect("worker should not panic"))
+///         .sum()
+/// });
+///
+/// assert_eq!(total, 80);
+/// ```
+///
+/// [`Scratch`]: super::Scratch
+/// [`Heap`]: super::Heap
+/// [`get`]: Self::get
+/// [`bounded`]: Self::bounded
+pub struct Pool<T, A: Allocator> {
+    arenas: Mutex<Vec<T, A>>,
     max_size: usize,
 }
 
-impl ScratchPool {
-    /// Creates a new unbounded scratch pool.
-    #[must_use]
+impl<T> Pool<T, Global> {
+    /// Creates an empty pool that keeps every arena returned to it.
     #[inline]
+    #[must_use]
     pub const fn new() -> Self {
-        Self {
-            pool: Mutex::new(Vec::new()),
-            max_size: usize::MAX,
-        }
+        Self::new_in(Global)
     }
 
-    /// Creates a new scratch pool that retains at most `max_size` allocators.
+    /// Creates an empty pool that keeps at most `max_size` arenas.
     ///
-    /// When a guard is dropped and the pool is already at capacity, the
-    /// allocator is dropped instead of returned to the pool.
+    /// Dropping a guard while the pool holds `max_size` arenas drops the arena of that guard.
+    #[inline]
     #[must_use]
-    #[inline]
     pub const fn bounded(max_size: usize) -> Self {
-        Self {
-            pool: Mutex::new(Vec::new()),
-            max_size,
-        }
+        Self::bounded_in(max_size, Global)
+    }
+}
+
+impl<T, A: Allocator> Pool<T, A> {
+    /// Creates an empty pool that keeps every arena returned to it and stores them through `alloc`.
+    #[inline]
+    #[must_use]
+    pub const fn new_in(alloc: A) -> Self {
+        Self::bounded_in(usize::MAX, alloc)
     }
 
-    /// Borrows a [`Scratch`] from the pool.
+    /// Creates an empty pool that keeps at most `max_size` arenas and stores them through `alloc`.
     ///
-    /// Reuses a previously returned allocator if available, otherwise creates
-    /// a new one. The allocator is reset and returned to the pool when the
-    /// guard is dropped.
+    /// Dropping a guard while the pool holds `max_size` arenas drops the arena of that guard.
     #[inline]
-    pub fn get(&self) -> ScratchPoolGuard<'_> {
-        let scratch = self.pool.lock().pop().unwrap_or_default();
-
-        ScratchPoolGuard {
-            pool: self,
-            scratch: ManuallyDrop::new(scratch),
+    #[must_use]
+    pub const fn bounded_in(max_size: usize, alloc: A) -> Self {
+        Self {
+            arenas: Mutex::new(Vec::new_in(alloc)),
+            max_size,
         }
     }
 }
 
-impl Default for ScratchPool {
+impl<T, A: Allocator> Pool<T, A>
+where
+    T: ResetAllocator + Default,
+{
+    /// Takes an arena out of the pool.
+    ///
+    /// If the pool is empty, this creates an arena with [`Default`].
+    #[inline]
+    pub fn get(&self) -> PoolGuard<'_, T, A> {
+        let arena = self.arenas.with_mut(Vec::pop).unwrap_or_default();
+
+        PoolGuard {
+            pool: self,
+            arena: ManuallyDrop::new(arena),
+        }
+    }
+}
+
+impl<T> Default for Pool<T, Global> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// A borrowed [`Scratch`] from a [`ScratchPool`].
+/// An arena that [`Pool::get`] took out of its pool.
 ///
-/// Derefs to [`Scratch`], so it can be used anywhere a `&Scratch` is expected.
-/// On drop, the allocator is reset and returned to the pool for reuse.
+/// Dropping the guard resets the arena and returns it to the pool. If the pool already holds its
+/// maximum number of arenas, the guard drops the arena.
 #[clippy::has_significant_drop]
-pub struct ScratchPoolGuard<'pool> {
-    pool: &'pool ScratchPool,
-    scratch: ManuallyDrop<Scratch>,
+pub struct PoolGuard<'pool, T, A: Allocator>
+where
+    T: ResetAllocator,
+{
+    pool: &'pool Pool<T, A>,
+    arena: ManuallyDrop<T>,
 }
 
-impl Deref for ScratchPoolGuard<'_> {
-    type Target = Scratch;
+impl<T, A: Allocator> Deref for PoolGuard<'_, T, A>
+where
+    T: ResetAllocator,
+{
+    type Target = T;
 
     #[inline]
-    fn deref(&self) -> &Scratch {
-        &self.scratch
+    fn deref(&self) -> &T {
+        &self.arena
     }
 }
 
-impl DerefMut for ScratchPoolGuard<'_> {
+impl<T, A: Allocator> DerefMut for PoolGuard<'_, T, A>
+where
+    T: ResetAllocator,
+{
     #[inline]
-    fn deref_mut(&mut self) -> &mut Scratch {
-        &mut self.scratch
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.arena
     }
 }
 
-#[expect(unsafe_code, reason = "ManuallyDrop::take in Drop")]
-impl Drop for ScratchPoolGuard<'_> {
+impl<T, A: Allocator> Drop for PoolGuard<'_, T, A>
+where
+    T: ResetAllocator,
+{
     fn drop(&mut self) {
-        // SAFETY: This is the `Drop` impl, so `drop` is called exactly once.
-        // After `take`, `self.scratch` is logically moved out and will not be
-        // read or dropped again.
-        let mut scratch = unsafe { ManuallyDrop::take(&mut self.scratch) };
-        scratch.reset();
+        // SAFETY: `drop` runs once for a value, and no code reads `self.arena` after this call.
+        let mut arena = unsafe { ManuallyDrop::take(&mut self.arena) };
+        arena.reset();
 
-        let mut scratches = self.pool.pool.lock();
+        let mut arenas = self.pool.arenas.lock();
 
-        if scratches.len() < self.pool.max_size {
-            scratches.push(scratch);
+        if arenas.len() < self.pool.max_size {
+            arenas.push(arena);
         }
     }
 }
 
-/// A pool of [`Heap`] allocators for parallel allocation with symbol interning.
-///
-/// Each thread obtains its own [`Heap`] via [`get`](Self::get). The heap is
-/// returned to the pool and reset when the guard is dropped.
-///
-/// By default the pool is unbounded. Use [`bounded`](Self::bounded) to cap
-/// the number of retained heaps; excess heaps are dropped instead of returned.
-pub struct HeapPool {
-    pool: Mutex<Vec<Heap>>,
-    max_size: usize,
-}
-
-impl HeapPool {
-    /// Creates a new unbounded heap pool.
-    #[must_use]
-    #[inline]
-    pub const fn new() -> Self {
-        Self {
-            pool: Mutex::new(Vec::new()),
-            max_size: usize::MAX,
-        }
-    }
-
-    /// Creates a new heap pool that retains at most `max_size` heaps.
-    ///
-    /// When a guard is dropped and the pool is already at capacity, the heap
-    /// is dropped instead of returned to the pool.
-    #[must_use]
-    #[inline]
-    pub const fn bounded(max_size: usize) -> Self {
-        Self {
-            pool: Mutex::new(Vec::new()),
-            max_size,
-        }
-    }
-
-    /// Borrows a [`Heap`] from the pool.
-    ///
-    /// Reuses a previously returned heap if available, otherwise creates a new
-    /// one. The heap is reset and returned to the pool when the guard is
-    /// dropped.
-    #[inline]
-    pub fn get(&self) -> HeapPoolGuard<'_> {
-        let heap = self.pool.lock().pop().unwrap_or_default();
-
-        HeapPoolGuard {
-            pool: self,
-            heap: ManuallyDrop::new(heap),
-        }
-    }
-}
-
-impl Default for HeapPool {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// A borrowed [`Heap`] from a [`HeapPool`].
-///
-/// Derefs to [`Heap`], so it can be used anywhere a `&Heap` is expected.
-/// On drop, the heap is reset and returned to the pool for reuse.
-#[clippy::has_significant_drop]
-pub struct HeapPoolGuard<'pool> {
-    pool: &'pool HeapPool,
-    heap: ManuallyDrop<Heap>,
-}
-
-impl Deref for HeapPoolGuard<'_> {
-    type Target = Heap;
-
-    #[inline]
-    fn deref(&self) -> &Heap {
-        &self.heap
-    }
-}
-
-impl DerefMut for HeapPoolGuard<'_> {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Heap {
-        &mut self.heap
-    }
-}
-
-#[expect(unsafe_code, reason = "ManuallyDrop::take in Drop")]
-impl Drop for HeapPoolGuard<'_> {
-    fn drop(&mut self) {
-        // SAFETY: This is the `Drop` impl, so `drop` is called exactly once.
-        // After `take`, `self.heap` is logically moved out and will not be
-        // read or dropped again.
-        let mut heap = unsafe { ManuallyDrop::take(&mut self.heap) };
-        heap.reset();
-
-        let mut heaps = self.pool.pool.lock();
-
-        if heaps.len() < self.pool.max_size {
-            heaps.push(heap);
-        }
-    }
-}
-
+// Threads share a pool, and a guard moves to the thread that uses it.
 const _: () = {
     const fn assert_send<T: Send>() {}
     const fn assert_sync<T: Sync>() {}
 
-    assert_send::<ScratchPool>();
-    assert_sync::<ScratchPool>();
-    assert_send::<ScratchPoolGuard<'_>>();
+    assert_send::<Pool<super::Scratch, Global>>();
+    assert_sync::<Pool<super::Scratch, Global>>();
+    assert_send::<PoolGuard<'_, super::Scratch, Global>>();
 
-    assert_send::<HeapPool>();
-    assert_sync::<HeapPool>();
-    assert_send::<HeapPoolGuard<'_>>();
+    assert_send::<Pool<super::Heap, Global>>();
+    assert_sync::<Pool<super::Heap, Global>>();
+    assert_send::<PoolGuard<'_, super::Heap, Global>>();
 };
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use alloc::alloc::Global;
+    use core::{
+        ptr,
+        sync::atomic::{AtomicBool, AtomicUsize, Ordering},
+    };
 
-    #[test]
-    fn scratch_pool_reuses_allocators() {
-        let pool = ScratchPool::new();
+    use super::Pool;
+    use crate::heap::{Heap, PhaseAllocator, ResetAllocator, Scratch, SymbolAllocator as _};
 
-        let guard = pool.get();
-        let mut vec: Vec<u32, _> = Vec::new_in(&*guard);
-        vec.push(42);
-        assert_eq!(vec[0], 42);
-        drop(vec);
-        drop(guard);
-
-        // Second get reuses the allocator.
-        let guard = pool.get();
-        let mut vec: Vec<u32, _> = Vec::new_in(&*guard);
-        vec.push(99);
-        assert_eq!(vec[0], 99);
-        drop(vec);
-        drop(guard);
-
-        assert_eq!(pool.pool.lock().len(), 1);
+    fn sum_in<'alloc, A>(alloc: A, values: &[u32]) -> u32
+    where
+        A: PhaseAllocator<'alloc>,
+    {
+        alloc.alloc_slice_copy(values).iter().sum()
     }
 
     #[test]
-    fn scratch_pool_grows_under_concurrent_demand() {
-        let pool = ScratchPool::new();
+    fn get_reuses_returned_arena() {
+        let pool = Pool::<Scratch, Global>::new();
 
-        let guard1 = pool.get();
-        let guard2 = pool.get();
-
-        let mut vec1: Vec<u32, _> = Vec::new_in(&*guard1);
-        let mut vec2: Vec<u32, _> = Vec::new_in(&*guard2);
-        vec1.push(1);
-        vec2.push(2);
-        assert_eq!(vec1[0], 1);
-        assert_eq!(vec2[0], 2);
-
-        drop(vec1);
-        drop(vec2);
-        drop(guard1);
-        drop(guard2);
-
-        assert_eq!(pool.pool.lock().len(), 2);
-    }
-
-    #[test]
-    fn scratch_pool_bounded_drops_excess() {
-        let pool = ScratchPool::bounded(1);
-
-        let guard1 = pool.get();
-        let guard2 = pool.get();
-        drop(guard1);
-        drop(guard2);
-
-        assert_eq!(pool.pool.lock().len(), 1);
-    }
-
-    #[test]
-    fn heap_pool_reuses_heaps() {
-        let pool = HeapPool::new();
-
-        // First get: creates a new heap.
         let guard = pool.get();
-        let sym1 = guard.intern_symbol("hello");
-        assert_eq!(sym1.as_str(), "hello");
+        let first = ptr::from_mut(guard.alloc(1_u64));
         drop(guard);
 
-        // Second get: should reuse the heap (pool has one to hand back).
-        // The returned heap was reset, so the runtime symbol is gone,
-        // but interning the same string still works (gets a fresh allocation).
         let guard = pool.get();
-        let sym2 = guard.intern_symbol("hello");
-        assert_eq!(sym2.as_str(), "hello");
-        drop(guard);
+        let second = ptr::from_mut(guard.alloc(2_u64));
 
-        // Pool should have exactly one heap in it now.
-        assert_eq!(pool.pool.lock().len(), 1);
+        assert_eq!(first, second);
+        assert_eq!(pool.arenas.lock().len(), 0);
+
+        drop(guard);
+        assert_eq!(pool.arenas.lock().len(), 1);
     }
 
     #[test]
-    fn heap_pool_bounded_drops_excess() {
-        let pool = HeapPool::bounded(1);
+    fn get_creates_arena_for_each_live_guard() {
+        let pool = Pool::<Scratch, Global>::new();
 
-        // Borrow two heaps simultaneously.
-        let guard1 = pool.get();
-        let guard2 = pool.get();
-        guard1.intern_symbol("a");
-        guard2.intern_symbol("b");
+        let first = pool.get();
+        let second = pool.get();
 
-        // Return both. Only one should be retained.
-        drop(guard1);
-        drop(guard2);
-        assert_eq!(pool.pool.lock().len(), 1);
+        assert_eq!(sum_in(&*first, &[1, 2]), 3);
+        assert_eq!(sum_in(&*second, &[3, 4]), 7);
 
-        // A new get still works (reuses the one retained heap).
-        let guard = pool.get();
-        assert_eq!(pool.pool.lock().len(), 0);
-        drop(guard);
-        assert_eq!(pool.pool.lock().len(), 1);
+        drop(first);
+        drop(second);
+        assert_eq!(pool.arenas.lock().len(), 2);
     }
 
     #[test]
-    fn heap_pool_grows_under_concurrent_demand() {
-        let pool = HeapPool::new();
+    fn get_creates_arena_unlocked() {
+        static POOL: Pool<Probe, Global> = Pool::new();
+        static UNLOCKED: AtomicBool = AtomicBool::new(false);
 
-        // Borrow two heaps simultaneously.
-        let guard1 = pool.get();
-        let guard2 = pool.get();
+        struct Probe;
 
-        // Both are independent: interning in one doesn't affect the other.
-        let sym1 = guard1.intern_symbol("aaa");
-        let sym2 = guard2.intern_symbol("bbb");
-        assert_eq!(sym1.as_str(), "aaa");
-        assert_eq!(sym2.as_str(), "bbb");
+        impl Default for Probe {
+            fn default() -> Self {
+                UNLOCKED.store(POOL.arenas.try_lock().is_ok(), Ordering::Relaxed);
 
-        drop(guard1);
-        drop(guard2);
+                Self
+            }
+        }
 
-        // Both heaps returned to pool.
-        assert_eq!(pool.pool.lock().len(), 2);
+        // SAFETY: A `Probe` owns no memory and hands out no references.
+        unsafe impl ResetAllocator for Probe {
+            fn reset(&mut self) {}
+        }
+
+        drop(POOL.get());
+
+        assert!(UNLOCKED.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn bounded_drops_excess_arena() {
+        static DROPS: AtomicUsize = AtomicUsize::new(0);
+
+        #[derive(Default)]
+        struct Counted;
+
+        impl Drop for Counted {
+            fn drop(&mut self) {
+                DROPS.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+
+        // SAFETY: A `Counted` owns no memory and hands out no references.
+        unsafe impl ResetAllocator for Counted {
+            fn reset(&mut self) {}
+        }
+
+        let pool = Pool::<Counted, Global>::bounded(1);
+
+        let first = pool.get();
+        let second = pool.get();
+
+        drop(first);
+        assert_eq!(DROPS.load(Ordering::Relaxed), 0);
+
+        drop(second);
+        assert_eq!(DROPS.load(Ordering::Relaxed), 1);
+        assert_eq!(pool.arenas.lock().len(), 1);
+    }
+
+    #[test]
+    fn guard_resolves_arena_methods() {
+        let pool = Pool::<Heap, Global>::new();
+
+        let guard = pool.get();
+        let symbol = guard.alloc_symbol("pooled name");
+
+        assert_eq!(*guard.alloc(symbol), symbol);
+        drop(guard);
     }
 }

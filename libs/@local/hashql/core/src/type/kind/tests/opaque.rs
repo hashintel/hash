@@ -2,7 +2,7 @@
 use core::assert_matches;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     r#type::{
         PartialType,
@@ -481,7 +481,7 @@ fn collect_constraints_generic_params() {
         opaque!(env, "Type", param1),
         [GenericArgument {
             id: arg1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -491,7 +491,7 @@ fn collect_constraints_generic_params() {
         opaque!(env, "Type", param2),
         [GenericArgument {
             id: arg2,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -634,7 +634,7 @@ fn simplify_recursive_opaque() {
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
         kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
-            name: heap.intern_symbol("RecursiveOpaque"),
+            name: heap.alloc_symbol("RecursiveOpaque"),
             repr: id.value(),
         })),
     });
@@ -664,7 +664,7 @@ fn instantiate_opaque() {
         opaque!(env, "A", param),
         [GenericArgument {
             id: argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );

@@ -6,7 +6,7 @@ use hashql_diagnostics::Success;
 use super::{Constraint, InferenceSolver, InferenceSolverConfig, VariableConstraint};
 use crate::{
     collections::{FastHashMap, SmallVec},
-    heap::{Heap, Scratch},
+    heap::{Heap, Scratch, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -1117,7 +1117,7 @@ fn contract() {
             kind: env.intern_kind(TypeKind::Struct(StructType {
                 fields: env
                     .intern_struct_fields(&mut [StructField {
-                        name: env.heap.intern_symbol("name"),
+                        name: env.heap.alloc_symbol("name"),
                         value: id.value(),
                     }])
                     .expect("should be unique"),
@@ -1222,7 +1222,7 @@ fn single_projection() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1268,12 +1268,12 @@ fn multi_projection() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         variable.into_type(&env).id,
-        Ident::synthetic(heap.intern_symbol("b")),
+        Ident::synthetic(heap.alloc_symbol("b")),
     );
 
     let solver = environment.into_solver();
@@ -1322,7 +1322,7 @@ fn early_projection() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         variable,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1358,7 +1358,7 @@ fn late_projection() {
     let access = environment.add_projection(
         SpanId::SYNTHETIC,
         variable,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1406,7 +1406,7 @@ fn unconstrained_projection() {
     environment.add_projection(
         SpanId::SYNTHETIC,
         variable,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1438,7 +1438,7 @@ fn recursive_projection() {
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
         kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
-            name: heap.intern_symbol("example"),
+            name: heap.alloc_symbol("example"),
             repr: id.value(),
         })),
     });
@@ -1448,7 +1448,7 @@ fn recursive_projection() {
     environment.add_projection(
         SpanId::SYNTHETIC,
         circular.id,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1487,7 +1487,7 @@ fn projection_equality_constraint() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1537,7 +1537,7 @@ fn projection_unify_variables_lower() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1587,7 +1587,7 @@ fn projection_unify_variables_upper() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1639,7 +1639,7 @@ fn projection_unify_variables_equal_is_equivalent() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.add_constraint(Constraint::Equals {
@@ -1690,7 +1690,7 @@ fn projection_unify_variables_equal_is_not_equivalent() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.add_constraint(Constraint::Equals {
@@ -1734,7 +1734,7 @@ fn projection_simplify() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         intersection,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1951,7 +1951,7 @@ fn recursive_subscript() {
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
         kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
-            name: heap.intern_symbol("example"),
+            name: heap.alloc_symbol("example"),
             repr: id.value(),
         })),
     });
@@ -2470,7 +2470,7 @@ fn long_projection_chain() {
 
     scaffold!(heap, env, builder);
 
-    let field = Ident::synthetic(heap.intern_symbol("f"));
+    let field = Ident::synthetic(heap.alloc_symbol("f"));
 
     let mut record = builder.integer();
     for _ in 0..depth {
@@ -2596,7 +2596,7 @@ fn non_convergent_recursive_key() {
     // solver iterating until the subscripts discharge constraints a second time.
     scaffold!(heap, env, builder);
 
-    let field = |name| Ident::synthetic(heap.intern_symbol(name));
+    let field = |name| Ident::synthetic(heap.alloc_symbol(name));
 
     let recursive = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -2717,7 +2717,7 @@ fn non_convergent_repeated_conflict() {
     // discharge both equalities at every attempt, which raises their conflict every time.
     scaffold!(heap, env, builder);
 
-    let field = Ident::synthetic(heap.intern_symbol("f"));
+    let field = Ident::synthetic(heap.alloc_symbol("f"));
     let index = builder.infer(builder.fresh_hole());
 
     let mut inference = InferenceEnvironment::new(&env);

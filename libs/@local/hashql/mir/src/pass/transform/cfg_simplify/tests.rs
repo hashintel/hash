@@ -4,7 +4,7 @@ use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
-    heap::Heap,
+    heap::{Heap, Scratch},
     pretty::Formatter,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
@@ -50,7 +50,7 @@ fn assert_cfg_simplify_pass<'heap>(
         .format(DefIdSlice::from_raw(&bodies), &[])
         .expect("should be able to write bodies");
 
-    let changed = CfgSimplify::new().run(context, &mut bodies[0]);
+    let changed = CfgSimplify::new_in(Scratch::new().as_mut_scope()).run(context, &mut bodies[0]);
     write!(
         text_format.writer,
         "\n\n{:=^50}\n\n",

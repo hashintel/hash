@@ -3,6 +3,7 @@ use core::mem;
 
 use hashql_core::{
     collections::{FastHashMap, TinyVec, fast_hash_map_with_capacity},
+    heap::SymbolAllocator as _,
     module::{
         ModuleRegistry,
         locals::{Local, Locals, TypeLocals},
@@ -141,7 +142,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                     identity: Identity::Nominal(
                         self.environment
                             .heap
-                            .intern_symbol(&format!("{}::{}", self.module, name)),
+                            .alloc_symbol(&format!("{}::{}", self.module, name)),
                     ),
                     arguments,
                 },

@@ -17,7 +17,7 @@ use crate::id::bit_vec::DenseBitSet;
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
     graph::{DirectedGraph, EdgeId, Successors},
-    heap::BumpAllocator,
+    heap::PhaseAllocator,
     id::{HasId, Id, IdSlice, IdVec, newtype},
 };
 
@@ -412,12 +412,12 @@ where
     }
 }
 
-impl<'alloc, N, S, M, A> StronglyConnectedComponents<N, S, M, &'alloc A>
+impl<'alloc, N, S, M, A> StronglyConnectedComponents<N, S, M, A>
 where
     N: Id,
     S: Id,
     M: Metadata<N, S>,
-    A: BumpAllocator,
+    A: PhaseAllocator<'alloc>,
 {
     pub fn bump_members(&self) -> MembersRef<'alloc, N, S> {
         self.bump_members_in(self.alloc)
@@ -427,8 +427,8 @@ where
         let num_sccs = self.data.components.len();
         let num_nodes = self.data.nodes.len();
 
-        let nodes = self.alloc.allocate_slice_uninit(num_nodes);
-        let offsets = IdSlice::from_raw_mut(self.alloc.allocate_slice_uninit(num_sccs + 1));
+        let nodes = self.alloc.alloc_slice_uninit(num_nodes);
+        let offsets = IdSlice::from_raw_mut(self.alloc.alloc_slice_uninit(num_sccs + 1));
 
         let (nodes, offsets) = self.members_in_impl(scratch, nodes, offsets);
 

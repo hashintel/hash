@@ -1,5 +1,5 @@
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     pretty::{Formatter, RenderOptions},
     span::SpanId,
     r#type::{
@@ -549,7 +549,7 @@ fn simplify_instantiate_recursive() {
                 r#struct!(env, [struct_field!(env, "foo", recursive.value())]),
                 [GenericArgument {
                     id: t,
-                    name: heap.intern_symbol("T"),
+                    name: heap.alloc_symbol("T"),
                     constraint: None
                 }]
             ),
@@ -653,7 +653,7 @@ fn instantiate_generic() {
         ),
         [GenericArgument {
             id: argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -709,7 +709,7 @@ fn instantiate_distinct() {
         ),
         [GenericArgument {
             id: argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -800,7 +800,7 @@ fn instantiate_recursive() {
                     ),
                     arguments: env.intern_generic_arguments(&mut [GenericArgument {
                         id: argument,
-                        name: heap.intern_symbol("T"),
+                        name: heap.alloc_symbol("T"),
                         constraint: None,
                     }]),
                 })),
@@ -848,7 +848,7 @@ fn instantiated_nested() {
         ),
         [GenericArgument {
             id: foo_argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -883,7 +883,7 @@ fn instantiated_nested() {
                 ),
                 arguments: env.intern_generic_arguments(&mut [GenericArgument {
                     id: bar_argument,
-                    name: heap.intern_symbol("U"),
+                    name: heap.alloc_symbol("U"),
                     constraint: None,
                 }]),
             })),
@@ -942,7 +942,7 @@ fn instantiate_mutually_recursive() {
             ),
             [GenericArgument {
                 id: u,
-                name: heap.intern_symbol("U"),
+                name: heap.alloc_symbol("U"),
                 constraint: None
             }]
         );
@@ -968,7 +968,7 @@ fn instantiate_mutually_recursive() {
                 ),
                 arguments: env.intern_generic_arguments(&mut [GenericArgument {
                     id: t,
-                    name: heap.intern_symbol("T"),
+                    name: heap.alloc_symbol("T"),
                     constraint: None,
                 }]),
             })),
@@ -1022,7 +1022,7 @@ fn simplify_recursive_unused() {
             ),
             [GenericArgument {
                 id: u,
-                name: heap.intern_symbol("U"),
+                name: heap.alloc_symbol("U"),
                 constraint: None
             }]
         );
@@ -1048,7 +1048,7 @@ fn simplify_recursive_unused() {
                 ),
                 arguments: env.intern_generic_arguments(&mut [GenericArgument {
                     id: t,
-                    name: heap.intern_symbol("T"),
+                    name: heap.alloc_symbol("T"),
                     constraint: None,
                 }]),
             })),
@@ -1093,7 +1093,7 @@ fn instantiate_different_substitutions() {
         ),
         [GenericArgument {
             id: foo_argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1183,12 +1183,12 @@ fn instantiate_partial() {
                 arguments: env.intern_generic_arguments(&mut [
                     GenericArgument {
                         id: t,
-                        name: heap.intern_symbol("T"),
+                        name: heap.alloc_symbol("T"),
                         constraint: None,
                     },
                     GenericArgument {
                         id: u,
-                        name: heap.intern_symbol("U"),
+                        name: heap.alloc_symbol("U"),
                         constraint: None,
                     },
                 ]),

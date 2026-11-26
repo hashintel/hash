@@ -1,12 +1,11 @@
-//! Allocator-aware iterator collection.
-
+use alloc::vec::Vec;
 use core::alloc::Allocator;
 
-/// Construct a collection from an iterator using the provided allocator.
+/// [`FromIterator`] with an allocator argument.
 ///
-/// Allocator-aware equivalent of [`FromIterator`].
-pub trait FromIteratorIn<T, A: Allocator> {
-    /// Creates a collection from an iterator, allocating in `alloc`.
+/// Implement it for a collection, and call it through [`CollectIn::collect_in`].
+pub trait FromIteratorIn<T, A: Allocator>: Sized {
+    /// Builds the collection in `alloc` from the items of `iter`.
     fn from_iter_in<I>(iter: I, alloc: A) -> Self
     where
         I: IntoIterator<Item = T>;
@@ -20,72 +19,83 @@ impl<T, A: Allocator> FromIteratorIn<T, A> for Vec<T, A> {
     {
         let mut vec = Self::new_in(alloc);
         vec.extend(iter);
+
         vec
     }
 }
 
-/// Extension trait for collecting iterators into allocator-aware containers.
+/// [`Iterator::collect`] with an allocator argument.
 ///
-/// Provides [`collect_in`](Self::collect_in), analogous to [`Iterator::collect`]
-/// but with an explicit allocator parameter.
-pub trait CollectIn<C, A: Allocator> {
-    /// Collects the iterator into a container using the given allocator.
-    fn collect_in(self, alloc: A) -> C;
+/// Every [`Iterator`] implements this trait.
+///
+/// # Example
+///
+/// ```
+/// use hashql_core::heap::{CollectIn as _, Scratch};
+///
+/// let scratch = Scratch::new();
+///
+/// let squares: Vec<u32, &Scratch> = (1..=3_u32).map(|value| value * value).collect_in(&scratch);
+///
+/// assert_eq!(squares, [1, 4, 9]);
+/// ```
+pub trait CollectIn<A: Allocator>: Iterator + Sized {
+    /// Collects the items of the iterator into a `C` in `alloc`.
+    ///
+    /// Name the collection in the type of the binding or in the turbofish, as in
+    /// `collect_in::<Vec<_, _>>(alloc)`.
+    fn collect_in<C>(self, alloc: A) -> C
+    where
+        C: FromIteratorIn<Self::Item, A>;
 }
 
-impl<I, C: FromIteratorIn<T, A>, T, A: Allocator> CollectIn<C, A> for I
+impl<I, A: Allocator> CollectIn<A> for I
 where
-    I: IntoIterator<Item = T>,
+    I: Iterator,
 {
     #[inline]
-    fn collect_in(self, alloc: A) -> C {
+    fn collect_in<C>(self, alloc: A) -> C
+    where
+        C: FromIteratorIn<I::Item, A>,
+    {
         C::from_iter_in(self, alloc)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::heap::Heap;
+    use alloc::{alloc::Global, vec::Vec};
+
+    use super::{CollectIn as _, FromIteratorIn as _};
+    use crate::heap::Scratch;
 
     #[test]
-    fn collect_range_into_vec() {
-        let heap = Heap::new();
-        let vec: Vec<i32, &Heap> = (0..5).collect_in(&heap);
+    fn collect_in_arena() {
+        let scratch = Scratch::new();
 
-        assert_eq!(vec.as_slice(), &[0, 1, 2, 3, 4]);
+        let doubled: Vec<u32, &Scratch> = [1_u32, 2, 3]
+            .iter()
+            .map(|value| value * 2)
+            .collect_in(&scratch);
+
+        assert_eq!(doubled, [2, 4, 6]);
     }
 
     #[test]
-    fn collect_mapped_iterator() {
-        let heap = Heap::new();
-        let vec: Vec<i32, &Heap> = [1, 2, 3].iter().map(|x| x * 2).collect_in(&heap);
+    fn collect_in_turbofish() {
+        let squares = (1_u32..4)
+            .map(|value| value * value)
+            .collect_in::<Vec<_, _>>(Global);
 
-        assert_eq!(vec.as_slice(), &[2, 4, 6]);
-    }
-
-    #[expect(clippy::integer_division_remainder_used)]
-    #[test]
-    fn collect_filtered_iterator() {
-        let heap = Heap::new();
-        let vec: Vec<i32, &Heap> = (0..10).filter(|x| x % 2 == 0).collect_in(&heap);
-
-        assert_eq!(vec.as_slice(), &[0, 2, 4, 6, 8]);
+        assert_eq!(squares, [1, 4, 9]);
     }
 
     #[test]
-    fn from_iter_in_directly() {
-        let heap = Heap::new();
-        let vec: Vec<char, &Heap> = Vec::from_iter_in(['a', 'b', 'c'], &heap);
+    fn from_iter_in_empty() {
+        let scratch = Scratch::new();
 
-        assert_eq!(vec.as_slice(), &['a', 'b', 'c']);
-    }
+        let empty = Vec::<u8, _>::from_iter_in([], &scratch);
 
-    #[test]
-    fn collect_empty_iterator() {
-        let heap = Heap::new();
-        let vec: Vec<u8, &Heap> = core::iter::empty().collect_in(&heap);
-
-        assert_eq!(vec, [] as [u8; 0]);
+        assert_eq!(empty, [] as [u8; 0]);
     }
 }

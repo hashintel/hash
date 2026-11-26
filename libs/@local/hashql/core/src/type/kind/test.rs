@@ -44,7 +44,7 @@ macro_rules! r#struct {
 macro_rules! struct_field {
     ($env:expr, $name:expr, $value:expr) => {
         StructField {
-            name: $env.heap.intern_symbol($name),
+            name: $env.heap.alloc_symbol($name),
             value: $value,
         }
     };
@@ -174,7 +174,7 @@ macro_rules! assert_equiv {
 macro_rules! opaque {
     ($env:expr, $name:expr, $repr:expr) => {{
         let repr = $repr;
-        let name = $env.heap.intern_symbol($name);
+        let name = $env.heap.alloc_symbol($name);
 
         instantiate(&$env, TypeKind::Opaque(OpaqueType { name, repr }))
     }};

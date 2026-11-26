@@ -7,7 +7,10 @@ use hashql_ast::node::{
     },
     id::NodeId,
 };
-use hashql_core::value::{self, Primitive};
+use hashql_core::{
+    heap::SymbolAllocator as _,
+    value::{self, Primitive},
+};
 
 use super::{LowerItem, Lowerer};
 use crate::{
@@ -25,7 +28,7 @@ fn lower_literal_value<'heap, A: Allocator>(
         cst::LiteralToken::Null(_) => Primitive::Null,
         cst::LiteralToken::Bool(token) => Primitive::Boolean(token.value()),
         cst::LiteralToken::Number(token) => {
-            let symbol = lowerer.heap().intern_symbol(token.text());
+            let symbol = lowerer.heap().alloc_symbol(token.text());
             if token.is_float() {
                 Primitive::Float(value::Float::new_unchecked(symbol))
             } else {
@@ -37,7 +40,7 @@ fn lower_literal_value<'heap, A: Allocator>(
                 return None;
             };
 
-            Primitive::String(value::String::new(lowerer.heap().intern_symbol(&decoded)))
+            Primitive::String(value::String::new(lowerer.heap().alloc_symbol(&decoded)))
         }
     };
 
@@ -311,7 +314,7 @@ where
                 kind: ExprKind::Literal(LiteralExpr {
                     id: NodeId::PLACEHOLDER,
                     span: key_span,
-                    kind: Primitive::String(value::String::new(heap.intern_symbol(&decoded))),
+                    kind: Primitive::String(value::String::new(heap.alloc_symbol(&decoded))),
                     r#type: None,
                 }),
             })

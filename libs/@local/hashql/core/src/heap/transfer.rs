@@ -1,142 +1,181 @@
-//! Zero-copy data transfer into arena allocators.
-use core::alloc::{AllocError, Allocator};
+use alloc::alloc::handle_alloc_error;
+use core::alloc::{AllocError, Layout};
 
-use super::BumpAllocator;
+use super::PhaseAllocator;
 
-/// Transfers data into an arena allocator.
+/// Data that an arena can take a copy of.
 ///
-/// # Why Arena-Only?
+/// `transfer_into` copies a slice or a string into an arena and returns the copy, which lives for
+/// `'alloc`. It does for an arena what [`ToOwned`] does for the global allocator: it turns borrowed
+/// data into data that the destination keeps. To move a single value into an arena, call
+/// [`PhaseAllocator::alloc`].
 ///
-/// This trait is intentionally **not** implemented for arbitrary allocators like `Global`.
-/// The returned reference has lifetime `'alloc`, which is sound for arena allocators
-/// because their memory remains valid until explicit `reset()` or `drop()`. For `Global`,
-/// this would allow creating `&'static` references to heap memory, causing memory leaks.
+/// A type that holds such data, for example a shared pointer to a slice, can implement this trait
+/// with the [`Output`] of the data it holds. Code that is generic over `TransferInto` then accepts
+/// the holder wherever it accepts the data.
 ///
-/// # Safety
+/// # Example
 ///
-/// Implementors must guarantee:
+/// ```
+/// use hashql_core::heap::{Scratch, TransferInto as _};
 ///
-/// - Allocations use the correct [`Layout`] for the data being transferred
-/// - The allocated memory is fully initialized before returning
-/// - No aliasing violations when returning `&mut` references
-/// - The allocator keeps memory valid for the full `'alloc` lifetime
+/// let scratch = Scratch::new();
+/// let source = String::from("total price");
 ///
-/// [`Layout`]: core::alloc::Layout
-pub unsafe trait TransferInto<'alloc, A: Allocator> {
+/// // The copy lives as long as the borrow of `scratch`, and no longer borrows `source`.
+/// let copy: &str = source.as_str().transfer_into(&scratch);
+/// drop(source);
+///
+/// assert_eq!(copy, "total price");
+/// ```
+///
+/// [`Output`]: Self::Output
+pub trait TransferInto<'alloc, A>
+where
+    A: PhaseAllocator<'alloc>,
+{
+    /// The copy in the arena.
     type Output;
 
-    /// Transfers `self` into the given allocator.
-    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output;
-
-    /// Attempts to transfer `self` into the given allocator.
+    /// Copies `self` into the arena of `alloc`.
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] if allocation fails.
-    fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError>;
+    /// Returns [`AllocError`] if the arena cannot provide the memory.
+    fn try_transfer_into(&self, alloc: A) -> Result<Self::Output, AllocError>;
+
+    /// Copies `self` into the arena of `alloc`.
+    ///
+    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
+    /// [`try_transfer_into`] to handle that failure yourself.
+    ///
+    /// # Implementation Note
+    ///
+    /// The provided method reports the layout of `self` to [`handle_alloc_error`]. An
+    /// implementation that copies other data than `self` must override it and report the layout of
+    /// that data.
+    ///
+    /// [`try_transfer_into`]: Self::try_transfer_into
+    #[expect(
+        clippy::single_match_else,
+        clippy::option_if_let_else,
+        reason = "clarity"
+    )]
+    #[inline]
+    fn transfer_into(&self, alloc: A) -> Self::Output {
+        match self.try_transfer_into(alloc) {
+            Ok(value) => value,
+            Err(_) => {
+                let layout = Layout::for_value(self);
+                handle_alloc_error(layout)
+            }
+        }
+    }
 }
 
-// SAFETY: Arena memory remains valid for 'alloc. bump_scope handles layout/initialization.
-unsafe impl<'alloc, T: Copy + 'alloc, A: BumpAllocator> TransferInto<'alloc, A> for [T] {
+impl<'alloc, T, A> TransferInto<'alloc, A> for [T]
+where
+    T: Copy + 'alloc,
+    A: PhaseAllocator<'alloc>,
+{
     type Output = &'alloc mut Self;
 
     #[inline]
-    fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
-        allocator.try_allocate_slice_copy(self)
-    }
-
-    #[inline]
-    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output {
-        allocator.allocate_slice_copy(self)
+    fn try_transfer_into(&self, alloc: A) -> Result<Self::Output, AllocError> {
+        alloc.try_alloc_slice_copy(self)
     }
 }
 
-// SAFETY: Arena memory remains valid for 'alloc. bump_scope handles layout/initialization.
-unsafe impl<'alloc, A: BumpAllocator> TransferInto<'alloc, A> for str {
+impl<'alloc, A> TransferInto<'alloc, A> for str
+where
+    A: PhaseAllocator<'alloc>,
+{
     type Output = &'alloc mut Self;
 
     #[inline]
-    fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
-        let buffer = allocator.try_allocate_slice_copy(self.as_bytes())?;
+    fn try_transfer_into(&self, alloc: A) -> Result<Self::Output, AllocError> {
+        let bytes = alloc.try_alloc_slice_copy(self.as_bytes())?;
 
-        // SAFETY: The comes from a valid string
-        unsafe { Ok(Self::from_utf8_unchecked_mut(buffer)) }
-    }
-
-    #[inline]
-    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output {
-        let buffer = allocator.allocate_slice_copy(self.as_bytes());
-
-        // SAFETY: The comes from a valid string
-        unsafe { Self::from_utf8_unchecked_mut(buffer) }
+        // SAFETY: A `PhaseAllocator` must return from `try_alloc_slice_copy` the elements of its
+        // argument, in the same order. `bytes` therefore holds the bytes of `self`, which are valid
+        // UTF-8.
+        Ok(unsafe { Self::from_utf8_unchecked_mut(bytes) })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::heap::Heap;
+    use alloc::rc::Rc;
+    use core::alloc::AllocError;
+
+    use super::TransferInto;
+    use crate::heap::{PhaseAllocator, Scratch};
+
+    // Holds the data that it transfers, as a shared pointer does.
+    struct Shared<T: ?Sized>(Rc<T>);
+
+    impl<'alloc, T, A> TransferInto<'alloc, A> for Shared<T>
+    where
+        T: TransferInto<'alloc, A> + ?Sized,
+        A: PhaseAllocator<'alloc>,
+    {
+        type Output = T::Output;
+
+        fn try_transfer_into(&self, alloc: A) -> Result<Self::Output, AllocError> {
+            self.0.try_transfer_into(alloc)
+        }
+
+        fn transfer_into(&self, alloc: A) -> Self::Output {
+            self.0.transfer_into(alloc)
+        }
+    }
+
+    // Copies `value` into the arena, as an interner does with a value it has not seen before.
+    fn keep<'alloc, T, U, A>(alloc: A, value: &T) -> &'alloc U
+    where
+        T: TransferInto<'alloc, A, Output = &'alloc mut U> + ?Sized,
+        U: ?Sized + 'alloc,
+        A: PhaseAllocator<'alloc>,
+    {
+        value.transfer_into(alloc)
+    }
 
     #[test]
     fn transfer_slice() {
-        let heap = Heap::new();
-        let original: &[u32] = &[1, 2, 3, 4, 5];
-        let transferred = original.transfer_into(&heap);
+        let scratch = Scratch::new();
+        let original = [1_u32, 2, 3];
 
-        assert_eq!(transferred, &[1, 2, 3, 4, 5]);
+        let copy = original.transfer_into(&scratch);
+        copy[0] = 9;
 
-        // Verify it's a copy, not the same memory
-        transferred[0] = 999;
-        assert_eq!(original[0], 1);
+        assert_eq!((copy, original), (&mut [9, 2, 3][..], [1, 2, 3]));
     }
 
     #[test]
     fn transfer_str() {
-        let heap = Heap::new();
-        let original = "hello world";
-        let transferred = original.transfer_into(&heap);
+        let scratch = Scratch::new();
 
-        assert_eq!(transferred, "hello world");
+        assert_eq!("caf\u{e9}".transfer_into(&scratch), "caf\u{e9}");
+        assert_eq!("".transfer_into(&scratch), "");
     }
 
     #[test]
-    fn transfer_empty_slice() {
-        let heap = Heap::new();
-        let original: &[u8] = &[];
-        let transferred = original.transfer_into(&heap);
+    fn transfer_unsized_generic() {
+        let scratch = Scratch::new();
 
-        assert_eq!(transferred, [] as [u8; 0]);
+        assert_eq!(keep(&scratch, "name"), "name");
+        assert_eq!(keep(&scratch, &[1_u8, 2][..]), [1, 2]);
     }
 
     #[test]
-    fn transfer_empty_str() {
-        let heap = Heap::new();
-        let original = "";
-        let transferred = original.transfer_into(&heap);
+    fn transfer_through_holder() {
+        let scratch = Scratch::new();
+        let shared = Shared(Rc::<str>::from("name"));
 
-        assert_eq!(transferred, "");
-    }
+        let copy: &mut str = shared.transfer_into(&scratch);
+        copy.make_ascii_uppercase();
 
-    #[test]
-    fn try_transfer_returns_ok() {
-        let heap = Heap::new();
-        let original: &[i64] = &[100, 200, 300];
-        let result = original.try_transfer_into(&heap);
-
-        assert!(result.is_ok());
-        assert_eq!(
-            result.expect("should be able to allocate"),
-            &[100, 200, 300]
-        );
-    }
-
-    #[expect(clippy::non_ascii_literal)]
-    #[test]
-    fn transfer_unicode_str() {
-        let heap = Heap::new();
-        let original = "日本語 🎉 émojis";
-        let transferred = original.transfer_into(&heap);
-
-        assert_eq!(transferred, "日本語 🎉 émojis");
+        assert_eq!((&*copy, &*shared.0), ("NAME", "name"));
+        assert_eq!(keep(&scratch, &shared), "name");
     }
 }

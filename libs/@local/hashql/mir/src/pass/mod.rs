@@ -24,7 +24,7 @@ use core::{
 };
 
 use hashql_core::{
-    heap::{BumpAllocator, Heap, ResetAllocator as _, Scratch},
+    heap::{Heap, PhaseAllocator, ResetAllocator as _, Scratch},
     span::SpanId,
 };
 use hashql_diagnostics::Status;
@@ -311,8 +311,11 @@ impl<'ctx> GlobalTransformState<'ctx> {
     ///
     /// This is useful when the state only needs to live for a single pass invocation and
     /// can be discarded when the allocator is reset.
-    pub fn new_in<A: BumpAllocator>(bodies: &DefIdSlice<impl Sized>, alloc: &'ctx A) -> Self {
-        let uninit_slice = alloc.allocate_slice_uninit(bodies.len());
+    pub fn new_in<A>(bodies: &DefIdSlice<impl Sized>, alloc: A) -> Self
+    where
+        A: PhaseAllocator<'ctx>,
+    {
+        let uninit_slice = alloc.alloc_slice_uninit(bodies.len());
         let changed = uninit_slice.write_filled(Changed::No);
 
         Self {
@@ -515,15 +518,15 @@ pub fn lower<'heap>(
 
     let mut state = GlobalTransformState::new_in(&*bodies, context.heap);
 
-    let mut pass = PreInline::new_in(&mut *scratch);
+    let mut pass = PreInline::new_in(scratch.as_mut_scope());
     let _: Changed = pass.run(context, &mut state, bodies);
     scratch.reset();
 
-    let mut pass = Inline::new_in(config.inline, &mut *scratch);
+    let mut pass = Inline::new_in(config.inline, &*scratch);
     let _: Changed = pass.run(context, &mut state, bodies);
     scratch.reset();
 
-    let mut pass = PostInline::new_in(&mut *scratch);
+    let mut pass = PostInline::new_in(scratch.as_mut_scope());
     let _: Changed = pass.run(context, &mut state, bodies);
     scratch.reset();
 
@@ -570,7 +573,7 @@ pub fn place<'heap>(
 
     let pass = ExecutionAnalysis {
         footprints: &footprints,
-        scratch: &mut *scratch,
+        scratch: &*scratch,
     };
     let residual = pass.run_all_in(context, bodies, heap);
     scratch.reset();

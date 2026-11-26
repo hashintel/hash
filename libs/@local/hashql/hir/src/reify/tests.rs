@@ -11,7 +11,7 @@ use hashql_ast::node::{
     value::Value as AstValue,
 };
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, Scratch, SymbolAllocator as _},
     module::ModuleRegistry,
     span::{Span as CoreSpan, SpanAncestors, SpanId, SpanTable, TextRange, TextSize},
     symbol::{Ident, IdentKind},
@@ -71,7 +71,7 @@ fn struct_entry<'heap>(heap: &'heap Heap, name: &str, value: Expr<'heap>) -> Str
         span: SpanId::SYNTHETIC,
         key: Ident {
             span: SpanId::SYNTHETIC,
-            value: heap.intern_symbol(name),
+            value: heap.alloc_symbol(name),
             kind: IdentKind::Lexical,
         },
         value,
@@ -126,13 +126,13 @@ fn value_all_data_constructors() {
         span: SpanId::SYNTHETIC,
         key: Box::new_in(
             synthetic_literal(Primitive::String(value::String::new(
-                heap.intern_symbol("k"),
+                heap.alloc_symbol("k"),
             ))),
             &heap,
         ),
         value: Box::new_in(
             synthetic_literal(Primitive::Integer(value::Integer::new_unchecked(
-                heap.intern_symbol("7"),
+                heap.alloc_symbol("7"),
             ))),
             &heap,
         ),
@@ -224,7 +224,7 @@ fn value_call_in_struct_field() {
         span: callee_span,
         name: Ident {
             span: callee_span,
-            value: heap.intern_symbol("add"),
+            value: heap.alloc_symbol("add"),
             kind: IdentKind::Lexical,
         },
         arguments: Vec::new_in(&heap),
@@ -260,7 +260,7 @@ fn value_call_in_struct_field() {
         span: call_span,
         key: Ident {
             span: field_span,
-            value: heap.intern_symbol("x"),
+            value: heap.alloc_symbol("x"),
             kind: IdentKind::Lexical,
         },
         value: call,

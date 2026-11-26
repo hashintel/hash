@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 use hashql_core::{
     graph::DirectedGraph as _,
-    heap::{Heap, Scratch},
+    heap::{Heap, Scratch, SymbolAllocator as _},
     module::{ModuleRegistry, Universe},
     symbol::sym,
     r#type::{TypeId, environment::Environment},
@@ -34,7 +34,7 @@ use crate::{
 fn lookup_stdlib_type<'heap>(heap: &'heap Heap, env: &Environment<'heap>, path: &[&str]) -> TypeId {
     let registry = ModuleRegistry::new(env);
     let item = registry
-        .lookup(path.iter().map(|s| heap.intern_symbol(s)), Universe::Type)
+        .lookup(path.iter().map(|s| heap.alloc_symbol(s)), Universe::Type)
         .unwrap_or_else(|| panic!("type {path:?} should exist in stdlib"));
 
     #[expect(clippy::wildcard_enum_match_arm)]
@@ -84,7 +84,7 @@ pub(super) fn make_entity_uuid_eq_body<'heap>(
     let const_uuid = Operand::Constant(Constant::Primitive(Primitive::String(
         hashql_core::value::String::new(
             env.heap
-                .intern_symbol("e2851dbb-7376-4959-9bca-f72cafc4448f"),
+                .alloc_symbol("e2851dbb-7376-4959-9bca-f72cafc4448f"),
         ),
     )));
 
@@ -197,10 +197,10 @@ fn run_execution<'heap>(
     size_analysis.run(context, DefIdSlice::from_raw(core::slice::from_ref(body)));
     let footprints = size_analysis.finish();
 
-    let mut scratch = Scratch::new();
+    let scratch = Scratch::new();
     let analysis = ExecutionAnalysis {
         footprints: &footprints,
-        scratch: &mut scratch,
+        scratch: &scratch,
     };
 
     let heap = context.heap;

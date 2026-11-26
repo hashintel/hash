@@ -5,6 +5,7 @@ use hashql_ast::node::{
     id::NodeId,
 };
 use hashql_core::{
+    heap::SymbolAllocator as _,
     symbol::{Ident, IdentKind},
     value::{self, Primitive},
 };
@@ -54,7 +55,7 @@ where
             Ok(Access::Field(Ident {
                 span: input.state.span(range),
 
-                value: input.state.heap.intern_symbol(digit),
+                value: input.state.heap.alloc_symbol(digit),
                 kind: IdentKind::Lexical, // Do we need to specify a different kind here?
             }))
         }
@@ -82,7 +83,7 @@ where
                 id: NodeId::PLACEHOLDER,
                 span: input.state.span(range),
                 kind: Primitive::Integer(value::Integer::new_unchecked(
-                    input.state.heap.intern_symbol(digit),
+                    input.state.heap.alloc_symbol(digit),
                 )),
                 r#type: None,
             })

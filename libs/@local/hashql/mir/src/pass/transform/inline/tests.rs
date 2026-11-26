@@ -115,8 +115,8 @@ fn assert_inline_pass<'heap>(
     let bodies = DefIdSlice::from_raw_mut(bodies);
     let before = format_bodies(bodies, context);
 
-    let mut heap = Heap::new();
-    let mut pass = Inline::new_in(config, &mut heap);
+    let heap = Heap::new();
+    let mut pass = Inline::new_in(config, &heap);
     let _: Changed = pass.run(
         context,
         &mut OwnedGlobalTransformState::new_in(bodies, Global).as_mut(),

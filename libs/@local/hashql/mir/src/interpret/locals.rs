@@ -407,7 +407,7 @@ mod tests {
     use core::{assert_matches, mem::MaybeUninit};
 
     use hashql_core::{
-        heap::Heap,
+        heap::{Heap, SymbolAllocator as _},
         id::{Id as _, IdSlice},
         span::SpanId,
         r#type::TypeId,
@@ -626,7 +626,7 @@ mod tests {
 
         let fields = interner
             .symbols
-            .intern_slice(&[heap.intern_symbol("a"), heap.intern_symbol("b")]);
+            .intern_slice(&[heap.alloc_symbol("a"), heap.alloc_symbol("b")]);
 
         let operands: Vec<Operand<'_>> = vec![
             Operand::Constant(Constant::Int(Int::from(10_i128))),

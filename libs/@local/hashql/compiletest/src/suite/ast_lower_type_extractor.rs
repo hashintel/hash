@@ -19,6 +19,7 @@ use hashql_core::{
         namespace::ModuleNamespace,
     },
     pretty::{Formatter, RenderOptions},
+    symbol::sym,
     r#type::{TypeFormatter, environment::Environment, kind::generic::GenericArgumentReference},
 };
 
@@ -50,15 +51,14 @@ impl Suite for AstLowerTypeExtractorSuite {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let mut expander = Expander::new(namespace, &mut scratch);
+        let mut expander = Expander::new(namespace, scratch.as_mut_scope());
         expander.visit_expr(&mut expr);
         process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut mangler = NameMangler::new(heap);
         mangler.visit_expr(&mut expr);
 
-        let mut extractor =
-            TypeDefinitionExtractor::new(&environment, &registry, heap.intern_symbol("::main"));
+        let mut extractor = TypeDefinitionExtractor::new(&environment, &registry, sym::path::main);
         extractor.visit_expr(&mut expr);
 
         let (locals, extractor_diagnostics) = extractor.finish();

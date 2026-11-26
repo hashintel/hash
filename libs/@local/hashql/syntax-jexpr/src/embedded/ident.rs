@@ -1,7 +1,7 @@
 use core::alloc::Allocator;
 
 use hashql_core::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     symbol::{Ident, IdentKind, Symbol},
 };
 use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quick};
@@ -18,10 +18,10 @@ use super::context::Input;
 
 fn intern<'heap>(heap: &'heap Heap, value: &str) -> Symbol<'heap> {
     if is_nfc_quick(value.chars()) == IsNormalized::Yes {
-        heap.intern_symbol(value)
+        heap.alloc_symbol(value)
     } else {
         let normalized: String = value.nfc().collect();
-        heap.intern_symbol(&normalized)
+        heap.alloc_symbol(&normalized)
     }
 }
 

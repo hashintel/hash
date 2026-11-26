@@ -15,7 +15,7 @@ use core::{alloc::Allocator, mem};
 
 use hashql_core::{
     graph::{Predecessors as _, Successors as _},
-    heap::BumpAllocator,
+    heap::PhaseAllocator,
     id::bit_vec::{BitRelations as _, DenseBitSet},
 };
 
@@ -131,7 +131,7 @@ impl ConstraintSatisfactionMode {
 /// CSP solver for assigning targets within a cyclic placement region.
 ///
 /// Borrows the parent [`PlacementSolver`] for cost estimation and target resolution.
-pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator> {
+pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S: Allocator> {
     pub solver: &'ctx mut PlacementSolver<'parent, 'alloc, A, S>,
 
     pub id: PlacementRegionId,
@@ -145,8 +145,9 @@ pub(crate) struct ConstraintSatisfaction<'ctx, 'parent, 'alloc, A: Allocator, S:
     cost_so_far: ApproxCost,
 }
 
-impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
-    ConstraintSatisfaction<'ctx, 'parent, 'alloc, A, S>
+impl<'ctx, 'parent, 'alloc, A: Allocator, S> ConstraintSatisfaction<'ctx, 'parent, 'alloc, A, S>
+where
+    S: PhaseAllocator<'alloc>,
 {
     /// Creates a new CSP solver for the given cyclic `region`.
     pub(crate) const fn new(
@@ -648,7 +649,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         } else {
             self.solver
                 .scratch
-                .allocate_slice_uninit(RETAIN_SOLUTIONS)
+                .alloc_slice_uninit(RETAIN_SOLUTIONS)
                 .write_filled(Solution::new())
         };
 

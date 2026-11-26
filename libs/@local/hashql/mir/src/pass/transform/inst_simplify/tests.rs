@@ -4,7 +4,7 @@ use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
-    heap::Heap,
+    heap::{Heap, Scratch},
     pretty::Formatter,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
@@ -56,7 +56,7 @@ fn assert_inst_simplify_pass<'heap>(
         .format(DefIdSlice::from_raw(&bodies), &[])
         .expect("should be able to write bodies");
 
-    let changed = InstSimplify::new().run(context, &mut bodies[0]);
+    let changed = InstSimplify::new_in(&Scratch::new()).run(context, &mut bodies[0]);
     write!(
         text_format.writer,
         "\n\n{:=^50}\n\n",
@@ -856,7 +856,7 @@ fn empty_tuple_to_unit() {
         }
     });
 
-    let changed = InstSimplify::new().run(
+    let changed = InstSimplify::new_in(&Scratch::new()).run(
         &mut MirContext {
             heap: &heap,
             env: &env,

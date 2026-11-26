@@ -5,7 +5,7 @@
 //! the result. Compilation errors are reported as structured diagnostics with
 //! source spans.
 
-use alloc::sync::Arc;
+use alloc::{alloc::Global, sync::Arc};
 use core::num::NonZero;
 use std::thread::available_parallelism;
 
@@ -18,7 +18,7 @@ use hash_graph_postgres_store::store::postgres::PostgresClient;
 use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_temporal_client::TemporalClient;
 use hashql_core::{
-    heap::{HeapPool, ResetAllocator as _, ScratchPool},
+    heap::{Heap, Pool, ResetAllocator as _, Scratch},
     span::{SpanId, SpanTable},
 };
 use hashql_diagnostics::{IntoStatus as _, Source, Sources, Status, StatusExt as _, Success};
@@ -50,8 +50,8 @@ mod value;
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
 pub struct CompilerContext {
-    pub scratches: ScratchPool,
-    pub heaps: HeapPool,
+    pub scratches: Pool<Scratch, Global>,
+    pub heaps: Pool<Heap, Global>,
     pub pool: LocalPoolHandle,
 }
 
@@ -61,8 +61,8 @@ impl CompilerContext {
     /// `memory_pool_size` bounds the heap and scratch pools; `None` leaves them unbounded.
     /// `exec_pool_size` sets the thread count; `None` uses the number of available CPU cores.
     pub fn new(memory_pool_size: Option<usize>, exec_pool_size: Option<NonZero<usize>>) -> Self {
-        let scratches = memory_pool_size.map_or_else(ScratchPool::new, ScratchPool::bounded);
-        let heaps = memory_pool_size.map_or_else(HeapPool::new, HeapPool::bounded);
+        let scratches = memory_pool_size.map_or_else(Pool::new, Pool::bounded);
+        let heaps = memory_pool_size.map_or_else(Pool::new, Pool::bounded);
 
         let thread_count = exec_pool_size.unwrap_or_else(|| {
             available_parallelism().unwrap_or(const { NonZero::new(4).unwrap() })
