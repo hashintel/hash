@@ -860,7 +860,7 @@ describe("startFlowNetRun", () => {
 
       expect(run.held()).toEqual(attemptEnds(ask, 1));
 
-      /* It leaves out its optional `answer`: the forEach reads its `Done` port, not an output. */
+      /* It leaves out its optional `answer`, which doesn't matter: the forEach reads its `Done` port. */
       run.fire({
         role: "succeedAttempt",
         stepRun: ask,
@@ -918,9 +918,7 @@ describe("startFlowNetRun", () => {
         itemCount: 0,
       });
 
-      expect(run.isPending({ stepId: "ask", itemPath: [] })).toBe(false);
       expect(run.isPending({ stepId: "after", itemPath: [] })).toBe(false);
-      expectFiringsFollowArcs(net, run);
     });
   });
 

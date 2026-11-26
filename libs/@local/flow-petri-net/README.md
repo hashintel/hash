@@ -130,10 +130,11 @@ flowchart LR
   - a constant, recorded in the instance's `metadata.constants`;
   - or, for an optional input with nothing connected and no default, a token marked absent (`present: false`).
 - **`runAfter`.** Each step a step runs after adds a read arc to its `t.startStep` or `t.startForEach`, unless the step already reads it. `position` doesn't change the net.
-  - A plain entry reads an action's `Done` port, and a for-each step's collected output, which then has a place no consumer takes it from.
-  - An entry with `outputName` (a path) reads that output, which likewise has a place no consumer takes it from. `metadata.paths` lists them for a step only on paths: when every one is marked absent, no path to it was taken, so it doesn't start and the executor skips it. A path's output can be marked absent and the step still start, so a for-each step only counts its own array (`metadata.array`) as missing.
+  - A plain entry reads an action's `Done` port, or a for-each step's collected output.
+  - An entry with `outputName` (a path) reads that output. `metadata.paths` lists them for a step only on paths: when every one is marked absent, no path to it was taken, so it doesn't start and the executor skips it.
+  - A collected output or path output a step reads this way always gets a place no consumer takes it from. A path's output can be marked absent while the step still starts, so a for-each step only counts its own array (`metadata.array`) as missing.
   - The net can't skip a step, so a step where paths rejoin never starts in the net, though the executor runs it.
-- **Ports.** Actions have a port per input and per output, a `Done` port that `succeedAttempt` puts a signal in alongside the outputs, and a `GaveUp` port. Kernels address places by name, so `Done` gets a `_` for each port already called that. An action with no inputs has a `Start` port instead of input ports. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
+- **Ports.** Actions have a port per input (or a `Start` port, with no inputs), a port per output, a `Done` port that `succeedAttempt` signals alongside the outputs, and a `GaveUp` port. Kernels address places by name, so `Done` gets a `_` for each port already called that. Keys inside a subnet are prefixed with the action id (`p.<action>.in.<input>`, `t.<action>.startAttempt`), because Petrinaut keys compiled kernels by unscoped id.
 - **Outputs.** A transition is only added where one token has to become several. A step's output stays in its instance's output port:
   - steps that only read it read the port, with read arcs;
   - a single step that consumes it, with no readers, takes it from the port;

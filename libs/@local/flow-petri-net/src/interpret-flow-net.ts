@@ -781,10 +781,7 @@ export const startFlowNetRun = (
       ),
     );
 
-  /**
-   * A `forEach` step can't start while its array is missing. Only its array counts: a path's output it reads to run
-   * after can be marked absent too.
-   */
+  /** A `forEach` step can't start while its array is missing. A path's output it runs after can be absent too. */
   const hasMissingArray = (
     { array }: Extract<TransitionMetadata, { role: "startForEach" }>,
     bindings: Binding[],

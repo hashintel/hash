@@ -57,10 +57,7 @@ type Value = {
     | { kind: "placed" };
   consumers: Consumer[];
   isFlowOutput: boolean;
-  /**
-   * Read by a step that runs after one of the value's step's paths, or after the for-each step that collects it, to tell
-   * that it has finished. A step that runs after an action reads its `Done` port instead.
-   */
+  /** Read by a step that runs after the path or for-each step it comes from, to tell that it has finished. */
   isWaitedOn: boolean;
 };
 
@@ -248,10 +245,7 @@ export const placeValues = ({
     }
   }
 
-  /*
-   * The value a step reads to tell that a step it runs after has finished: a path's output, or a for-each step's
-   * collected output. A plain line from an action reads its `Done` port instead, so it has none.
-   */
+  /* What a step reads to tell that a step it runs after has finished, unless it's an action's `Done` port. */
   const waitedOnValueKey = ({
     stepId,
     outputName,

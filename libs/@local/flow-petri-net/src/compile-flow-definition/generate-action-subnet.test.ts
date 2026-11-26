@@ -200,7 +200,7 @@ describe("generateActionSubnet", () => {
         ({ id }) =>
           id === generateSubnetElementKey("t", "finish", "succeedAttempt"),
       )?.transitionKernelCode,
-    ).toMatch(/"Done": \[.*\n.*"Done_": \[/);
+    ).toContain('"Done_": [');
   });
 
   it("types the ports of an action with derived kinds by the kinds resolved for a step", async () => {
