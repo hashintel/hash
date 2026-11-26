@@ -9,6 +9,7 @@ import { theme } from "@hashintel/design-system/theme";
 import { PagesSection } from "./pages-section";
 
 import type { WebId } from "@blockprotocol/type-system";
+import type { ComponentProps } from "react";
 
 const state = vi.hoisted(() => ({
   dashboards: false,
@@ -23,6 +24,11 @@ vi.mock("../../../../components/hooks/use-hash-instance", () => ({
   useHashInstance: () => ({ hashInstance: { properties: state } }),
 }));
 vi.mock("../../../routing", () => ({ useRoutePageInfo: () => ({}) }));
+vi.mock("../../../ui", () => ({
+  Link: ({ href, children }: ComponentProps<"a">) => (
+    <a href={href}>{children}</a>
+  ),
+}));
 vi.mock("./pages-section/dashboard-list", () => ({
   DashboardList: ({ webId }: { webId: WebId }) => {
     dashboardList(webId);
@@ -61,6 +67,9 @@ test("lists dashboards without requiring the block-page instance setting", () =>
   expect(screen.getByText("Dashboard links")).toBeTruthy();
   expect(screen.queryByText("Block page links")).toBeNull();
   expect(dashboardList).toHaveBeenCalledWith("workspace-one");
+  expect(
+    screen.getByRole("link", { name: "View all pages" }).getAttribute("href"),
+  ).toBe("/pages");
 });
 
 test.each([false, true])(
@@ -86,6 +95,9 @@ test("places both kinds of pages under one Pages heading", () => {
   expect(screen.getAllByRole("heading", { name: "Pages" })).toHaveLength(1);
   expect(screen.getByRole("region", { name: "Pages" }).textContent).toContain(
     "Block page links",
+  );
+  expect(screen.getByRole("region", { name: "Pages" }).textContent).toMatch(
+    /Dashboard linksBlock page linksView all pages$/,
   );
   expect(dashboardList).toHaveBeenCalledWith("workspace-two");
 });

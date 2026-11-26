@@ -2,26 +2,17 @@
 
 import { MockedProvider } from "@apollo/client/testing";
 import { ThemeProvider } from "@mui/material";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { theme } from "@hashintel/design-system/theme";
 
-import {
-  createEntityMutation,
-  querySidebarDashboardsQuery,
-} from "../../../../../graphql/queries/knowledge/entity.queries";
+import { querySidebarDashboardsQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { DashboardList } from "./dashboard-list";
 
 import type { MockedResponse } from "@apollo/client/testing";
 import type { WebId } from "@blockprotocol/type-system";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 
 const router = vi.hoisted(() => ({
   asPath: "/dashboard/dashboard-a?tab=edit",
@@ -52,10 +43,6 @@ vi.mock("../../../../ui/button", () => ({
       {children}
     </button>
   ),
-}));
-vi.mock("../../../../ui/modal", () => ({
-  Modal: ({ children, open }: { children: ReactNode; open: boolean }) =>
-    open ? <div role="dialog">{children}</div> : null,
 }));
 vi.mock("@hashintel/design-system", async () => {
   const mui = await import("@mui/material");
@@ -138,87 +125,4 @@ test("offers a retry after a failed dashboard request", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Try again" }));
   await screen.findByRole("link", { name: "Recovered" });
   expect(screen.queryByRole("alert")).toBeNull();
-});
-
-test("preserves a dashboard draft when creation in the selected workspace fails", async () => {
-  const variables = vi.fn(() => true);
-  renderList([
-    {
-      request: { query: querySidebarDashboardsQuery },
-      variableMatcher: () => true,
-      result: listResult([]),
-      maxUsageCount: 2,
-    },
-    {
-      request: { query: createEntityMutation },
-      variableMatcher: variables,
-      error: new Error("Offline"),
-    },
-  ]);
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("status", { name: "Loading dashboards" }),
-    ).toBeNull(),
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Create dashboard" }));
-  const input = screen.getByRole("textbox", { name: "Dashboard title" });
-  fireEvent.change(input, { target: { value: "  Team dashboard  " } });
-  const form = input.closest("form");
-  expect(form).not.toBeNull();
-  fireEvent.submit(form!);
-  await screen.findByRole("alert");
-  expect((input as HTMLInputElement).value).toBe("  Team dashboard  ");
-  expect(variables).toHaveBeenCalledWith(
-    expect.objectContaining({
-      webId,
-      properties: expect.objectContaining({
-        value: expect.objectContaining({
-          [nameUrl]: expect.objectContaining({ value: "Team dashboard" }),
-        }),
-      }),
-    }),
-  );
-  await waitFor(() =>
-    expect(
-      screen
-        .getAllByRole("button", { name: "Create dashboard" })
-        .every((button) => !button.hasAttribute("disabled")),
-    ).toBe(true),
-  );
-  expect(router.push).not.toHaveBeenCalled();
-});
-
-test("opens a created dashboard and refreshes the Pages list", async () => {
-  const created = dashboard("dashboard-new", "Team dashboard");
-  renderList([
-    {
-      request: { query: querySidebarDashboardsQuery },
-      variableMatcher: () => true,
-      result: listResult([]),
-    },
-    {
-      request: { query: createEntityMutation },
-      variableMatcher: () => true,
-      result: { data: { createEntity: created } },
-    },
-    {
-      request: { query: querySidebarDashboardsQuery },
-      variableMatcher: () => true,
-      result: listResult([created]),
-    },
-  ]);
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("status", { name: "Loading dashboards" }),
-    ).toBeNull(),
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Create dashboard" }));
-  const input = screen.getByRole("textbox", { name: "Dashboard title" });
-  fireEvent.change(input, { target: { value: "Team dashboard" } });
-  fireEvent.submit(input.closest("form")!);
-  await waitFor(() =>
-    expect(router.push).toHaveBeenCalledWith("/dashboard/dashboard-new"),
-  );
-  await screen.findByRole("link", { name: "Team dashboard" });
-  expect(screen.queryByRole("dialog")).toBeNull();
 });

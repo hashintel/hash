@@ -5,6 +5,7 @@ import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-fea
 import { useRoutePageInfo } from "../../../routing";
 import { AccountPageList } from "./account-page-list";
 import { DashboardList } from "./pages-section/dashboard-list";
+import { ViewAllLink } from "./shared/view-all-link";
 
 import type { WebId } from "@blockprotocol/type-system";
 
@@ -32,11 +33,13 @@ export const PagesSection = ({ webId }: { webId: WebId }) => {
       {enabledFeatureFlags.dashboards && <DashboardList webId={webId} />}
       {showBlockPages && (
         <AccountPageList
-          sectionTitle="Block pages"
           currentPageEntityUuid={routePageEntityUuid}
           webId={webId}
         />
       )}
+      <Box sx={{ ml: 0.75, mt: 0.5 }}>
+        <ViewAllLink href="/pages">View all pages</ViewAllLink>
+      </Box>
     </Box>
   );
 };

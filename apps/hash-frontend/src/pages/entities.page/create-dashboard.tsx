@@ -11,15 +11,16 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { createEntityMutation } from "../../../../../../graphql/queries/knowledge/entity.queries";
-import { PlusRegularIcon } from "../../../../../icons/plus-regular";
-import { Button } from "../../../../../ui/button";
-import { Modal } from "../../../../../ui/modal";
+import { createEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { PlusRegularIcon } from "../../shared/icons/plus-regular";
+import { Button } from "../../shared/ui/button";
+import { Modal } from "../../shared/ui/modal";
+import { CreateButton } from "../shared/create-button";
 
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
-} from "../../../../../../graphql/api-types.gen";
+} from "../../graphql/api-types.gen";
 import type { WebId } from "@blockprotocol/type-system";
 import type {
   Dashboard,
@@ -93,15 +94,13 @@ export const CreateDashboard = ({ webId }: { webId: WebId }) => {
 
   return (
     <>
-      <Button
-        size="xs"
+      <CreateButton
         variant="tertiary_quiet"
-        startIcon={<PlusRegularIcon />}
+        endIcon={<PlusRegularIcon />}
         onClick={() => setOpen(true)}
-        sx={{ mx: 2.25, my: 0.5 }}
       >
         Create dashboard
-      </Button>
+      </CreateButton>
       <Modal open={open} onClose={close} header={{ title: "Create dashboard" }}>
         <Box
           component="form"

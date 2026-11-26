@@ -15,7 +15,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { querySidebarDashboardsQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../../ui/button";
 import { TopNavLink } from "../top-nav-link";
-import { CreateDashboard } from "./dashboard-list/create-dashboard";
 
 import type {
   QuerySidebarDashboardsQuery,
@@ -111,7 +110,6 @@ export const DashboardList = ({ webId }: { webId: WebId }) => {
           />
         );
       })}
-      <CreateDashboard webId={webId} />
     </>
   );
 };

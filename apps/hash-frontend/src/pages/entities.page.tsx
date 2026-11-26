@@ -38,6 +38,7 @@ import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
+import { CreateDashboard } from "./entities.page/create-dashboard";
 import { CreateButton } from "./shared/create-button";
 import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { largePageMaxWidthCss } from "./shared/page-width";
@@ -174,6 +175,8 @@ export const CreateButtons: FunctionComponent<{
 
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+  const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
 
@@ -340,11 +343,21 @@ const EntitiesPage: NextPageWithLayout = () => {
                 {pageTitle}
               </Typography>
             </Stack>
-            <Fade in={displayCreateEntityButton}>
-              <Box>
-                <CreateButtons entityType={entityType} />
-              </Box>
-            </Fade>
+            <Stack direction="row" gap={3} alignItems="center">
+              <Fade in={displayCreateEntityButton}>
+                <Box>
+                  <CreateButtons entityType={entityType} />
+                </Box>
+              </Fade>
+              {isViewAllPagesPage &&
+                enabledFeatureFlags.dashboards &&
+                activeWorkspaceWebId && (
+                  <CreateDashboard
+                    key={activeWorkspaceWebId}
+                    webId={activeWorkspaceWebId}
+                  />
+                )}
+            </Stack>
           </Stack>
         </Container>
       </Box>

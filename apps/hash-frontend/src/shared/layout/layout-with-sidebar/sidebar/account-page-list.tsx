@@ -13,26 +13,20 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useLocalStorage } from "@mantine/hooks";
-import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Box, Collapse, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   extractEntityUuidFromEntityId,
   isEntityId,
 } from "@blockprotocol/type-system";
-import { IconButton } from "@hashintel/design-system";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useArchivePage } from "../../../../components/hooks/use-archive-page";
-import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
-import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
 import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
-import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
-import { PlusRegularIcon } from "../../../icons/plus-regular";
-import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { AccountPageListItem } from "./account-page-list/account-page-list-item";
 import { IDENTATION_WIDTH } from "./account-page-list/page-tree-item";
@@ -42,8 +36,6 @@ import {
   getTreeItemList,
   isPageCollapsed,
 } from "./account-page-list/utils";
-import { NavLink } from "./shared/nav-link";
-import { ViewAllLink } from "./shared/view-all-link";
 
 import type { TreeItem } from "./account-page-list/utils";
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";
@@ -58,7 +50,6 @@ import type { FunctionComponent } from "react";
 
 type AccountPageListProps = {
   webId: WebId;
-  sectionTitle?: string;
   currentPageEntityUuid?: EntityUuid;
 };
 
@@ -71,28 +62,12 @@ const measuringConfig = {
 export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   currentPageEntityUuid,
   webId,
-  sectionTitle = "Pages",
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(webId);
-
-  const preferences = useUserPreferences();
-
-  const expanded = preferences.sidebarSections.pages.expanded;
-
-  const [updateUser] = useUpdateAuthenticatedUser();
-
-  const togglePagesExpanded = () => {
-    void updateUser({
-      preferences: { sidebarSections: { pages: { expanded: !expanded } } },
-    });
-  };
 
   const { shortname: ownerShortname } = useUserOrOrgShortnameByWebId({
     webId,
   });
-
-  const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage({ webId, shortname: ownerShortname });
 
   const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage({
     webId,
@@ -103,7 +78,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const loading =
     pagesLoading ||
-    createUntitledPageLoading ||
     createSubpageLoading ||
     reorderLoading ||
     archivePageLoading;
@@ -126,25 +100,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setPrevData(data);
     setTreeItems(getTreeItemList(data));
   }
-
-  const enabledFeatureFlags = useEnabledFeatureFlags();
-
-  // @todo handle loading/error states properly
-  const addPage = useCallback(async () => {
-    if (loading) {
-      return;
-    }
-
-    try {
-      await createUntitledPage(
-        getLastIndex(treeItems),
-        enabledFeatureFlags.documents ? "document" : "canvas",
-      );
-    } catch (err) {
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error("Could not create page: ", err);
-    }
-  }, [createUntitledPage, loading, treeItems, enabledFeatureFlags]);
 
   const handleToggle = (nodeId: string) => {
     setExpandedPageIds((expandedIds) =>
@@ -423,42 +378,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         items={pagesFlatIdList}
         strategy={verticalListSortingStrategy}
       >
-        <NavLink
-          expanded={expanded}
-          toggleExpanded={togglePagesExpanded}
-          title={sectionTitle}
-          loading={loading}
-          endAdornment={
-            <Tooltip title="Create new page">
-              <IconButton
-                size="small"
-                unpadded
-                rounded
-                className="end-adornment-button"
-                data-testid="create-page-btn"
-                onClick={addPage}
-                sx={({ palette }) => ({
-                  color: palette.gray[80],
-                })}
-              >
-                <PlusRegularIcon />
-              </IconButton>
-            </Tooltip>
-          }
-        >
-          {pagesLoading ? (
-            <LoadingSkeleton page />
-          ) : (
-            <Box sx={{ marginX: 0.75 }} data-testid="pages-tree">
-              {renderPageTree(treeItems)}
+        {pagesLoading ? (
+          <LoadingSkeleton page />
+        ) : (
+          <Box sx={{ marginX: 0.75 }} data-testid="pages-tree">
+            {renderPageTree(treeItems)}
 
-              <DragOverlay dropAnimation={null} />
-            </Box>
-          )}
-          <Box marginLeft={1} marginTop={0.5}>
-            <ViewAllLink href="/pages">View all pages</ViewAllLink>
+            <DragOverlay dropAnimation={null} />
           </Box>
-        </NavLink>
+        )}
       </SortableContext>
     </DndContext>
   );
