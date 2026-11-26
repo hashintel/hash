@@ -1,6 +1,7 @@
 pub(crate) mod current;
 mod record;
 mod start;
+mod status;
 #[cfg(test)]
 mod tests;
 
@@ -16,6 +17,7 @@ pub(crate) use self::record::{
 pub use self::{
     record::Stage,
     start::{StartError, StartInput, start},
+    status::{RunState, RunStatus, StatusError, status},
 };
 use crate::storage::{CasVersion, Storage};
 

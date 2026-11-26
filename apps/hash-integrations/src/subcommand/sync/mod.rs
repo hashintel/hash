@@ -6,7 +6,7 @@ use hash_crypto::Secret;
 use hash_integrations_definition::{ConnectorId, Definition, SourceName};
 use hash_integrations_ledger::{
     GraphClient, IntegrationNamespace, RunId, S3Bucket, StartInput, Storage, capture,
-    prepare_incremental, send, start,
+    prepare_incremental, send, start, status,
 };
 use serde::Serialize;
 use time::OffsetDateTime;
@@ -29,6 +29,10 @@ pub enum SyncError {
     Start,
     #[display("the stage failed")]
     Stage,
+    #[display("the state of the run could not be read")]
+    Status,
+    #[display("`run.json` could not be saved")]
+    Save,
 }
 
 /// The commands that take a run of an integration through the stages of its pipeline.
@@ -42,6 +46,8 @@ pub enum Sync {
     Prepare(Box<RunArgs>),
     /// Write the entity changes of a run to the Graph and complete the run.
     Send(Box<SendArgs>),
+    /// Print where a run stands as JSON: its state, the counts of each stage and its failure.
+    Status(Box<StatusArgs>),
 }
 
 /// The bucket the state of every integration is kept in.
@@ -114,12 +120,9 @@ pub struct StartArgs {
     bucket: BucketArgs,
 }
 
-/// A run of an integration, and the bucket its state is kept in.
+/// An integration, and the bucket its state is kept in.
 #[derive(Debug, clap::Args)]
-pub struct RunArgs {
-    /// The ID of the run.
-    run: Uuid,
-
+pub struct IntegrationArgs {
     /// The web the integration writes to.
     #[clap(long, env = "HASH_WEB_ID")]
     web: Uuid,
@@ -132,14 +135,43 @@ pub struct RunArgs {
     bucket: BucketArgs,
 }
 
-impl RunArgs {
+impl IntegrationArgs {
     /// Opens the integration's place in the bucket, which its web and connector name.
-    fn open(self) -> Result<(Storage, RunId), Report<SyncError>> {
+    fn open(self) -> Result<Storage, Report<SyncError>> {
         let namespace = IntegrationNamespace::new(self.web, &self.connector);
-        let storage =
-            Storage::s3(self.bucket.bucket()?, &namespace).change_context(SyncError::Bucket)?;
-        Ok((storage, RunId::from(self.run)))
+        Storage::s3(self.bucket.bucket()?, &namespace).change_context(SyncError::Bucket)
     }
+}
+
+/// A run of an integration.
+#[derive(Debug, clap::Args)]
+pub struct RunArgs {
+    /// The ID of the run.
+    #[clap(long)]
+    run: Uuid,
+
+    #[clap(flatten)]
+    integration: IntegrationArgs,
+}
+
+impl RunArgs {
+    /// Opens the integration's place in the bucket, and returns it with the run.
+    fn open(self) -> Result<(Storage, RunId), Report<SyncError>> {
+        Ok((self.integration.open()?, RunId::from(self.run)))
+    }
+}
+
+#[derive(Debug, clap::Args)]
+pub struct StatusArgs {
+    /// The ID of the run. Without it, the active run, else the last completed run.
+    run: Option<Uuid>,
+
+    /// Also write the run's whole `run.json` to this file.
+    #[clap(long)]
+    save: Option<PathBuf>,
+
+    #[clap(flatten)]
+    integration: IntegrationArgs,
 }
 
 #[derive(Debug, clap::Args)]
@@ -184,6 +216,8 @@ impl Sync {
     /// - [`SyncError::Bucket`] or [`SyncError::Graph`] if a setting is not valid
     /// - [`SyncError::Start`] if the run cannot be started
     /// - [`SyncError::Stage`] if the stage failed; its error says whether running it again can help
+    /// - [`SyncError::Status`] if `status` cannot read the run, or [`SyncError::Save`] if it cannot
+    ///   write `run.json` to the file it is given
     pub(crate) async fn execute(self) -> Result<(), Report<SyncError>> {
         match self {
             Self::Start(args) => {
@@ -203,6 +237,21 @@ impl Sync {
                 prepare_incremental(&storage, run)
                     .await
                     .change_context(SyncError::Stage)?;
+            }
+            Self::Status(args) => {
+                let StatusArgs {
+                    run,
+                    save,
+                    integration,
+                } = *args;
+                let storage = integration.open()?;
+                let run = status(&storage, run.map(RunId::from))
+                    .await
+                    .change_context(SyncError::Status)?;
+                if let Some(path) = save {
+                    fs::write(path, run.run_json()).change_context(SyncError::Save)?;
+                }
+                print(&run);
             }
             Self::Send(args) => {
                 let SendArgs {

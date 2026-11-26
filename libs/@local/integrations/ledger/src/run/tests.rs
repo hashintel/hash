@@ -1,5 +1,6 @@
 use alloc::collections::BTreeMap;
 
+use error_stack::Report;
 use hash_integrations_definition::Definition;
 use pretty_assertions::assert_eq;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -10,14 +11,14 @@ use type_system::{
 use uuid::Uuid;
 
 use super::{
-    RunError, RunId, StartError, StartInput,
+    RunError, RunId, RunState, RunStatus, StartError, StartInput, StatusError,
     current::{self, Current},
     load,
     record::{
         BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart,
         RunRecord, SendPart, Stage,
     },
-    run_file, save, start,
+    run_file, save, start, status,
 };
 use crate::{Storage, storage::CasVersion};
 
@@ -408,5 +409,88 @@ async fn start_interrupted() {
             last_completed: None,
         },
         "a start that stopped after run.json should be finished by the next start"
+    );
+}
+
+#[tokio::test]
+async fn status_summary() {
+    let storage = Storage::memory();
+    let run = RunId(id(14));
+    save(&storage, &finished(run), None)
+        .await
+        .expect("should create run.json");
+
+    let status = status(&storage, Some(run))
+        .await
+        .expect("should read the run's status");
+    assert_eq!(
+        String::from_utf8(status.run_json()).expect("run.json should be UTF-8"),
+        text(&storage, &run_file(run)).await,
+        "the whole run.json should be the file in the bucket"
+    );
+    insta::assert_snapshot!(
+        serde_json::to_string_pretty(&status).expect("the status should serialize")
+    );
+}
+
+#[tokio::test]
+async fn status_states() {
+    let storage = Storage::memory();
+    let state = async |run| {
+        status(&storage, run)
+            .await
+            .expect("should read the run's status")
+            .state()
+    };
+    let first = RunId(id(15));
+    started(&storage, first).await;
+    assert_eq!(state(None).await, RunState::Active, "the active run");
+
+    let mut record = load(&storage, first).await.expect("should load run.json");
+    record.0.send = finished(first).send;
+    save(&storage, &record.0, Some(&record.1))
+        .await
+        .expect("should save run.json");
+    current::complete(&storage, first)
+        .await
+        .expect("should complete the run");
+    assert_eq!(
+        state(None).await,
+        RunState::Completed,
+        "without an active run, the last completed run"
+    );
+
+    let second = RunId(id(16));
+    save(
+        &storage,
+        &RunRecord::new(&aviation(), start_input(second)),
+        None,
+    )
+    .await
+    .expect("should create run.json");
+    assert_eq!(
+        state(Some(second)).await,
+        RunState::Inactive,
+        "a run whose start did not name it in current.json"
+    );
+}
+
+#[tokio::test]
+async fn status_without_runs() {
+    let storage = Storage::memory();
+    let error = |result: Result<RunStatus, Report<StatusError>>| {
+        *result
+            .expect_err("there should be no run to read")
+            .current_context()
+    };
+    assert_eq!(
+        error(status(&storage, None).await),
+        StatusError::NoRuns,
+        "an integration without runs"
+    );
+    assert_eq!(
+        error(status(&storage, Some(RunId(id(17)))).await),
+        StatusError::UnknownRun,
+        "a run without run.json"
     );
 }
