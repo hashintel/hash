@@ -228,10 +228,10 @@ backend = "npm:oxfmt"
 specifiers = ["0.79.0"]
 
 [[tools."pipx:sqlfluff"]]
-version = "3.4.2"
+version = "4.5.0"
 backend = "pipx:sqlfluff"
-specifiers = ["3.4.2"]
-uv = { path = "locks/pipx-sqlfluff/3.4.2", digest = "sha256:5cc4a29d140400139e1e8c7e2edadcc8fe663fe955b698a4a2ce316b18eab7a0" }
+specifiers = ["4.5.0"]
+uv = { path = "locks/pipx-sqlfluff/4.5.0", digest = "sha256:1759a51cde62151b45ac952be15160ac7e1849961c25a945c4e9767b335596c9" }
 
 [[tools.protoc]]
 version = "36.2"
