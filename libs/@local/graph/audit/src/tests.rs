@@ -1,3 +1,4 @@
+use core::mem::variant_count;
 use std::collections::HashSet;
 
 use serde_json::json;
@@ -6,9 +7,21 @@ use type_system::principal::{actor::UserId, actor_group::WebId};
 use uuid::Uuid;
 
 use crate::{
-    ActionName, AuditAction, AuditActor, AuditContext, AuditEvent, AuditEventId, Target,
+    AuditAction, AuditActionName, AuditActor, AuditContext, AuditEvent, AuditEventId, Target,
     TargetKind, UserAgent,
 };
+
+/// Every action name. The length is the variant count, so a new variant stops compiling here
+/// until it is listed, and the uniqueness test fails if a variant is listed twice.
+const ACTION_NAMES: [AuditActionName; variant_count::<AuditActionName>()] = [
+    AuditActionName::ApiTokenCreate,
+    AuditActionName::ApiTokenRevoke,
+    AuditActionName::UserDelete,
+];
+
+/// Every target kind, listed under the same two guards as [`ACTION_NAMES`].
+const TARGET_KINDS: [TargetKind; variant_count::<TargetKind>()] =
+    [TargetKind::ApiToken, TargetKind::User];
 
 fn is_snake_case(segment: &str) -> bool {
     !segment.is_empty()
@@ -25,7 +38,7 @@ struct UserDeleted {
 }
 
 impl AuditAction for UserDeleted {
-    const NAME: ActionName = ActionName::UserDelete;
+    const NAME: AuditActionName = AuditActionName::UserDelete;
 
     fn target(&self) -> Option<Target> {
         Some(Target::from(self.user_id))
@@ -34,9 +47,7 @@ impl AuditAction for UserDeleted {
 
 #[test]
 fn action_names_unique() {
-    let names = enum_iterator::all::<ActionName>()
-        .map(ActionName::as_str)
-        .collect::<Vec<_>>();
+    let names = ACTION_NAMES.map(AuditActionName::as_str);
     let unique = names.iter().collect::<HashSet<_>>();
 
     assert_eq!(
@@ -48,7 +59,7 @@ fn action_names_unique() {
 
 #[test]
 fn action_names_dotted_snake_case() {
-    for name in enum_iterator::all::<ActionName>().map(ActionName::as_str) {
+    for name in ACTION_NAMES.map(AuditActionName::as_str) {
         let segments = name.split('.').collect::<Vec<_>>();
 
         assert!(
@@ -60,9 +71,7 @@ fn action_names_dotted_snake_case() {
 
 #[test]
 fn target_kinds_unique() {
-    let kinds = enum_iterator::all::<TargetKind>()
-        .map(TargetKind::as_str)
-        .collect::<Vec<_>>();
+    let kinds = TARGET_KINDS.map(TargetKind::as_str);
     let unique = kinds.iter().collect::<HashSet<_>>();
 
     assert_eq!(
@@ -74,7 +83,7 @@ fn target_kinds_unique() {
 
 #[test]
 fn target_kinds_snake_case() {
-    for kind in enum_iterator::all::<TargetKind>().map(TargetKind::as_str) {
+    for kind in TARGET_KINDS.map(TargetKind::as_str) {
         assert!(is_snake_case(kind), "`{kind}` should be snake_case");
     }
 }
@@ -123,7 +132,7 @@ fn event_keeps_action() {
 
     assert_eq!(
         event.action_name(),
-        ActionName::UserDelete,
+        AuditActionName::UserDelete,
         "the event should carry the name of its action"
     );
     assert_eq!(

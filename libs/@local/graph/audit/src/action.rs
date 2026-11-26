@@ -8,14 +8,13 @@ use crate::target::Target;
 
 /// The name of an action an audit event records.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(test, derive(enum_iterator::Sequence))]
-pub enum ActionName {
+pub enum AuditActionName {
     ApiTokenCreate,
     ApiTokenRevoke,
     UserDelete,
 }
 
-impl ActionName {
+impl AuditActionName {
     /// Returns the name the action is recorded under.
     ///
     /// Recorded audit events are never rewritten, so the name of an action never changes.
@@ -37,7 +36,7 @@ impl ActionName {
 /// enumerated values only: no entity content, credentials, tokens, email addresses or names.
 pub trait AuditAction: Debug + Serialize {
     /// The name the action is recorded under.
-    const NAME: ActionName;
+    const NAME: AuditActionName;
 
     /// Returns the object the action was performed on.
     fn target(&self) -> Option<Target>;

@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 /// The kind of object a [`Target`] identifies.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(test, derive(enum_iterator::Sequence))]
 pub enum TargetKind {
     ApiToken,
     User,

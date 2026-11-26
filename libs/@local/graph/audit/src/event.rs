@@ -9,7 +9,7 @@ use type_system::principal::actor_group::WebId;
 use uuid::{NoContext, Timestamp, Uuid};
 
 use crate::{
-    action::{ActionName, AuditAction},
+    action::{AuditAction, AuditActionName},
     context::AuditContext,
     target::Target,
 };
@@ -51,7 +51,7 @@ pub enum Outcome {
 
 /// The view of an [`AuditAction`] that an [`AuditEvent`] holds without naming its type.
 trait RecordedAction: Debug + Send + Sync {
-    fn name(&self) -> ActionName;
+    fn name(&self) -> AuditActionName;
 
     fn target(&self) -> Option<Target>;
 
@@ -62,7 +62,7 @@ impl<A> RecordedAction for A
 where
     A: AuditAction + Send + Sync,
 {
-    fn name(&self) -> ActionName {
+    fn name(&self) -> AuditActionName {
         A::NAME
     }
 
@@ -78,12 +78,12 @@ where
 /// The record of one action: who performed it, on what, when and from where.
 #[derive(Debug)]
 pub struct AuditEvent {
-    pub id: AuditEventId,
-    pub time: OffsetDateTime,
-    pub context: AuditContext,
+    pub mut(self) id: AuditEventId,
+    pub mut(self) time: OffsetDateTime,
+    pub mut(self) context: AuditContext,
     /// The web the action took place in. The web of a user has the ID of that user.
-    pub web_id: Option<WebId>,
-    pub outcome: Outcome,
+    pub mut(self) web_id: Option<WebId>,
+    pub mut(self) outcome: Outcome,
     action: Box<dyn RecordedAction>,
 }
 
@@ -108,7 +108,7 @@ impl AuditEvent {
 
     /// Returns the name of the recorded action.
     #[must_use]
-    pub fn action_name(&self) -> ActionName {
+    pub fn action_name(&self) -> AuditActionName {
         self.action.name()
     }
 

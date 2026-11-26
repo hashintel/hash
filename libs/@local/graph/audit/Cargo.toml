@@ -22,9 +22,8 @@ erased-serde   = { workspace = true, features = ["alloc"] }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-enum-iterator = { workspace = true }
-serde         = { workspace = true, features = ["derive"] }
-serde_json    = { workspace = true }
+serde      = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true
