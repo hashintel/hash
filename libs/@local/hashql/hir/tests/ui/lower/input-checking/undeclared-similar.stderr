@@ -1,0 +1,9 @@
+error[lower::undeclared-input]: Undeclared input
+  ╭▸ 
+5 │     "query": ["input", "limit", "Integer", { "#literal": 10 }],
+  │                         ───── a similar input is declared here
+6 │     "inputs": { "#struct": { "limt": { "#literal": 5 } } }
+  │                                                    ━ value for undeclared input `limt`
+  │
+  ├ help: rename `limt` to `limit`
+  ╰ note: values can only be supplied for inputs that the query declares

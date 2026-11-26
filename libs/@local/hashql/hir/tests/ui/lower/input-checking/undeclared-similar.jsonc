@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: A value under a misspelled name is rejected, and the diagnostic names the input that the name resembles.
+{
+  "#struct": {
+    "query": ["input", "limit", "Integer", { "#literal": 10 }],
+    "inputs": { "#struct": { "limt": { "#literal": 5 } } }
+    //~^ ERROR value for undeclared input `limt`
+  }
+}

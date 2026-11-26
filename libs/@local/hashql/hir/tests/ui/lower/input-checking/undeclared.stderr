@@ -1,0 +1,7 @@
+error[lower::undeclared-input]: Undeclared input
+  ╭▸ 
+9 │         "name": { "#literal": "a" }
+  │                               ━━━ value for undeclared input `name`
+  │
+  ├ help: remove `name` from the inputs or declare it in the query
+  ╰ note: values can only be supplied for inputs that the query declares

@@ -1,0 +1,24 @@
+//@ run: fail
+//@ description: An input that is declared with and without a default needs a value, and the diagnostic points at the first declaration without a default.
+{
+  "#struct": {
+    "query": [
+      "let",
+      "a",
+      ["input", "x", "Integer", { "#literal": 0 }],
+      [
+        "let",
+        "b",
+        ["input", "x", "Integer"],
+        //~^ ERROR missing value for input `x`
+        [
+          "let",
+          "c",
+          ["input", "x", "Integer"],
+          ["let", "d", ["input", "x", "Integer", { "#literal": 1 }], "a"]
+        ]
+      ]
+    ],
+    "inputs": { "#struct": {} }
+  }
+}

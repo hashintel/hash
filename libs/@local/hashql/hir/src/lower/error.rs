@@ -2,8 +2,11 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt::Display};
 
 use hashql_core::{
+    algorithms::did_you_mean,
+    collections::FastHashMap,
     pretty::{Formatter, RenderOptions},
     span::{SpanId, Spanned},
+    symbol::Symbol,
     r#type::{
         Type, TypeFormatter, TypeFormatterOptions, TypeId,
         environment::Environment,
@@ -17,7 +20,7 @@ use hashql_diagnostics::{
     diagnostic::Message,
 };
 
-use super::specialization::error::SpecializationDiagnosticCategory;
+use super::{checking::InputParameter, specialization::error::SpecializationDiagnosticCategory};
 use crate::{context::SymbolRegistry, node::variable::Variable};
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -30,6 +33,16 @@ const ARGUMENT_OVERRIDE: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Cannot apply type arguments to already-parameterized variable",
 };
 
+const UNDECLARED_INPUT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "undeclared-input",
+    name: "Undeclared input",
+};
+
+const MISSING_INPUT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "missing-input",
+    name: "Missing input",
+};
+
 pub type LoweringDiagnostic<K = Severity> = Diagnostic<LoweringDiagnosticCategory, SpanId, K>;
 pub type LoweringDiagnosticIssues<K = Severity> =
     DiagnosticIssues<LoweringDiagnosticCategory, SpanId, K>;
@@ -39,6 +52,8 @@ pub type LoweringDiagnosticStatus<T> = Status<T, LoweringDiagnosticCategory, Spa
 pub enum LoweringDiagnosticCategory {
     GenericArgumentMismatch,
     ArgumentOverride,
+    UndeclaredInput,
+    MissingInput,
     TypeChecking(TypeCheckDiagnosticCategory),
     Specialization(SpecializationDiagnosticCategory),
 }
@@ -56,6 +71,8 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
         match self {
             Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
             Self::ArgumentOverride => Some(&ARGUMENT_OVERRIDE),
+            Self::UndeclaredInput => Some(&UNDECLARED_INPUT),
+            Self::MissingInput => Some(&MISSING_INPUT),
             Self::TypeChecking(category) => Some(category),
             Self::Specialization(category) => Some(category),
         }
@@ -257,6 +274,64 @@ pub(crate) fn type_mismatch_if<'heap>(
     diagnostic.add_message(Message::note(
         "if conditions require boolean expressions to determine which branch to execute",
     ));
+
+    diagnostic
+}
+
+pub(crate) fn undeclared_input<'heap>(
+    name: Symbol<'heap>,
+    value_span: SpanId,
+    parameters: &FastHashMap<Symbol<'heap>, InputParameter>,
+) -> LoweringDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(LoweringDiagnosticCategory::UndeclaredInput, Severity::Error).primary(
+            Label::new(value_span, format!("value for undeclared input `{name}`")),
+        );
+
+    if let [similar] = *did_you_mean(name, parameters.keys(), Some(1), None)
+        && let Some(parameter) = parameters.get(&similar)
+    {
+        diagnostic.add_label(Label::new(
+            parameter.span,
+            "a similar input is declared here",
+        ));
+        diagnostic.add_message(Message::help(format!("rename `{name}` to `{similar}`")));
+    } else {
+        diagnostic.add_message(Message::help(format!(
+            "remove `{name}` from the inputs or declare it in the query"
+        )));
+    }
+
+    diagnostic.add_message(Message::note(
+        "values can only be supplied for inputs that the query declares",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn missing_input<'heap>(
+    env: &Environment<'heap>,
+    name: Symbol<'heap>,
+    InputParameter {
+        r#type,
+        required: _,
+        span,
+    }: InputParameter,
+) -> LoweringDiagnostic {
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
+    let mut diagnostic =
+        Diagnostic::new(LoweringDiagnosticCategory::MissingInput, Severity::Error).primary(
+            Label::new(span, format!("missing value for input `{name}`")),
+        );
+
+    diagnostic.add_message(Message::help(format!(
+        "supply a value of type `{}` for `{name}` or give the input a default",
+        formatter.render(r#type, RenderOptions::default())
+    )));
+
+    diagnostic.add_message(Message::note("an input without a default requires a value"));
 
     diagnostic
 }

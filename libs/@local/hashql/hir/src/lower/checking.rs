@@ -1,7 +1,7 @@
 use core::fmt::Display;
 
 use hashql_core::{
-    collections::{FastHashMap, FastHashSet},
+    collections::{FastHashMap, FastHashSet, fast_hash_set_with_capacity_in},
     heap::ScopeAllocator,
     module::{
         Universe,
@@ -25,7 +25,7 @@ use hashql_diagnostics::DiagnosticIssues;
 use super::{
     error::{
         GenericArgumentContext, LoweringDiagnosticCategory, LoweringDiagnosticIssues,
-        LoweringDiagnosticStatus, type_mismatch_if,
+        LoweringDiagnosticStatus, missing_input, type_mismatch_if, undeclared_input,
     },
     inference::{Local, TypeInferenceResidual},
 };
@@ -58,6 +58,9 @@ pub struct InputParameter {
     pub r#type: TypeId,
     /// Whether the program loads the input at one site or more without a default.
     pub required: bool,
+    /// The name of the input at its first load without a default, or at its first load when every
+    /// load has one.
+    pub span: SpanId,
 }
 
 pub struct TypeCheckingResidual<'heap> {
@@ -399,6 +402,11 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
                 // `Integer`.
                 let parameter = occupied.get_mut();
                 parameter.r#type = self.lattice.meet(parameter.r#type, inferred);
+                // the diagnostic for a missing value points at the first load that requires the
+                // parameter
+                if required && !parameter.required {
+                    parameter.span = operation.name.span;
+                }
                 // sticky: a parameter that is otherwise required stays required
                 parameter.required |= required;
             }
@@ -406,6 +414,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
                 vacant.insert(InputParameter {
                     r#type: inferred,
                     required,
+                    span: operation.name.span,
                 });
             }
         }
@@ -507,18 +516,20 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
     }
 }
 
-/// Checks the values supplied for the inputs of a program against the types it declares for them.
+/// Checks the values supplied for the inputs of a program against the inputs it declares.
 ///
 /// A value fits if [its type](Value::type) is a subtype of the type of the [`InputParameter`] with
-/// the same name. Where no parameter has the name of a value, the value fits without a check, like
-/// a field of a struct value that the expected struct type does not name.
+/// the same name. Every value needs such a parameter, and every parameter that is
+/// [required](InputParameter::required) needs a value.
 ///
 /// `scratch` holds working memory alone, and the function releases that memory before it returns.
 ///
 /// # Errors
 ///
-/// Fails with [`LoweringDiagnosticCategory::TypeChecking`] diagnostics that locate the parts of a
-/// value which do not fit the type of its parameter.
+/// Fails with a [`LoweringDiagnosticCategory::UndeclaredInput`] diagnostic for each value whose
+/// name no parameter has, and with a [`LoweringDiagnosticCategory::MissingInput`] diagnostic for
+/// each required parameter without a value. [`LoweringDiagnosticCategory::TypeChecking`]
+/// diagnostics locate the parts of a value that do not fit the type of its parameter.
 pub fn check_inputs<'heap, 'alloc, S>(
     env: &Environment<'heap>,
     parameters: &FastHashMap<Symbol<'heap>, InputParameter>,
@@ -534,20 +545,47 @@ where
     analysis.with_diagnostics();
 
     let mut diagnostics = DiagnosticIssues::new();
+    let mut analysis_diagnostics = DiagnosticIssues::new();
 
-    for (name, value) in values {
-        let Some(parameter) = parameters.get(&name) else {
-            // TODO(BE-948): discharge diagnostic
-            continue;
-        };
+    scratch.scoped(|scope| {
+        let mut supplied = fast_hash_set_with_capacity_in(parameters.len(), &scope);
 
-        let r#type = scratch.scoped(|scope| value.r#type(&mut lattice, scope));
-        verify_subtype(&mut analysis, &mut diagnostics, r#type, parameter.r#type);
-    }
+        for (name, value) in values {
+            let Some(parameter) = parameters.get(&name) else {
+                diagnostics.push(undeclared_input(name, value.node().span, parameters));
 
-    diagnostics.append(&mut lattice.take_diagnostics());
+                continue;
+            };
 
+            supplied.insert(name);
+
+            let r#type = scope.scoped_ref(|scope| value.r#type(&mut lattice, scope));
+            verify_subtype(
+                &mut analysis,
+                &mut analysis_diagnostics,
+                r#type,
+                parameter.r#type,
+            );
+        }
+
+        let mut missing = Vec::new_in(&scope);
+        missing.extend(
+            parameters
+                .iter()
+                .filter(|&(name, parameter)| parameter.required && !supplied.contains(name)),
+        );
+        // sorted, because the order of a hash map changes between runs and the order of the
+        // diagnostics must not
+        missing.sort_unstable_by_key(|&(&name, _)| name);
+
+        for (&name, &parameter) in missing {
+            diagnostics.push(missing_input(env, name, parameter));
+        }
+    });
+
+    analysis_diagnostics.append(&mut lattice.take_diagnostics());
     diagnostics
-        .map_category(LoweringDiagnosticCategory::TypeChecking)
-        .into_status(())
+        .append(&mut analysis_diagnostics.map_category(LoweringDiagnosticCategory::TypeChecking));
+
+    diagnostics.into_status(())
 }

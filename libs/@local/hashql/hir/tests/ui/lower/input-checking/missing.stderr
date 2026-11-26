@@ -1,0 +1,7 @@
+error[lower::missing-input]: Missing input
+  ╭▸ 
+5 │     "query": ["input", "x", "Integer"],
+  │                         ━ missing value for input `x`
+  │
+  ├ help: supply a value of type `Integer` for `x` or give the input a default
+  ╰ note: an input without a default requires a value
