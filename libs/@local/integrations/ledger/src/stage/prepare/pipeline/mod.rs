@@ -19,6 +19,10 @@ use super::workspace::{Identifier, Workspace};
 pub(crate) enum PreparationError {
     #[display("the pipeline statement failed")]
     Statement,
+    #[display("source column `{column}` is reserved for staging metadata")]
+    ReservedColumn { column: Box<str> },
+    #[display("a row's kind of change is not `insert`, `update` or `delete`")]
+    InvalidChange,
     #[display("table has no column `{column}`")]
     MissingColumn { column: Box<str> },
     #[display("table `{table}` must retain non-null VARCHAR `_op` and `_key` and BIGINT `_seq`")]

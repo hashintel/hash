@@ -1,0 +1,19 @@
+connector: demo
+sources:
+  orders:
+    primaryKey: [id]
+    sql: SELECT 1 AS id
+  saved-orders:
+    checkpoint: demo/orders
+pipelines:
+  entities:
+    - source: saved-orders
+      steps:
+        - id: sink-saved
+          sink:
+            entityType: https://example.com/@demo/types/entity-type/order/v/1
+            entityId: id
+    - source: orders
+      steps:
+        - id: save-orders
+          checkpoint: demo/orders

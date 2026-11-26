@@ -28,7 +28,7 @@ use url::Url;
 
 #[cfg_attr(
     not(test),
-    expect(unused_imports, reason = "Prepare and Send are the first callers")
+    expect(unused_imports, reason = "only the tests read the sync table")
 )]
 pub(crate) use self::{
     read::read,

@@ -209,7 +209,7 @@ pub(crate) struct ConversionFailure {
 }
 
 /// The properties resolved from one row.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct ResolvedProperties {
     /// The properties to write, keyed by base URL.
     pub properties: PropertyObjectWithMetadata,

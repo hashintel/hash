@@ -35,7 +35,7 @@ serde_arrow    = { workspace = true, features = ["arrow-60"] }
 serde_json     = { workspace = true, features = ["float_roundtrip"] }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
-tokio          = { workspace = true, features = ["fs", "io-util"] }
+tokio          = { workspace = true, features = ["fs", "io-util", "rt"] }
 tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
 
