@@ -9,20 +9,23 @@
               warning instead"
 )]
 
+extern crate alloc;
+
 mod args;
 mod subcommand;
 
+use error_stack::Report;
 use hash_telemetry::{
     init_tracing,
     traces::sentry::{init, release_name},
 };
 
-use self::args::Args;
+use self::{args::Args, subcommand::SyncError};
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-fn main() {
+fn main() -> Result<(), Report<SyncError>> {
     let Args {
         subcommand,
         tracing_config,
@@ -38,6 +41,6 @@ fn main() {
             let _telemetry_guard = init_tracing(tracing_config, "Integrations")
                 .expect("telemetry should be initialized");
 
-            subcommand.execute();
-        });
+            subcommand.execute().await
+        })
 }

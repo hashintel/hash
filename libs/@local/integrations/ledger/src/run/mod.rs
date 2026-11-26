@@ -20,7 +20,18 @@ pub use self::{
 use crate::storage::{CasVersion, Storage};
 
 /// Identifies one run of an integration.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, derive_more::Display)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    derive_more::Display,
+    derive_more::From,
+)]
 #[serde(transparent)]
 pub struct RunId(Uuid);
 
