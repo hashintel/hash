@@ -5,8 +5,8 @@ use text_size::{TextRange, TextSize};
 pub(crate) use self::number::Number;
 use self::{
     error::{
-        LexerDiagnostic, LexerError, from_hifijson_str_error, from_invalid_utf8_error,
-        from_number_error, from_unrecognized_character_error,
+        LexerDiagnostic, LexerError, from_invalid_utf8_error, from_number_error, from_string_error,
+        from_unrecognized_character_error,
     },
     number::ParseNumberError,
     token::Token,
@@ -17,6 +17,7 @@ use crate::span::Span;
 pub(crate) mod error;
 mod number;
 mod parse;
+mod string;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
 pub(crate) mod token;
@@ -83,7 +84,7 @@ impl<'source> Lexer<'source> {
             Err(LexerError::String { error, range }) => {
                 let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
 
-                Some(Err(from_hifijson_str_error(&error, span)))
+                Some(Err(from_string_error(error, span)))
             }
             Err(LexerError::UnrecognizedCharacter) => {
                 // we need to make sure that we're not inside of a unicode character

@@ -1,6 +1,5 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
-assertion_line: 438
 description: Rooted field type without separator whitespace
 expression: "(field:::Root)"
 info:

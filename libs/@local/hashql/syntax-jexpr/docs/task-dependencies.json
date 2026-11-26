@@ -6,6 +6,14 @@
     "hashql-diagnostics"
   ],
   "tasks": {
+    "build:codspeed": {
+      "dependsOn": [],
+      "cache": false,
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
+    },
     "build:parse:debug": {
       "dependsOn": [],
       "affectedBy": [
@@ -32,6 +40,14 @@
       "env": [
         "GITHUB_EVENT_NAME"
       ],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
+    },
+    "test:codspeed": {
+      "dependsOn": [],
+      "cache": false,
       "affectedBy": [
         "darwin-kperf-codegen",
         "error-stack-macros"

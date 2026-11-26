@@ -1,15 +1,9 @@
-use alloc::{borrow::Cow, sync::Arc};
+use alloc::borrow::Cow;
 
 use hashql_core::span::{TextRange, TextSize};
-use hifijson::{SliceLexer, str::LexAlloc as _};
 use logos::{Lexer, Skip};
 
-use super::{Number, error::LexerError, token_kind::TokenKind};
-
-fn ptr_offset(start: *const u8, current: *const u8) -> usize {
-    debug_assert!(current >= start);
-    current as usize - start as usize
-}
+use super::{Number, error::LexerError, string, token_kind::TokenKind};
 
 pub(crate) fn parse_comment<'source>(lexer: &mut Lexer<'source, TokenKind<'source>>) -> Skip {
     let slice = lexer.remainder();
@@ -26,23 +20,13 @@ pub(crate) fn parse_comment<'source>(lexer: &mut Lexer<'source, TokenKind<'sourc
 pub(crate) fn parse_string<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
 ) -> Result<Cow<'source, str>, LexerError> {
-    // the first character is '"' so we can skip it
-    let slice = lexer.remainder();
-    let mut lex = SliceLexer::new(slice);
-
-    let value = lex.str_string().map_err(|error| {
-        let span = lexer.span();
-        let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
-        let range = TextRange::empty(TextSize::from((span.end + consumed) as u32));
-
-        LexerError::String {
-            error: Arc::new(error),
-            range,
-        }
+    let mut rest = lexer.remainder();
+    let value = string::decode(&mut rest).map_err(|error| LexerError::String {
+        error,
+        range: TextRange::empty(TextSize::new((lexer.source().len() - rest.len()) as u32)),
     })?;
 
-    let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
-    lexer.bump(consumed);
+    lexer.bump(lexer.remainder().len() - rest.len());
     Ok(value)
 }
 
@@ -56,15 +40,13 @@ pub(crate) fn parse_number<'source>(
     let span = lexer.span();
     // This time we cannot automatically exclude the first character
     let slice = &lexer.source()[span.start..];
-    let (consumed, number) = Number::parse(slice);
-
-    let number = number.map_err(|mut error| {
+    let number = Number::parse(slice).map_err(|mut error| {
         error.range += TextSize::new(span.start as u32);
 
         LexerError::Number(error)
     })?;
 
     // The first character is already consumed
-    lexer.bump((consumed - 1) as usize);
+    lexer.bump(number.as_str().len() - 1);
     Ok(number)
 }
