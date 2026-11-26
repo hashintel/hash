@@ -223,8 +223,11 @@ export const ProcessPetrinaut = ({
   handle: PetrinautDocHandle;
   /** The open net's entity id; a draft's is the one its first save creates. */
   entityId: EntityId;
-  /** The open net's conversation with Brunch, kept by the editor. */
-  conversationPointer: BrunchConversationPointer;
+  /**
+   * The open net's conversation with Brunch, kept by the editor, or `null`
+   * when reading the conversation failed and Brunch is unavailable.
+   */
+  conversationPointer: BrunchConversationPointer | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
   /** The editor's Save, for the agent: what it would do now, and running it. Stable for the handle. */
@@ -265,9 +268,12 @@ export const ProcessPetrinaut = ({
     [entityId, readonly, editor],
   );
 
+  const brunchAvailable =
+    brunch !== null && openDocument !== null && conversationPointer !== null;
+
   return (
     <>
-      {brunch !== null && openDocument !== null && (
+      {brunchAvailable && (
         <BrunchSession
           actorKey={brunch.actorKey}
           chatEndpoint={brunchChatEndpoint(brunch.origin)}
@@ -290,11 +296,7 @@ export const ProcessPetrinaut = ({
           existingNets={[]}
           hideNetManagementControls="all"
           loadPetriNet={noNetSwitchingError}
-          plugins={
-            brunch !== null && openDocument !== null
-              ? editorPluginsWithBrunch
-              : editorPlugins
-          }
+          plugins={brunchAvailable ? editorPluginsWithBrunch : editorPlugins}
           readonly={readonly}
           setTitle={setTitle}
           title={title}

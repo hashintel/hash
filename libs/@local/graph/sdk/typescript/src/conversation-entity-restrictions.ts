@@ -1,32 +1,52 @@
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import * as Error from "../../../../graphql/error";
+import { getClosedMultiEntityTypes } from "./entity-type.js";
+import { getClosedMultiEntityTypeFromMap } from "./entity.js";
 
-import type { ImpureGraphContext } from "../../../context-types";
+import type { AuthenticationContext } from "./authentication-context.js";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { GraphApi } from "@local/hash-graph-client";
 
 const guardedClassifications: ReadonlyArray<{
   baseUrl: BaseUrl;
   title: string;
 }> = [
   {
-    baseUrl: systemEntityTypes.agentConversation.entityTypeBaseUrl,
+    baseUrl:
+      "https://hash.ai/@h/types/entity-type/agent-conversation/" as BaseUrl,
     title: "Agent Conversation",
   },
   {
     baseUrl:
-      systemLinkEntityTypes.hasAgentConversationFocus.linkEntityTypeBaseUrl,
+      "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/" as BaseUrl,
     title: "Has Agent Conversation Focus",
   },
 ];
+
+const currentTimeInstantTemporalAxes = {
+  pinned: {
+    axis: "transactionTime" as const,
+    timestamp: null,
+  },
+  variable: {
+    axis: "decisionTime" as const,
+    interval: {
+      start: null,
+      end: null,
+    },
+  },
+};
+
+/**
+ * Thrown when an entity patch attempts to add or remove a creator-private
+ * conversation classification (`Agent Conversation` or `Has Agent Conversation Focus`).
+ */
+export class ConversationClassificationError extends Error {
+  constructor(title: string) {
+    super(`Entity updates must preserve the ${title} classification.`);
+    this.name = "ConversationClassificationError";
+  }
+}
 
 const hasUnchangedTypeSet = (
   previousTypeIds: readonly VersionedUrl[],
@@ -46,13 +66,13 @@ const hasUnchangedTypeSet = (
 };
 
 const collectClassificationBaseUrls = async (
-  context: ImpureGraphContext<false, true>,
+  graphApi: GraphApi,
   authentication: AuthenticationContext,
   previousTypeIds: [VersionedUrl, ...VersionedUrl[]],
   nextTypeIds: [VersionedUrl, ...VersionedUrl[]],
 ): Promise<{ previous: Set<BaseUrl>; next: Set<BaseUrl> }> => {
   const { entityTypes } = await getClosedMultiEntityTypes(
-    context.graphApi,
+    graphApi,
     authentication,
     {
       entityTypeIds: [previousTypeIds, nextTypeIds],
@@ -85,39 +105,41 @@ const collectClassificationBaseUrls = async (
  *
  * Conversations and their focus links are private to their creator by default,
  * so reclassifying an entity would hide a shared entity from its web or expose
- * a private conversation to it. Lives in the Node API update path until the
- * Graph's own hook/type-change permission model lands (BE-1204).
+ * a private conversation to it. Lives at the TypeScript Graph SDK boundary
+ * until the Graph's own hook/type-change permission model lands (BE-1204).
  */
 export const ensureConversationClassificationPreserved = async ({
-  context,
+  graphApi,
   authentication,
   previousEntityTypeIds,
   nextEntityTypeIds,
 }: {
-  context: ImpureGraphContext<false, true>;
+  graphApi: GraphApi;
   authentication: AuthenticationContext;
   previousEntityTypeIds: [VersionedUrl, ...VersionedUrl[]];
-  nextEntityTypeIds: [VersionedUrl, ...VersionedUrl[]] | undefined;
+  nextEntityTypeIds: readonly string[] | undefined;
 }): Promise<void> => {
-  if (
-    !nextEntityTypeIds ||
-    hasUnchangedTypeSet(previousEntityTypeIds, nextEntityTypeIds)
-  ) {
+  if (!nextEntityTypeIds || nextEntityTypeIds.length === 0) {
+    return;
+  }
+  const typedNextEntityTypeIds = nextEntityTypeIds as [
+    VersionedUrl,
+    ...VersionedUrl[],
+  ];
+  if (hasUnchangedTypeSet(previousEntityTypeIds, typedNextEntityTypeIds)) {
     return;
   }
 
   const { previous, next } = await collectClassificationBaseUrls(
-    context,
+    graphApi,
     authentication,
     previousEntityTypeIds,
-    nextEntityTypeIds,
+    typedNextEntityTypeIds,
   );
 
   for (const { baseUrl, title } of guardedClassifications) {
     if (previous.has(baseUrl) !== next.has(baseUrl)) {
-      throw Error.forbidden(
-        `Entity updates must preserve the ${title} classification.`,
-      );
+      throw new ConversationClassificationError(title);
     }
   }
 };

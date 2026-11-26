@@ -83,6 +83,8 @@ const graph = vi.hoisted(() => {
     nets: new Map<string, GraphNet>(),
     /** The nets query has not answered yet. */
     listPending: false,
+    /** The nets query fails with this error instead of answering. */
+    listError: undefined as Error | undefined,
     cache: new Map<string, unknown>(),
     version: 0,
     nextTime: 1,
@@ -653,7 +655,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
 
   const read = (key: string): QueryEntitySubgraphQuery | undefined => {
     if (!graph.cache.has(key)) {
-      if (key === "nets" && graph.listPending) {
+      if (key === "nets" && (graph.listPending || graph.listError)) {
         return undefined;
       }
       graph.cache.set(key, answer(key));
@@ -676,6 +678,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
     const version = useSyncExternalStore(graph.subscribe, graph.getVersion);
     const key = skip ? null : queryKey(variables);
     const data = key === null ? undefined : read(key);
+    const error = key === "nets" ? graph.listError : undefined;
     // As Apollo's `cache-and-network` does: what the cache holds is given at
     // once, and the query is loading until the graph answers it afresh.
     const asksGraph = fetchPolicy === "cache-and-network";
@@ -684,7 +687,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
       if (!asksGraph || key === null || answeredKey === key) {
         return;
       }
-      if (key === "nets" && graph.listPending) {
+      if (key === "nets" && (graph.listPending || graph.listError)) {
         return;
       }
       queueMicrotask(() => {
@@ -708,8 +711,10 @@ vi.mock("@apollo/client", async (importOriginal) => {
     }, [key]);
     return {
       data,
+      error,
       loading:
         key !== null &&
+        !error &&
         (data === undefined || (asksGraph && answeredKey !== key)),
       refetch,
     };
@@ -939,6 +944,7 @@ beforeEach(() => {
     [netBId, graphNet(netBId, "B")],
   ]);
   graph.listPending = false;
+  graph.listError = undefined;
   graph.cache.clear();
   graph.nextTime = 1;
   graph.writeGates.length = 0;
@@ -1699,6 +1705,22 @@ test("a draft's URL naming a web the user can't create in opens the net they can
   pressSave();
   await settle();
   expect(graph.writes.filter(({ kind }) => kind === "create")).toEqual([]);
+});
+
+test("when loading the persisted nets list fails, a draft URL is neither redirected to a new draft nor opened blank", async () => {
+  const otherWeb = "00000000-0000-4000-8000-0000000000ff";
+  graph.listError = new Error("Graph unavailable");
+
+  await renderRoute(null);
+  await navigate(`/processes/${uuidCreated}?draftWeb=${otherWeb}`);
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(observed.editor).toBeNull();
+  cleanup();
+
+  await renderRoute(null);
+  await navigate(draftUrl);
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(observed.editor).toBeNull();
 });
 
 test("a Create refused because another tab created the net moves this tab to that net, keeping its edits unsaved for an update", async () => {

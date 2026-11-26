@@ -92,16 +92,16 @@ type ConversationWrite = {
  *   link goes on to the link, rather than being left unreachable.
  * - A read that fails is tried again by Apollo's retry link, after each of
  *   {@link readRetryDelaysMs}. If none succeeds, the failure is reported and
- *   the subject has no open conversation, so its next message starts one
- *   rather than leaving the agent unusable; `start` does not persist that
- *   fallback conversation, so it cannot supersede a newer one in the graph.
+ *   `conversationPointer` is `null`, so the editor disables the Brunch panel
+ *   rather than silently opening a stale or shadowed conversation.
  *
  * Each write records the agent, web and subject as they were when it was
  * asked for, and writes run one at a time.
  *
- * Returns the conversation's pointer, a stable object while the open
- * conversation, as read, is unchanged, and `subjectSaved`, for the editor's
- * save to call once a subject exists.
+ * Returns the conversation's pointer (a stable object while the open
+ * conversation, as read, is unchanged, or `null` when the read failed after
+ * its retries) and `subjectSaved`, for the editor's save to call once a draft
+ * exists.
  */
 export const useAgentConversation = ({
   agentId,
@@ -126,17 +126,12 @@ export const useAgentConversation = ({
   isSaved: (subjectEntityId: EntityId) => boolean;
   captureException: (error: unknown, context: { source: string }) => void;
 }): {
-  conversationPointer: BrunchConversationPointer;
+  conversationPointer: BrunchConversationPointer | null;
   /**
-   * The editor's first save of a draft made `subjectEntityId` exist (with
-   * `createdHere: true`), or found it already existing elsewhere
-   * (`createdHere: false`): its pending conversations are written at once, in
-   * order.
+   * The editor's save made `subjectEntityId` exist (or found it already
+   * existing): its pending conversations are written at once, in order.
    */
-  subjectSaved: (
-    subjectEntityId: EntityId,
-    options?: { createdHere?: boolean },
-  ) => void;
+  subjectSaved: (subjectEntityId: EntityId) => void;
 } => {
   const { authenticatedUser } = useAuthInfo();
   const userId = authenticatedUser?.accountId ?? null;
@@ -246,13 +241,11 @@ export const useAgentConversation = ({
   }, [data]);
 
   // Newest first, so two entities on one subject (two tabs) read as the newest.
-  // A read that failed after its retries has none open.
+  // A read that failed after its retries disables the panel (`null` pointer).
   const readFailed = readConversationIds === undefined && Boolean(error);
   const openConversationId =
     readConversationIds === undefined
-      ? error
-        ? null
-        : undefined
+      ? undefined
       : (readConversationIds[0] ?? null);
 
   const [createEntity] = useMutation<
@@ -381,33 +374,17 @@ export const useAgentConversation = ({
 
   /**
    * The conversations started on each unsaved draft, by its id, in the order
-   * they were, to write when it is saved. `fallback` marks a conversation
-   * started via `start` while the initial read failed, which must be discarded
-   * rather than written if the draft turns out to have already existed
-   * elsewhere (`createdHere: false`).
+   * they were, to write when it is saved.
    */
   const unsaved = useRef(
-    new Map<
-      EntityId,
-      { source: string; conversationId: string; fallback: boolean }[]
-    >(),
+    new Map<EntityId, { source: string; conversationId: string }[]>(),
   );
 
-  /**
-   * Subjects whose first save happened in this session, so they are known to
-   * have no pre-existing conversation in the graph even if the initial read
-   * while still a draft failed.
-   */
-  const savedHere = useRef(new Set<EntityId>());
-
   const flushUnsaved = useCallback(
-    (subject: EntityId, { includeFallback = true } = {}) => {
+    (subject: EntityId) => {
       const intents = unsaved.current.get(subject) ?? [];
       unsaved.current.delete(subject);
-      for (const { source, conversationId, fallback } of intents) {
-        if (fallback && !includeFallback) {
-          continue;
-        }
+      for (const { source, conversationId } of intents) {
         enqueue(source, conversationId, subject);
       }
     },
@@ -415,62 +392,36 @@ export const useAgentConversation = ({
   );
 
   const subjectSaved = useCallback(
-    (subject: EntityId, { createdHere = true } = {}) => {
-      if (createdHere) {
-        savedHere.current.add(subject);
-      }
-      flushUnsaved(subject, { includeFallback: createdHere });
+    (subject: EntityId) => {
+      flushUnsaved(subject);
     },
     [flushUnsaved],
   );
 
   const record = useCallback(
-    (source: string, conversationId: string, { fallback = false } = {}) => {
+    (source: string, conversationId: string) => {
       if (subjectEntityId === null) {
         return;
       }
       if (isSaved(subjectEntityId)) {
         // Any it had while a draft, as when it was saved elsewhere, go first.
-        // Drop fallback intents when this session did not create the subject.
-        flushUnsaved(subjectEntityId, {
-          includeFallback: savedHere.current.has(subjectEntityId),
-        });
+        flushUnsaved(subjectEntityId);
         enqueue(source, conversationId, subjectEntityId);
         return;
       }
       const intents = unsaved.current.get(subjectEntityId) ?? [];
-      const existing = intents.find(
-        (intent) => intent.conversationId === conversationId,
-      );
-      if (!existing) {
-        intents.push({ source, conversationId, fallback });
-      } else if (!fallback) {
-        existing.fallback = false;
+      if (!intents.some((intent) => intent.conversationId === conversationId)) {
+        intents.push({ source, conversationId });
       }
       unsaved.current.set(subjectEntityId, intents);
     },
     [subjectEntityId, isSaved, flushUnsaved, enqueue],
   );
 
-  // Called for every message: only the first has anything to write. Skip
-  // persisting a fallback conversation started after a failed read on an
-  // already-saved subject so it cannot become the newest entity and shadow an
-  // unreachable conversation in the graph. Retries for unfinished writes (e.g.
-  // after an explicit `replace`), unsaved drafts, and drafts first saved in
-  // this session still proceed.
+  // Called for every message: only the first has anything to write.
   const start = useCallback(
-    (conversationId: string) => {
-      const isFallback =
-        readFailed &&
-        subjectEntityId !== null &&
-        !savedHere.current.has(subjectEntityId) &&
-        !unfinished.current.has(conversationId);
-      if (isFallback && isSaved(subjectEntityId)) {
-        return;
-      }
-      record("start", conversationId, { fallback: isFallback });
-    },
-    [readFailed, subjectEntityId, isSaved, record],
+    (conversationId: string) => record("start", conversationId),
+    [record],
   );
 
   // Clearing starts the next conversation. The one before it is left as it
@@ -483,8 +434,11 @@ export const useAgentConversation = ({
   );
 
   const conversationPointer = useMemo(
-    () => ({ conversationId: openConversationId, start, replace }),
-    [openConversationId, start, replace],
+    () =>
+      readFailed
+        ? null
+        : { conversationId: openConversationId, start, replace },
+    [readFailed, openConversationId, start, replace],
   );
   return { conversationPointer, subjectSaved };
 };

@@ -163,13 +163,18 @@ const hostSave: BrunchUi.BrunchHostSave = {
 const renderEditor = (props: {
   savedEntityId: EntityId;
   readonly: boolean;
+  conversationPointer?: typeof conversationPointer | null;
 }) => {
-  const element = ({ savedEntityId: entityId, readonly }: typeof props) => (
+  const element = ({
+    savedEntityId: entityId,
+    readonly,
+    conversationPointer: pointer = conversationPointer,
+  }: typeof props) => (
     <ErrorTrackerContext value={{ captureException }}>
       <ProcessPetrinaut
         handle={handle}
         entityId={entityId}
-        conversationPointer={conversationPointer}
+        conversationPointer={pointer}
         readTitle={() => "Net"}
         hostSave={hostSave}
         versionLoad={undefined}
@@ -311,4 +316,27 @@ test("a net the user may not edit gets no Brunch, and gaining or losing permissi
 
   expect(observed.petrinautMounts).toBe(1);
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test("a null conversationPointer disables Brunch without unmounting the editor", async () => {
+  const { rerender } = renderEditor({
+    savedEntityId,
+    readonly: false,
+    conversationPointer: null,
+  });
+  await settleIdentity();
+
+  expect(observed.brunchInputs).toHaveLength(0);
+  expect(lastPlugins()).toEqual([topBarPluginMarker]);
+
+  rerender({
+    savedEntityId,
+    readonly: false,
+    conversationPointer,
+  });
+  await waitFor(() =>
+    expect(lastPlugins()).toEqual([topBarPluginMarker, brunchPluginMarker]),
+  );
+
+  expect(observed.petrinautMounts).toBe(1);
 });

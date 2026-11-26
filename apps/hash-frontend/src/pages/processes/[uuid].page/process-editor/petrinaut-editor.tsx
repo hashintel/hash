@@ -490,7 +490,7 @@ export const PetrinautEditor = ({
           }));
           // Only a draft's first save transitions the net into existence here.
           if (wasDraft) {
-            subjectSaved(saved.entityId, { createdHere: true });
+            subjectSaved(saved.entityId);
           }
         } catch (error) {
           updateSession(savedHandle, (current) =>
@@ -504,7 +504,7 @@ export const PetrinautEditor = ({
               : { ...current, savePending: false },
           );
           if (wasDraft && error instanceof NetExistsError) {
-            subjectSaved(error.entityId, { createdHere: false });
+            subjectSaved(error.entityId);
           }
           throw error;
         }

@@ -1180,9 +1180,7 @@ test("subjectSaved is called only on a draft's first save, not on updates to an 
     await Promise.resolve();
   });
   expect(observed.subjectSaved).toHaveBeenCalledTimes(1);
-  expect(observed.subjectSaved).toHaveBeenCalledWith(draftEntityId, {
-    createdHere: true,
-  });
+  expect(observed.subjectSaved).toHaveBeenCalledWith(draftEntityId);
 
   act(() => lastTopBar()?.onTitleChange("Draft (second save)"));
   await act(async () => {
@@ -1192,7 +1190,7 @@ test("subjectSaved is called only on a draft's first save, not on updates to an 
   expect(observed.subjectSaved).toHaveBeenCalledTimes(1);
 
   // If a draft's first save discovers the net already exists elsewhere,
-  // subjectSaved is called with createdHere: false.
+  // subjectSaved is still called once for the draft.
   observed.subjectSaved.mockClear();
   const collidedId = "web~collided" as EntityId;
   const collidedLoad: PetrinautEditorLoad = {
@@ -1225,7 +1223,5 @@ test("subjectSaved is called only on a draft's first save, not on updates to an 
     await Promise.resolve();
   });
   await waitFor(() => expect(observed.subjectSaved).toHaveBeenCalledTimes(1));
-  expect(observed.subjectSaved).toHaveBeenCalledWith(collidedId, {
-    createdHere: false,
-  });
+  expect(observed.subjectSaved).toHaveBeenCalledWith(collidedId);
 });

@@ -423,10 +423,7 @@ const isSaved = (subjectEntityId: EntityId) =>
   editor.saved.has(subjectEntityId);
 
 /** The hook's latest `subjectSaved`, which the editor's save calls. */
-let subjectSaved: (
-  subjectEntityId: EntityId,
-  options?: { createdHere?: boolean },
-) => void = () => {};
+let subjectSaved: (subjectEntityId: EntityId) => void = () => {};
 
 const renderConversation = (
   subjectEntityId: EntityId = processId,
@@ -455,10 +452,10 @@ const renderConversation = (
 };
 
 /** The editor's save of `subjectEntityId` lands, or finds it saved already. */
-const save = (subjectEntityId: EntityId, options?: { createdHere?: boolean }) =>
+const save = (subjectEntityId: EntityId) =>
   act(() => {
     editor.saved.add(subjectEntityId);
-    subjectSaved(subjectEntityId, options);
+    subjectSaved(subjectEntityId);
   });
 
 /** Opens the page again, in this browser or another: everything is read afresh. */
@@ -577,14 +574,14 @@ test("the open conversation is the user's newest with this agent linked to this 
   graph.reading = true;
   const { result, rerender } = renderConversation();
   // Still reading: nothing binds yet.
-  expect(result.current.conversationId).toBeUndefined();
+  expect(result.current?.conversationId).toBeUndefined();
 
   graph.reading = false;
   rerender({ subjectEntityId: processId });
-  expect(result.current.conversationId).toBe("newer-conversation");
+  expect(result.current?.conversationId).toBe("newer-conversation");
 
   rerender({ subjectEntityId: otherProcessId });
-  expect(result.current.conversationId).toBe("elsewhere-conversation");
+  expect(result.current?.conversationId).toBe("elsewhere-conversation");
 });
 
 test("another member's conversation on the same subject, which a web admin's read could return, is not opened", () => {
@@ -594,49 +591,49 @@ test("another member's conversation on the same subject, which a web admin's rea
     createdById: otherAccountId,
   });
   const { result } = renderConversation();
-  expect(result.current.conversationId).toBe("mine-conversation");
+  expect(result.current?.conversationId).toBe("mine-conversation");
 
   graph.stored = [];
   graph.links = [];
   store("theirs", { createdById: otherAccountId });
   const { result: reloaded } = reload();
-  expect(reloaded.current.conversationId).toBeNull();
+  expect(reloaded.current?.conversationId).toBeNull();
 });
 
 test("a conversation's first message creates its entity and its link to the subject in the subject's web, and later messages write nothing", async () => {
   const { result } = renderConversation();
-  expect(result.current.conversationId).toBeNull();
+  expect(result.current?.conversationId).toBeNull();
 
-  act(() => result.current.start("first"));
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.writes).toEqual(created("first", processId, processWebId));
   expect(graph.links[0]?.leftEntityId).toBe(graph.stored[0]?.entityId);
 
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.writes).toHaveLength(2);
   expect(graph.captureException).not.toHaveBeenCalled();
 
   // Read again, it is the open one.
   const { result: reloaded } = reload();
-  expect(reloaded.current.conversationId).toBe("first");
+  expect(reloaded.current?.conversationId).toBe("first");
 });
 
 test("on a subject in a web the user can't create entities in, the conversation and its link go in the user's own web", async () => {
   const { result } = renderConversation(elsewhereProcessId);
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.writes).toEqual(created("first", elsewhereProcessId, accountId));
 
   const { result: reloaded } = reload(elsewhereProcessId);
-  expect(reloaded.current.conversationId).toBe("first");
+  expect(reloaded.current?.conversationId).toBe("first");
 });
 
 test("a message in a conversation that already has its entity writes nothing", async () => {
   store("open");
   const { result } = renderConversation();
-  act(() => result.current.start("open-conversation"));
+  act(() => result.current?.start("open-conversation"));
   await settle();
   expect(graph.writes).toEqual([]);
 });
@@ -645,17 +642,17 @@ test("clearing creates the next conversation's entity and link, which becomes th
   store("open");
   const { result } = renderConversation();
 
-  act(() => result.current.replace("next"));
+  act(() => result.current?.replace("next"));
   await settle();
   expect(graph.writes).toEqual(created("next", processId, processWebId));
 
   // Its messages then write nothing more.
-  act(() => result.current.start("next"));
+  act(() => result.current?.start("next"));
   await settle();
   expect(graph.writes).toHaveLength(2);
 
   const { result: reloaded } = reload();
-  expect(reloaded.current.conversationId).toBe("next");
+  expect(reloaded.current?.conversationId).toBe("next");
   expect(graph.stored.map(({ archived }) => archived)).toEqual([false, false]);
 });
 
@@ -665,14 +662,14 @@ test("a write queued on one subject is recorded against it after the user moves 
     release = resolve;
   });
   const { result, rerender } = renderConversation(processId);
-  act(() => result.current.start("on-a"));
-  act(() => result.current.replace("cleared-on-a"));
+  act(() => result.current?.start("on-a"));
+  act(() => result.current?.replace("cleared-on-a"));
   await settle();
   // The second waits for the first.
   expect(graph.writes).toHaveLength(1);
 
   rerender({ subjectEntityId: elsewhereProcessId });
-  act(() => result.current.start("on-b"));
+  act(() => result.current?.start("on-b"));
   release();
   await waitFor(() => expect(graph.writes).toHaveLength(6));
   expect(graph.writes).toEqual([
@@ -685,13 +682,13 @@ test("a write queued on one subject is recorded against it after the user moves 
 test("when the link's write fails, the next message writes the link from the same entity, and no second entity", async () => {
   graph.writeFailures = [{ kind: "link" }];
   const { result } = renderConversation();
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.stored).toHaveLength(1);
   expect(graph.links).toHaveLength(0);
   expect(graph.captureException).toHaveBeenCalledTimes(1);
 
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.writes).toEqual([
     ...created("first", processId, processWebId),
@@ -706,24 +703,24 @@ test("when the link's write fails, the next message writes the link from the sam
   ]);
 
   // Done: later messages write nothing.
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.writes).toHaveLength(3);
 
   const { result: reloaded } = reload();
-  expect(reloaded.current.conversationId).toBe("first");
+  expect(reloaded.current?.conversationId).toBe("first");
 });
 
 test("when the entity's write fails, the next message writes it again under the same id, then its link", async () => {
   graph.writeFailures = [{ kind: "conversation" }];
   const { result } = renderConversation();
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.stored).toHaveLength(0);
   // The link is not tried without its entity.
   expect(graph.writes).toEqual([createdConversation("first", processWebId)]);
 
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.writes).toEqual([
     createdConversation("first", processWebId),
@@ -739,12 +736,12 @@ test("when the entity's write fails, the next message writes it again under the 
 test("when the entity was written but its answer was lost, the next message goes on to the link, and no second entity", async () => {
   graph.writeFailures = [{ kind: "conversation", lost: true }];
   const { result } = renderConversation();
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   expect(graph.stored).toHaveLength(1);
   expect(graph.links).toHaveLength(0);
 
-  act(() => result.current.start("first"));
+  act(() => result.current?.start("first"));
   await settle();
   // The entity's write is refused, as its id is taken, and the link follows.
   expect(graph.stored).toHaveLength(1);
@@ -756,16 +753,16 @@ test("when the entity was written but its answer was lost, the next message goes
   ]);
 
   const { result: reloaded } = reload();
-  expect(reloaded.current.conversationId).toBe("first");
+  expect(reloaded.current?.conversationId).toBe("first");
 });
 
 test("on an unsaved draft nothing is written, however many messages are sent", async () => {
   const { result } = renderConversation(draftId, false);
-  expect(result.current.conversationId).toBeNull();
+  expect(result.current?.conversationId).toBeNull();
 
-  act(() => result.current.start("first"));
-  act(() => result.current.start("first"));
-  act(() => result.current.replace("second"));
+  act(() => result.current?.start("first"));
+  act(() => result.current?.start("first"));
+  act(() => result.current?.replace("second"));
   await settle();
   expect(graph.writes).toEqual([]);
   expect(graph.captureException).not.toHaveBeenCalled();
@@ -773,9 +770,9 @@ test("on an unsaved draft nothing is written, however many messages are sent", a
 
 test("when the draft is saved, its conversations are written at once, in the order they were started, each with its link", async () => {
   const { result } = renderConversation(draftId, false);
-  act(() => result.current.start("first"));
-  act(() => result.current.replace("second"));
-  act(() => result.current.start("second"));
+  act(() => result.current?.start("first"));
+  act(() => result.current?.replace("second"));
+  act(() => result.current?.start("second"));
   await settle();
   expect(graph.writes).toEqual([]);
 
@@ -788,13 +785,13 @@ test("when the draft is saved, its conversations are written at once, in the ord
   ]);
 
   // Their later messages write nothing more.
-  act(() => result.current.start("second"));
+  act(() => result.current?.start("second"));
   await settle();
   expect(graph.writes).toHaveLength(4);
 
   // The newest is the open one.
   const { result: reloaded } = reload(draftId);
-  expect(reloaded.current.conversationId).toBe("second");
+  expect(reloaded.current?.conversationId).toBe("second");
 });
 
 test("a draft that a Create finds saved by another tab has its conversations written when the save says so", async () => {
@@ -804,7 +801,7 @@ test("a draft that a Create finds saved by another tab has its conversations wri
     createdAt: "2026-11-01T00:00:00.000Z",
   });
   const { result } = renderConversation(draftId, false);
-  act(() => result.current.start("this-tab"));
+  act(() => result.current?.start("this-tab"));
   await settle();
   expect(graph.writes).toEqual([]);
 
@@ -814,19 +811,19 @@ test("a draft that a Create finds saved by another tab has its conversations wri
   expect(graph.writes).toEqual(created("this-tab", draftId, processWebId));
 
   const { result: reloaded } = reload(draftId);
-  expect(reloaded.current.conversationId).toBe("this-tab");
+  expect(reloaded.current?.conversationId).toBe("this-tab");
 });
 
 test("a draft left unsaved keeps its conversations, which are written against it when it is saved later, never against another process", async () => {
   const { result, rerender } = renderConversation(draftId, false);
-  act(() => result.current.start("on-draft"));
+  act(() => result.current?.start("on-draft"));
   await settle();
 
   rerender({ subjectEntityId: processId });
   await settle();
   expect(graph.writes).toEqual([]);
 
-  act(() => result.current.start("on-process"));
+  act(() => result.current?.start("on-process"));
   await settle();
   expect(graph.writes).toEqual(created("on-process", processId, processWebId));
 
@@ -841,13 +838,13 @@ test("a draft left unsaved keeps its conversations, which are written against it
 
 test("a draft left unsaved and reopened once saved writes its conversations before its next message's", async () => {
   const { result, rerender } = renderConversation(draftId, false);
-  act(() => result.current.start("on-draft"));
+  act(() => result.current?.start("on-draft"));
   rerender({ subjectEntityId: processId });
 
   // Saved meanwhile, as from another tab, and opened again as saved.
   editor.saved.add(draftId);
   rerender({ subjectEntityId: draftId });
-  act(() => result.current.replace("reopened"));
+  act(() => result.current?.replace("reopened"));
   await settle();
   expect(graph.writes).toEqual([
     ...created("on-draft", draftId, processWebId),
@@ -862,118 +859,32 @@ test("the read opts into the retry link's retries, after each of its delays", ()
   });
 });
 
-test("a read that fails after its retries is reported once, the subject has no open conversation, and start does not overwrite newer conversations", async () => {
+test("a read that fails after its retries is reported once and returns a null pointer to disable Brunch", async () => {
   store("unreachable");
   graph.failingReads = 1;
   graph.reading = true;
   const { result, rerender } = renderConversation();
   // Still reading, or retrying: nothing binds yet.
-  expect(result.current.conversationId).toBeUndefined();
+  expect(result.current?.conversationId).toBeUndefined();
 
   graph.reading = false;
   rerender({ subjectEntityId: processId });
-  expect(result.current.conversationId).toBeNull();
+  expect(result.current).toBeNull();
   rerender({ subjectEntityId: processId });
   expect(graph.captureException).toHaveBeenCalledTimes(1);
   expect(graph.captureException).toHaveBeenCalledWith(expect.any(Error), {
     source: "agent-conversation.read",
   });
 
-  // Fallback `start` after a failed read must not create an entity that would
-  // supersede an unreachable newer conversation; explicit `replace` still does,
-  // and if that `replace` write fails, the next `start` retries it.
-  act(() => result.current.start("fallback-first"));
-  await settle();
-  expect(graph.writes).toEqual([]);
-
-  graph.writeFailures.push({ kind: "conversation" });
-  act(() => result.current.replace("fresh"));
-  await settle();
-  expect(graph.stored.some((stored) => stored.conversationId === "fresh")).toBe(
-    false,
-  );
-
-  act(() => result.current.start("fresh"));
-  await settle();
-  expect(graph.stored.some((stored) => stored.conversationId === "fresh")).toBe(
-    true,
-  );
-});
-
-test("after a failed read on an unsaved draft, start persists both before and after the draft is saved", async () => {
-  graph.failingReads = 1;
-  const { result } = renderConversation(draftId, false);
-  expect(result.current.conversationId).toBeNull();
-
-  act(() => result.current.start("draft-first"));
-  await settle();
-  expect(graph.writes).toEqual([]);
-
-  save(draftId);
-  await settle();
-  expect(graph.writes).toEqual(created("draft-first", draftId, processWebId));
-
-  // Also when the user saves the draft before sending the first message.
-  graph.writes.length = 0;
-  graph.failingReads = 1;
-  const secondDraftId = `${processWebId}~second-draft` as EntityId;
-  const second = renderConversation(secondDraftId, false);
-  expect(second.result.current.conversationId).toBeNull();
-
-  save(secondDraftId);
-  act(() => second.result.current.start("after-save-first"));
-  await settle();
-  expect(graph.writes).toEqual(
-    created("after-save-first", secondDraftId, processWebId),
-  );
-});
-
-test("messaging on a saved subject does not bypass the failed-read guard on a later failed read", async () => {
-  const { result, rerender } = renderConversation(processId, true);
-  // First visit: read succeeds and user sends a message (calls record, not subjectSaved).
-  act(() => result.current.start("initial"));
-  await settle();
-  expect(graph.writes).toEqual(created("initial", processId, processWebId));
-
-  // Switch away, clear cached answer for processId, and switch back with a failing read.
+  // Switching to another process whose read succeeds restores a usable pointer.
   rerender({ subjectEntityId: otherProcessId });
-  graph.writes.length = 0;
-  graph.answers.clear();
-  graph.failingReads = 1;
-  rerender({ subjectEntityId: processId });
-  await settle();
-  expect(result.current.conversationId).toBeNull();
-
-  // Fallback start must still be skipped so it cannot shadow a newer conversation.
-  act(() => result.current.start("fallback-after-later-read-failure"));
-  await settle();
-  expect(graph.writes).toEqual([]);
-});
-
-test("a draft found to already exist elsewhere drops queued fallback intents while keeping explicit replacements", async () => {
-  graph.failingReads = 1;
-  const { result } = renderConversation(draftId, false);
-  expect(result.current.conversationId).toBeNull();
-
-  // Fallback conversation started while the draft's initial read failed.
-  act(() => result.current.start("fallback-while-draft"));
-  // An explicit replacement on the same draft still persists.
-  act(() => result.current.replace("explicit-while-draft"));
-  await settle();
-  expect(graph.writes).toEqual([]);
-
-  // Save discovers the entity already existed elsewhere (NetExistsError).
-  save(draftId, { createdHere: false });
+  expect(result.current).not.toBeNull();
+  expect(result.current?.conversationId).toBeNull();
+  act(() => result.current?.start("on-other"));
   await settle();
   expect(graph.writes).toEqual(
-    created("explicit-while-draft", draftId, processWebId),
+    created("on-other", otherProcessId, processWebId),
   );
-
-  // A fallback conversation started after the failed read must not be persisted.
-  graph.writes.length = 0;
-  act(() => result.current.start("fallback-after-net-exists"));
-  await settle();
-  expect(graph.writes).toEqual([]);
 });
 
 test("where the conversation isn't offered, or with no subject, nothing is read", () => {
@@ -1011,13 +922,13 @@ test("the result keeps its identity when the draft is saved and the read is unch
   save(draftId);
   rerender({ subjectEntityId: draftId });
   await settle();
-  expect(result.current.start).toBe(draft.start);
-  expect(result.current.replace).toBe(draft.replace);
+  expect(result.current?.start).toBe(draft?.start);
+  expect(result.current?.replace).toBe(draft?.replace);
   expect(result.current).toBe(draft);
   expect(subjectSaved).toBe(saveDraft);
 
   // A message sent after the save is written at once.
-  act(() => result.current.start("after-save"));
+  act(() => result.current?.start("after-save"));
   await settle();
   expect(graph.writes).toEqual(created("after-save", draftId, processWebId));
 });

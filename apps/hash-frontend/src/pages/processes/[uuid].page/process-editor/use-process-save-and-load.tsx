@@ -84,6 +84,7 @@ export const useProcessSaveAndLoad = ({
 }: UseProcessSaveAndLoadParams): {
   loadPersistedNet: (net: PersistedNet) => void;
   persistedNets: PersistedNet[];
+  persistedNetsError: Error | undefined;
   persistedNetsLoading: boolean;
   /**
    * Persist the supplied SDCPN + title to the graph: to the target's entity,
@@ -107,6 +108,7 @@ export const useProcessSaveAndLoad = ({
 } => {
   const {
     persistedNets,
+    error: persistedNetsError,
     loading: persistedNetsLoading,
     refetch,
   } = usePersistedNets();
@@ -334,6 +336,7 @@ export const useProcessSaveAndLoad = ({
     () => ({
       loadPersistedNet,
       persistedNets,
+      persistedNetsError,
       persistedNetsLoading,
       persistDefinition,
       setUserEditable,
@@ -343,6 +346,7 @@ export const useProcessSaveAndLoad = ({
       loadPersistedNet,
       persistDefinition,
       persistedNets,
+      persistedNetsError,
       persistedNetsLoading,
       setUserEditable,
       userEditable,

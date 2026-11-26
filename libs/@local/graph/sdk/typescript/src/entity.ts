@@ -10,6 +10,7 @@ import {
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { actorHeaders } from "@local/hash-graph-client";
 
+import { ensureConversationClassificationPreserved } from "./conversation-entity-restrictions.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
@@ -1281,6 +1282,12 @@ export class HashEntity<
      *    )
      */
   ): Promise<this> {
+    await ensureConversationClassificationPreserved({
+      graphApi: graphAPI,
+      authentication,
+      previousEntityTypeIds: this.metadata.entityTypeIds,
+      nextEntityTypeIds: entityTypeIds,
+    });
     return graphAPI
       .patchEntity(
         this.preparePatch({
@@ -1577,6 +1584,12 @@ export class HashLinkEntity<
       ...params
     }: PatchEntityParameters,
   ): Promise<this> {
+    await ensureConversationClassificationPreserved({
+      graphApi: graphAPI,
+      authentication,
+      previousEntityTypeIds: this.metadata.entityTypeIds,
+      nextEntityTypeIds: entityTypeIds,
+    });
     return graphAPI
       .patchEntity(
         this.preparePatch({

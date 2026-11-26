@@ -1,21 +1,30 @@
-import { expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
+import { ConversationClassificationError } from "../src/conversation-entity-restrictions.js";
 import {
   deserializeSearchEntitiesResponse,
   HashEntity,
+  HashLinkEntity,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
   serializeSearchEntitiesResponse,
 } from "../src/entity.js";
 
+import type { ClosedMultiEntityTypeMap } from "../src/entity-type.js";
 import type { SearchEntitiesResponse } from "../src/entity.js";
 import type {
+  ActorEntityUuid,
   BaseUrl,
+  ClosedMultiEntityType,
   Confidence,
   PropertyObject,
   PropertyObjectMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
+import type {
+  Entity as GraphApiEntity,
+  GraphApi,
+} from "@local/hash-graph-client";
 
 const base_url_a = "https://example.com/property-type/a/" as BaseUrl;
 const base_url_aa = "https://example.com/property-type/aa/" as BaseUrl;
@@ -419,4 +428,207 @@ test("patchesFromPropertyObjects patches a property whose metadata alone changed
       property: newProperties.value[base_url_a],
     },
   ]);
+});
+
+describe("conversation classification preservation in patch", () => {
+  const noteTypeId =
+    "https://hash.ai/@h/types/entity-type/note/v/1" as VersionedUrl;
+  const conversationTypeId =
+    "https://hash.ai/@h/types/entity-type/agent-conversation/v/1" as VersionedUrl;
+  const childConversationTypeId =
+    "https://hash.ai/@h/types/entity-type/child-conversation/v/1" as VersionedUrl;
+  const focusLinkTypeId =
+    "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1" as VersionedUrl;
+  const otherLinkTypeId =
+    "https://hash.ai/@h/types/entity-type/related-to/v/1" as VersionedUrl;
+  const authentication = {
+    actorId: "00000000-0000-0000-0000-000000000001" as ActorEntityUuid,
+  };
+  const provenance = {
+    actorType: "user" as const,
+    origin: { type: "api" as const },
+  };
+
+  const closedSchemaFor = (
+    entries: ReadonlyArray<{
+      id: VersionedUrl;
+      parents?: readonly VersionedUrl[];
+    }>,
+  ): ClosedMultiEntityType =>
+    ({
+      allOf: entries.map(({ id, parents = [] }) => ({
+        $id: id,
+        title: id,
+        description: "",
+        allOf: parents.map((parentId) => ({
+          $id: parentId,
+          title: parentId,
+          description: "",
+        })),
+      })),
+      properties: {},
+      links: {},
+    }) as unknown as ClosedMultiEntityType;
+
+  const buildClosedTypeMap = (
+    definitions: Record<VersionedUrl, { parents?: readonly VersionedUrl[] }>,
+    requestedSets: readonly (readonly VersionedUrl[])[],
+  ): Record<VersionedUrl, ClosedMultiEntityTypeMap> => {
+    const root: Record<VersionedUrl, ClosedMultiEntityTypeMap> = {};
+    for (const typeIds of requestedSets) {
+      const sorted = [...typeIds].toSorted();
+      let current = root;
+      const prefix: VersionedUrl[] = [];
+      for (const typeId of sorted) {
+        prefix.push(typeId);
+        const schema = closedSchemaFor(
+          prefix.map((id) => ({ id, parents: definitions[id]?.parents })),
+        );
+        current[typeId] ??= { schema };
+        if (prefix.length < sorted.length) {
+          current[typeId].inner ??= {};
+          current = current[typeId].inner;
+        }
+      }
+    }
+    return root;
+  };
+
+  const createMockGraphApi = (
+    definitions: Record<VersionedUrl, { parents?: readonly VersionedUrl[] }>,
+    patchedEntity: GraphApiEntity,
+  ) => {
+    const getClosedMultiEntityTypes = vi.fn(
+      (params: { entityTypeIds: VersionedUrl[][] }) =>
+        Promise.resolve({
+          entityTypes: buildClosedTypeMap(definitions, params.entityTypeIds),
+        }),
+    );
+    const patchEntity = vi.fn(() => Promise.resolve(patchedEntity));
+    return {
+      graphApi: {
+        getClosedMultiEntityTypes,
+        patchEntity,
+      } as unknown as GraphApi,
+      getClosedMultiEntityTypes,
+      patchEntity,
+    };
+  };
+
+  const entityWithTypes = (
+    entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+  ) => {
+    const raw = createTestEntity();
+    raw.metadata.entityTypeIds = entityTypeIds;
+    return { raw, entity: new HashEntity(raw) };
+  };
+
+  test("skips type lookup when entityTypeIds is omitted or unchanged", async () => {
+    const { raw, entity } = entityWithTypes([conversationTypeId, noteTypeId]);
+    const { graphApi, getClosedMultiEntityTypes, patchEntity } =
+      createMockGraphApi({}, raw);
+
+    await entity.patch(graphApi, authentication, { provenance });
+    await entity.patch(graphApi, authentication, {
+      entityTypeIds: [noteTypeId, conversationTypeId],
+      provenance,
+    });
+
+    expect(getClosedMultiEntityTypes).not.toHaveBeenCalled();
+    expect(patchEntity).toHaveBeenCalledTimes(2);
+  });
+
+  test("permits HashEntity.patch when Agent Conversation classification is preserved", async () => {
+    const { raw, entity } = entityWithTypes([conversationTypeId]);
+    const { graphApi, patchEntity } = createMockGraphApi(
+      {
+        [conversationTypeId]: {},
+        [noteTypeId]: {},
+        [childConversationTypeId]: { parents: [conversationTypeId] },
+      },
+      raw,
+    );
+
+    await entity.patch(graphApi, authentication, {
+      entityTypeIds: [conversationTypeId, noteTypeId],
+      provenance,
+    });
+    await entity.patch(graphApi, authentication, {
+      entityTypeIds: [childConversationTypeId],
+      provenance,
+    });
+
+    expect(patchEntity).toHaveBeenCalledTimes(2);
+  });
+
+  test("refuses HashEntity.patch that adds or removes Agent Conversation (directly or via subtype)", async () => {
+    const definitions = {
+      [conversationTypeId]: {},
+      [noteTypeId]: {},
+      [childConversationTypeId]: { parents: [conversationTypeId] },
+    };
+
+    const { raw: convRaw, entity: convEntity } = entityWithTypes([
+      conversationTypeId,
+    ]);
+    const removeMock = createMockGraphApi(definitions, convRaw);
+    await expect(
+      convEntity.patch(removeMock.graphApi, authentication, {
+        entityTypeIds: [noteTypeId],
+        provenance,
+      }),
+    ).rejects.toThrow(ConversationClassificationError);
+    expect(removeMock.patchEntity).not.toHaveBeenCalled();
+
+    const { raw: noteRaw, entity: noteEntity } = entityWithTypes([noteTypeId]);
+    const addMock = createMockGraphApi(definitions, noteRaw);
+    await expect(
+      noteEntity.patch(addMock.graphApi, authentication, {
+        entityTypeIds: [noteTypeId, childConversationTypeId],
+        provenance,
+      }),
+    ).rejects.toThrow(ConversationClassificationError);
+    expect(addMock.patchEntity).not.toHaveBeenCalled();
+  });
+
+  test("refuses HashLinkEntity.patch that adds or removes Has Agent Conversation Focus", async () => {
+    const definitions = {
+      [focusLinkTypeId]: {},
+      [otherLinkTypeId]: {},
+    };
+
+    const rawFocusLink = createTestEntity();
+    rawFocusLink.metadata.entityTypeIds = [focusLinkTypeId];
+    rawFocusLink.linkData = {
+      leftEntityId: rawFocusLink.metadata.recordId.entityId,
+      rightEntityId: rawFocusLink.metadata.recordId.entityId,
+    };
+    const focusLink = new HashLinkEntity(rawFocusLink);
+    const removeMock = createMockGraphApi(definitions, rawFocusLink);
+
+    await expect(
+      focusLink.patch(removeMock.graphApi, authentication, {
+        entityTypeIds: [otherLinkTypeId],
+        provenance,
+      }),
+    ).rejects.toThrow(ConversationClassificationError);
+    expect(removeMock.patchEntity).not.toHaveBeenCalled();
+
+    const rawOtherLink = createTestEntity();
+    rawOtherLink.metadata.entityTypeIds = [otherLinkTypeId];
+    rawOtherLink.linkData = {
+      leftEntityId: rawOtherLink.metadata.recordId.entityId,
+      rightEntityId: rawOtherLink.metadata.recordId.entityId,
+    };
+    const otherLink = new HashLinkEntity(rawOtherLink);
+    const addMock = createMockGraphApi(definitions, rawOtherLink);
+
+    await expect(
+      otherLink.patch(addMock.graphApi, authentication, {
+        entityTypeIds: [focusLinkTypeId],
+        provenance,
+      }),
+    ).rejects.toThrow(ConversationClassificationError);
+    expect(addMock.patchEntity).not.toHaveBeenCalled();
+  });
 });

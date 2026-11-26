@@ -89,7 +89,11 @@ const ProcessRoutePage: NextPageWithLayout = () => {
       ? undefined
       : draftEntityIdFromQuery({ uuid: uuidParam, draftWeb, creatableWebs });
 
-  const { persistedNets, loading: persistedNetsLoading } = usePersistedNets();
+  const {
+    persistedNets,
+    error: persistedNetsError,
+    loading: persistedNetsLoading,
+  } = usePersistedNets();
 
   /** The uuid of a draft URL whose web the user can't create in. */
   const uncreatableDraftUuid =
@@ -99,7 +103,8 @@ const ProcessRoutePage: NextPageWithLayout = () => {
 
   /**
    * Whether a net the user can see has `uncreatableDraftUuid`, `undefined`
-   * while the nets load. Uuids are unique across webs, so the URL names it.
+   * while the nets load or when the list read failed (absence isn't confirmed).
+   * Uuids are unique across webs, so the URL names it.
    */
   const savedUnderUncreatableDraft =
     uncreatableDraftUuid === null
@@ -110,7 +115,7 @@ const ProcessRoutePage: NextPageWithLayout = () => {
               uncreatableDraftUuid,
           )
         ? true
-        : persistedNetsLoading
+        : persistedNetsLoading || persistedNetsError
           ? undefined
           : false;
 

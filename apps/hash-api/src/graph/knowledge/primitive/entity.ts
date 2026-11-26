@@ -14,6 +14,10 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { actorHeaders } from "@local/hash-graph-client";
 import {
+  ConversationClassificationError,
+  ensureConversationClassificationPreserved,
+} from "@local/hash-graph-sdk/conversation-entity-restrictions";
+import {
   type CreateEntityParameters,
   type DiffEntityInput,
   HashEntity,
@@ -38,7 +42,6 @@ import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import { ensureConversationClassificationPreserved } from "./entity/ensure-conversation-classification-preserved";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
 import type {
@@ -484,12 +487,19 @@ const prepareEntityUpdate: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entity, entityTypeIds, propertyPatches } = params;
 
-  await ensureConversationClassificationPreserved({
-    context,
-    authentication,
-    previousEntityTypeIds: entity.metadata.entityTypeIds,
-    nextEntityTypeIds: entityTypeIds,
-  });
+  try {
+    await ensureConversationClassificationPreserved({
+      graphApi: context.graphApi,
+      authentication,
+      previousEntityTypeIds: entity.metadata.entityTypeIds,
+      nextEntityTypeIds: entityTypeIds,
+    });
+  } catch (error) {
+    if (error instanceof ConversationClassificationError) {
+      throw GraphQlError.forbidden(error.message);
+    }
+    throw error;
+  }
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (entity.metadata.entityTypeIds.includes(beforeUpdateHook.entityTypeId)) {

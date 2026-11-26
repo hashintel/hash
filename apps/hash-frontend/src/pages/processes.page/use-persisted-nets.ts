@@ -76,7 +76,7 @@ export const getPersistedNetsFromSubgraph = (
  * predate a save from another tab, and would open that net's draft blank.
  */
 export const usePersistedNets = () => {
-  const { data, loading, refetch } = useQuery<
+  const { data, error, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -111,6 +111,7 @@ export const usePersistedNets = () => {
 
   return {
     persistedNets,
+    error,
     loading,
     refetch,
   };

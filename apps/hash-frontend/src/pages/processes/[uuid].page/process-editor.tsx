@@ -245,6 +245,7 @@ export const ProcessEditor = ({
     loadPersistedNet,
     persistDefinition,
     persistedNets,
+    persistedNetsError,
     persistedNetsLoading,
     setUserEditable,
     userEditable,
@@ -256,8 +257,9 @@ export const ProcessEditor = ({
   /**
    * Resolve the incoming `view` prop into what the editor holds for it.
    * Returns `null` while we're still waiting for `persistedNets` to load
-   * (saved view) — which the reconciliation effect treats as a "not yet
-   * ready" signal. Every result is a new load.
+   * (or when the list read failed and absence isn't confirmed) — which the
+   * reconciliation effect treats as a "not yet ready" signal. Every result is
+   * a new load.
    */
   const resolveView = useCallback(
     (target: ProcessEditorView): Loaded | null => {
@@ -269,7 +271,7 @@ export const ProcessEditor = ({
           : extractEntityUuidFromEntityId(net.entityId) === target.entityUuid,
       );
       if (target.kind === "draft" && !targetNet) {
-        if (persistedNetsLoading) {
+        if (persistedNetsLoading || persistedNetsError) {
           return null;
         }
         const mode: NetMode = {
@@ -306,7 +308,7 @@ export const ProcessEditor = ({
         },
       };
     },
-    [persistedNets, persistedNetsLoading],
+    [persistedNets, persistedNetsError, persistedNetsLoading],
   );
 
   /**
