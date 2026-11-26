@@ -12,6 +12,10 @@ import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { queryPropertyTypes } from "@local/hash-graph-sdk/property-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
+import {
+  keepLatestVersions,
+  queryAllPages,
+} from "./generate-ontology-type-ids/query-latest-types";
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
 import { isEntityTypeLinkEntityType } from "./graph/ontology/primitive/entity-type";
 
@@ -27,7 +31,6 @@ import type {
   EntityTypeWithMetadata,
   PropertyType,
   PropertyTypeWithMetadata,
-  VersionedUrl,
 } from "@blockprotocol/type-system";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -83,37 +86,23 @@ const serializeTypeIds = (
       ),
   ).replaceAll('/"', '/" as BaseUrl');
 
-const getLatestTypesInOrganizationQuery = (params: { organization: Org }) => ({
+const getTypesInOrganizationQuery = (params: { organization: Org }) => ({
   filter: {
-    all: [
+    equal: [
       {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
+        path: ["webId"],
       },
-      {
-        equal: [
-          {
-            path: ["webId"],
-          },
-          { parameter: params.organization.webId },
-        ],
-      },
+      { parameter: params.organization.webId },
     ],
   },
   temporalAxes: currentTimeInstantTemporalAxes,
 });
 
-const getLatestBlockprotocolTypesQuery = {
+const getBlockprotocolTypesQuery = {
   filter: {
-    all: [
-      {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
-      },
-      {
-        startsWith: [
-          { path: ["versionedUrl"] },
-          { parameter: "https://blockprotocol.org" },
-        ],
-      },
+    startsWith: [
+      { path: ["versionedUrl"] },
+      { parameter: "https://blockprotocol.org" },
     ],
   },
   temporalAxes: currentTimeInstantTemporalAxes,
@@ -123,34 +112,6 @@ const generateRecordTypeString = (
   kind: (DataType | EntityType | PropertyType)["kind"] | "linkEntityType",
 ) =>
   `Record<string, { ${kind}Id: VersionedUrl; ${kind}BaseUrl: BaseUrl; ${kind === "dataType" ? "title: string; titlePlural?: string; description: string;" : ""} }>`;
-
-/**
- * Reads every page of a query. The graph returns at most `HASH_GRAPH_QUERY_ONTOLOGY_LIMIT` types per request, 1000 by
- * default, and a cursor to read the rest from.
- */
-const queryAllPages = async <Response extends { cursor?: VersionedUrl }, Type>(
-  queryPage: (after: VersionedUrl | undefined) => Promise<Response>,
-  getTypes: (response: Response) => Type[],
-): Promise<Type[]> => {
-  const types: Type[] = [];
-  const cursors = new Set<VersionedUrl>();
-  let after: VersionedUrl | undefined;
-
-  do {
-    const response = await queryPage(after);
-    types.push(...getTypes(response));
-
-    after = response.cursor;
-    if (after) {
-      if (cursors.has(after)) {
-        throw new Error(`Query returned cursor ${after} more than once`);
-      }
-      cursors.add(after);
-    }
-  } while (after);
-
-  return types;
-};
 
 const serializeTypes: ImpureGraphFunction<
   {
@@ -266,37 +227,43 @@ const generateOntologyIds = async () => {
   const authentication = { actorId: publicUserAccountId };
 
   type Query =
-    | ReturnType<typeof getLatestTypesInOrganizationQuery>
-    | typeof getLatestBlockprotocolTypesQuery;
+    | ReturnType<typeof getTypesInOrganizationQuery>
+    | typeof getBlockprotocolTypesQuery;
 
-  const queryAllEntityTypes = (query: Query) =>
-    queryAllPages(
-      (after) =>
-        queryEntityTypes(graphContext.graphApi, authentication, {
-          ...query,
-          ...(after ? { after } : {}),
-        }),
-      ({ entityTypes }) => entityTypes,
+  const queryLatestEntityTypes = async (query: Query) =>
+    keepLatestVersions(
+      await queryAllPages(
+        (after) =>
+          queryEntityTypes(graphContext.graphApi, authentication, {
+            ...query,
+            ...(after ? { after } : {}),
+          }),
+        ({ entityTypes }) => entityTypes,
+      ),
     );
 
-  const queryAllPropertyTypes = (query: Query) =>
-    queryAllPages(
-      (after) =>
-        queryPropertyTypes(graphContext.graphApi, authentication, {
-          ...query,
-          ...(after ? { after } : {}),
-        }),
-      ({ propertyTypes }) => propertyTypes,
+  const queryLatestPropertyTypes = async (query: Query) =>
+    keepLatestVersions(
+      await queryAllPages(
+        (after) =>
+          queryPropertyTypes(graphContext.graphApi, authentication, {
+            ...query,
+            ...(after ? { after } : {}),
+          }),
+        ({ propertyTypes }) => propertyTypes,
+      ),
     );
 
-  const queryAllDataTypes = (query: Query) =>
-    queryAllPages(
-      (after) =>
-        queryDataTypes(graphContext.graphApi, authentication, {
-          ...query,
-          ...(after ? { after } : {}),
-        }),
-      ({ dataTypes }) => dataTypes,
+  const queryLatestDataTypes = async (query: Query) =>
+    keepLatestVersions(
+      await queryAllPages(
+        (after) =>
+          queryDataTypes(graphContext.graphApi, authentication, {
+            ...query,
+            ...(after ? { after } : {}),
+          }),
+        ({ dataTypes }) => dataTypes,
+      ),
     );
 
   const [
@@ -312,33 +279,33 @@ const generateOntologyIds = async () => {
     blockProtocolDataTypes,
   ] = await Promise.all([
     // HASH types
-    queryAllEntityTypes(
-      getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    queryLatestEntityTypes(
+      getTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    queryAllPropertyTypes(
-      getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    queryLatestPropertyTypes(
+      getTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    queryAllDataTypes(
-      getLatestTypesInOrganizationQuery({ organization: hashOrg }),
+    queryLatestDataTypes(
+      getTypesInOrganizationQuery({ organization: hashOrg }),
     ),
     // Google types
-    queryAllEntityTypes(
-      getLatestTypesInOrganizationQuery({ organization: googleOrg }),
+    queryLatestEntityTypes(
+      getTypesInOrganizationQuery({ organization: googleOrg }),
     ),
-    queryAllPropertyTypes(
-      getLatestTypesInOrganizationQuery({ organization: googleOrg }),
+    queryLatestPropertyTypes(
+      getTypesInOrganizationQuery({ organization: googleOrg }),
     ),
     // Linear types
-    queryAllEntityTypes(
-      getLatestTypesInOrganizationQuery({ organization: linearOrg }),
+    queryLatestEntityTypes(
+      getTypesInOrganizationQuery({ organization: linearOrg }),
     ),
-    queryAllPropertyTypes(
-      getLatestTypesInOrganizationQuery({ organization: linearOrg }),
+    queryLatestPropertyTypes(
+      getTypesInOrganizationQuery({ organization: linearOrg }),
     ),
     // BlockProtocol types
-    queryAllEntityTypes(getLatestBlockprotocolTypesQuery),
-    queryAllPropertyTypes(getLatestBlockprotocolTypesQuery),
-    queryAllDataTypes(getLatestBlockprotocolTypesQuery),
+    queryLatestEntityTypes(getBlockprotocolTypesQuery),
+    queryLatestPropertyTypes(getBlockprotocolTypesQuery),
+    queryLatestDataTypes(getBlockprotocolTypesQuery),
   ]);
 
   const outputPath = path.join(
