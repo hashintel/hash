@@ -30,7 +30,7 @@ You will need scenarios when you want to:
 1. Switch to **Simulate** mode and open the **Scenarios** tab.
 2. Click **Create**. The Create Scenario panel opens.
 3. Fill in **Scenario name** (required, unique among scenarios) and an optional description.
-4. Add **Variables** -- one per value you want to drive from a single number, written `scenario.<name>` in every expression below. Turn **Scenario Parameter** on to expose a Variable as a tunable parameter of the saved scenario: it needs a snake_case name, a constant expression as its default, and a value between 0 and 1 for a ratio.
+4. Add **Variables** -- one per value you want to drive from a single number, written `scenario.<name>` in every expression below. Turn **Scenario Parameter** on to expose a Variable as a tunable parameter of the saved scenario: it needs a snake_case name, a [constant expression](ad-hoc-scenarios.md#constant-values) as its default, and a value between 0 and 1 for a ratio.
 5. Fill in **Parameters** -- an expression per net-level parameter whose default you want to override; the `default` tag marks the untouched ones.
 6. Configure **Initial state** -- a count expression per untyped place, rows of cells per typed place (a Dynamic row builds many tokens from one count). See [Ad-hoc Scenarios](ad-hoc-scenarios.md#the-form) for the form itself.
 7. Click **Create**. It is disabled while the name or any value has an error -- hover it to read the first.

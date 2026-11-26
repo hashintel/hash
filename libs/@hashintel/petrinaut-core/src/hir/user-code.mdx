@@ -108,8 +108,8 @@ blocking diagnostic rather than a sandbox concern. The ad-hoc scenario form's
 constant values (Optimize bounds, exposed Variables' defaults, place totals)
 are evaluated while the form renders, where the TypeScript compiler is
 unavailable: `hir/parse-expression.ts` parses them into HIR with a
-hand-written parser for the scenario expression grammar, and `hir/interpret.ts`
-evaluates the result. The buffer programs emitted from the HIR are
+hand-written parser for arithmetic over `parameters`, `scenario` and `Math`,
+and `hir/interpret.ts` evaluates the result. The buffer programs emitted from the HIR are
 instantiated with `new Function` in the simulation workers, but that source
 is generated from checked HIR, never written by a user.
 

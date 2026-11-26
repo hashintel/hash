@@ -82,17 +82,23 @@ Each selection becomes a swept parameter of the experiment with a deterministic 
 - `adhoc_var_net_<name>` -- a top-level Variable; place-scoped variables use the place's name as the scope.
 - `adhoc_param_<variable_name>` -- a net parameter override.
 
-Bounds must resolve to constants, integer values need integer bounds, and the maximum must exceed the minimum; a value that does not run shows its problem on the bound, and the panel's footer names it. The experiment then behaves like any [parameter sweep](experiments.md#parameter-sweeps): the initial state compiles at the navigator's selection, parameter overrides follow each run's draw. When you start optimization, the study searches the generated parameters like any others; only [Constraints](experiments.md#constraints) need a saved scenario.
+Bounds must resolve to [constants](#constant-values), integer values need integer bounds, and the maximum must exceed the minimum; a value that does not run shows its problem on the bound, and the panel's footer names it. The experiment then behaves like any [parameter sweep](experiments.md#parameter-sweeps): the initial state compiles at the navigator's selection, parameter overrides follow each run's draw. When you start optimization, the study searches the generated parameters like any others; only [Constraints](experiments.md#constraints) need a saved scenario.
 
 A saved scenario shown through the form in the experiment panel offers the same toggle on each numeric scenario parameter row.
 
 ## Saving a scenario from the form
 
-[Creating a scenario](scenarios.md#creating-a-scenario) opens the same form -- name and description above it -- as the one authoring surface. Each top-level Variable's row carries a **Scenario Parameter** toggle: an exposed Variable becomes one of the saved scenario's tunable parameters, named after the Variable in snake_case (`baseLoad` becomes `base_load`), defaulting to its expression's value -- which must therefore be a constant, and between 0 and 1 for a ratio Variable, which becomes a ratio parameter. Everyone running the scenario can then adjust it wherever scenario parameters appear, without editing the scenario.
+[Creating a scenario](scenarios.md#creating-a-scenario) opens the same form -- name and description above it -- as the one authoring surface. Each top-level Variable's row carries a **Scenario Parameter** toggle: an exposed Variable becomes one of the saved scenario's tunable parameters, named after the Variable in snake_case (`baseLoad` becomes `base_load`), defaulting to its expression's value -- which must therefore be a [constant](#constant-values), and between 0 and 1 for a ratio Variable, which becomes a ratio parameter. Everyone running the scenario can then adjust it wherever scenario parameters appear, without editing the scenario.
 
 Saving keeps your form entries as the scenario's definition, so editing the scenario reopens exactly the form you left.
 
 Selecting a saved ad-hoc scenario in Simulation Settings shows it through the same form, read-only: only the scenario parameters (the exposed Variables) take value edits, for that run alone. The Parameters and Initial state sections show computed values, updating when you change a scenario parameter. Select a value to see its source expression in a floating cell over the selected value. The expression disappears when focus moves away. Auxiliary Variables stay hidden. Editing any scenario opens this form: a scenario saved per place by an earlier version or by the AI assistant opens converted, and saving stores it in the form's format; a scenario that defines its initial state as code keeps that code, shown read-only -- edit its name, description, Variables and Parameters here, or recreate it from the form with a Dynamic row (see [Scenarios](scenarios.md#scenarios-stored-as-code)). Such a scenario stores no form entries, so every Variable must be marked **Scenario Parameter** to be kept -- the form refuses to save one that is not.
+
+## Constant values
+
+Three values are computed while you edit, before anything runs: an interval's bounds, an exposed Variable's default, and a place's token total. Each resolves when its expression is arithmetic over numbers, `true` and `false`, net parameters (`parameters.<name>`), top-level Variables (`scenario.<name>`), and `Math` functions and constants. Comparisons, `&&`, `||`, `!` and `? :` are available too.
+
+Any other expression is not a constant: text, a list, `range(...)`, `Math.random()`, or a value that reads `i`, `count` or a swept Variable. A bound or an exposed Variable then shows an error, and a token total prints the count as written.
 
 ## Errors
 

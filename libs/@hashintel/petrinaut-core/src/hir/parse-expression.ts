@@ -1,6 +1,5 @@
 /**
- * Parses one expression written in the scenario vocabulary into HIR without
- * the TypeScript compiler.
+ * Parses one constant expression into HIR without the TypeScript compiler.
  *
  * `lower-typescript.ts` is the compiler for every user-code surface, but it
  * needs the TypeScript compiler, which the browser runs only in the language
@@ -9,12 +8,13 @@
  * defaults, place totals), so it parses them here and evaluates the result
  * with `interpret.ts`. Nothing in this path runs source text as JavaScript.
  *
- * The grammar is the expression subset of the scenario surfaces, with
- * JavaScript's precedence: literals, `parameters.<name>`, `scenario.<name>`,
- * `Math.<fn>(...)`, `Math.PI`, `range(...)`, unary and binary arithmetic,
- * comparisons, `&&`, `||`, `?:`, `.length`, member and index access, and
- * parentheses. Any other bare name lowers to a `localRef`, which the
- * interpreter reports as unknown. Everything else is a parse error.
+ * The grammar is arithmetic over ambient values, with JavaScript's
+ * precedence: numbers, `true`, `false`, `parameters.<name>`,
+ * `scenario.<name>`, `Math.<fn>(...)`, `Math.PI`, unary and binary
+ * arithmetic, comparisons, `&&`, `||`, `?:` and parentheses. Any other bare
+ * name lowers to a `localRef`, which the interpreter reports as unknown.
+ * Everything else is a parse error: a constant is a number or a boolean, so
+ * text, lists and records have no use here.
  */
 import { HIR_MATH_FNS } from "./hir";
 
@@ -24,7 +24,6 @@ import type {
   HirDiagnostic,
   HirExpr,
   HirMathFn,
-  HirUnaryOp,
   Span,
 } from "./hir";
 
@@ -32,35 +31,8 @@ export type ParseHirExpressionResult =
   | { ok: true; expr: HirExpr }
   | { ok: false; diagnostic: HirDiagnostic };
 
-type Punctuator =
-  | "("
-  | ")"
-  | "["
-  | "]"
-  | "."
-  | ","
-  | "?"
-  | ":"
-  | "+"
-  | "-"
-  | "*"
-  | "/"
-  | "%"
-  | "**"
-  | "<"
-  | "<="
-  | ">"
-  | ">="
-  | "=="
-  | "!="
-  | "==="
-  | "!=="
-  | "&&"
-  | "||"
-  | "!";
-
 /** Longest first, so `**` wins over `*` and `===` over `==`. */
-const PUNCTUATORS: readonly Punctuator[] = [
+const PUNCTUATORS = [
   "===",
   "!==",
   "**",
@@ -72,8 +44,6 @@ const PUNCTUATORS: readonly Punctuator[] = [
   "||",
   "(",
   ")",
-  "[",
-  "]",
   ".",
   ",",
   "?",
@@ -86,41 +56,31 @@ const PUNCTUATORS: readonly Punctuator[] = [
   "<",
   ">",
   "!",
-];
+] as const;
+
+type Punctuator = (typeof PUNCTUATORS)[number];
 
 type Token = { start: number; end: number } & (
-  | { kind: "number"; value: number; raw: string }
-  | { kind: "string"; value: string }
+  | { kind: "number"; value: number }
   | { kind: "identifier"; name: string }
   | { kind: "punctuator"; text: Punctuator }
   | { kind: "end" }
 );
 
-const punctuatorAt = (source: string, index: number): Punctuator | undefined =>
-  PUNCTUATORS.find((candidate) => source.startsWith(candidate, index));
+type IdentifierToken = Token & { kind: "identifier" };
 
-const SIMPLE_ESCAPES: Readonly<Record<string, string>> = {
-  n: "\n",
-  t: "\t",
-  r: "\r",
-  b: "\b",
-  f: "\f",
-  v: "\v",
-  "0": "\0",
-};
+/** Left-associative binary levels, loosest first. `**` binds tighter. */
+const BINARY_LEVELS: readonly (readonly Punctuator[])[] = [
+  ["||"],
+  ["&&"],
+  ["==", "!=", "===", "!=="],
+  ["<", "<=", ">", ">="],
+  ["+", "-"],
+  ["*", "/", "%"],
+];
 
-const DECIMAL_DIGITS: ReadonlySet<string> = new Set("0123456789");
-const HEX_DIGITS: ReadonlySet<string> = new Set("0123456789abcdefABCDEF");
 const MATH_CONSTANTS: ReadonlySet<string> = new Set(["PI", "E"]);
 
-const isHexDigits = (text: string): boolean => {
-  for (let position = 0; position < text.length; position += 1) {
-    if (!HEX_DIGITS.has(text[position]!)) {
-      return false;
-    }
-  }
-  return true;
-};
 /** `Math.random` is left out: a constant has one value. */
 const MATH_FNS: ReadonlySet<string> = new Set(
   HIR_MATH_FNS.filter((fn) => fn !== "random"),
@@ -142,52 +102,13 @@ const fail = (message: string, start: number, end: number): never => {
   throw new ParseFailure(message, { start, length: end - start });
 };
 
-function readString(source: string, start: number): Token {
-  const quote = source[start]!;
-  let value = "";
-  let index = start + 1;
-  while (index < source.length) {
-    const char = source[index]!;
-    if (char === quote) {
-      return { kind: "string", value, start, end: index + 1 };
-    }
-    if (char === "\n") {
-      break;
-    }
-    if (char !== "\\") {
-      value += char;
-      index += 1;
-      continue;
-    }
-    const escaped = source[index + 1];
-    if (escaped === undefined) {
-      break;
-    }
-    if (escaped === "u" || escaped === "x") {
-      const digits = escaped === "u" ? 4 : 2;
-      const hex = source.slice(index + 2, index + 2 + digits);
-      if (hex.length !== digits || !isHexDigits(hex)) {
-        return fail("Invalid escape sequence.", index, index + 2 + digits);
-      }
-      value += String.fromCharCode(Number.parseInt(hex, 16));
-      index += 2 + digits;
-      continue;
-    }
-    value += SIMPLE_ESCAPES[escaped] ?? escaped;
-    index += 2;
-  }
-  return fail("Unterminated string.", start, source.length);
-}
-
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
   // Sticky patterns match at `lastIndex` only. They are declared here, per
   // call, so no module-level regex carries scanning state between calls.
-  // The number pattern keeps every quantifier behind a distinct prefix, so
-  // no input makes it backtrack.
+  // Every quantifier sits behind a distinct prefix, so none backtracks.
   const whitespacePattern = /\s+/y;
-  const numberPattern =
-    /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/y;
+  const numberPattern = /(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/y;
   const identifierPattern = /[A-Za-z_$][A-Za-z0-9_$]*/y;
   let index = 0;
   while (index < source.length) {
@@ -197,88 +118,43 @@ function tokenize(source: string): Token[] {
       index += whitespace[0].length;
       continue;
     }
-    if (source.startsWith("//", index)) {
-      const newline = source.indexOf("\n", index);
-      index = newline === -1 ? source.length : newline + 1;
-      continue;
-    }
-    if (source.startsWith("/*", index)) {
-      const close = source.indexOf("*/", index + 2);
-      if (close === -1) {
-        fail("Unterminated comment.", index, source.length);
-      }
-      index = close + 2;
-      continue;
-    }
+    const start = index;
     numberPattern.lastIndex = index;
-    const number = numberPattern.exec(source);
-    if (number) {
-      const raw = number[0];
+    const number = numberPattern.exec(source)?.[0];
+    if (number !== undefined) {
+      index += number.length;
       // Strict-mode JavaScript, which the other surfaces are, has no legacy
       // octal literals; `00` and `08` are errors, not zero and eight.
-      if (raw[0] === "0" && DECIMAL_DIGITS.has(raw[1] ?? "")) {
-        fail("Numbers may not start with `0`.", index, index + raw.length);
+      const second = number[1] ?? "";
+      if (number.startsWith("0") && second >= "0" && second <= "9") {
+        fail("Numbers may not start with `0`.", start, index);
       }
-      tokens.push({
-        kind: "number",
-        value: Number(raw),
-        raw,
-        start: index,
-        end: index + raw.length,
-      });
-      index += raw.length;
+      tokens.push({ kind: "number", value: Number(number), start, end: index });
       continue;
     }
     identifierPattern.lastIndex = index;
-    const identifier = identifierPattern.exec(source);
-    if (identifier) {
-      tokens.push({
-        kind: "identifier",
-        name: identifier[0],
-        start: index,
-        end: index + identifier[0].length,
-      });
-      index += identifier[0].length;
+    const name = identifierPattern.exec(source)?.[0];
+    if (name !== undefined) {
+      index += name.length;
+      tokens.push({ kind: "identifier", name, start, end: index });
       continue;
     }
-    const char = source[index]!;
-    if (char === '"' || char === "'") {
-      const token = readString(source, index);
-      tokens.push(token);
-      index = token.end;
-      continue;
+    const text = PUNCTUATORS.find((candidate) =>
+      source.startsWith(candidate, start),
+    );
+    if (text === undefined) {
+      return fail(
+        `Unexpected character \`${source[start]!}\`.`,
+        start,
+        start + 1,
+      );
     }
-    const punctuator = punctuatorAt(source, index);
-    if (punctuator) {
-      tokens.push({
-        kind: "punctuator",
-        text: punctuator,
-        start: index,
-        end: index + punctuator.length,
-      });
-      index += punctuator.length;
-      continue;
-    }
-    fail(`Unexpected character \`${char}\`.`, index, index + 1);
+    index += text.length;
+    tokens.push({ kind: "punctuator", text, start, end: index });
   }
   tokens.push({ kind: "end", start: source.length, end: source.length });
   return tokens;
 }
-
-const describeToken = (token: Token): string => {
-  switch (token.kind) {
-    case "number":
-      return `number \`${token.raw}\``;
-    case "string":
-      return "string";
-    case "identifier":
-      return `\`${token.name}\``;
-    case "punctuator":
-      return `\`${token.text}\``;
-    case "end":
-      return "the end of the expression";
-  }
-};
 
 type NodeInit = Omit<HirExpr, "id" | "span">;
 
@@ -289,21 +165,22 @@ class Parser {
   private nextId = 0;
   private depth = 0;
 
-  constructor(private readonly tokens: Token[]) {}
+  constructor(
+    private readonly source: string,
+    private readonly tokens: Token[],
+  ) {}
 
   parse(): HirExpr {
     const expr = this.parseConditional();
     const token = this.peek();
     if (token.kind !== "end") {
-      fail(`Unexpected ${describeToken(token)}.`, token.start, token.end);
+      fail(`Unexpected ${this.describe(token)}.`, token.start, token.end);
     }
     return expr;
   }
 
-  private peek(offset = 0): Token {
-    return this.tokens[
-      Math.min(this.position + offset, this.tokens.length - 1)
-    ]!;
+  private peek(): Token {
+    return this.tokens[this.position]!;
   }
 
   private advance(): Token {
@@ -313,8 +190,8 @@ class Parser {
     return token;
   }
 
-  private isPunctuator(text: Punctuator, offset = 0): boolean {
-    const token = this.peek(offset);
+  private isPunctuator(text: Punctuator): boolean {
+    const token = this.peek();
     return token.kind === "punctuator" && token.text === text;
   }
 
@@ -322,12 +199,19 @@ class Parser {
     const token = this.peek();
     if (token.kind !== "punctuator" || token.text !== text) {
       fail(
-        `Expected \`${text}\` but found ${describeToken(token)}.`,
+        `Expected \`${text}\` but found ${this.describe(token)}.`,
         token.start,
         token.end,
       );
     }
     return this.advance();
+  }
+
+  /** A token as written, for messages. */
+  private describe(token: Token): string {
+    return token.kind === "end"
+      ? "the end of the expression"
+      : `\`${this.source.slice(token.start, token.end)}\``;
   }
 
   private make<Init extends NodeInit>(
@@ -373,20 +257,10 @@ class Parser {
     });
   }
 
-  /** Left-associative binary levels, loosest first. */
-  private static readonly BINARY_LEVELS: readonly (readonly Punctuator[])[] = [
-    ["||"],
-    ["&&"],
-    ["==", "!=", "===", "!=="],
-    ["<", "<=", ">", ">="],
-    ["+", "-"],
-    ["*", "/", "%"],
-  ];
-
   private parseBinary(level: number): HirExpr {
-    const operators = Parser.BINARY_LEVELS[level];
+    const operators = BINARY_LEVELS[level];
     if (!operators) {
-      return this.parseUnary();
+      return this.parseExponent();
     }
     const start = this.peek().start;
     let left = this.parseBinary(level + 1);
@@ -412,14 +286,14 @@ class Parser {
   }
 
   /** A JavaScript ExponentiationExpression: a unary operand, optionally raised. */
-  private parseUnary(): HirExpr {
+  private parseExponent(): HirExpr {
     const start = this.peek().start;
-    const base = this.parseUnaryOperand();
+    const base = this.parseUnary();
     if (!this.isPunctuator("**")) {
       return base;
     }
     const power = this.advance();
-    const exponent = this.nested(power, () => this.parseUnary());
+    const exponent = this.nested(power, () => this.parseExponent());
     return this.make(
       { kind: "binary", op: "**", left: base, right: exponent },
       start,
@@ -428,18 +302,16 @@ class Parser {
   }
 
   /** A JavaScript UnaryExpression, which `**` may not raise unparenthesised. */
-  private parseUnaryOperand(): HirExpr {
+  private parseUnary(): HirExpr {
     const token = this.peek();
     if (
       token.kind !== "punctuator" ||
       (token.text !== "-" && token.text !== "+" && token.text !== "!")
     ) {
-      return this.parsePostfix();
+      return this.parsePrimary();
     }
     this.advance();
-    const op: HirUnaryOp = token.text;
-    const operandToken = this.peek();
-    const operand = this.nested(token, () => this.parseUnaryOperand());
+    const operand = this.nested(token, () => this.parseUnary());
     if (this.isPunctuator("**")) {
       fail(
         "Put parentheses around a negated or inverted operand before `**`.",
@@ -447,187 +319,32 @@ class Parser {
         this.peek().end,
       );
     }
-    // Fold `-1` style negated literals so the raw text is preserved, as the
-    // TypeScript lowering does.
-    if (
-      op === "-" &&
-      operand.kind === "numberLit" &&
-      operandToken.kind === "number" &&
-      operand.span.start === operandToken.start
-    ) {
-      return this.make(
-        { kind: "numberLit", value: -operand.value, raw: `-${operand.raw}` },
-        token.start,
-        this.lastEnd,
-      );
-    }
-    return this.make({ kind: "unary", op, operand }, token.start, this.lastEnd);
-  }
-
-  private parseArguments(): { args: HirExpr[]; end: number } {
-    const open = this.expectPunctuator("(");
-    return this.nested(open, () => {
-      const args: HirExpr[] = [];
-      if (!this.isPunctuator(")")) {
-        for (;;) {
-          args.push(this.parseConditional());
-          if (!this.isPunctuator(",")) {
-            break;
-          }
-          this.advance();
-          // A trailing comma, as the formatter writes a wrapped call.
-          if (this.isPunctuator(")")) {
-            break;
-          }
-        }
-      }
-      const close = this.expectPunctuator(")");
-      return { args, end: close.end };
-    });
-  }
-
-  /** The name after `.` or the string inside `[...]`, with its span. */
-  private parseMemberName(): { name: string; start: number; end: number } {
-    if (this.isPunctuator(".")) {
-      this.advance();
-      const token = this.peek();
-      if (token.kind !== "identifier") {
-        return fail("Expected a name after `.`.", token.start, token.end);
-      }
-      this.advance();
-      return { name: token.name, start: token.start, end: token.end };
-    }
-    this.expectPunctuator("[");
-    const token = this.peek();
-    if (token.kind !== "string") {
-      return fail(
-        "Expected a quoted name inside `[...]`.",
-        token.start,
-        token.end,
-      );
-    }
-    this.advance();
-    const close = this.expectPunctuator("]");
-    return { name: token.value, start: token.start, end: close.end };
-  }
-
-  /** `parameters.<name>` / `scenario.<name>`, also in `["name"]` form. */
-  private parseAmbientRef(
-    token: Token & { kind: "identifier" },
-    kind: "paramRef" | "scenarioRef",
-  ): HirExpr {
-    if (!this.isPunctuator(".") && !this.isPunctuator("[")) {
-      fail(
-        `\`${token.name}\` can only be read as \`${token.name}.<name>\`.`,
-        token.start,
-        token.end,
-      );
-    }
-    const member = this.parseMemberName();
-    return this.make({ kind, name: member.name }, token.start, member.end);
-  }
-
-  private parseMathMember(token: Token & { kind: "identifier" }): HirExpr {
-    if (!this.isPunctuator(".")) {
-      fail("`Math` can only be used as `Math.<name>`.", token.start, token.end);
-    }
-    const member = this.parseMemberName();
-    if (MATH_CONSTANTS.has(member.name)) {
-      if (this.isPunctuator("(")) {
-        fail(
-          `\`Math.${member.name}\` is a value, not a function.`,
-          token.start,
-          member.end,
-        );
-      }
-      return this.make(
-        { kind: "constant", name: member.name as HirConstantName },
-        token.start,
-        member.end,
-      );
-    }
-    if (!MATH_FNS.has(member.name)) {
-      fail(
-        `\`Math.${member.name}\` is not supported.`,
-        token.start,
-        member.end,
-      );
-    }
-    if (!this.isPunctuator("(")) {
-      fail(
-        `\`Math.${member.name}\` can only be used as a function call.`,
-        token.start,
-        member.end,
-      );
-    }
-    const { args, end } = this.parseArguments();
     return this.make(
-      { kind: "mathCall", fn: member.name as HirMathFn, args },
+      { kind: "unary", op: token.text, operand },
       token.start,
-      end,
+      this.lastEnd,
     );
   }
 
-  private parseIdentifier(token: Token & { kind: "identifier" }): HirExpr {
-    switch (token.name) {
-      case "true":
-      case "false":
-        return this.make(
-          { kind: "boolLit", value: token.name === "true" },
-          token.start,
-          token.end,
-        );
-      case "null":
-      case "undefined":
-        return this.make({ kind: "nullLit" }, token.start, token.end);
-      case "Infinity":
-      case "NaN":
-        return this.make(
-          { kind: "constant", name: token.name },
-          token.start,
-          token.end,
-        );
-      case "parameters":
-        return this.parseAmbientRef(token, "paramRef");
-      case "scenario":
-        return this.parseAmbientRef(token, "scenarioRef");
-      case "Math":
-        return this.parseMathMember(token);
-      case "range": {
-        if (!this.isPunctuator("(")) {
-          fail(
-            "`range` can only be used as a function call.",
-            token.start,
-            token.end,
-          );
-        }
-        const { args, end } = this.parseArguments();
-        if (args.length < 1 || args.length > 3) {
-          fail("`range(...)` takes 1 to 3 arguments.", token.start, end);
-        }
-        return this.make({ kind: "rangeCall", args }, token.start, end);
-      }
-      default:
-        return this.make(
-          { kind: "localRef", name: token.name },
-          token.start,
-          token.end,
-        );
+  private parsePrimary(): HirExpr {
+    const start = this.peek().start;
+    const expr = this.parseAtom();
+    if (this.isPunctuator("(")) {
+      fail("Only `Math.<fn>(...)` can be called.", start, this.peek().end);
     }
+    return expr;
   }
 
-  private parsePrimary(): HirExpr {
+  private parseAtom(): HirExpr {
     const token = this.advance();
     switch (token.kind) {
       case "number":
         return this.make(
-          { kind: "numberLit", value: token.value, raw: token.raw },
-          token.start,
-          token.end,
-        );
-      case "string":
-        return this.make(
-          { kind: "stringLit", value: token.value },
+          {
+            kind: "numberLit",
+            value: token.value,
+            raw: this.source.slice(token.start, token.end),
+          },
           token.start,
           token.end,
         );
@@ -642,7 +359,7 @@ class Parser {
           });
         }
         return fail(
-          `Unexpected ${describeToken(token)}.`,
+          `Unexpected ${this.describe(token)}.`,
           token.start,
           token.end,
         );
@@ -651,54 +368,99 @@ class Parser {
     }
   }
 
-  private parsePostfix(): HirExpr {
-    const start = this.peek().start;
-    let expr = this.parsePrimary();
-    for (;;) {
-      if (this.isPunctuator(".")) {
-        const member = this.parseMemberName();
-        expr =
-          member.name === "length"
-            ? this.make({ kind: "length", target: expr }, start, member.end)
-            : this.make(
-                {
-                  kind: "fieldAccess",
-                  target: expr,
-                  field: member.name,
-                  fieldSpan: {
-                    start: member.start,
-                    length: member.end - member.start,
-                  },
-                },
-                start,
-                member.end,
-              );
-        continue;
-      }
-      if (this.isPunctuator("[")) {
-        const open = this.advance();
-        const target = expr;
-        expr = this.nested(open, () => {
-          const index = this.parseConditional();
-          const close = this.expectPunctuator("]");
-          return this.make(
-            { kind: "indexAccess", target, index },
-            start,
-            close.end,
-          );
-        });
-        continue;
-      }
-      if (this.isPunctuator("(")) {
-        const open = this.peek();
-        fail(
-          "Only `Math.<fn>(...)` and `range(...)` can be called.",
-          start,
-          open.end,
+  private parseIdentifier(token: IdentifierToken): HirExpr {
+    switch (token.name) {
+      case "true":
+      case "false":
+        return this.make(
+          { kind: "boolLit", value: token.name === "true" },
+          token.start,
+          token.end,
         );
-      }
-      return expr;
+      case "Infinity":
+      case "NaN":
+        return this.make(
+          { kind: "constant", name: token.name },
+          token.start,
+          token.end,
+        );
+      case "parameters":
+      case "scenario":
+        return this.make(
+          {
+            kind: token.name === "parameters" ? "paramRef" : "scenarioRef",
+            name: this.parseMember(token).name,
+          },
+          token.start,
+          this.lastEnd,
+        );
+      case "Math":
+        return this.parseMath(token);
+      default:
+        return this.make(
+          { kind: "localRef", name: token.name },
+          token.start,
+          token.end,
+        );
     }
+  }
+
+  /** The `<name>` of `owner.<name>`. */
+  private parseMember(owner: IdentifierToken): IdentifierToken {
+    if (this.isPunctuator(".")) {
+      this.advance();
+      const member = this.advance();
+      if (member.kind === "identifier") {
+        return member;
+      }
+    }
+    return fail(
+      `\`${owner.name}\` can only be read as \`${owner.name}.<name>\`.`,
+      owner.start,
+      this.lastEnd,
+    );
+  }
+
+  private parseMath(token: IdentifierToken): HirExpr {
+    const { name } = this.parseMember(token);
+    const end = this.lastEnd;
+    if (MATH_CONSTANTS.has(name)) {
+      return this.make(
+        { kind: "constant", name: name as HirConstantName },
+        token.start,
+        end,
+      );
+    }
+    if (!MATH_FNS.has(name)) {
+      fail(`\`Math.${name}\` is not supported.`, token.start, end);
+    }
+    if (!this.isPunctuator("(")) {
+      fail(
+        `\`Math.${name}\` can only be used as a function call.`,
+        token.start,
+        end,
+      );
+    }
+    const open = this.advance();
+    const args = this.nested(open, () => {
+      const list: HirExpr[] = [];
+      while (!this.isPunctuator(")")) {
+        list.push(this.parseConditional());
+        // A comma separates arguments. One may also trail the last, as the
+        // formatter writes a wrapped call.
+        if (!this.isPunctuator(",")) {
+          break;
+        }
+        this.advance();
+      }
+      this.expectPunctuator(")");
+      return list;
+    });
+    return this.make(
+      { kind: "mathCall", fn: name as HirMathFn, args },
+      token.start,
+      this.lastEnd,
+    );
   }
 }
 
@@ -709,7 +471,7 @@ class Parser {
  */
 export function parseHirExpression(source: string): ParseHirExpressionResult {
   try {
-    return { ok: true, expr: new Parser(tokenize(source)).parse() };
+    return { ok: true, expr: new Parser(source, tokenize(source)).parse() };
   } catch (error) {
     if (error instanceof ParseFailure) {
       return {
