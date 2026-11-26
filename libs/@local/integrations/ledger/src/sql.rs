@@ -27,12 +27,37 @@ impl fmt::Display for Identifier<'_> {
     }
 }
 
+/// A string in a DuckDB statement that takes no bound parameters, such as `CREATE SECRET`.
+///
+/// It displays as a quoted literal with each `'` doubled.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Literal<'text>(&'text str);
+
+impl<'text> Literal<'text> {
+    pub(crate) const fn new(text: &'text str) -> Self {
+        Self(text)
+    }
+}
+
+impl fmt::Display for Literal<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_char('\'')?;
+        for (position, part) in self.0.split('\'').enumerate() {
+            if position > 0 {
+                fmt.write_str("''")?;
+            }
+            fmt.write_str(part)?;
+        }
+        fmt.write_char('\'')
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use duckdb::Connection;
     use proptest::{prop_assert_eq, property_test};
 
-    use super::Identifier;
+    use super::{Identifier, Literal};
 
     #[property_test]
     fn identifier_round_trips(#[strategy = "(['\"]|[^\\x00])+"] name: String) {
@@ -47,5 +72,17 @@ mod tests {
             [name],
             "DuckDB should name the column with the quoted identifier"
         );
+    }
+
+    #[property_test]
+    fn literal_round_trips(#[strategy = "(['\"]|[^\\x00])+"] text: String) {
+        let connection = Connection::open_in_memory().expect("should open an in-memory database");
+        let value: String = connection
+            .query_row(&format!("SELECT {}", Literal::new(&text)), [], |row| {
+                row.get(0)
+            })
+            .expect("the literal should parse");
+
+        prop_assert_eq!(value, text, "DuckDB should read the literal as the text");
     }
 }

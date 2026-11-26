@@ -49,21 +49,21 @@ async fn end_permanent() {
         .await
         .expect("should begin Capture of a started run");
     let failed = Report::new(io::Error::from(io::ErrorKind::NotFound))
-        .change_context(permanent(Stage::Capture, "capture_file_invalid"));
+        .change_context(permanent(Stage::Capture, "capture_query_invalid"));
     let error = end(&storage, open, Err(failed))
         .await
         .expect_err("the stage's error should be returned");
 
     assert_eq!(
         *error.current_context(),
-        permanent(Stage::Capture, "capture_file_invalid")
+        permanent(Stage::Capture, "capture_query_invalid")
     );
     assert_eq!(
         loaded(&storage, run).await.0.failure,
         Some(Failure {
             stage: Stage::Capture,
-            code: "capture_file_invalid".into(),
-            message: "Capture failed for good: capture_file_invalid: entity not found".into(),
+            code: "capture_query_invalid".into(),
+            message: "Capture failed for good: capture_query_invalid: entity not found".into(),
         }),
         "a permanent error should be recorded with the text of each error in the report"
     );
@@ -77,7 +77,7 @@ async fn begin_failed_run() {
     let open = begin(&storage, run, Stage::Capture)
         .await
         .expect("should begin Capture of a started run");
-    let failed = Report::new(permanent(Stage::Capture, "capture_file_invalid"));
+    let failed = Report::new(permanent(Stage::Capture, "capture_query_invalid"));
     let ended = end(&storage, open, Err(failed)).await;
     assert!(ended.is_err(), "the stage's error should be returned");
     let before = loaded(&storage, run).await;

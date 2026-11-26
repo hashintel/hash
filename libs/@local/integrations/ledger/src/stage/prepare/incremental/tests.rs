@@ -206,15 +206,22 @@ const AIRFIELDS: [&str; 3] = ["_change", "ICAO", "FIELD_NAME"];
 /// A table to capture: its name, its columns and its rows.
 type Table<'a> = (&'a str, &'a [&'a str], &'a [&'a [&'a str]]);
 
-/// Captures `run` with one file per table of `tables`.
+/// Captures `run` with one Parquet file per table of `tables`, each read by a query.
 async fn captured_run(storage: &Storage, run: RunId, directory: &TempDir, tables: &[Table<'_>]) {
-    let mut files = BTreeMap::new();
+    let mut queries = BTreeMap::new();
     for (table, columns, rows) in tables {
         let path = directory.path().join(format!("{table}.parquet"));
         parquet(&path, columns, rows);
-        files.insert(table.parse().expect("should be a source name"), path);
+        queries.insert(
+            table.parse().expect("should be a source name"),
+            format!(
+                "SELECT * FROM read_parquet('{}')",
+                path.to_string_lossy().replace('\'', "''")
+            )
+            .into_boxed_str(),
+        );
     }
-    capture(storage, run, &files)
+    capture(storage, run, &queries)
         .await
         .expect("should capture the run");
 }
@@ -236,25 +243,25 @@ const FLIGHTS: Table<'static> = ("flights", &["_change"], &[]);
     None,
     &[NO_CHANGE, NO_AIRFIELDS],
     CAPTURE_INVALID,
-    "the capture file of `aircraft` cannot be staged: table has no column `_change`"
+    "the capture table of `aircraft` cannot be staged: table has no column `_change`"
 )]
 #[case::invalid_change(
     None,
     &[UNKNOWN_CHANGE, NO_AIRFIELDS],
     CAPTURE_INVALID,
-    "the capture file of `aircraft` cannot be staged: a row's kind of change is not"
+    "the capture table of `aircraft` cannot be staged: a row's kind of change is not"
 )]
 #[case::missing_file(
     None,
     &[AIRCRAFT_ROW],
     CAPTURE_INVALID,
-    "the table `airfields` has no capture file"
+    "the table `airfields` has no capture table"
 )]
 #[case::unknown_file(
     None,
     &[AIRCRAFT_ROW, NO_AIRFIELDS, FLIGHTS],
     CAPTURE_INVALID,
-    "the capture file `flights` is of no table"
+    "the capture table `flights` is of no table"
 )]
 #[case::entity_reads_two_tables(
     Some(ENTITY_INPUTS.to_owned()),
@@ -287,7 +294,8 @@ async fn prepare_refused(
     #[case] code: &'static str,
     #[case] reason: &str,
 ) {
-    let storage = Storage::memory();
+    let (_minio, port) = minio().await;
+    let storage = Storage::s3(bucket(port), &namespace()).expect("should open the bucket");
     let run = RunId::new();
     match definition {
         Some(definition) => started_with(&storage, run, &definition).await,
@@ -395,7 +403,7 @@ async fn prepare_aviation() {
         .expect("should read the sync table");
     assert_eq!(
         rows, first,
-        "a second attempt should write the same rows as the first"
+        "a second attempt should leave the rows of the first"
     );
     let mut changes = rows.iter().map(|row| (row.seq, row.op)).collect::<Vec<_>>();
     changes.sort_unstable();
@@ -422,5 +430,74 @@ async fn prepare_aviation() {
         lines.lines().count(),
         1,
         "the issues file should hold the date that cannot be converted: {lines}"
+    );
+}
+
+/// A second run of an integration sees only its own rows of the capture tables.
+#[tokio::test]
+async fn prepare_second_run() {
+    let (_minio, port) = minio().await;
+    let storage = Storage::s3(bucket(port), &namespace()).expect("should open the bucket");
+    let directory = TempDir::new().expect("should create a directory");
+    let first = RunId::new();
+    started(&storage, first).await;
+    captured_run(&storage, first, &directory, &AVIATION_ROWS).await;
+    prepare_incremental(&storage, first)
+        .await
+        .expect("should prepare the first run");
+    run::current::complete(&storage, first)
+        .await
+        .expect("should complete the first run");
+
+    let second = RunId::new();
+    started(&storage, second).await;
+    let later = TempDir::new().expect("should create a directory");
+    captured_run(
+        &storage,
+        second,
+        &later,
+        &[
+            (
+                "aircraft",
+                &AIRCRAFT,
+                &[&[
+                    "update",
+                    "SE-XXX",
+                    "DC-3",
+                    "1946-04-02",
+                    "8100",
+                    "KG",
+                    "ESSA",
+                ]],
+            ),
+            NO_AIRFIELDS,
+        ],
+    )
+    .await;
+    prepare_incremental(&storage, second)
+        .await
+        .expect("should prepare the second run");
+
+    let mut changes = sync_table::read(&storage, second)
+        .await
+        .expect("should read the sync table")
+        .into_iter()
+        .map(|row| (row.seq, row.op))
+        .collect::<Vec<_>>();
+    changes.sort_unstable();
+    assert_eq!(
+        changes,
+        [(0, Op::UpdateEntity), (0, Op::UpdateLink)],
+        "the second run should hold the changes of its own row only"
+    );
+    assert_eq!(
+        run::load(&storage, second)
+            .await
+            .expect("should load run.json")
+            .0
+            .prepare
+            .map(|part| part.rows),
+        Some(2),
+        "the prepare part should count the rows of the second run"
     );
 }

@@ -22,7 +22,7 @@ use crate::{
     run::{RunId, RunRecord, SendPart, Stage, current},
     stage::{
         StageError, begin, end,
-        failure::{from_run, permanent, retryable},
+        failure::{STORAGE_UNCONFIGURED, from_run, permanent, retryable},
     },
     storage::Storage,
     sync_table::{self, SyncTableError},
@@ -76,6 +76,7 @@ async fn apply(
             let context = match report.current_context() {
                 SyncTableError::Storage => retryable(Stage::Send),
                 SyncTableError::Invalid => permanent(Stage::Send, ROW_INVALID),
+                SyncTableError::Unconfigured => permanent(Stage::Send, STORAGE_UNCONFIGURED),
             };
             report.change_context(context)
         })?;

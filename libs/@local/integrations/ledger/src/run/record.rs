@@ -82,16 +82,18 @@ impl Default for BatchLimits {
     }
 }
 
-/// The capture files, one per table of the definition, by the table's name.
+/// The captured tables, one per table of the definition, by the table's name.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct CapturePart {
-    pub sources: BTreeMap<Box<str>, CapturedFile>,
+    pub sources: BTreeMap<Box<str>, CapturedTable>,
 }
 
+/// The Delta table that holds a table's captured rows, and how many rows the run has in it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct CapturedFile {
+pub(crate) struct CapturedTable {
+    /// The table's key below the integration's place in the bucket, such as `capture/aircraft`.
     pub key: Box<str>,
-    pub size: u64,
+    /// The number of rows of the run in the table.
     pub rows: u64,
 }
 

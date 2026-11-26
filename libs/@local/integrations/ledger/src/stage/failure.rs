@@ -1,6 +1,9 @@
 use error_stack::Report;
 
-use crate::run::{RunError, Stage};
+use crate::{
+    lake::LakeError,
+    run::{RunError, Stage},
+};
 
 /// Reports why a stage stopped, and whether running it again can help.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
@@ -39,6 +42,23 @@ pub(crate) fn from_run(stage: Stage, report: Report<RunError>) -> Report<StageEr
         RunError::NotFound => permanent(stage, "run_not_found"),
         RunError::Unreadable => permanent(stage, "run_unreadable"),
         RunError::NotActive => permanent(stage, "run_not_active"),
+    };
+    report.change_context(context)
+}
+
+/// The code of a stage that failed because the storage has no bucket for its Delta tables.
+pub(crate) const STORAGE_UNCONFIGURED: &str = "storage_unconfigured";
+
+/// What an error of the Delta tables means for `stage`. `invalid` names what was refused.
+pub(crate) fn from_lake(
+    stage: Stage,
+    invalid: &'static str,
+    report: Report<LakeError>,
+) -> Report<StageError> {
+    let context = match report.current_context() {
+        LakeError::Storage => retryable(stage),
+        LakeError::Invalid => permanent(stage, invalid),
+        LakeError::Unconfigured => permanent(stage, STORAGE_UNCONFIGURED),
     };
     report.change_context(context)
 }

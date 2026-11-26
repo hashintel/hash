@@ -14,7 +14,7 @@ use super::{
     current::{self, Current},
     load,
     record::{
-        BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart,
+        BatchLimits, CapturePart, CapturedTable, FailedEntity, Failure, Input, PreparePart,
         RunRecord, SendPart, Stage,
     },
     run_file, save, start,
@@ -100,9 +100,8 @@ fn finished(run: RunId) -> RunRecord {
         capture: Some(CapturePart {
             sources: BTreeMap::from([(
                 "aircraft".into(),
-                CapturedFile {
-                    key: format!("runs/{run}/capture/aircraft.parquet").into(),
-                    size: 2140,
+                CapturedTable {
+                    key: "capture/aircraft".into(),
                     rows: 4,
                 },
             )]),

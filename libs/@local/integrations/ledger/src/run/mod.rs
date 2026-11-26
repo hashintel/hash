@@ -5,12 +5,11 @@ mod start;
 mod tests;
 
 use error_stack::{Report, ResultExt as _};
-use hash_integrations_definition::SourceName;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub(crate) use self::record::{
-    BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart, RunRecord,
+    BatchLimits, CapturePart, CapturedTable, FailedEntity, Failure, Input, PreparePart, RunRecord,
     SendPart,
 };
 pub use self::{
@@ -54,11 +53,6 @@ pub(crate) enum RunError {
 /// The key of the run's record.
 pub(crate) fn run_file(run: RunId) -> String {
     format!("runs/{run}/run.json")
-}
-
-/// The key of the capture file of the table `source`.
-pub(crate) fn capture_file(run: RunId, source: &SourceName) -> String {
-    format!("runs/{run}/capture/{source}.parquet")
 }
 
 /// The key of the file of the issues Prepare noted.

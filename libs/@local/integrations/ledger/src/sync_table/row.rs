@@ -1,21 +1,18 @@
-use alloc::sync::Arc;
+use core::str::FromStr as _;
 
-use deltalake_core::{
-    arrow::{
-        array::{ArrayRef, RecordBatch, StringArray},
-        datatypes::{DataType as ArrowType, Field, Schema, SchemaRef},
-    },
-    kernel::{DataType, StructField},
-};
+use duckdb::{Row, ToSql, types::ToSqlOutput};
 use error_stack::{Report, ResultExt as _};
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize, Serialize,
+    de::value::{Error as ValueError, StrDeserializer},
+};
 use type_system::{
     knowledge::{entity::id::EntityId, property::PropertyObjectWithMetadata},
     ontology::VersionedUrl,
 };
 use uuid::Uuid;
 
-use super::{RUN, SyncTableError};
+use super::SyncTableError;
 use crate::RunId;
 
 /// What a row does to its entity, declared in the order Send delivers them. The table stores it
@@ -31,14 +28,33 @@ pub(crate) enum Op {
     ArchiveEntity,
 }
 
+impl Op {
+    /// The text the table stores.
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::CreateEntity => "create_entity",
+            Self::UpdateEntity => "update_entity",
+            Self::CreateLink => "create_link",
+            Self::UpdateLink => "update_link",
+            Self::ArchiveLink => "archive_link",
+            Self::ArchiveEntity => "archive_entity",
+        }
+    }
+}
+
+impl ToSql for Op {
+    fn to_sql(&self) -> duckdb::Result<ToSqlOutput<'_>> {
+        Ok(ToSqlOutput::from(self.as_str()))
+    }
+}
+
 /// One entity change of a run, and one row of the table. Ids and types are stored as text, and
 /// the properties as JSON text.
 ///
 /// An update with empty `properties` adds no property, and Send removes none. An archive carries
 /// empty `properties`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SyncRow {
-    #[serde(with = "run_text")]
     pub run: RunId,
     pub seq: i64,
     pub op: Op,
@@ -46,8 +62,51 @@ pub(crate) struct SyncRow {
     pub entity_type: VersionedUrl,
     pub left_entity_id: Option<EntityId>,
     pub right_entity_id: Option<EntityId>,
-    #[serde(with = "json_text")]
     pub properties: PropertyObjectWithMetadata,
+}
+
+impl SyncRow {
+    /// The properties as the JSON text the table stores.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SyncTableError::Invalid`] if the properties cannot be written as JSON.
+    pub(super) fn properties_text(&self) -> Result<String, Report<SyncTableError>> {
+        serde_json::to_string(&self.properties).change_context(SyncTableError::Invalid)
+    }
+
+    /// The row of `run` that `row` holds, by the names of the table's columns.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SyncTableError::Invalid`] if a value cannot be read as its field.
+    pub(super) fn read(row: &Row<'_>, run: RunId) -> Result<Self, Report<SyncTableError>> {
+        let text = |column: &str| -> Result<Option<String>, Report<SyncTableError>> {
+            row.get(column)
+                .change_context(SyncTableError::Invalid)
+                .attach_with(|| format!("the column `{column}` cannot be read"))
+        };
+        let required = |column: &str| -> Result<String, Report<SyncTableError>> {
+            text(column)?.ok_or_else(|| {
+                Report::new(SyncTableError::Invalid)
+                    .attach(format!("the column `{column}` is empty"))
+            })
+        };
+        let entity = |value: String| parse::<EntityId>(&value);
+        let op = required("op")?;
+        Ok(Self {
+            run,
+            seq: row.get("seq").change_context(SyncTableError::Invalid)?,
+            op: parse(&op)?,
+            entity_id: entity(required("entity_id")?)?,
+            entity_type: VersionedUrl::from_str(&required("entity_type")?)
+                .change_context(SyncTableError::Invalid)?,
+            left_entity_id: text("left_entity_id")?.map(entity).transpose()?,
+            right_entity_id: text("right_entity_id")?.map(entity).transpose()?,
+            properties: serde_json::from_str(&required("properties")?)
+                .change_context(SyncTableError::Invalid)?,
+        })
+    }
 }
 
 /// The order of entities with the same `seq`. [`EntityId`] has no order of its own, so the order
@@ -65,96 +124,7 @@ pub(crate) fn order_key(id: &EntityId) -> OrderKey {
     }
 }
 
-/// The run as text. `serde_arrow` is not human readable, so a UUID would otherwise be bytes.
-mod run_text {
-    use serde::{
-        Deserialize as _, Deserializer, Serializer,
-        de::{
-            Error as _,
-            value::{Error as ValueError, StrDeserializer},
-        },
-    };
-
-    use crate::RunId;
-
-    pub(super) fn serialize<S: Serializer>(run: &RunId, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.collect_str(run)
-    }
-
-    pub(super) fn deserialize<'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<RunId, D::Error> {
-        let text = String::deserialize(deserializer)?;
-        RunId::deserialize(StrDeserializer::<ValueError>::new(&text)).map_err(D::Error::custom)
-    }
-}
-
-/// The properties as JSON text.
-mod json_text {
-    use serde::{Deserialize as _, Deserializer, Serializer, de::Error as _, ser::Error as _};
-    use type_system::knowledge::property::PropertyObjectWithMetadata;
-
-    pub(super) fn serialize<S: Serializer>(
-        properties: &PropertyObjectWithMetadata,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&serde_json::to_string(properties).map_err(S::Error::custom)?)
-    }
-
-    pub(super) fn deserialize<'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<PropertyObjectWithMetadata, D::Error> {
-        serde_json::from_str(&String::deserialize(deserializer)?).map_err(D::Error::custom)
-    }
-}
-
-/// The columns of the table: the fields of [`SyncRow`], with the run first. The table's format is
-/// stored, so it is written out here and not derived from the type.
-pub(super) fn columns() -> [StructField; 8] {
-    [
-        StructField::new(RUN, DataType::STRING, false),
-        StructField::new("seq", DataType::LONG, false),
-        StructField::new("op", DataType::STRING, false),
-        StructField::new("entity_id", DataType::STRING, false),
-        StructField::new("entity_type", DataType::STRING, false),
-        StructField::new("left_entity_id", DataType::STRING, true),
-        StructField::new("right_entity_id", DataType::STRING, true),
-        StructField::new("properties", DataType::STRING, false),
-    ]
-}
-
-/// The rows as a batch with `schema`, the schema of the table.
-///
-/// # Errors
-///
-/// Returns [`SyncTableError::Invalid`] if a row cannot be written with `schema`.
-pub(super) fn to_batch(
-    rows: &[SyncRow],
-    schema: &SchemaRef,
-) -> Result<RecordBatch, Report<SyncTableError>> {
-    serde_arrow::to_record_batch(schema.fields(), &rows).change_context(SyncTableError::Invalid)
-}
-
-/// The rows of `run` in `batch`, a batch read from one of its data files.
-///
-/// A data file has no `run` column, because the run is its partition, so the column is added
-/// before the rows are read.
-///
-/// # Errors
-///
-/// Returns [`SyncTableError::Invalid`] if a row cannot be read.
-pub(super) fn from_batch(
-    run: RunId,
-    batch: &RecordBatch,
-) -> Result<Vec<SyncRow>, Report<SyncTableError>> {
-    let runs: ArrayRef = Arc::new(StringArray::from(vec![run.to_string(); batch.num_rows()]));
-    let fields = core::iter::once(Arc::new(Field::new(RUN, ArrowType::Utf8, false)))
-        .chain(batch.schema().fields().iter().cloned())
-        .collect::<Vec<_>>();
-    let columns = core::iter::once(runs)
-        .chain(batch.columns().iter().cloned())
-        .collect();
-    let batch = RecordBatch::try_new(Arc::new(Schema::new(fields)), columns)
-        .change_context(SyncTableError::Invalid)?;
-    serde_arrow::from_record_batch(&batch).change_context(SyncTableError::Invalid)
+/// `text` as a value of `T`, which reads it as a string.
+fn parse<'text, T: Deserialize<'text>>(text: &'text str) -> Result<T, Report<SyncTableError>> {
+    T::deserialize(StrDeserializer::<ValueError>::new(text)).change_context(SyncTableError::Invalid)
 }

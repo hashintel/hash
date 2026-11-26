@@ -1,188 +1,177 @@
 //! The sync table: every entity change of every run. Prepare writes a run's rows, and Send reads
 //! them.
 //!
-//! The table is a Delta table under `sync/` in the integration's place in the bucket. It is
-//! partitioned by run, so a run's rows are in files of their own, and each write of a run is one
+//! The table is a Delta table under `sync/` in the integration's place in the bucket, read and
+//! written through DuckDB. It is partitioned by run, and a run's rows are written once, in one
 //! commit.
 
-mod read;
 mod row;
 #[cfg(test)]
 mod tests;
-mod write;
 
-use alloc::sync::Arc;
-use std::sync::Once;
-
-use deltalake_core::{
-    DeltaTable, DeltaTableBuilder, DeltaTableError,
-    kernel::{LogicalFileView, transaction::TransactionError},
-    logstore::{
-        LogStore, LogStoreFactory, ObjectStoreRef, StorageConfig, default_logstore,
-        logstore_factories,
-    },
-};
+use duckdb::params;
 use error_stack::{Report, ResultExt as _};
-use futures_util::TryStreamExt as _;
-use url::Url;
 
-pub(crate) use self::{
-    read::read,
-    row::{Op, SyncRow, order_key},
-    write::write,
-};
+pub(crate) use self::row::{Op, SyncRow, order_key};
 use crate::{
     RunId,
-    storage::{Storage, open_bucket},
+    lake::{Column, Columns, Lake, LakeError, LakeSettings, Table, failed},
+    storage::Storage,
 };
 
 /// Reports why the sync table could not be written or read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub(crate) enum SyncTableError {
-    /// The bucket could not be reached. Running the stage again can help.
+    /// The bucket or DuckDB could not be used. Running the stage again can help.
     #[display("the sync table could not be reached")]
     Storage,
-    /// A row cannot be written or read, or the storage has no bucket. Running the stage again
-    /// cannot help.
+    /// A row cannot be written or read. Running the stage again cannot help.
     #[display("the sync table cannot hold the rows")]
     Invalid,
+    /// The storage has no bucket. Running the stage again cannot help.
+    #[display("the storage has no bucket for the sync table")]
+    Unconfigured,
 }
 
-/// The partition column, which holds the run of a row.
-const RUN: &str = "run";
+/// The key of the table below the integration's place in the bucket.
+const TABLE: &str = "sync";
 
-/// Whether running the stage again can help with `error`. An error of the table's contents or of
-/// its format cannot pass. Any other error, such as one of the bucket, of the network, or a
-/// conflict with another commit, can.
-#[expect(
-    clippy::wildcard_enum_match_arm,
-    reason = "an error this function does not name is one a rerun can help with"
-)]
-const fn classify(error: &DeltaTableError) -> SyncTableError {
-    match error {
-        DeltaTableError::Parquet { .. }
-        | DeltaTableError::Arrow { .. }
-        | DeltaTableError::InvalidJsonLog { .. }
-        | DeltaTableError::InvalidStatsJson { .. }
-        | DeltaTableError::InvalidVersion(_)
-        | DeltaTableError::VersionDowngrade { .. }
-        | DeltaTableError::InvalidData { .. }
-        | DeltaTableError::NoSchema
-        | DeltaTableError::SchemaMismatch { .. }
-        | DeltaTableError::PartitionError { .. }
-        | DeltaTableError::InvalidPartitionFilter { .. }
-        | DeltaTableError::CommitValidation { .. }
-        | DeltaTableError::MissingFeature { .. }
-        | DeltaTableError::InvalidTableLocation(_)
-        | DeltaTableError::SerializeLogJson { .. }
-        | DeltaTableError::MetadataError(_)
-        | DeltaTableError::UnsupportedColumnMapping { .. }
-        | DeltaTableError::Transaction {
-            source:
-                TransactionError::DeltaTableAppendOnly
-                | TransactionError::UnsupportedTableFeatures(_)
-                | TransactionError::TableFeaturesRequired(_)
-                | TransactionError::SerializeLogJson { .. },
-        } => SyncTableError::Invalid,
-        _ => SyncTableError::Storage,
-    }
+/// The columns of the table besides `run`: the other fields of [`SyncRow`]. Ids and types are
+/// text, and the properties JSON text.
+fn columns() -> Columns {
+    Columns::new([
+        Column::new("seq", "BIGINT"),
+        Column::new("op", "VARCHAR"),
+        Column::new("entity_id", "VARCHAR"),
+        Column::new("entity_type", "VARCHAR"),
+        Column::new("left_entity_id", "VARCHAR"),
+        Column::new("right_entity_id", "VARCHAR"),
+        Column::new("properties", "VARCHAR"),
+    ])
 }
 
-/// `error` as a report, with the context [`classify`] gives it.
-fn delta_error(error: DeltaTableError) -> Report<SyncTableError> {
-    let context = classify(&error);
-    Report::new(error).change_context(context)
+/// What an error of the lake means for the sync table.
+fn from_lake(report: Report<LakeError>) -> Report<SyncTableError> {
+    let context = match report.current_context() {
+        LakeError::Storage => SyncTableError::Storage,
+        LakeError::Invalid => SyncTableError::Invalid,
+        LakeError::Unconfigured => SyncTableError::Unconfigured,
+    };
+    report.change_context(context)
 }
 
-/// Makes Delta use its default log store for `s3://` locations. Without `deltalake-aws`,
-/// `deltalake-core` registers none for them. The default log store commits with a conditional
-/// write, which S3 and MinIO support, so it needs no lock.
+/// The sync table, attached to a [`Lake`].
 #[derive(Debug)]
-struct S3LogStoreFactory;
-
-impl LogStoreFactory for S3LogStoreFactory {
-    fn with_options(
-        &self,
-        prefixed_store: ObjectStoreRef,
-        root_store: ObjectStoreRef,
-        location: &Url,
-        options: &StorageConfig,
-    ) -> Result<Arc<dyn LogStore>, DeltaTableError> {
-        Ok(default_logstore(
-            prefixed_store,
-            root_store,
-            location,
-            options,
-        ))
-    }
+pub(crate) struct SyncTable<'lake> {
+    lake: &'lake Lake,
+    table: Table<'lake>,
 }
 
-/// Opens the sync table of `storage`. Its version is `None` if the table does not exist.
-///
-/// # Errors
-///
-/// Returns [`SyncTableError::Invalid`] if `storage` has no bucket or the table at its place is not
-/// a sync table, and [`SyncTableError::Storage`] if the table cannot be read.
-async fn open(storage: &Storage) -> Result<DeltaTable, Report<SyncTableError>> {
-    static REGISTER: Once = Once::new();
-    REGISTER.call_once(|| {
-        logstore_factories().insert(
-            Url::parse("s3://").expect("`s3://` should be a URL"),
-            Arc::new(S3LogStoreFactory),
-        );
-    });
-
-    let bucket = storage
-        .bucket()
-        .ok_or_else(|| Report::new(SyncTableError::Invalid).attach("the storage has no bucket"))?;
-    let location = Url::parse(&format!("{}/sync", bucket.uri.trim_end_matches('/')))
-        .change_context(SyncTableError::Invalid)?;
-    let store = open_bucket(bucket).change_context(SyncTableError::Invalid)?;
-    let mut table = DeltaTableBuilder::from_url(location.clone())
-        .map_err(delta_error)?
-        .with_storage_backend(store, location.clone())
-        .build()
-        .map_err(delta_error)?;
-    match table.load().await {
-        Ok(()) => {}
-        Err(DeltaTableError::NotATable(_)) => return Ok(table),
-        Err(error) => return Err(delta_error(error)),
-    }
-
-    let snapshot = table.snapshot().map_err(delta_error)?;
-    let columns = snapshot.schema().fields().cloned().collect::<Vec<_>>();
-    if snapshot.metadata().partition_columns() != [RUN] || columns != row::columns() {
-        return Err(Report::new(SyncTableError::Invalid).attach(format!(
-            "the table at `{location}` is not partitioned by `{RUN}` or has other columns"
-        )));
-    }
-    Ok(table)
-}
-
-/// The data files of `run` in `table`.
-///
-/// # Errors
-///
-/// Returns [`SyncTableError::Invalid`] if a file has no run, and [`SyncTableError::Storage`] if the
-/// table's files cannot be listed.
-async fn run_files(
-    table: &DeltaTable,
-    run: RunId,
-) -> Result<Vec<LogicalFileView>, Report<SyncTableError>> {
-    let run = run.to_string();
-    let snapshot = table.snapshot().map_err(delta_error)?;
-    snapshot
-        .snapshot()
-        .file_views(table.log_store().as_ref(), None)
-        .map_err(delta_error)
-        .try_filter_map(|file| {
-            let in_run = match file.partition_values_map().get(RUN) {
-                Some(Some(value)) => Ok(*value == run),
-                Some(None) | None => Err(Report::new(SyncTableError::Invalid)
-                    .attach(format!("the file `{}` has no run", file.path()))),
-            };
-            core::future::ready(in_run.map(|in_run| in_run.then_some(file)))
+impl<'lake> SyncTable<'lake> {
+    /// Attaches the sync table to `lake`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SyncTableError::Storage`] if the table's location cannot be attached.
+    pub(crate) fn open(lake: &'lake Lake) -> Result<Self, Report<SyncTableError>> {
+        Ok(Self {
+            lake,
+            table: lake.table(TABLE).map_err(from_lake)?,
         })
-        .try_collect()
+    }
+
+    /// Writes `rows` as the rows of `run`, in one commit, and returns the number of rows of `run`
+    /// in the table.
+    ///
+    /// A run is written once. If its rows are in the table already, from an earlier attempt or
+    /// from another process, the table is left as it is, and the number is that of those rows. A
+    /// write without rows commits nothing, so it does not mark the run as written.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SyncTableError::Invalid`] if a row is not of `run` or the table cannot hold the
+    /// rows, and [`SyncTableError::Storage`] if the table cannot be read or written.
+    pub(crate) fn write(
+        &self,
+        run: RunId,
+        rows: &[SyncRow],
+    ) -> Result<u64, Report<SyncTableError>> {
+        if let Some(row) = rows.iter().find(|row| row.run != run) {
+            return Err(Report::new(SyncTableError::Invalid).attach(format!(
+                "a row of run {} was written for run {run}",
+                row.run
+            )));
+        }
+        if self.table.has_run(run).map_err(from_lake)? {
+            return self.table.rows(run).map_err(from_lake);
+        }
+        let staged = self.lake.stage_rows(&columns()).map_err(from_lake)?;
+        let mut appender = staged.appender().map_err(from_lake)?;
+        for row in rows {
+            appender
+                .append_row(params![
+                    row.seq,
+                    row.op,
+                    row.entity_id.to_string(),
+                    row.entity_type.to_string(),
+                    row.left_entity_id.map(|id| id.to_string()),
+                    row.right_entity_id.map(|id| id.to_string()),
+                    row.properties_text()?,
+                ])
+                .change_context(SyncTableError::Invalid)?;
+        }
+        appender.flush().map_err(failed).map_err(from_lake)?;
+        drop(appender);
+        self.table.append_run(run, &staged).map_err(from_lake)
+    }
+
+    /// The rows of `run`, ordered by `seq`, then by [`order_key`]. A run that was never written
+    /// has no rows.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SyncTableError::Invalid`] if the table has other columns or a row cannot be read,
+    /// and [`SyncTableError::Storage`] if the table cannot be read.
+    pub(crate) fn read(&self, run: RunId) -> Result<Vec<SyncRow>, Report<SyncTableError>> {
+        if !self.table.exists().map_err(from_lake)? {
+            return Ok(Vec::new());
+        }
+        let mut rows = self
+            .table
+            .read_run(run, &columns(), from_lake, |row| SyncRow::read(row, run))?;
+        rows.sort_by_key(|row| (row.seq, order_key(&row.entity_id)));
+        Ok(rows)
+    }
+}
+
+/// The rows of `run` in the sync table of `storage`, as [`SyncTable::read`] reads them.
+///
+/// # Errors
+///
+/// Returns the errors of [`SyncTable::read`], and [`SyncTableError::Unconfigured`] if the storage
+/// has no bucket.
+pub(crate) async fn read(
+    storage: &Storage,
+    run: RunId,
+) -> Result<Vec<SyncRow>, Report<SyncTableError>> {
+    LakeSettings::of(storage)
+        .map_err(from_lake)?
+        .run(from_lake, move |lake| SyncTable::open(lake)?.read(run))
+        .await
+}
+
+/// Writes `rows` as the rows of `run` in the sync table of `storage`, as [`SyncTable::write`]
+/// writes them.
+#[cfg(test)]
+pub(crate) async fn write(
+    storage: &Storage,
+    run: RunId,
+    rows: Vec<SyncRow>,
+) -> Result<u64, Report<SyncTableError>> {
+    LakeSettings::of(storage)
+        .map_err(from_lake)?
+        .run(from_lake, move |lake| {
+            SyncTable::open(lake)?.write(run, &rows)
+        })
         .await
 }

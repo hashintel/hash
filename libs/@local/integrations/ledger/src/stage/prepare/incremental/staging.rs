@@ -12,7 +12,7 @@ use crate::stage::prepare::{
 const RESERVED: [&str; 4] = ["_op", "_key", "_seq", "rowid"];
 
 /// Copies the captured table `capture` to `table` with the staging columns: `_op` is the row's
-/// `_change`, `_key` its primary key as JSON, and `_seq` its position in the captured file.
+/// `_change`, `_key` its primary key as JSON, and `_seq` its position in `capture`.
 ///
 /// # Errors
 ///
@@ -49,10 +49,9 @@ pub(super) fn stage(
         })
         .collect::<Vec<_>>()
         .join(", ");
-    // Every row is read three times: when the capture file is loaded, when it is copied here, and
-    // when the invalid kinds of change are counted. This is fine for small captures, but its
-    // performance has to be watched as captures grow. Checking `_change` while copying would save
-    // one of the reads.
+    // Every row is read three times: when it is copied from its capture table, when it is copied
+    // here, and when the invalid kinds of change are counted. Checking `_change` while copying
+    // would save one of the reads.
     workspace
         .create_table(
             table,

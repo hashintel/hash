@@ -1,14 +1,5 @@
-use alloc::collections::BTreeSet;
 use core::str::FromStr as _;
 
-use deltalake_core::{
-    kernel::{
-        Action, DataType, StructField,
-        transaction::{CommitBuilder, CommitProperties},
-    },
-    protocol::{DeltaOperation, SaveMode},
-    writer::{DeltaWriter as _, RecordBatchWriter},
-};
 use futures_util::TryStreamExt as _;
 use hash_crypto::Secret;
 use object_store::path::Path as Location;
@@ -25,9 +16,10 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{Op, RUN, SyncRow, SyncTableError, open, order_key, read, row, write};
+use super::{Op, SyncRow, SyncTableError, order_key, read, write};
 use crate::{
     RunId, S3Bucket,
+    lake::LakeSettings,
     storage::{Storage, open_bucket},
     testing::{bucket, minio, namespace},
 };
@@ -185,34 +177,31 @@ async fn read_returns_only_its_run() {
 }
 
 #[tokio::test]
-async fn second_write_replaces_rows() {
+async fn second_write_leaves_rows() {
     let (_minio, storage) = storage().await;
     let run = RunId::new();
     let first = rows(run);
     let second = first.get(..2).expect("should have two rows").to_vec();
 
-    write(&storage, run, first)
+    write(&storage, run, first.clone())
         .await
         .expect("should write the run");
-    write(&storage, run, second.clone())
+    write(&storage, run, second)
         .await
-        .expect("should write the run again");
+        .expect("should leave a written run");
 
     assert_eq!(
         read(&storage, run).await.expect("should read the run"),
-        second,
-        "the second write should replace the rows of the first"
+        first,
+        "a run should keep the rows of its first write"
     );
 }
 
 #[tokio::test]
-async fn empty_write_removes_rows() {
+async fn empty_write_leaves_no_rows() {
     let (_minio, storage) = storage().await;
     let run = RunId::new();
 
-    write(&storage, run, rows(run))
-        .await
-        .expect("should write the run");
     write(&storage, run, Vec::new())
         .await
         .expect("should write the run without rows");
@@ -220,35 +209,7 @@ async fn empty_write_removes_rows() {
     assert_eq!(
         read(&storage, run).await.expect("should read the run"),
         [],
-        "a write without rows should leave the run without rows"
-    );
-}
-
-#[tokio::test]
-async fn write_repeats_uncommitted_write() {
-    let (_minio, storage) = storage().await;
-    let (earlier, run) = (RunId::new(), RunId::new());
-    let expected = rows(run);
-    write(&storage, earlier, rows(earlier))
-        .await
-        .expect("should create the table");
-
-    // A write that stopped before its commit: its files are in the run's partition, but no
-    // commit names them.
-    let table = open(&storage).await.expect("should open the table");
-    let mut writer = RecordBatchWriter::for_table(&table).expect("should open a writer");
-    let batch = row::to_batch(&expected, &writer.arrow_schema()).expect("should build the batch");
-    writer.write(batch).await.expect("should write the batch");
-    writer.flush().await.expect("should write the files");
-
-    write(&storage, run, expected.clone())
-        .await
-        .expect("should write the run");
-
-    assert_eq!(
-        read(&storage, run).await.expect("should read the run"),
-        expected,
-        "the rows should be in the table once"
+        "a run written without rows should have no rows"
     );
 }
 
@@ -280,14 +241,37 @@ async fn rows_of_another_run_are_invalid() {
 }
 
 #[tokio::test]
-async fn storage_without_bucket_is_invalid() {
+async fn storage_without_bucket_is_unconfigured() {
     let error = read(&Storage::memory(), RunId::new())
         .await
         .expect_err("should refuse a storage without a bucket");
+    assert_eq!(*error.current_context(), SyncTableError::Unconfigured);
+}
+
+#[tokio::test]
+async fn table_with_other_columns_is_invalid() {
+    let (_minio, storage) = storage().await;
+    let run = RunId::new();
+    let settings = LakeSettings::of(&storage).expect("should have a bucket");
+    tokio::task::spawn_blocking(move || {
+        let lake = settings.open().expect("should open the lake");
+        let staged = lake
+            .stage_query("SELECT 1 AS id")
+            .expect("should stage the rows");
+        lake.table("sync")
+            .and_then(|table| table.append_run(run, &staged))
+            .expect("should create a table with other columns");
+    })
+    .await
+    .expect("should not panic");
+
+    let error = read(&storage, run)
+        .await
+        .expect_err("a table with other columns should be refused");
     assert_eq!(
         *error.current_context(),
         SyncTableError::Invalid,
-        "a storage without a bucket should be invalid"
+        "a table with other columns fails the same way every time"
     );
 }
 
@@ -325,67 +309,8 @@ async fn table_is_below_the_bucket_prefix() {
     );
     assert!(
         keys.iter()
-            .any(|key| key.starts_with(&format!("{root}/sync/{RUN}={run}/"))),
+            .any(|key| key.starts_with(&format!("{root}/sync/run={run}/"))),
         "the run's files should be in its partition under `{root}/sync`, found {keys:?}"
-    );
-}
-
-#[tokio::test]
-async fn run_in_several_files() {
-    let (_minio, storage) = storage().await;
-    let (earlier, run) = (RunId::new(), RunId::new());
-    let expected = rows(run);
-    write(&storage, earlier, rows(earlier))
-        .await
-        .expect("should create the table");
-
-    // Two files whose rows interleave in the order of the run.
-    let table = open(&storage).await.expect("should open the table");
-    let mut adds = Vec::new();
-    for indices in [[0, 3].as_slice(), [1, 2, 4].as_slice()] {
-        let part = indices
-            .iter()
-            .map(|&index| expected.get(index).expect("should have the row").clone())
-            .collect::<Vec<_>>();
-        let mut writer = RecordBatchWriter::for_table(&table).expect("should open a writer");
-        let batch = row::to_batch(&part, &writer.arrow_schema()).expect("should build the batch");
-        writer.write(batch).await.expect("should write the batch");
-        adds.extend(
-            writer
-                .flush()
-                .await
-                .expect("should write the file")
-                .into_iter()
-                .map(Action::Add),
-        );
-    }
-    CommitBuilder::from(CommitProperties::default())
-        .with_actions(adds)
-        .build(
-            Some(table.snapshot().expect("should have a snapshot")),
-            table.log_store(),
-            DeltaOperation::Write {
-                mode: SaveMode::Append,
-                partition_by: Some(vec![RUN.to_owned()]),
-                predicate: None,
-            },
-        )
-        .await
-        .expect("should commit both files");
-
-    assert_eq!(
-        read(&storage, run).await.expect("should read the run"),
-        expected,
-        "should read the rows of both files in order"
-    );
-    let subset = expected.get(..2).expect("should have two rows").to_vec();
-    write(&storage, run, subset.clone())
-        .await
-        .expect("should write the run again");
-    assert_eq!(
-        read(&storage, run).await.expect("should read the run"),
-        subset,
-        "a write should replace the rows of every file of the run"
     );
 }
 
@@ -420,36 +345,6 @@ async fn wrong_credentials_are_storage_errors() {
     );
 }
 
-#[tokio::test]
-async fn table_with_other_columns_is_invalid() {
-    let (_minio, storage) = storage().await;
-    let run = RunId::new();
-    open(&storage)
-        .await
-        .expect("should open the place of the table")
-        .create()
-        .with_columns([StructField::new("id", DataType::LONG, false)])
-        .await
-        .expect("should create another table");
-
-    let error = read(&storage, run)
-        .await
-        .expect_err("should refuse a table with other columns");
-    assert_eq!(
-        *error.current_context(),
-        SyncTableError::Invalid,
-        "a table with other columns should be invalid"
-    );
-    let error = write(&storage, run, rows(run))
-        .await
-        .expect_err("should refuse a table with other columns");
-    assert_eq!(
-        *error.current_context(),
-        SyncTableError::Invalid,
-        "a table with other columns should be invalid"
-    );
-}
-
 #[test]
 fn order_key_compares_web_ids_first() {
     let id = |web: u128, entity: u128| EntityId {
@@ -460,28 +355,5 @@ fn order_key_compares_web_ids_first() {
     assert!(
         order_key(&id(1, 2)) < order_key(&id(2, 1)),
         "the web id should decide before the entity UUID"
-    );
-}
-
-#[test]
-fn columns_are_the_fields_of_a_row() {
-    let row = rows(RunId::new())
-        .into_iter()
-        .next()
-        .expect("should have a row");
-    let serde_json::Value::Object(fields) =
-        serde_json::to_value(&row).expect("should serialize the row")
-    else {
-        panic!("a row should serialize as an object");
-    };
-    let columns = row::columns()
-        .iter()
-        .map(|column| column.name().clone())
-        .collect::<BTreeSet<_>>();
-
-    assert_eq!(
-        fields.keys().cloned().collect::<BTreeSet<_>>(),
-        columns,
-        "the columns should be the fields of `SyncRow`"
     );
 }

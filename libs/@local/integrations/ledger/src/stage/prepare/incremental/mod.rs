@@ -1,12 +1,12 @@
-//! Prepare for incremental updates: the captured files hold only the rows that changed, each
-//! marked in its column `_change` as an `insert`, an `update` or a `delete`.
+//! Prepare for incremental updates: the capture tables hold, for each run, only the rows that
+//! changed, each marked in its column `_change` as an `insert`, an `update` or a `delete`.
 
 mod staging;
 #[cfg(test)]
 mod tests;
 
 use alloc::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::{Definition, LinkInput, PrimaryKey, SourceName};
@@ -17,20 +17,23 @@ use super::{
     workspace::{OpenError, Workspace, WorkspaceConfig},
 };
 use crate::{
+    lake::{Lake, LakeError, LakeSettings},
     run::{CapturePart, Input, PreparePart, RunId, RunRecord, Stage},
     stage::{
-        StageError, begin, end,
-        failure::{permanent, retryable},
+        StageError, begin,
+        capture::SEQUENCE,
+        end,
+        failure::{STORAGE_UNCONFIGURED, from_lake, permanent, retryable},
     },
     storage::Storage,
-    sync_table::{self, SyncTableError},
+    sync_table::{SyncTable, SyncTableError},
 };
 
 /// The definition does not parse, or a pipeline reads a second table.
 const DEFINITION_INVALID: &str = "prepare_definition_invalid";
-/// A table has no capture file, a capture file is of no table or cannot be loaded, or it cannot be
-/// staged: it lacks `_change` or a column of the primary key, has a column `_op`, `_key`, `_seq` or
-/// `rowid`, or a row's `_change` is not `insert`, `update` or `delete`.
+/// A table has no capture table, a capture table is of no table of the definition or does not
+/// exist, or it cannot be staged: it lacks `_change` or a column of the primary key, has a column
+/// `_op`, `_key`, `_seq` or `rowid`, or a row's `_change` is not `insert`, `update` or `delete`.
 const CAPTURE_INVALID: &str = "prepare_capture_invalid";
 /// An SQL step fails or leaves a staging column unusable, a checkpoint a pipeline reads was not
 /// written, a sink or a link reads a column its table lacks, or a link pipeline with several inputs
@@ -41,39 +44,50 @@ const STEP_FAILED: &str = "prepare_step_failed";
 /// sync table.
 const ROWS_INVALID: &str = "prepare_rows_invalid";
 
-/// Reports why Prepare refuses the definition or the capture files of a run.
+/// Reports why Prepare refuses the definition or the capture tables of a run.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 enum InputError {
     /// A join of two tables would see only the changed rows of each.
     #[display("the pipeline `{pipeline}` reads a second table")]
     SecondTable { pipeline: Box<str> },
-    #[display("the table `{table}` has no capture file")]
-    MissingFile { table: SourceName },
-    #[display("the capture file `{table}` is of no table of the definition")]
-    UnknownFile { table: Box<str> },
-    #[display("the capture file of `{table}` cannot be staged")]
+    #[display("the table `{table}` has no capture table")]
+    MissingTable { table: SourceName },
+    #[display("the capture table `{table}` is of no table of the definition")]
+    UnknownTable { table: Box<str> },
+    #[display("the capture table of `{table}` cannot be staged")]
     Staging { table: SourceName },
 }
 
-/// A table of the definition and its capture file in the bucket.
+/// A table of the definition and its capture table in the bucket.
 #[derive(Debug)]
 struct CapturedTable {
     name: SourceName,
     primary_key: PrimaryKey,
-    file: Box<str>,
+    /// The key of the table's capture table in the bucket.
+    key: Box<str>,
+    /// The table in the workspace that the run's rows are copied to.
+    copy: Box<str>,
+    /// The table in the workspace that the copy is staged to.
+    staged: Box<str>,
 }
 
-/// Prepares `run`: turns the rows of its capture files into the run's entity changes.
+/// The changes of a run, and the number of rows of the run in the sync table.
+struct Prepared {
+    changes: Changes,
+    rows: u64,
+}
+
+/// Prepares `run`: turns the run's rows in the capture tables into the run's entity changes.
 ///
 /// The changes are written to the sync table, and the `prepare` part to `run.json`. Each row, or
 /// part of one, that cannot be written as captured is listed in the issues file.
 ///
 /// A run that was prepared before is left as it is. Preparing a run again after a retryable error
-/// replaces the rows the earlier attempt wrote to the sync table.
+/// leaves the rows an earlier attempt wrote to the sync table, and records their number.
 ///
 /// # Errors
 ///
-/// - [`StageError::Permanent`] if the definition or the capture files are refused, an SQL step
+/// - [`StageError::Permanent`] if the definition or the capture tables are refused, an SQL step
 ///   fails, a row cannot be turned into a change, or the sync table cannot hold the rows. The code
 ///   in the `failure` part of `run.json` names the step. It is returned without writing if the run
 ///   cannot be prepared: it is not the run `current.json` names, it failed before, or its
@@ -90,6 +104,21 @@ pub async fn prepare_incremental(storage: &Storage, run: RunId) -> Result<(), Re
         .await
         .map(|part| open.record.prepare = Some(part));
     end(storage, open, result).await
+}
+
+/// What an error of the lake means for Prepare: a capture table that does not exist is refused.
+fn lake_failed(report: Report<LakeError>) -> Report<StageError> {
+    from_lake(Stage::Prepare, CAPTURE_INVALID, report)
+}
+
+/// What an error of the sync table means for Prepare.
+fn sync_failed(report: Report<SyncTableError>) -> Report<StageError> {
+    let context = match report.current_context() {
+        SyncTableError::Storage => retryable(Stage::Prepare),
+        SyncTableError::Invalid => failed(ROWS_INVALID),
+        SyncTableError::Unconfigured => failed(STORAGE_UNCONFIGURED),
+    };
+    report.change_context(context)
 }
 
 const fn failed(code: &'static str) -> StageError {
@@ -109,67 +138,55 @@ async fn prepare(storage: &Storage, record: &RunRecord) -> Result<PreparePart, R
     let tables = captured_tables(&definition, capture).change_context(failed(CAPTURE_INVALID))?;
 
     let scratch = tempfile::tempdir().change_context(retryable(Stage::Prepare))?;
-    let mut files = Vec::with_capacity(tables.len());
-    for table in &tables {
-        files.push(
-            storage
-                .download(&table.file, scratch.path())
-                .await
-                .change_context(retryable(Stage::Prepare))?,
-        );
-    }
-    // DuckDB blocks, so the workspace is used in one blocking task, which owns what it reads.
     let database = scratch.path().join("prepare.duckdb");
     let input = record.input.clone();
-    let changes = tokio::task::spawn_blocking(move || {
-        stage_and_collect(&database, &definition, &input, &tables, &files)
-    })
-    .await
-    .change_context(retryable(Stage::Prepare))??;
+    let prepared = LakeSettings::of(storage)
+        .map_err(lake_failed)?
+        .run(lake_failed, move |lake| {
+            let changes = stage_and_collect(lake, &database, &definition, &input, &tables)?;
+            let rows = SyncTable::open(lake)
+                .and_then(|table| table.write(input.run, &changes.rows))
+                .map_err(sync_failed)?;
+            Ok(Prepared { changes, rows })
+        })
+        .await?;
 
-    let issues = issues::write(storage, record.input.run, scratch.path(), &changes.issues)
-        .await
-        .change_context(retryable(Stage::Prepare))?;
-    let part = PreparePart {
-        rows: changes.rows.len() as u64,
+    let issues = issues::write(
+        storage,
+        record.input.run,
+        scratch.path(),
+        &prepared.changes.issues,
+    )
+    .await
+    .change_context(retryable(Stage::Prepare))?;
+    Ok(PreparePart {
+        rows: prepared.rows,
         issues,
-        issue_count: changes.issues.len() as u64,
-    };
-    sync_table::write(storage, record.input.run, changes.rows)
-        .await
-        .map_err(|report| {
-            let context = match report.current_context() {
-                SyncTableError::Storage => retryable(Stage::Prepare),
-                SyncTableError::Invalid => failed(ROWS_INVALID),
-            };
-            report.change_context(context)
-        })?;
-    Ok(part)
+        issue_count: prepared.changes.issues.len() as u64,
+    })
 }
 
-/// Opens a workspace at `database` with the downloaded capture `files`, stages each table, runs the
-/// SQL steps of `definition`, and turns their rows into changes.
+/// Copies the run's rows of each capture table from `lake` into a workspace at `database`, stages
+/// each table, runs the SQL steps of `definition`, and turns their rows into changes.
 fn stage_and_collect(
+    lake: &Lake,
     database: &Path,
     definition: &Definition,
     input: &Input,
     tables: &[CapturedTable],
-    files: &[PathBuf],
 ) -> Result<Changes, Report<StageError>> {
     let config = WorkspaceConfig {
         variables: definition.variables().clone(),
         ..WorkspaceConfig::default()
     };
-    let captures = tables
-        .iter()
-        .map(|table| format!("_capture/{}", table.name))
-        .collect::<Vec<_>>();
-    let loaded = captures
-        .iter()
-        .zip(files)
-        .map(|(capture, file)| (capture.as_str(), file.as_path()))
-        .collect::<Vec<_>>();
-    let workspace = Workspace::open(database, config, &loaded).map_err(|report| {
+    let target = lake.attach_database(database).map_err(lake_failed)?;
+    for table in tables {
+        lake.table(&table.key)
+            .and_then(|capture| capture.copy_run(input.run, &target, &table.copy, SEQUENCE))
+            .map_err(lake_failed)?;
+    }
+    target.detach().map_err(lake_failed)?;
+    let workspace = Workspace::open(database, config, &[]).map_err(|report| {
         let context = match report.current_context() {
             OpenError::Load { .. } => failed(CAPTURE_INVALID),
             OpenError::Configure { .. } | OpenError::Open { .. } => retryable(Stage::Prepare),
@@ -177,14 +194,13 @@ fn stage_and_collect(
         report.change_context(context)
     })?;
     let mut staged = BTreeMap::new();
-    for (table, capture) in tables.iter().zip(&captures) {
-        let source = format!("_source/{}", table.name).into_boxed_str();
-        staging::stage(&workspace, capture, &source, &table.primary_key)
+    for table in tables {
+        staging::stage(&workspace, &table.copy, &table.staged, &table.primary_key)
             .change_context_lazy(|| InputError::Staging {
                 table: table.name.clone(),
             })
             .change_context(failed(CAPTURE_INVALID))?;
-        staged.insert(table.name.clone(), source);
+        staged.insert(table.name.clone(), table.staged.clone());
     }
     let prepared =
         run_pipelines(&workspace, definition, &staged).change_context(failed(STEP_FAILED))?;
@@ -220,14 +236,14 @@ fn one_table_per_pipeline(definition: &Definition) -> Result<(), Report<InputErr
     })
 }
 
-/// Pairs each table of `definition` with its capture file. A source that is a checkpoint of
-/// another pipeline has no file.
+/// Pairs each table of `definition` with its capture table. A source that is a checkpoint of
+/// another pipeline has none.
 ///
 /// # Errors
 ///
-/// - [`InputError::MissingFile`] if a table has no capture file. A table without changes needs an
-///   empty file.
-/// - [`InputError::UnknownFile`] if a capture file is of no table
+/// - [`InputError::MissingTable`] if a table has no capture table. A table without changes needs a
+///   query that gives no rows.
+/// - [`InputError::UnknownTable`] if a capture table is of no table of the definition
 fn captured_tables(
     definition: &Definition,
     capture: &CapturePart,
@@ -237,25 +253,27 @@ fn captured_tables(
         .iter()
         .filter_map(|(name, source)| Some((name, source.primary_key()?)))
         .map(|(name, primary_key)| {
-            let file = capture.sources.get(name.as_ref()).ok_or_else(|| {
-                Report::new(InputError::MissingFile {
+            let captured = capture.sources.get(name.as_ref()).ok_or_else(|| {
+                Report::new(InputError::MissingTable {
                     table: name.clone(),
                 })
             })?;
             Ok(CapturedTable {
                 name: name.clone(),
                 primary_key: primary_key.clone(),
-                file: file.key.clone(),
+                key: captured.key.clone(),
+                copy: format!("_capture/{name}").into(),
+                staged: format!("_source/{name}").into(),
             })
         })
         .collect::<Result<Vec<_>, Report<InputError>>>()?;
-    if let Some(file) = capture.sources.keys().find(|file| {
+    if let Some(unknown) = capture.sources.keys().find(|captured| {
         !tables
             .iter()
-            .any(|table| table.name.as_ref() == file.as_ref())
+            .any(|table| table.name.as_ref() == captured.as_ref())
     }) {
-        return Err(Report::new(InputError::UnknownFile {
-            table: file.clone(),
+        return Err(Report::new(InputError::UnknownTable {
+            table: unknown.clone(),
         }));
     }
     Ok(tables)

@@ -3,7 +3,6 @@
 mod error;
 mod rows;
 mod select;
-mod sql;
 #[cfg(test)]
 mod tests;
 
@@ -18,8 +17,8 @@ use self::select::Select;
 pub(crate) use self::{
     error::{OpenError, Setting, StatementError},
     rows::Rows,
-    sql::Identifier,
 };
+pub(crate) use crate::sql::Identifier;
 
 /// An amount of memory or disk space, in bytes.
 ///
