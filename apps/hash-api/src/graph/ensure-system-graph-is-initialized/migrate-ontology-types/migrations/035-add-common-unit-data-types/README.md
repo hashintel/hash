@@ -6,6 +6,8 @@ conversion expressions and the same version-aware migration helper.
 
 New data types use singular `title` values and explicit `titlePlural` values, with irregular or invariant forms such as `Curie`/`Curies` and `Stokes`/`Stokes`. Existing base URLs and conversions remain stable. The historical `Knots` and `Percentage` types retain their existing names. The Percentage registry entry points to version 2, which adds conversions; historical version 1 schemas and values remain unchanged.
 
+The migration then moves `Scrap Percentage`, from migration 026, onto that version of Percentage, and `Bill of Materials Item` and `Bill of Materials` onto the new `Scrap Percentage`. Each moves from its current version, so the result is the same whether migration 039 ran before it, as on an instance that already had 039, or after it, as on a new instance. Existing entities keep their types and values.
+
 ## Coverage
 
 | Area                      | Added units                                                                                                                           |

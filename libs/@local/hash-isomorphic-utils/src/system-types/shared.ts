@@ -718,7 +718,7 @@ export type BatchStoredAtLink = { linkEntity: StoredAt; rightEntity: Site };
  */
 export type BillOfMaterialsItem = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/2",
+    "https://hash.ai/@h/types/entity-type/bill-of-materials-item/v/3",
   ];
   properties: BillOfMaterialsItemProperties;
   propertiesWithMetadata: BillOfMaterialsItemPropertiesWithMetadata;

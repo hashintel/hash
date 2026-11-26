@@ -24,6 +24,10 @@ import type {
 vi.mock("./034-add-si-unit-data-types/ensure-unit-data-type", () => ({
   ensureUnitDataType: vi.fn(),
 }));
+// The supply chain types it moves are covered in `move-scrap-percentage.test.ts`.
+vi.mock("./035-add-common-unit-data-types/move-scrap-percentage", () => ({
+  moveScrapPercentage: vi.fn(),
+}));
 
 const seeded = new Map<
   string,
