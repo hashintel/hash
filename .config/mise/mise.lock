@@ -249,11 +249,17 @@ aube = { path = "locks/npm-turbo/2.11.12", digest = "sha256:9f0a22241f08c0677023
 backend = "npm:turbo"
 specifiers = ["2.11.12"]
 
+[tools."npm:turbo".provenance]
+repository = "github.com/vercel/turborepo"
+
 [[tools.oxfmt]]
 version = "0.79.0"
 aube = { path = "locks/oxfmt/0.79.0", digest = "sha256:1fb57357074535b1bf9329d5b4dac6c98ce258b003056387f018f196eee3a611" }
 backend = "npm:oxfmt"
 specifiers = ["0.79.0"]
+
+[tools.oxfmt.provenance]
+repository = "github.com/oxc-project/oxc"
 
 [[tools."pipx:sqlfluff"]]
 version = "4.5.0"
