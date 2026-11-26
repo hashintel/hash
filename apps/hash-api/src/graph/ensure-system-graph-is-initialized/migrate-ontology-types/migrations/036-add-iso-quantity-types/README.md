@@ -2,7 +2,7 @@
 
 Migration 036 adds quantity meanings as property types and numeric representations as data types. It builds on migrations 034 and 035 without replacing their unit definitions.
 
-- **364 data types:** 204 concrete representations and 160 abstract conversion groups. These include reusable bounded fractions and integer domains, missing compound units, decimal and binary storage/rate units, information units, and acoustic references.
+- **367 data types:** 205 concrete representations and 162 abstract conversion groups. These include reusable bounded fractions and integer domains, missing compound units, decimal and binary storage/rate units, information units, and acoustic references.
 - **909 property types:** 708 quantity meanings and 201 reusable components, coordinates, and context fields.
 - **115 bidirectional conversion pairs**, using the graph's existing expression schema.
 - **721 of 723 catalogue item locators represented.** Two reaction-dependent equilibrium constants are deferred. Multiple ISO items can share a property when they denote the same quantity.

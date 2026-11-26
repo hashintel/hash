@@ -10846,6 +10846,24 @@ export const systemDataTypes = {
     titlePlural: "Energies per Area (Metric)",
     description: "Energy per Area expressed in SI units and metric multiples.",
   },
+  energyPerLength: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/energy-per-length/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-per-length/" as BaseUrl,
+    title: "Energy per Length",
+    titlePlural: "Energies per Length",
+    description: "Numeric values in convertible units of energy per length.",
+  },
+  "energyPerLength(metric)": {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/energy-per-length-metric/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/energy-per-length-metric/" as BaseUrl,
+    title: "Energy per Length (Metric)",
+    titlePlural: "Energies per Length (Metric)",
+    description:
+      "Energy per Length expressed in SI units and metric multiples.",
+  },
   "energy(usCustomary)": {
     dataTypeId: "https://hash.ai/@h/types/data-type/energy-us-customary/v/1",
     dataTypeBaseUrl:
@@ -13010,6 +13028,15 @@ export const systemDataTypes = {
       "https://hash.ai/@h/types/data-type/joule-per-meter/" as BaseUrl,
     title: "Joule per Meter",
     titlePlural: "Joules per Meter",
+    description: "A value expressed in joules per meter.",
+  },
+  joulePerMeterOfWavelength: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/joule-per-meter-of-wavelength/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/joule-per-meter-of-wavelength/" as BaseUrl,
+    title: "Joule per Meter of Wavelength",
+    titlePlural: "Joules per Meter of Wavelength",
     description:
       "A wavelength spectral density expressed in J/m; its spectral variable is wavelength in meters.",
   },

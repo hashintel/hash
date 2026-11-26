@@ -1067,7 +1067,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The total linear stopping power of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.spectralEnergyPerWavelength.dataTypeId,
+          dataTypeId: systemDataTypes.energyPerLength.dataTypeId,
         },
       ],
     },
@@ -1574,7 +1574,7 @@ export const part10PropertyTypes: IsoPropertyType[] = [
         "The linear energy transfer of the specified system or process in atomic and nuclear physics.",
       possibleValues: [
         {
-          dataTypeId: systemDataTypes.spectralEnergyPerWavelength.dataTypeId,
+          dataTypeId: systemDataTypes.energyPerLength.dataTypeId,
         },
       ],
     },

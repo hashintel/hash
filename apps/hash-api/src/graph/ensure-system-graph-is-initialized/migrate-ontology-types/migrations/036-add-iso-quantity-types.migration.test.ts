@@ -240,7 +240,7 @@ describe("ISO quantity catalogue", () => {
     ["Megabyte per Second", "bitPerSecond", 1, 8e6],
     ["Gram per Mole", "kilogramPerMole", 18, 0.018],
     ["Millisiemens per Centimeter", "siemensPerMeter", 10, 1],
-    ["Joule per Nanometer", "joulePerMeter", 2, 2e9],
+    ["Joule per Nanometer", "joulePerMeterOfWavelength", 2, 2e9],
     ["Sievert per Hour", "sievertPerSecond", 3600, 1],
     ["Fractional Percentage", "unitInterval", 25, 0.25],
     ["Fractional Part per Million", "unitInterval", 250000, 0.25],

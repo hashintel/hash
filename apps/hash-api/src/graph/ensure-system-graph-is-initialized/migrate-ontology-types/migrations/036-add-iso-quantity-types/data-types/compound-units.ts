@@ -1466,6 +1466,57 @@ export const compoundUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
+    dataTypeBaseUrl: systemDataTypes.energyPerLength.dataTypeBaseUrl,
+    definition: {
+      title: "Energy per Length",
+      titlePlural: "Energies per Length",
+      description: "Numeric values in convertible units of energy per length.",
+      type: "number",
+      allOf: [
+        {
+          $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        },
+      ],
+      abstract: true,
+    },
+    conversions: {},
+  },
+  {
+    dataTypeBaseUrl: systemDataTypes["energyPerLength(metric)"].dataTypeBaseUrl,
+    definition: {
+      title: "Energy per Length (Metric)",
+      titlePlural: "Energies per Length (Metric)",
+      description:
+        "Energy per Length expressed in SI units and metric multiples.",
+      type: "number",
+      allOf: [
+        {
+          $ref: systemDataTypes.energyPerLength.dataTypeId,
+        },
+      ],
+      abstract: true,
+    },
+    conversions: {},
+  },
+  {
+    dataTypeBaseUrl: systemDataTypes.joulePerMeter.dataTypeBaseUrl,
+    definition: {
+      title: "Joule per Meter",
+      titlePlural: "Joules per Meter",
+      description: "A value expressed in joules per meter.",
+      type: "number",
+      allOf: [
+        {
+          $ref: systemDataTypes["energyPerLength(metric)"].dataTypeId,
+        },
+      ],
+      label: {
+        right: "J/m",
+      },
+    },
+    conversions: {},
+  },
+  {
     dataTypeBaseUrl: systemDataTypes.energyPerArea.dataTypeBaseUrl,
     definition: {
       title: "Energy per Area",

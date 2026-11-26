@@ -40,10 +40,10 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
     conversions: {},
   },
   {
-    dataTypeBaseUrl: systemDataTypes.joulePerMeter.dataTypeBaseUrl,
+    dataTypeBaseUrl: systemDataTypes.joulePerMeterOfWavelength.dataTypeBaseUrl,
     definition: {
-      title: "Joule per Meter",
-      titlePlural: "Joules per Meter",
+      title: "Joule per Meter of Wavelength",
+      titlePlural: "Joules per Meter of Wavelength",
       description:
         "A wavelength spectral density expressed in J/m; its spectral variable is wavelength in meters.",
       type: "number",
@@ -78,7 +78,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       },
     },
     conversions: {
-      [systemDataTypes.joulePerMeter.dataTypeBaseUrl]: {
+      [systemDataTypes.joulePerMeterOfWavelength.dataTypeBaseUrl]: {
         to: {
           expression: [
             "*",
@@ -712,8 +712,7 @@ export const spectralUnitsDataTypes: IsoDataType[] = [
       type: "number",
       allOf: [
         {
-          $ref: systemDataTypes["spectralEnergyPerWavelength(metric)"]
-            .dataTypeId,
+          $ref: systemDataTypes["energyPerLength(metric)"].dataTypeId,
         },
       ],
       label: {
