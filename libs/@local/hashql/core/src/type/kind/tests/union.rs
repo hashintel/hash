@@ -1,5 +1,7 @@
 use core::assert_matches;
 
+use hashql_diagnostics::source::SourceId;
+
 use crate::{
     heap::{Heap, SymbolAllocator as _},
     span::SpanId,
@@ -960,6 +962,59 @@ fn simplify_with_subtypes() {
         *result_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
     );
+}
+
+#[test]
+fn simplify_with_equivalent_variants() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    // Create two lists of the same type whose element types come from different spans, the
+    // lists are subtypes of each other without sharing a kind
+    let [list_a, list_b] = [0, 1].map(|index| {
+        let element = env.intern_type(PartialType {
+            span: SpanId::new(SourceId::new_unchecked(0), index),
+            kind: env.intern_kind(TypeKind::Primitive(PrimitiveType::Integer)),
+        });
+
+        list!(env, element)
+    });
+    union!(env, union_type, [list_a, list_b]);
+
+    let mut simplify_env = SimplifyEnvironment::new(&env);
+
+    // Simplifying should keep one of them
+    assert_equiv!(env, [union_type.simplify(&mut simplify_env)], [list_a]);
+}
+
+#[test]
+fn is_equivalent_matching_variants_diagnostics() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    union!(
+        env,
+        union_a,
+        [
+            primitive!(env, PrimitiveType::Integer),
+            primitive!(env, PrimitiveType::String)
+        ]
+    );
+    union!(
+        env,
+        union_b,
+        [
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Integer)
+        ]
+    );
+
+    let mut analysis_env = AnalysisEnvironment::new(&env);
+    analysis_env.with_diagnostics();
+
+    // `Integer` is not equivalent to `String`, but every variant has a match
+    assert!(union_a.is_equivalent(union_b, &mut analysis_env));
+    assert_eq!(analysis_env.fatal_diagnostics(), 0);
 }
 
 #[test]

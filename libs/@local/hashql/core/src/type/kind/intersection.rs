@@ -245,7 +245,10 @@ impl<'heap> IntersectionType<'heap> {
         // Find all matching pairs
         for (&lhs_variant, mut lhs_matched) in lhs_variants.iter().zip(lhs_matched.iter_mut()) {
             for (&rhs_variant, rhs_matched) in rhs_variants.iter().zip(rhs_matched.iter_mut()) {
-                if env.is_equivalent(lhs_variant, rhs_variant) {
+                // a pair that does not match is no mismatch, the loops below report a variant
+                // without any match
+                if env.with_diagnostics_disabled(|env| env.is_equivalent(lhs_variant, rhs_variant))
+                {
                     *lhs_matched = true;
                     rhs_matched.commit(true);
                 }
@@ -637,7 +640,15 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         variants.retain(|&supertype| {
             // keep `supertype` only if it is not a supertype of any other variant
             !backup.iter().any(|&subtype| {
-                subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
+                if subtype == supertype
+                    || !env.is_subtype_of(Variance::Covariant, subtype, supertype)
+                {
+                    return false;
+                }
+
+                // of two variants that are supertypes of each other, the one with the smaller id
+                // stays
+                supertype > subtype || !env.is_subtype_of(Variance::Covariant, supertype, subtype)
             })
         });
 

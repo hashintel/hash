@@ -407,6 +407,49 @@ fn is_subtype_of_dict_never_key() {
 }
 
 #[test]
+fn is_subtype_of_dict_inhabited_intersection_key() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    // Every `Integer` is a member of `(Integer | String) & (Integer | Boolean)`
+    let key = intersection!(
+        env,
+        [
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Integer),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            ),
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Integer),
+                    primitive!(env, PrimitiveType::Boolean)
+                ]
+            )
+        ]
+    );
+    dict!(
+        env,
+        dict_overlap_integer,
+        key,
+        primitive!(env, PrimitiveType::Integer)
+    );
+    dict!(
+        env,
+        dict_boolean_integer,
+        primitive!(env, PrimitiveType::Boolean),
+        primitive!(env, PrimitiveType::Integer)
+    );
+
+    let mut analysis_env = AnalysisEnvironment::new(&env);
+
+    assert!(!dict_overlap_integer.is_subtype_of(dict_boolean_integer, &mut analysis_env));
+}
+
+#[test]
 fn is_equivalent_dict() {
     let heap = Heap::new();
     let env = Environment::new(&heap);

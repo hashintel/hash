@@ -480,7 +480,7 @@ impl<'heap> Lattice<'heap> for DictType {
         // key type can state while keys are invariant. This check accepts a key type of `!` under
         // any key type instead, because a dict whose key type is `!` has no entries to hash or look
         // up. Join, meet and constraint collection still treat the key as invariant.
-        (env.is_bottom(self.kind.key)
+        (env.is_never(self.kind.key)
             || env.is_subtype_of(Variance::Invariant, self.kind.key, supertype.kind.key))
             && env.is_subtype_of(Variance::Covariant, self.kind.value, supertype.kind.value)
     }

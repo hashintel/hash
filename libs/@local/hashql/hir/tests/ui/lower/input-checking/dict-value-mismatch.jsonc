@@ -1,0 +1,18 @@
+//@ run: fail
+//@ description: A dictionary is rejected for the values that do not fit, keys that fit the declared union are not reported.
+{
+  "#struct": {
+    "query": ["input", "xs", "Dict<Integer | String, Integer>"],
+    "inputs": {
+      "#struct": {
+        "xs": {
+          "#dict": [
+            [{ "#literal": 1 }, { "#literal": false }],
+            //~^ ERROR This is of type `Boolean`
+            [{ "#literal": "a" }, { "#literal": false }]
+          ]
+        }
+      }
+    }
+  }
+}

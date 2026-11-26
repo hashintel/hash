@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: Elements of the same type contribute that type once to the element type of the list.
+{
+  "#struct": {
+    "query": ["input", "xs", "List<List<Number>>"],
+    "inputs": {
+      "#struct": {
+        "xs": {
+          "#list": [
+            { "#list": [{ "#literal": 1 }] },
+            { "#list": [{ "#literal": 2 }] }
+          ]
+        }
+      }
+    }
+  }
+}

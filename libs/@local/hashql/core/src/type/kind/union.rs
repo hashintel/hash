@@ -228,7 +228,10 @@ impl<'heap> UnionType<'heap> {
         // Find all matching pairs
         for (&lhs_variant, mut lhs_matched) in lhs_variants.iter().zip(lhs_matched.iter_mut()) {
             for (&rhs_variant, rhs_matched) in rhs_variants.iter().zip(rhs_matched.iter_mut()) {
-                if env.is_equivalent(lhs_variant, rhs_variant) {
+                // a pair that does not match is no mismatch, the loops below report a variant
+                // without any match
+                if env.with_diagnostics_disabled(|env| env.is_equivalent(lhs_variant, rhs_variant))
+                {
                     *lhs_matched = true;
                     rhs_matched.commit(true);
                 }
@@ -653,7 +656,15 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants.retain(|&subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
             !backup.iter().any(|&supertype| {
-                subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
+                if subtype == supertype
+                    || !env.is_subtype_of(Variance::Covariant, subtype, supertype)
+                {
+                    return false;
+                }
+
+                // of two variants that are subtypes of each other, the one with the smaller id
+                // stays
+                subtype > supertype || !env.is_subtype_of(Variance::Covariant, supertype, subtype)
             })
         });
 
