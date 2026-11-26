@@ -190,6 +190,7 @@ url_api = "https://api.github.com/repos/casey/just/releases/assets/643131819"
 
 [[tools.markdownlint-cli2]]
 version = "0.24.1"
+aube = { path = "locks/markdownlint-cli2/0.24.1", digest = "sha256:97418abec0a8de4ca28d2ffc156b7c59183a36225c0913917c4bd832054eba30" }
 backend = "npm:markdownlint-cli2"
 specifiers = ["0.24.1"]
 
@@ -216,11 +217,13 @@ url = "https://nodejs.org/dist/v22.23.5/node-v22.23.5-darwin-x64.tar.gz"
 
 [[tools."npm:turbo"]]
 version = "2.11.12"
+aube = { path = "locks/npm-turbo/2.11.12", digest = "sha256:9f0a22241f08c0677023004cf885eb0a6ad7c862e26c4290ae97bf6f1c1edfd0" }
 backend = "npm:turbo"
 specifiers = ["2.11.12"]
 
 [[tools.oxfmt]]
 version = "0.79.0"
+aube = { path = "locks/oxfmt/0.79.0", digest = "sha256:1fb57357074535b1bf9329d5b4dac6c98ce258b003056387f018f196eee3a611" }
 backend = "npm:oxfmt"
 specifiers = ["0.79.0"]
 
