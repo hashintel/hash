@@ -592,6 +592,15 @@ describe("startFlowNetRun", () => {
     expect(run.held()).toEqual([]);
   });
 
+  it("doesn't start a forEach step while its array is missing", async () => {
+    const net = await compileFlowDefinition(forEachFlowDefinition);
+    const run = startFlowNetRun(net, { flowInputNames: [] });
+    const each = { stepId: "each", itemPath: [] };
+
+    expect(run.isHeld("startForEach", each)).toBe(false);
+    expect(run.isPending(each)).toBe(true);
+  });
+
   it("starts a forEach step over a constant array on its own", async () => {
     const net = await compileFlowDefinition(
       defineFlow(

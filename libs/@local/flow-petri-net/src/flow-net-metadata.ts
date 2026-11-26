@@ -65,15 +65,11 @@ export type TransitionMetadata =
       inputSources: Record<string, InputSource>;
       paths?: PathEndpoints;
     }
-  | {
-      role: "startForEach";
-      stepId: string;
-      /** The array, when it's a constant rather than a connected value. */
-      constant?: JsonValue;
-      /** Where it takes or reads the array from, when it's a connected value. */
-      array?: ArcEndpoint;
-      paths?: PathEndpoints;
-    }
+  | ({ role: "startForEach"; stepId: string; paths?: PathEndpoints } & (
+      | { constant: JsonValue }
+      /** Where it takes or reads its array from. */
+      | { array: ArcEndpoint }
+    ))
   | { role: "copyOutput"; stepId: string; outputName: string }
   | {
       role: "collectItem";

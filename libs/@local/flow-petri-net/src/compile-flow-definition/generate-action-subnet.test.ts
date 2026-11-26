@@ -19,10 +19,36 @@ import {
 } from "../flow-net-keys.js";
 import { generateActionSubnet } from "./generate-action-subnet.js";
 
+import type { Component } from "@hashintel/petrinaut-core";
 import type {
   ActionDefinition,
   FlowActionDefinitionId,
 } from "@local/hash-isomorphic-utils/flows/types";
+
+/** Checks Petrinaut builds a net with one instance of `subnet`, kernels included. */
+const expectBuildsInPetrinaut = (subnet: Component) =>
+  expect(() =>
+    compilePetrinautModel({
+      sdcpn: canonicalizePetrinautIds({
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        components: [subnet],
+        componentInstances: [
+          {
+            id: generateInstanceKey("step"),
+            name: "step",
+            component: { id: subnet.id },
+            parameterValues: {},
+            x: 0,
+            y: 0,
+          },
+        ],
+      }),
+    }),
+  ).not.toThrow();
 
 describe("generateActionSubnet", () => {
   /*
@@ -97,28 +123,7 @@ describe("generateActionSubnet", () => {
           expect(colorIds, place.id).toContain(place.colorId);
         }
 
-        expect(() =>
-          compilePetrinautModel({
-            sdcpn: canonicalizePetrinautIds({
-              places: [],
-              transitions: [],
-              types: [],
-              differentialEquations: [],
-              parameters: [],
-              components: [subnet],
-              componentInstances: [
-                {
-                  id: generateInstanceKey("step"),
-                  name: "step",
-                  component: { id: subnet.id },
-                  parameterValues: {},
-                  x: 0,
-                  y: 0,
-                },
-              ],
-            }),
-          }),
-        ).not.toThrow();
+        expectBuildsInPetrinaut(subnet);
       });
     });
   }
@@ -181,14 +186,18 @@ describe("generateActionSubnet", () => {
   it("names the Done port apart from an output called Done, as kernels address places by name", async () => {
     const subnet = await generateActionSubnet({
       kind: "action",
-      actionDefinitionId: "finish",
+      actionDefinitionId: "finish" as FlowActionDefinitionId,
       name: "Finish",
       description: "",
+      activitySettings: {
+        startToCloseTimeoutSeconds: 60,
+        handlesCancellation: false,
+      },
       inputs: [],
       outputs: [
         { name: "Done", payloadKind: "Text", array: false, required: true },
       ],
-    } as unknown as ActionDefinition<FlowActionDefinitionId>);
+    } satisfies ActionDefinition<FlowActionDefinitionId>);
 
     const nameOf = (placeId: string) =>
       subnet.places.find(({ id }) => id === placeId)?.name;
@@ -201,6 +210,7 @@ describe("generateActionSubnet", () => {
           id === generateSubnetElementKey("t", "finish", "succeedAttempt"),
       )?.transitionKernelCode,
     ).toContain('"Done_": [');
+    expectBuildsInPetrinaut(subnet);
   });
 
   it("types the ports of an action with derived kinds by the kinds resolved for a step", async () => {

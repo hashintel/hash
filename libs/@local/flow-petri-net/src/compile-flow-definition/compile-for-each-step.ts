@@ -55,6 +55,16 @@ export const compileForEachStep = ({
     step,
     arrayArc ? [arrayArc] : [],
   );
+  const over =
+    step.over.kind === "constant"
+      ? { constant: step.over.payload as JsonValue }
+      : arrayArc
+        ? { array: toPetrinautEndpoint(arrayArc.endpoint) }
+        : null;
+
+  if (!over) {
+    throw new Error(`For-each step "${step.stepId}" has no array`);
+  }
 
   net.addTransitions(
     createTransition({
@@ -64,10 +74,7 @@ export const compileForEachStep = ({
       metadata: {
         role: "startForEach",
         stepId: step.stepId,
-        ...(step.over.kind === "constant"
-          ? { constant: step.over.payload as JsonValue }
-          : {}),
-        ...(arrayArc ? { array: toPetrinautEndpoint(arrayArc.endpoint) } : {}),
+        ...over,
         ...(paths.length > 0 ? { paths: paths.map(toPetrinautEndpoint) } : {}),
       },
       inputArcs: [

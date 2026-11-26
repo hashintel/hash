@@ -783,13 +783,13 @@ export const startFlowNetRun = (
 
   /** A `forEach` step can't start while its array is missing. A path's output it runs after can be absent too. */
   const hasMissingArray = (
-    { array }: Extract<TransitionMetadata, { role: "startForEach" }>,
+    metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
     bindings: Binding[],
   ) =>
-    array !== undefined &&
+    "array" in metadata &&
     bindings.some(
       ({ path, token }) =>
-        isSameFlowNetPath(path, rootPath(array)) &&
+        isSameFlowNetPath(path, rootPath(metadata.array)) &&
         token.kind === "value" &&
         !token.present,
     );
@@ -807,11 +807,14 @@ export const startFlowNetRun = (
       ? !hasMissingArray(metadata, bindings)
       : !hasMissingSkipInput(metadata, bindings));
 
-  const constantItemCount = (constant: JsonValue | undefined) => {
-    if (constant === undefined) {
+  const constantItemCount = (
+    metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
+  ) => {
+    if (!("constant" in metadata)) {
       return null;
     }
 
+    const { constant } = metadata;
     const value =
       typeof constant === "object" && constant !== null && "value" in constant
         ? (constant as { value: JsonValue }).value
@@ -869,7 +872,7 @@ export const startFlowNetRun = (
       }
       case "startForEach": {
         const itemCount =
-          constantItemCount(metadata.constant) ??
+          constantItemCount(metadata) ??
           (fired?.role === "startForEach" ? fired.itemCount : null);
 
         if (itemCount === null) {
@@ -1338,7 +1341,7 @@ export const startFlowNetRun = (
     if (
       !(
         (transitionMetadata.role === "startForEach" &&
-          constantItemCount(transitionMetadata.constant) === null) ||
+          constantItemCount(transitionMetadata) === null) ||
         (transitionMetadata.role === "startStep" && waitForStepStarts)
       )
     ) {

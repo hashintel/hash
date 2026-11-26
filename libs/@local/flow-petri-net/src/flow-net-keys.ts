@@ -182,17 +182,16 @@ export const generateDonePortKey = (subnetName: string) =>
   generateSubnetElementKey("p", subnetName, "done");
 
 /**
- * The name of an action's `Done` port. Kernels address places by name and an input or output can have any name, so
- * it's `Done` with as many `_` appended as it takes to be no other port's.
+ * The name of an action's `Done` port. `succeedAttempt`'s kernel addresses it and the outputs by name, and an output
+ * can have any name, so it's `Done` with as many `_` appended as it takes to be no output's.
  */
 export const generateDonePortName = ({
-  inputs,
   outputs,
-}: Pick<ActionDefinition<FlowActionDefinitionId>, "inputs" | "outputs">) => {
-  const portNames = new Set([...inputs, ...outputs].map(({ name }) => name));
+}: Pick<ActionDefinition<FlowActionDefinitionId>, "outputs">) => {
+  const outputNames = new Set(outputs.map(({ name }) => name));
   let name = "Done";
 
-  while (portNames.has(name)) {
+  while (outputNames.has(name)) {
     name = `${name}_`;
   }
 
