@@ -155,7 +155,11 @@ test("preserves a dashboard draft when creation in the selected workspace fails"
       error: new Error("Offline"),
     },
   ]);
-  await screen.findByText("Create a dashboard to see it here.");
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("status", { name: "Loading dashboards" }),
+    ).toBeNull(),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Create dashboard" }));
   const input = screen.getByRole("textbox", { name: "Dashboard title" });
   fireEvent.change(input, { target: { value: "  Team dashboard  " } });
@@ -203,7 +207,11 @@ test("opens a created dashboard and refreshes the Pages list", async () => {
       result: listResult([created]),
     },
   ]);
-  await screen.findByText("Create a dashboard to see it here.");
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("status", { name: "Loading dashboards" }),
+    ).toBeNull(),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Create dashboard" }));
   const input = screen.getByRole("textbox", { name: "Dashboard title" });
   fireEvent.change(input, { target: { value: "Team dashboard" } });

@@ -111,19 +111,6 @@ export const DashboardList = ({ webId }: { webId: WebId }) => {
           />
         );
       })}
-      {!loading && !error && dashboards.length === 0 && (
-        <Typography
-          variant="smallTextLabels"
-          sx={{
-            display: "block",
-            px: 2.25,
-            py: 1,
-            color: ({ palette }) => palette.gray[70],
-          }}
-        >
-          Create a dashboard to see it here.
-        </Typography>
-      )}
       <CreateDashboard webId={webId} />
     </>
   );
