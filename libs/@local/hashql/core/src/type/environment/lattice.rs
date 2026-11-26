@@ -101,7 +101,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub(crate) fn simplify(&mut self, id: TypeId) -> TypeId {
+    pub fn simplify(&mut self, id: TypeId) -> TypeId {
         self.simplify.simplify(id)
     }
 

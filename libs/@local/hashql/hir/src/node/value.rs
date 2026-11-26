@@ -1,10 +1,8 @@
-use core::alloc::Allocator;
-
 use hashql_core::{
     heap::{PhaseAllocator, ScopeAllocator},
     r#type::{
         self, TypeId,
-        environment::Environment,
+        environment::LatticeEnvironment,
         kind::{TypeKind, UnionType},
     },
     value::Primitive,
@@ -39,7 +37,11 @@ impl<'heap> Value<'heap> {
         self.0
     }
 
-    pub fn r#type<'alloc, S>(self, env: &Environment<'heap>, mut scratch: S) -> TypeId
+    pub fn r#type<'alloc, S>(
+        self,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        mut scratch: S,
+    ) -> TypeId
     where
         S: ScopeAllocator<'alloc>,
         'heap: 'alloc,
@@ -114,14 +116,18 @@ impl<'heap> Value<'heap> {
 
                 let key = TypeKind::Union(UnionType { variants: keys });
                 let value = TypeKind::Union(UnionType { variants: values });
+
                 let key = env.intern_type(r#type::PartialType {
                     span: self.0.span,
                     kind: env.intern_kind(key),
                 });
+                let key = env.simplify(key);
+
                 let value = env.intern_type(r#type::PartialType {
                     span: self.0.span,
                     kind: env.intern_kind(value),
                 });
+                let value = env.simplify(value);
 
                 TypeKind::Intrinsic(r#type::kind::IntrinsicType::Dict(
                     r#type::kind::intrinsic::DictType { key, value },
@@ -143,6 +149,7 @@ impl<'heap> Value<'heap> {
                     span: self.0.span,
                     kind: env.intern_kind(element),
                 });
+                let element = env.simplify(element);
 
                 TypeKind::Intrinsic(r#type::kind::IntrinsicType::List(
                     r#type::kind::intrinsic::ListType { element },
@@ -157,6 +164,21 @@ impl<'heap> Value<'heap> {
             span: self.0.span,
             kind: env.intern_kind(kind),
         })
+    }
+
+    pub(crate) fn is_subtype_of<'alloc, S>(
+        &self,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        r#type: TypeId,
+        scratch: S,
+    ) -> bool
+    where
+        S: ScopeAllocator<'alloc>,
+        'heap: 'alloc,
+    {
+        let this = self.r#type(env, scratch);
+
+        env.is_subtype_of(r#type::environment::Variance::Covariant, this, r#type)
     }
 
     #[cfg(debug_assertions)]
