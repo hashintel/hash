@@ -33,6 +33,7 @@ Use `queryEntitySubgraphQuery` to fetch entities and their relationships.
 
 ```typescript
 import { useQuery } from "@apollo/client";
+
 import {
   getRoots,
   getOutgoingLinkAndTargetEntities,
@@ -47,11 +48,12 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 const { data, loading } = useQuery<
   QueryEntitySubgraphQuery,

@@ -374,9 +374,8 @@ export type PayloadValue<
   ? StoredPayloadRef<Kind, IsArray>
   : Kind extends StoredArrayPayloadKind
     ? IsArray extends true
-      ?
-          | ArrayStoredPayloadRef<Kind>
-          | (PayloadKindValues[Kind] | StoredItemRef<Kind>)[]
+      ? | ArrayStoredPayloadRef<Kind>
+        | (PayloadKindValues[Kind] | StoredItemRef<Kind>)[]
       : PayloadKindValues[Kind] | StoredItemRef<Kind>
     : IsArray extends true
       ? PayloadKindValues[Kind][]

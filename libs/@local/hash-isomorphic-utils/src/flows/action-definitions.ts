@@ -1589,23 +1589,22 @@ type InputValueOf<Definition extends ActionDefinitionTypes, Kinds, InputName> =
         array: infer IsArray extends boolean;
         required: infer IsRequired extends boolean;
       }
-      ?
-          | (Input extends { kindFrom: infer SourceName }
-              ? PayloadWithKind<GivenKind<Kinds, SourceName>, IsArray>
-              : InputName extends KindSourceNameOf<Definition>
-                ? PayloadWithKind<GivenKind<Kinds, InputName>, IsArray>
-                : IsUnion<
-                      AcceptedKinds<InputDefinitionOf<Definition>, Input>
-                    > extends true
-                  ? PayloadOfEachKind<
-                      AcceptedKinds<InputDefinitionOf<Definition>, Input>,
-                      IsArray
-                    >
-                  : PayloadValue<
-                      AcceptedKinds<InputDefinitionOf<Definition>, Input>,
-                      IsArray
-                    >)
-          | (IsRequired extends true ? never : undefined)
+      ? | (Input extends { kindFrom: infer SourceName }
+            ? PayloadWithKind<GivenKind<Kinds, SourceName>, IsArray>
+            : InputName extends KindSourceNameOf<Definition>
+              ? PayloadWithKind<GivenKind<Kinds, InputName>, IsArray>
+              : IsUnion<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>
+                  > extends true
+                ? PayloadOfEachKind<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                    IsArray
+                  >
+                : PayloadValue<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                    IsArray
+                  >)
+        | (IsRequired extends true ? never : undefined)
       : never
     : never;
 

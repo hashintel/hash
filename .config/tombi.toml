@@ -1,7 +1,7 @@
 toml-version = "v1.0.0"
 
 [files]
-exclude = ["**/node_modules/**", "**/.venv/**", "**/venv/**"]
+exclude = ["**/node_modules/**", "**/.venv/**", "**/venv/**", ".config/mise/locks/**"]
 
 [format.rules]
 indent-width                    = 4

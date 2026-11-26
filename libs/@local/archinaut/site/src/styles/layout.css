@@ -177,10 +177,12 @@
         var(--sl-content-inline-start, 0rem) - var(--sl-nav-pad-x)
       );
       --__main-column-fr: calc(
-        (100% + var(--__sidebar-pad, 0rem) -
-            var(--__toc-width, var(--sl-sidebar-width)) -
-            (2 * var(--__toc-width, var(--sl-nav-pad-x))) -
-            var(--sl-content-inline-start, 0rem) - var(--sl-content-width)) /
+        (
+            100% + var(--__sidebar-pad, 0rem) -
+              var(--__toc-width, var(--sl-sidebar-width)) -
+              (2 * var(--__toc-width, var(--sl-nav-pad-x))) -
+              var(--sl-content-inline-start, 0rem) - var(--sl-content-width)
+          ) /
           2
       );
       display: grid;
@@ -478,8 +480,10 @@
   @media (min-width: 72rem) {
     .right-sidebar-panel .sl-container {
       max-width: calc(
-        (100vw - var(--sl-sidebar-width) - 2 * var(--sl-content-pad-x) - 2 *
-            var(--sl-sidebar-pad-x)) *
+        (
+            100vw - var(--sl-sidebar-width) - 2 * var(--sl-content-pad-x) - 2 *
+              var(--sl-sidebar-pad-x)
+          ) *
           0.25
       );
     }

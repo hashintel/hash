@@ -43,7 +43,7 @@
     "@microsoft/tsdoc-config": "0.18.1",
     "effect": "catalog:",
     "mdast-util-to-markdown": "2.1.2",
-    "oxfmt": "0.71.0",
+    "oxfmt": "0.79.0",
     "typescript": "catalog:beta"
   },
   "devDependencies": {
