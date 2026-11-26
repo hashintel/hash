@@ -19,8 +19,15 @@ test("a written net element ID becomes the selection the document stores", () =>
   });
 });
 
+test("a metric becomes a selection, as the editor can select one", () => {
+  expect(netElementSelectionItem({ kind: "metric", id: "wait" })).toEqual({
+    type: "metric",
+    id: toPetrinautId("wait"),
+  });
+});
+
 test("kinds the editor cannot select have no selection", () => {
-  expect(netElementSelectionItem({ kind: "metric", id: "wait" })).toBe(
+  expect(netElementSelectionItem({ kind: "scenario", id: "peak" })).toBe(
     undefined,
   );
 });
