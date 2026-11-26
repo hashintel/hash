@@ -85,9 +85,9 @@ impl<V> LocalChunk<V> {
     const unsafe fn get_unchecked(&self, slot: Slot) -> &V {
         debug_assert!(self.is_present(slot));
 
-        // SAFETY: `Slot` is bounded to `0..=63` (`CHUNK_LEN`), and the caller guarantees
-        // `data[slot]` is initialized and immutable for the lifetime of `&self`.
-        unsafe { (&*self.data.get_unchecked(slot).get()).assume_init_ref() }
+        // SAFETY: Caller guarantees `data[slot]` is initialized and stays immutable for the
+        // lifetime of `&self`.
+        unsafe { (&*self.data[slot].get()).assume_init_ref() }
     }
 
     #[expect(
@@ -117,12 +117,12 @@ impl<V> LocalChunk<V> {
             "lookup should not have duplicate items associated with an id"
         );
 
-        // SAFETY: `Slot` is bounded to `0..=63` (`CHUNK_LEN`). `!occupation.contains(slot)`
-        // guarantees `data[slot]` is uninitialized and no reference to it exists. `LocalChunk<V>`
-        // is `!Sync`, and no user code runs during this write. Once the bit is set, the slot
-        // stays immutable for the lifetime of `&self`.
+        let cell = self.data[slot].get();
+
+        // SAFETY: `!occupation.contains(slot)` guarantees `data[slot]` is uninitialized and no
+        // reference to it exists. `LocalChunk<V>` is `!Sync`, and no user code runs during this
+        // write. Once the bit is set, the slot stays immutable for the lifetime of `&self`.
         unsafe {
-            let cell = self.data.get_unchecked(slot).get();
             (*cell).write(value);
             occupation.insert(slot);
             self.occupation.set(occupation);
@@ -233,69 +233,52 @@ where
             .map(|overflow| overflow.get(overflow_index).copied().flatten())
     }
 
+    #[inline]
+    fn chunk(&self, chunk_index: usize) -> Option<&'alloc LocalChunk<V>> {
+        self.inline.get(chunk_index).map_or_else(
+            || self.get_overflow_chunk(chunk_index),
+            |cell| cell.get().copied(),
+        )
+    }
+
     /// Returns the stored reference for `id`, or `None` if no value has been inserted for `id`.
-    #[expect(unsafe_code, reason = "checked index into inline chunk array")]
     #[inline]
     #[must_use]
     pub fn get(&self, id: I) -> Option<&'alloc V> {
         let (chunk_index, slot) = Self::split_id(id);
 
-        let chunk = if chunk_index < INLINE_CHUNKS {
-            // SAFETY: `chunk_index < INLINE_CHUNKS` is checked above.
-            unsafe { self.inline.get_unchecked(chunk_index).get().copied() }?
-        } else {
-            self.get_overflow_chunk(chunk_index)?
-        };
-
-        chunk.get(slot)
+        self.chunk(chunk_index)?.get(slot)
     }
 
     /// Returns `true` if a value has been inserted for `id`.
-    #[expect(unsafe_code, reason = "checked index into inline chunk array")]
     #[inline]
     #[must_use]
     pub fn contains(&self, id: I) -> bool {
         let (chunk_index, slot) = Self::split_id(id);
 
-        let Some(chunk) = (if chunk_index < INLINE_CHUNKS {
-            // SAFETY: `chunk_index < INLINE_CHUNKS` is checked above.
-            unsafe { self.inline.get_unchecked(chunk_index).get().copied() }
-        } else {
-            self.get_overflow_chunk(chunk_index)
-        }) else {
-            return false;
-        };
-
-        chunk.is_present(slot)
+        self.chunk(chunk_index)
+            .is_some_and(|chunk| chunk.is_present(slot))
     }
 
     /// Returns the stored reference for an ID known to be present.
     ///
     /// # Safety
     ///
-    /// A value must have been inserted for `id` via [`Self::insert`] or [`Self::try_insert`].
+    /// The slot resolved by `id.as_usize()` on this call must hold a value inserted into this
+    /// vector via [`Self::insert`] or [`Self::try_insert`].
     #[expect(unsafe_code, reason = "reads an entry known to have been inserted")]
     #[inline]
     #[must_use]
     pub unsafe fn get_unchecked(&self, id: I) -> &'alloc V {
         let (chunk_index, slot) = Self::split_id(id);
 
-        let chunk = if chunk_index < INLINE_CHUNKS {
-            // SAFETY: Caller guarantees `id` was inserted, which allocated its inline chunk.
-            unsafe {
-                *self
-                    .inline
-                    .get_unchecked(chunk_index)
-                    .get()
-                    .unwrap_unchecked()
-            }
-        } else {
-            // SAFETY: Caller guarantees `id` was inserted, which allocated its overflow chunk.
-            unsafe { self.get_overflow_chunk(chunk_index).unwrap_unchecked() }
-        };
-
-        // SAFETY: Caller guarantees `id` was inserted, which marked `slot` occupied.
-        unsafe { chunk.get_unchecked(slot) }
+        // SAFETY: Caller guarantees `id` was inserted, which allocated its chunk and marked
+        // `slot` occupied.
+        unsafe {
+            self.chunk(chunk_index)
+                .unwrap_unchecked()
+                .get_unchecked(slot)
+        }
     }
 }
 
@@ -342,14 +325,11 @@ where
     /// # Panics
     ///
     /// Panics if `id` already holds a value.
-    #[expect(unsafe_code, reason = "checked index into inline chunk array")]
     #[inline]
     pub fn try_insert(&self, id: I, value: V) -> Result<&'alloc V, AllocError> {
         let (chunk_index, slot) = Self::split_id(id);
 
-        let chunk = if chunk_index < INLINE_CHUNKS {
-            // SAFETY: `chunk_index < INLINE_CHUNKS` is checked above.
-            let cell = unsafe { self.inline.get_unchecked(chunk_index) };
+        let chunk = if let Some(cell) = self.inline.get(chunk_index) {
             cell.get().copied().map_or_else(
                 || {
                     let chunk = LocalChunk::try_alloc_in(self.alloc)?;
@@ -443,6 +423,18 @@ mod tests {
         assert!(ptr::eq(&raw const vec[EntryId::new(0)], first));
         assert!(ptr::eq(&raw const vec[EntryId::new(63)], second));
         assert!(ptr::eq(&raw const vec[EntryId::new(511)], third));
+        assert!(ptr::eq(
+            vec.get(EntryId::new(0)).expect("entry 0 exists"),
+            first
+        ));
+        assert!(ptr::eq(
+            vec.get(EntryId::new(63)).expect("entry 63 exists"),
+            second
+        ));
+        assert!(ptr::eq(
+            vec.get(EntryId::new(511)).expect("entry 511 exists"),
+            third
+        ));
 
         // SAFETY: All three IDs were inserted above.
         #[expect(unsafe_code)]
@@ -470,6 +462,7 @@ mod tests {
         for &(id, reference) in &refs {
             assert!(vec.contains(id));
             assert!(ptr::eq(&raw const vec[id], reference));
+            assert!(ptr::eq(vec.get(id).expect("entry exists"), reference));
             // SAFETY: `id` was inserted in the loop above.
             #[expect(unsafe_code)]
             let unchecked = unsafe { vec.get_unchecked(id) };

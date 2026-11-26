@@ -35,6 +35,9 @@ pub trait Decompose<'heap>: HasId {
 /// associated with a value. This is particularly useful for creating recursive data
 /// structures, where an ID needs to be known before the full structure can be created.
 ///
+/// `Provisioned` is [`Copy`] and is not bound to a specific [`InternMap`] instance. Pass it
+/// only to the map that provisioned it, and at most once for a new partial value.
+///
 /// The returned value from `intern` may have a different ID than the provisioned one
 /// if the value being interned already exists in the map. This is acceptable for recursive
 /// types, as they'll automatically use the provisioned ID to create a new type, which
@@ -90,23 +93,20 @@ where
 ///
 /// # Memory Management
 ///
-/// `InternMap` allocates memory from the provided `Heap`, which should outlive the map.
-/// Interned values remain valid for the lifetime of the heap, not the map itself.
+/// `InternMap` allocates storage from its [`PhaseAllocator`] `A` (defaulting to `&'heap`
+/// [`Heap`]). Interned values remain valid for `'heap`, even after the map is dropped.
 ///
 /// # Constraints
 ///
-/// 1. Types that implement `Drop` cannot be interned
-/// 2. Zero-sized types cannot be interned
-/// 3. Interned types must implement `Eq` and `Hash`
+/// 1. `T::Partial` must not implement [`Drop`]
+/// 2. `T::Partial` must not be a zero-sized type
+/// 3. `T::Partial` must implement [`Eq`] and [`Hash`]
 ///
-/// Zero-sized types will cause a compile error:
+/// Zero-sized `T::Partial` types cause a compile error:
 ///
-/// ```compile_fail
-/// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}};
-/// # // Type definitions hidden for brevity
-/// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-/// # struct ValueId(u32);
-/// # impl Id for ValueId { fn from_u32(id: u32) -> Self { Self(id) } }
+/// ```compile_fail,E0080
+/// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, newtype}};
+/// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
 /// # struct Value { id: ValueId, value: () }
 /// # impl HasId for Value { type Id = ValueId; fn id(&self) -> Self::Id { self.id } }
@@ -120,14 +120,11 @@ where
 /// let obj = map.intern_partial(()); // Error: cannot intern ZST
 /// ```
 ///
-/// Types that implement `Drop` will also cause a compile error:
+/// `T::Partial` types that implement [`Drop`] also cause a compile error:
 ///
-/// ```compile_fail
-/// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}};
-/// # // Type definitions hidden for brevity
-/// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-/// # struct ValueId(u32);
-/// # impl Id for ValueId { fn from_u32(id: u32) -> Self { Self(id) } }
+/// ```compile_fail,E0080
+/// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, newtype}};
+/// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
 /// # struct Value { id: ValueId, value: Vec<i32> }
 /// # impl HasId for Value { type Id = ValueId; fn id(&self) -> Self::Id { self.id } }
@@ -143,8 +140,9 @@ where
 ///
 /// # Thread Safety
 ///
-/// This implementation uses [`LocalLock`] and is **not thread-safe** because it relies on
-/// thread-local interior mutability and a thread-local [`Heap`] arena.
+/// `InternMap` is not thread-safe. It uses [`LocalLock`] and thread-local interior mutability for
+/// its hash table, chunk storage, and ID producer, alongside a [`PhaseAllocator`] that is
+/// typically thread-local such as [`Heap`].
 ///
 /// [`LocalLock`]: crate::sync::lock::LocalLock
 ///
@@ -368,30 +366,37 @@ where
         let hash = self.hasher.hash_one(&partial);
 
         let (id, partial_ref) = self.inner.map(|inner| {
-            let mut matched: Option<&'heap T::Partial> = None;
-            if let Some(&existing_id) = inner.find(hash, |&existing_id| {
+            let mut matched: Option<(T::Id, &'heap T::Partial)> = None;
+
+            let _: Option<&T::Id> = inner.find(hash, |&existing_id| {
                 // SAFETY: Every ID stored in `inner` was inserted into `self.store`.
                 let existing = unsafe { self.store.get_unchecked(existing_id) };
 
                 if *existing == partial {
-                    matched = Some(existing);
+                    matched = Some((existing_id, existing));
                     true
                 } else {
                     false
                 }
-            }) {
-                // SAFETY: `find` returns `Some` only after the predicate returned `true`, which
-                // stored `Some(existing)` into `matched`.
-                return (existing_id, unsafe { matched.unwrap_unchecked() });
+            });
+
+            if let Some(found) = matched {
+                return found;
             }
+
+            // reserve before inserting into `store` so a panic during rehashing leaves both
+            // the forward table and reverse store unchanged
+            inner.reserve(1, |&existing_id| {
+                // SAFETY: Every ID stored in `inner` was inserted into `self.store`.
+                let existing = unsafe { self.store.get_unchecked(existing_id) };
+                self.hasher.hash_one(existing)
+            });
 
             let new_id = id.unwrap_or_else(|| self.next_id());
             let partial_ref = self.store.insert(new_id, partial);
 
-            inner.insert_unique(hash, new_id, |&existing_id| {
-                // SAFETY: Every ID stored in `inner` was inserted into `self.store`.
-                let existing = unsafe { self.store.get_unchecked(existing_id) };
-                self.hasher.hash_one(existing)
+            inner.insert_unique(hash, new_id, |_| {
+                unreachable!("capacity was reserved before insertion")
             });
 
             (new_id, partial_ref)
@@ -514,12 +519,18 @@ where
     ///
     /// # Arguments
     ///
-    /// * `id` - A previously provisioned ID
+    /// * `id` - A previously provisioned ID created by [`Self::provision`] on this map
     /// * `partial` - The partial representation to intern
     ///
     /// # Returns
     ///
     /// The complete reconstructed object of type `T`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `partial` is not already interned in this map and `id` is already assigned to
+    /// another entry. Pass an ID provisioned by this map, because [`Provisioned`] is [`Copy`] and
+    /// is not bound to a specific map instance.
     #[inline]
     pub fn intern_provisioned(&self, id: Provisioned<T::Id>, partial: T::Partial) -> T {
         self.intern_parts(Some(id.0), partial)
@@ -1181,5 +1192,94 @@ mod tests {
         let id = map.provision();
         let _: TaggedValue = map.intern_provisioned(id, 1);
         let _: TaggedValue = map.intern_provisioned(id, 2);
+    }
+
+    #[test]
+    fn unwind_during_growth_preserves_bidirectionality() {
+        use core::{cell::Cell, panic::AssertUnwindSafe, ptr};
+        use std::{panic::catch_unwind, thread_local};
+
+        thread_local! {
+            static PANIC_ON_EXISTING_HASH: Cell<bool> = const { Cell::new(false) };
+        }
+
+        #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+        struct FallibleKey(u32);
+
+        impl Hash for FallibleKey {
+            fn hash<H: Hasher>(&self, state: &mut H) {
+                assert!(
+                    !(self.0 < 3 && PANIC_ON_EXISTING_HASH.get()),
+                    "hash panicked while rehashing existing entry"
+                );
+                self.0.hash(state);
+            }
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        struct FallibleValue {
+            id: TaggedId,
+            key: FallibleKey,
+        }
+
+        impl HasId for FallibleValue {
+            type Id = TaggedId;
+
+            fn id(&self) -> Self::Id {
+                self.id
+            }
+        }
+
+        impl<'heap> Decompose<'heap> for FallibleValue {
+            type Partial = FallibleKey;
+
+            fn from_parts(id: TaggedId, partial: Interned<'heap, FallibleKey>) -> Self {
+                Self { id, key: *partial }
+            }
+        }
+
+        let heap = Heap::new();
+        let map = InternMap::<FallibleValue>::with_capacity(3, &heap);
+        let initial: Vec<_> = (0..3_u32)
+            .map(|value| map.intern_partial(FallibleKey(value)))
+            .collect();
+
+        // Trigger table growth on `intern_partial` while rehashing panics.
+        PANIC_ON_EXISTING_HASH.set(true);
+        let partial_panicked =
+            catch_unwind(AssertUnwindSafe(|| map.intern_partial(FallibleKey(3))));
+        PANIC_ON_EXISTING_HASH.set(false);
+        drop(partial_panicked.expect_err("intern_partial should unwind during rehash"));
+        assert!(!map.contains(TaggedId::new(3)));
+        assert!(map.get(TaggedId::new(3)).is_none());
+
+        // Trigger table growth on `intern_provisioned` while rehashing panics.
+        let provisioned = map.provision();
+        assert_eq!(provisioned.value(), TaggedId::new(3));
+        PANIC_ON_EXISTING_HASH.set(true);
+        let provisioned_panicked = catch_unwind(AssertUnwindSafe(|| {
+            map.intern_provisioned(provisioned, FallibleKey(3))
+        }));
+        PANIC_ON_EXISTING_HASH.set(false);
+        drop(provisioned_panicked.expect_err("intern_provisioned should unwind during rehash"));
+
+        // Reverse lookup must not expose the failed insertion, and prior entries stay intact.
+        assert!(!map.contains(provisioned.value()));
+        assert!(map.get(provisioned.value()).is_none());
+        for (value, entry) in initial.iter().enumerate() {
+            let key = FallibleKey(u32::try_from(value).expect("value fits in u32"));
+            assert_eq!(map.intern_partial(key), *entry);
+            assert_eq!(map.index(entry.id()), *entry);
+        }
+
+        // Retrying with the provisioned ID succeeds and stays canonical in both directions.
+        let inserted = map.intern_provisioned(provisioned, FallibleKey(3));
+        assert_eq!(inserted.id(), provisioned.value());
+        let retry = map.intern_partial(FallibleKey(3));
+        assert_eq!(retry.id(), inserted.id());
+        assert!(ptr::eq(
+            map.index_partial(inserted.id()).as_ref(),
+            map.index_partial(retry.id()).as_ref()
+        ));
     }
 }

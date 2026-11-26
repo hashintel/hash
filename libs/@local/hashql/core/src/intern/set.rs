@@ -23,8 +23,8 @@ use crate::{
 ///
 /// # Memory Management
 ///
-/// `InternSet` allocates memory from the provided [`Heap`], which should outlive the interner.
-/// Interned values remain valid for the lifetime of the heap, not the interner itself.
+/// `InternSet` allocates storage from its [`PhaseAllocator`] `A` (defaulting to `&'heap` [`Heap`]).
+/// Interned values remain valid for `'heap`, even after the interner is dropped.
 ///
 /// # Constraints
 ///
@@ -34,12 +34,10 @@ use crate::{
 ///
 /// # Thread Safety
 ///
-/// This implementation uses [`LocalLock`] and is **not thread-safe**. The architecture supports
-/// upgrading to [`SharedLock`] for thread-safety, but the underlying [`Heap`] allocator would
-/// also need to become thread-safe first.
+/// `InternSet` is not thread-safe. It uses [`LocalLock`] for thread-local interior mutability
+/// alongside a [`PhaseAllocator`] that is typically thread-local such as [`Heap`].
 ///
 /// [`LocalLock`]: crate::sync::lock::LocalLock
-/// [`SharedLock`]: crate::sync::lock::SharedLock
 ///
 /// # Examples
 ///
@@ -222,24 +220,10 @@ where
         !core::mem::needs_drop::<T>(),
         "Cannot intern a type that needs drop"
     );
-}
 
-impl<'heap, T, A> InternSet<'heap, T, A>
-where
-    T: Eq + Hash,
-    A: PhaseAllocator<'heap>,
-{
-    /// Assertion that ensures T is not a zero-sized type.
+    /// Reserves capacity for at least `capacity` additional elements to be inserted into the set.
     ///
-    /// Interning zero-sized types (ZSTs) is disallowed as it indicates a bug in the code.
-    const ASSERT_T_IS_NOT_ZERO_SIZED: () = assert!(
-        core::mem::size_of::<T>() != 0,
-        "Cannot intern a zero-sized type"
-    );
-
-    /// Reserves capacity for at least `capacity` elements to be inserted into the set.
-    ///
-    /// This method is useful for preallocating memory to avoid frequent reallocations.
+    /// This method preallocates table slots to avoid repeated reallocations during bulk interning.
     ///
     /// # Examples
     ///
@@ -256,6 +240,20 @@ where
             inner.reserve(capacity, |existing| self.hasher.hash_one(existing));
         });
     }
+}
+
+impl<'heap, T, A> InternSet<'heap, T, A>
+where
+    T: Eq + Hash,
+    A: PhaseAllocator<'heap>,
+{
+    /// Assertion that ensures T is not a zero-sized type.
+    ///
+    /// Interning zero-sized types (ZSTs) is disallowed as it indicates a bug in the code.
+    const ASSERT_T_IS_NOT_ZERO_SIZED: () = assert!(
+        core::mem::size_of::<T>() != 0,
+        "Cannot intern a zero-sized type"
+    );
 
     /// Interns a value into the set.
     ///
@@ -380,7 +378,7 @@ where
     ///
     /// # Type Constraints
     ///
-    /// - `T` must be `Debug + Copy + Eq + Hash`
+    /// - `T` must be `Copy + Eq + Hash`
     /// - `T` must not be a zero-sized type
     /// - `T` must not implement `Drop`
     ///
@@ -699,6 +697,18 @@ mod tests {
             slices.intern_slice(&[1, 2, 3]).as_ref(),
             slices.intern_slice(&[1, 2, 3]).as_ref()
         ));
+    }
+
+    #[test]
+    fn slice_interner_reserve() {
+        let heap = Heap::new();
+        let slices = InternSet::<[i32]>::new(&heap);
+
+        let before = slices.intern_slice(&[1, 2, 3]);
+        slices.reserve(64);
+        let after = slices.intern_slice(&[1, 2, 3]);
+
+        assert!(ptr::eq(before.as_ref(), after.as_ref()));
     }
 
     #[test]

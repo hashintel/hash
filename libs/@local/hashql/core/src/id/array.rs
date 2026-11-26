@@ -273,36 +273,6 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
             .enumerate()
             .map(|(index, value)| (I::from_usize(index), value))
     }
-
-    /// Returns a reference to the element at `index` without bounds checking.
-    ///
-    /// # Safety
-    ///
-    /// `index.as_usize()` must be less than `N`.
-    #[expect(unsafe_code, reason = "unchecked indexing delegated to slice")]
-    #[inline]
-    pub const unsafe fn get_unchecked(&self, index: I) -> &T
-    where
-        I: [const] Id,
-    {
-        // SAFETY: Caller guarantees `index.as_usize() < N`.
-        unsafe { self.raw.get_unchecked(index.as_usize()) }
-    }
-
-    /// Returns a mutable reference to the element at `index` without bounds checking.
-    ///
-    /// # Safety
-    ///
-    /// `index.as_usize()` must be less than `N`.
-    #[expect(unsafe_code, reason = "unchecked indexing delegated to slice")]
-    #[inline]
-    pub const unsafe fn get_unchecked_mut(&mut self, index: I) -> &mut T
-    where
-        I: [const] Id,
-    {
-        // SAFETY: Caller guarantees `index.as_usize() < N`.
-        unsafe { self.raw.get_unchecked_mut(index.as_usize()) }
-    }
 }
 
 impl<I, T, const N: usize> Debug for IdArray<I, T, N>
