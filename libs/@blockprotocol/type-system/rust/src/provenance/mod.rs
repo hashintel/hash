@@ -15,7 +15,7 @@ mod source;
 pub mod validation;
 
 pub use self::{
-    origin::{OriginProvenance, OriginType},
+    origin::{OriginProvenance, OriginType, UserAgent},
     source::{Location, SourceProvenance, SourceType},
 };
 
@@ -29,7 +29,7 @@ mod tests {
     use time::OffsetDateTime;
     use url::Url;
 
-    use super::{Location, OriginProvenance, OriginType, SourceProvenance, SourceType};
+    use super::{Location, OriginProvenance, OriginType, SourceProvenance, SourceType, UserAgent};
 
     /// Sets each field of `value` to `null` in turn and expects reading it back to fail.
     ///
@@ -117,7 +117,7 @@ mod tests {
             device_id: Some("device".to_owned()),
             session_id: Some("session".to_owned()),
             api_key_public_id: Some("token".to_owned()),
-            user_agent: Some("agent".to_owned()),
+            user_agent: Some(UserAgent::new("agent")),
         };
         assert_matches!(
             &origin,
@@ -135,5 +135,43 @@ mod tests {
             "should set every optional field"
         );
         null_rejected(&origin);
+    }
+
+    #[test]
+    fn user_agent_at_max_length() {
+        let user_agent = "a".repeat(UserAgent::MAX_LENGTH);
+
+        assert_eq!(
+            UserAgent::new(user_agent.as_str()).as_str(),
+            user_agent,
+            "a user agent of the maximum length should be kept whole"
+        );
+    }
+
+    /// The limit counts characters, so a user agent of multi-byte characters keeps as many of them.
+    #[test]
+    fn user_agent_over_max_length() {
+        let user_agent = "\u{e4}".repeat(UserAgent::MAX_LENGTH + 1);
+
+        assert_eq!(
+            UserAgent::new(user_agent).as_str(),
+            "\u{e4}".repeat(UserAgent::MAX_LENGTH),
+            "a longer user agent should be cut to the maximum length"
+        );
+    }
+
+    #[test]
+    fn origin_user_agent_cut() {
+        let origin: OriginProvenance = serde_json::from_value(json!({
+            "type": "api",
+            "userAgent": "a".repeat(UserAgent::MAX_LENGTH + 1),
+        }))
+        .expect("should read the origin");
+
+        assert_eq!(
+            origin.user_agent,
+            Some(UserAgent::new("a".repeat(UserAgent::MAX_LENGTH))),
+            "a longer user agent should be cut when the origin is read"
+        );
     }
 }

@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     AuditAction, AuditActionName, AuditActor, AuditContext, AuditEvent, AuditEventId, Target,
-    TargetKind, UserAgent,
+    TargetKind,
 };
 
 /// Every action name. The length is the variant count, so a new variant stops compiling here
@@ -86,29 +86,6 @@ fn target_kinds_snake_case() {
     for kind in TARGET_KINDS.map(TargetKind::as_str) {
         assert!(is_snake_case(kind), "`{kind}` should be snake_case");
     }
-}
-
-#[test]
-fn user_agent_at_max_length() {
-    let user_agent = "a".repeat(UserAgent::MAX_LENGTH);
-
-    assert_eq!(
-        UserAgent::new(&user_agent).as_str(),
-        user_agent,
-        "a user agent of the maximum length should be kept whole"
-    );
-}
-
-/// The limit counts characters, so a user agent of multi-byte characters keeps as many of them.
-#[test]
-fn user_agent_over_max_length() {
-    let user_agent = "\u{e4}".repeat(UserAgent::MAX_LENGTH + 1);
-
-    assert_eq!(
-        UserAgent::new(&user_agent).as_str(),
-        "\u{e4}".repeat(UserAgent::MAX_LENGTH),
-        "a longer user agent should be cut to the maximum length"
-    );
 }
 
 #[test]

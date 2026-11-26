@@ -18,7 +18,7 @@ mod tests;
 pub use self::{
     action::{AuditAction, AuditActionName},
     actor::AuditActor,
-    context::{AuditContext, TraceId, UserAgent},
+    context::{AuditContext, TraceId},
     event::{AuditEvent, AuditEventId, Outcome},
     target::{Target, TargetId, TargetKind},
 };

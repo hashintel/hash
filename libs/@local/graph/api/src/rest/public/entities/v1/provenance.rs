@@ -17,7 +17,7 @@ use type_system::{
     },
     principal::actor::ActorType,
     provenance::{
-        OriginProvenance, OriginType, SourceProvenance,
+        OriginProvenance, OriginType, SourceProvenance, UserAgent,
         validation::{MAX_SHORT_TEXT_LENGTH, MAX_SOURCES},
     },
 };
@@ -82,7 +82,7 @@ impl NewProvenance {
     pub(super) fn into_stored(
         self,
         actor_type: ActorType,
-        user_agent: Option<String>,
+        user_agent: Option<UserAgent>,
     ) -> ProvidedEntityEditionProvenance {
         let Self { origin, sources } = self;
         let NewOrigin {
@@ -108,12 +108,11 @@ impl NewProvenance {
     }
 }
 
-/// The `User-Agent` header of a request, cut to at most [`MAX_SHORT_TEXT_LENGTH`] characters.
+/// The `User-Agent` header of a request.
 ///
 /// A header that is not visible ASCII is left out.
-pub(super) fn user_agent(headers: &HeaderMap) -> Option<String> {
-    let user_agent = headers.get(USER_AGENT)?.to_str().ok()?;
-    Some(user_agent.chars().take(MAX_SHORT_TEXT_LENGTH).collect())
+pub(super) fn user_agent(headers: &HeaderMap) -> Option<UserAgent> {
+    headers.get(USER_AGENT)?.to_str().ok().map(UserAgent::new)
 }
 
 /// `sources` with the draft IDs left out of the entities they name.
@@ -218,7 +217,7 @@ mod tests {
     use type_system::{
         knowledge::entity::provenance::ProvidedEntityEditionProvenance,
         principal::actor::ActorType,
-        provenance::{OriginProvenance, OriginType},
+        provenance::{OriginProvenance, OriginType, UserAgent},
     };
 
     use super::{NewProvenance, Provenance, user_agent};
@@ -253,7 +252,7 @@ mod tests {
             "sources": [{ "type": "webpage" }],
         }))
         .expect("should be provenance")
-        .into_stored(ActorType::Machine, Some("importer/1.2.3".to_owned()));
+        .into_stored(ActorType::Machine, Some(UserAgent::new("importer/1.2.3")));
 
         assert_eq!(
             serde_json::to_value(&stored).expect("should serialize the provenance"),
@@ -276,7 +275,7 @@ mod tests {
     fn into_stored_empty() {
         let stored = parse(json!({}))
             .expect("should be provenance")
-            .into_stored(ActorType::User, Some("agent".to_owned()));
+            .into_stored(ActorType::User, Some(UserAgent::new("agent")));
 
         assert_eq!(
             serde_json::to_value(Provenance::from_stored(stored))
@@ -295,7 +294,7 @@ mod tests {
             device_id: Some("device".to_owned()),
             session_id: Some("session".to_owned()),
             api_key_public_id: Some("token".to_owned()),
-            user_agent: Some("agent".to_owned()),
+            user_agent: Some(UserAgent::new("agent")),
             environment: Some("production".to_owned()),
             ..OriginProvenance::from_empty_type(OriginType::Flow {
                 step_ids: ["f", "c", "a", "e", "b", "d"]
@@ -341,17 +340,13 @@ mod tests {
     }
 
     #[test]
-    fn user_agent_cut() {
+    fn user_agent_present() {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            USER_AGENT,
-            HeaderValue::from_str(&format!("{}{}", "a".repeat(255), "b".repeat(45)))
-                .expect("should be a header value"),
-        );
+        headers.insert(USER_AGENT, HeaderValue::from_static("agent"));
         assert_eq!(
             user_agent(&headers),
-            Some("a".repeat(255)),
-            "the user agent should keep its first 255 characters"
+            Some(UserAgent::new("agent")),
+            "a header of visible ASCII should give its user agent"
         );
     }
 

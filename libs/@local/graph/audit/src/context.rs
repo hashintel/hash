@@ -1,30 +1,10 @@
 //! Who acts and from where.
 
-use alloc::string::String;
 use core::net::IpAddr;
 
-use type_system::provenance::validation::MAX_SHORT_TEXT_LENGTH;
+use type_system::provenance::UserAgent;
 
 use crate::actor::AuditActor;
-
-/// The user agent of a client, cut to at most [`UserAgent::MAX_LENGTH`] characters.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UserAgent(String);
-
-impl UserAgent {
-    /// The most characters a user agent keeps. The origin of an entity edition keeps as many.
-    pub const MAX_LENGTH: usize = MAX_SHORT_TEXT_LENGTH;
-
-    #[must_use]
-    pub fn new(user_agent: &str) -> Self {
-        Self(user_agent.chars().take(Self::MAX_LENGTH).collect())
-    }
-
-    #[must_use]
-    pub const fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
 
 /// The ID of the trace a request belongs to.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

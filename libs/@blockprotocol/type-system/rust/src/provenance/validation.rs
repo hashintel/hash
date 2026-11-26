@@ -105,7 +105,6 @@ pub enum OriginField {
     DeviceId,
     SessionId,
     ApiKeyPublicId,
-    UserAgent,
     StepIds,
     /// The step ID at the index, with the step IDs in ascending order.
     StepId(usize),
@@ -151,7 +150,6 @@ impl fmt::Display for ProvenanceField {
                     OriginField::DeviceId => fmt.write_str("deviceId"),
                     OriginField::SessionId => fmt.write_str("sessionId"),
                     OriginField::ApiKeyPublicId => fmt.write_str("apiKeyPublicId"),
-                    OriginField::UserAgent => fmt.write_str("userAgent"),
                     OriginField::StepIds => fmt.write_str("stepIds"),
                     OriginField::StepId(index) => write!(fmt, "stepIds[{index}]"),
                 }
@@ -516,7 +514,8 @@ impl Check {
             device_id,
             session_id,
             api_key_public_id,
-            user_agent,
+            // A `UserAgent` never has more than `MAX_SHORT_TEXT_LENGTH` characters.
+            user_agent: _,
         } = origin;
         let owner = &ProvenanceOwner::Edition;
 
@@ -527,7 +526,6 @@ impl Check {
             (OriginField::DeviceId, device_id),
             (OriginField::SessionId, session_id),
             (OriginField::ApiKeyPublicId, api_key_public_id),
-            (OriginField::UserAgent, user_agent),
         ] {
             if let Some(text) = text {
                 self.text(
@@ -891,7 +889,6 @@ mod tests {
                     "deviceId": long,
                     "sessionId": long,
                     "apiKeyPublicId": long,
-                    "userAgent": long,
                 }),
             ),
             [
@@ -900,8 +897,7 @@ mod tests {
                 origin_rule(OriginField::Environment, rule.clone()),
                 origin_rule(OriginField::DeviceId, rule.clone()),
                 origin_rule(OriginField::SessionId, rule.clone()),
-                origin_rule(OriginField::ApiKeyPublicId, rule.clone()),
-                origin_rule(OriginField::UserAgent, rule),
+                origin_rule(OriginField::ApiKeyPublicId, rule),
                 origin_rule(
                     OriginField::SemanticVersion,
                     ProvenanceRule::TooLong {
