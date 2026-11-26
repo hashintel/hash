@@ -22,6 +22,7 @@ uuid = { workspace = true, public = true, features = ["serde", "v4"] }
 bytes          = { workspace = true }
 deltalake-core = { workspace = true, features = ["rustls"] }
 derive_more    = { workspace = true, features = ["display", "error"] }
+duckdb         = { workspace = true, features = ["bundled", "json", "parquet"] }
 futures-util   = { workspace = true }
 hex            = { workspace = true, features = ["alloc"] }
 object_store   = { workspace = true, features = ["aws"] }
@@ -32,12 +33,14 @@ serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
 tokio          = { workspace = true, features = ["fs", "io-util"] }
+tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
 
 [dev-dependencies]
 arrow-array            = { workspace = true }
 insta                  = { workspace = true }
 pretty_assertions      = { workspace = true }
+proptest               = { workspace = true, features = ["attr-macro", "std"] }
 rstest                 = { workspace = true }
 testcontainers         = { workspace = true }
 testcontainers-modules = { workspace = true, features = ["minio"] }
