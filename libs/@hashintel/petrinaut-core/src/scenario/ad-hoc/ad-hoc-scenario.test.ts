@@ -1632,6 +1632,16 @@ describe("constant evaluation", () => {
     );
   });
 
+  it("reads a number written with separators", () => {
+    const outcome = synthesizeAdHocScenario(
+      withVariables(exposed("population", "1_000_000")),
+      context,
+    );
+    expect(scenarioOf(outcome).scenarioParameters).toEqual([
+      { type: "real", identifier: "population", default: 1_000_000 },
+    ]);
+  });
+
   it("resolves an expression the formatter wrapped over several lines", () => {
     const outcome = synthesizeAdHocScenario(
       withVariables(

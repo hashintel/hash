@@ -32,7 +32,7 @@ export type ParseHirExpressionResult =
   | { ok: false; diagnostic: HirDiagnostic };
 
 /** Longest first, so `**` wins over `*` and `===` over `==`. */
-const PUNCTUATORS = [
+const punctuators = [
   "===",
   "!==",
   "**",
@@ -58,7 +58,7 @@ const PUNCTUATORS = [
   "!",
 ] as const;
 
-type Punctuator = (typeof PUNCTUATORS)[number];
+type Punctuator = (typeof punctuators)[number];
 
 type Token = { start: number; end: number } & (
   | { kind: "number"; value: number }
@@ -70,7 +70,7 @@ type Token = { start: number; end: number } & (
 type IdentifierToken = Token & { kind: "identifier" };
 
 /** Left-associative binary levels, loosest first. `**` binds tighter. */
-const BINARY_LEVELS: readonly (readonly Punctuator[])[] = [
+const binaryLevels: readonly (readonly Punctuator[])[] = [
   ["||"],
   ["&&"],
   ["==", "!=", "===", "!=="],
@@ -79,15 +79,15 @@ const BINARY_LEVELS: readonly (readonly Punctuator[])[] = [
   ["*", "/", "%"],
 ];
 
-const MATH_CONSTANTS: ReadonlySet<string> = new Set(["PI", "E"]);
+const mathConstants: ReadonlySet<string> = new Set(["PI", "E"]);
 
 /** `Math.random` is left out: a constant has one value. */
-const MATH_FNS: ReadonlySet<string> = new Set(
+const mathFunctions: ReadonlySet<string> = new Set(
   HIR_MATH_FNS.filter((fn) => fn !== "random"),
 );
 
 /** Deeper nesting than this is refused before the parser's own stack is. */
-const MAX_DEPTH = 100;
+const maxDepth = 100;
 
 class ParseFailure extends Error {
   readonly span: Span;
@@ -102,13 +102,16 @@ const fail = (message: string, start: number, end: number): never => {
   throw new ParseFailure(message, { start, length: end - start });
 };
 
-function tokenize(source: string): Token[] {
+const tokenize = (source: string): Token[] => {
   const tokens: Token[] = [];
   // Sticky patterns match at `lastIndex` only. They are declared here, per
   // call, so no module-level regex carries scanning state between calls.
   // Every quantifier sits behind a distinct prefix, so none backtracks.
   const whitespacePattern = /\s+/y;
-  const numberPattern = /(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/y;
+  // JavaScript's number literals: hex, binary and octal integers, and
+  // decimals with an optional fraction and exponent, `_` between digits.
+  const numberPattern =
+    /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d+(?:_\d+)*(?:\.(?:\d+(?:_\d+)*)?)?|\.\d+(?:_\d+)*)(?:[eE][+-]?\d+(?:_\d+)*)?/y;
   const identifierPattern = /[A-Za-z_$][A-Za-z0-9_$]*/y;
   let index = 0;
   while (index < source.length) {
@@ -126,10 +129,18 @@ function tokenize(source: string): Token[] {
       // Strict-mode JavaScript, which the other surfaces are, has no legacy
       // octal literals; `00` and `08` are errors, not zero and eight.
       const second = number[1] ?? "";
-      if (number.startsWith("0") && second >= "0" && second <= "9") {
+      if (
+        number.startsWith("0") &&
+        ((second >= "0" && second <= "9") || second === "_")
+      ) {
         fail("Numbers may not start with `0`.", start, index);
       }
-      tokens.push({ kind: "number", value: Number(number), start, end: index });
+      tokens.push({
+        kind: "number",
+        value: Number(number.replaceAll("_", "")),
+        start,
+        end: index,
+      });
       continue;
     }
     identifierPattern.lastIndex = index;
@@ -139,14 +150,15 @@ function tokenize(source: string): Token[] {
       tokens.push({ kind: "identifier", name, start, end: index });
       continue;
     }
-    const text = PUNCTUATORS.find((candidate) =>
+    const text = punctuators.find((candidate) =>
       source.startsWith(candidate, start),
     );
     if (text === undefined) {
+      const character = String.fromCodePoint(source.codePointAt(start) ?? 0);
       return fail(
-        `Unexpected character \`${source[start]!}\`.`,
+        `Unexpected character \`${character}\`.`,
         start,
-        start + 1,
+        start + character.length,
       );
     }
     index += text.length;
@@ -154,7 +166,7 @@ function tokenize(source: string): Token[] {
   }
   tokens.push({ kind: "end", start: source.length, end: source.length });
   return tokens;
-}
+};
 
 type NodeInit = Omit<HirExpr, "id" | "span">;
 
@@ -228,7 +240,7 @@ class Parser {
 
   private nested<T>(token: Token, parse: () => T): T {
     this.depth += 1;
-    if (this.depth > MAX_DEPTH) {
+    if (this.depth > maxDepth) {
       fail("The expression is nested too deeply.", token.start, token.end);
     }
     try {
@@ -258,7 +270,7 @@ class Parser {
   }
 
   private parseBinary(level: number): HirExpr {
-    const operators = BINARY_LEVELS[level];
+    const operators = binaryLevels[level];
     if (!operators) {
       return this.parseExponent();
     }
@@ -424,14 +436,14 @@ class Parser {
   private parseMath(token: IdentifierToken): HirExpr {
     const { name } = this.parseMember(token);
     const end = this.lastEnd;
-    if (MATH_CONSTANTS.has(name)) {
+    if (mathConstants.has(name)) {
       return this.make(
         { kind: "constant", name: name as HirConstantName },
         token.start,
         end,
       );
     }
-    if (!MATH_FNS.has(name)) {
+    if (!mathFunctions.has(name)) {
       fail(`\`Math.${name}\` is not supported.`, token.start, end);
     }
     if (!this.isPunctuator("(")) {
@@ -469,7 +481,9 @@ class Parser {
  * and spans index `source`. A failure carries the first problem found, as a
  * diagnostic positioned in `source`.
  */
-export function parseHirExpression(source: string): ParseHirExpressionResult {
+export const parseHirExpression = (
+  source: string,
+): ParseHirExpressionResult => {
   try {
     return { ok: true, expr: new Parser(source, tokenize(source)).parse() };
   } catch (error) {
@@ -486,4 +500,4 @@ export function parseHirExpression(source: string): ParseHirExpressionResult {
     }
     throw error;
   }
-}
+};

@@ -23,11 +23,11 @@ const failure = (source: string): HirDiagnostic => {
   return result.diagnostic;
 };
 
-const NO_BINDINGS: HirInterpretBindings = { parameters: {}, scenario: {} };
+const noBindings: HirInterpretBindings = { parameters: {}, scenario: {} };
 
 const evaluate = (
   source: string,
-  bindings: HirInterpretBindings = NO_BINDINGS,
+  bindings: HirInterpretBindings = noBindings,
 ): HirValue => interpretHirExpr(parse(source), new Map(), bindings);
 
 /** The source text a node's span covers. */
@@ -47,6 +47,19 @@ describe("parseHirExpression", () => {
       expect(parse("1e-9")).toMatchObject({ kind: "numberLit", raw: "1e-9" });
       expect(parse("0")).toMatchObject({ kind: "numberLit", value: 0 });
       expect(parse("0.5")).toMatchObject({ kind: "numberLit", value: 0.5 });
+    });
+
+    it("parses separators and prefixed integers as JavaScript does", () => {
+      expect(parse("1_000_000")).toMatchObject({
+        kind: "numberLit",
+        value: 1_000_000,
+        raw: "1_000_000",
+      });
+      expect(parse("1_0.2_5e1_0")).toMatchObject({ value: 10.25e10 });
+      expect(parse("0x1F")).toMatchObject({ kind: "numberLit", value: 31 });
+      expect(parse("0b101")).toMatchObject({ kind: "numberLit", value: 5 });
+      expect(parse("0o17")).toMatchObject({ kind: "numberLit", value: 15 });
+      expect(failure("0_1").message).toBe("Numbers may not start with `0`.");
     });
 
     it("refuses leading zeros, as strict-mode JavaScript does", () => {
@@ -260,8 +273,10 @@ describe("parseHirExpression", () => {
       ["xs.length", "Unexpected `.`."],
       ["range(3)", "Only `Math.<fn>(...)` can be called."],
       ["1 /* note */", "Unexpected `*`."],
-      ["0x10", "Unexpected `x10`."],
-      ["1_000", "Unexpected `_000`."],
+      ["0x", "Unexpected `x`."],
+      ["1__0", "Unexpected `__0`."],
+      ["1_", "Unexpected `_`."],
+      ["1 + \u{1F600}", "Unexpected character `\u{1F600}`."],
       ["null.x", "Unexpected `.`."],
       ['(0, eval)("globalThis.x = 1"), 1', 'Unexpected character `"`.'],
       ["(0, eval)(1), 1", "Expected `)` but found `,`."],
