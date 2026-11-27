@@ -8,7 +8,7 @@ import type { BaseUrl } from "@blockprotocol/type-system";
 import type {
   FlowDefinition,
   ForEachStepDefinition,
-  StepInputSource,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 const supplierType =
@@ -21,7 +21,7 @@ const entityTypeTitles = new Map([
   [certificateType, "Certificate"],
 ]);
 
-const forEachOver = (over: StepInputSource): ForEachStepDefinition<string> => ({
+const forEachOver = (over: ValueSource): ForEachStepDefinition<string> => ({
   kind: "for-each",
   stepId: "each",
   description: "",

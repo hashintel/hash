@@ -7,6 +7,7 @@ import type {
   FlowDefinition,
   StepDefinition,
   StepInputSource,
+  ValueSource,
 } from "./types.js";
 
 const payloadKindSchema = z.enum(allPayloadKinds);
@@ -28,7 +29,7 @@ const stepIdSchema = z
     message: `A step id cannot contain "${stepRunIdSeparator}"`,
   });
 
-const stepInputSourceSchema = z.discriminatedUnion("kind", [
+const valueSourceSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("flow-input"),
     inputName: z.string(),
@@ -47,6 +48,35 @@ const stepInputSourceSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("constant"),
     payload: z.strictObject({ kind: payloadKindSchema, value: z.unknown() }),
+  }),
+]) satisfies z.ZodType<ValueSource>;
+
+/* Base URLs and data type IDs are plain strings here: `validateFlowDefinition` reports those that aren't valid. */
+const propertyValueSourceShape = {
+  dataTypeId: z.string(),
+  from: valueSourceSchema,
+};
+
+const propertyPathSchema = z.array(z.string());
+
+const stepInputSourceSchema = z.discriminatedUnion("kind", [
+  ...valueSourceSchema.options,
+  z.strictObject({
+    kind: z.literal("properties"),
+    values: z.record(z.string(), z.strictObject(propertyValueSourceShape)),
+  }),
+  z.strictObject({
+    kind: z.literal("property-patches"),
+    patches: z.array(
+      z.discriminatedUnion("op", [
+        z.strictObject({
+          op: z.enum(["add", "replace"]),
+          path: propertyPathSchema,
+          ...propertyValueSourceShape,
+        }),
+        z.strictObject({ op: z.literal("remove"), path: propertyPathSchema }),
+      ]),
+    ),
   }),
 ]) satisfies z.ZodType<StepInputSource>;
 
@@ -83,7 +113,7 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
       ...stepDefinitionBaseShape,
       description: z.string(),
       /* Optional so that a for-each step just added saves: `validateFlowDefinition` reports them missing. */
-      over: stepInputSourceSchema.optional(),
+      over: valueSourceSchema.optional(),
       steps: z.array(stepDefinitionSchema),
       collect: z
         .strictObject({

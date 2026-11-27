@@ -1,5 +1,7 @@
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
+import { addInputValues } from "./build-inputs.js";
+
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ActionStep,
@@ -12,7 +14,7 @@ import type {
   ForEachStepDefinition,
   LocalFlowRun,
   Payload,
-  StepInputSource,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -34,7 +36,7 @@ const getInitialSourcePayload = ({
   existingStepsById,
   item,
 }: {
-  source: StepInputSource;
+  source: ValueSource;
   flowInputs: FlowInputValues;
   existingStepsById: ReadonlyMap<string, FlowStep>;
   item?: Payload;
@@ -91,50 +93,49 @@ export const initializeActionStep = (params: {
 
   const actionDefinition = actionDefinitions[stepDefinition.actionDefinitionId];
 
-  return {
+  const step: ActionStep = {
     stepId: overrideStepId ?? stepDefinition.stepId,
     kind: "action",
     actionDefinitionId: stepDefinition.actionDefinitionId,
-    inputs: [
-      ...Object.entries(stepDefinition.inputs).flatMap(
-        ([inputName, source]) => {
-          const payload = getInitialSourcePayload({
-            source,
-            flowInputs,
-            existingStepsById,
-            item,
-          });
-
-          if (!payload) {
-            return [];
-          }
-
-          return {
-            inputName,
-            payload:
-              source.kind !== "constant" && source.wrap
-                ? wrapPayload(payload)
-                : payload,
-          };
-        },
-      ),
-      /**
-       * For inputs that aren't connected, use the default value specified in the action definition if it
-       * exists.
-       */
-      ...actionDefinition.inputs
-        .filter(({ name }) => !(name in stepDefinition.inputs))
-        .flatMap((unconnectedInput) =>
-          unconnectedInput.default
-            ? {
-                inputName: unconnectedInput.name,
-                payload: unconnectedInput.default,
-              }
-            : [],
-        ),
-    ],
     outputs: [],
   };
+
+  addInputValues({
+    step,
+    stepDefinition,
+    getPayload: (source) => {
+      const payload = getInitialSourcePayload({
+        source,
+        flowInputs,
+        existingStepsById,
+        item,
+      });
+
+      return payload && source.kind !== "constant" && source.wrap
+        ? wrapPayload(payload)
+        : payload;
+    },
+  });
+
+  step.inputs = [
+    ...(step.inputs ?? []),
+    /**
+     * For inputs that aren't connected, use the default value specified in the action definition if it
+     * exists.
+     */
+    ...actionDefinition.inputs
+      .filter(({ name }) => !(name in stepDefinition.inputs))
+      .flatMap((unconnectedInput) =>
+        unconnectedInput.default
+          ? {
+              inputName: unconnectedInput.name,
+              payload: unconnectedInput.default,
+            }
+          : [],
+      ),
+  ];
+
+  return step;
 };
 
 export const initializeForEachStep = (params: {

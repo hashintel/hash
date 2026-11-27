@@ -617,9 +617,9 @@ export type ConstantPayload = {
 };
 
 /**
- * Where a step input's value comes from.
+ * Where one value comes from.
  */
-export type StepInputSource =
+export type ValueSource =
   | ({ kind: "flow-input"; inputName: string } & ConnectionOptions)
   | ({
       kind: "step-output";
@@ -630,6 +630,44 @@ export type StepInputSource =
   | ({ kind: "item" } & ConnectionOptions)
   /** A fixed value, the same in every run. */
   | { kind: "constant"; payload: ConstantPayload };
+
+/**
+ * Where the value of one of an entity's properties comes from, and the ID of the data type the graph checks it
+ * against. The value is a singular one of a kind a property can hold (see `propertyValueTarget`).
+ */
+export type PropertyValueSource = { dataTypeId: string; from: ValueSource };
+
+/**
+ * An entity's properties, each with a source of its own, so that a property can take a flow input or an earlier
+ * step's output. When the step starts they're built into the `PropertyObjectWithMetadata` a constant would give.
+ */
+type PropertiesSource = {
+  kind: "properties";
+  /** Each property's value, by property type base URL. */
+  values: Record<string, PropertyValueSource>;
+};
+
+/** A change to one of an entity's properties: the graph's patch, with a source in place of its value. */
+type PropertyPatchSource =
+  | ({ op: "add" | "replace"; path: string[] } & PropertyValueSource)
+  | { op: "remove"; path: string[] };
+
+/**
+ * Changes to an entity's properties, each value with a source of its own. When the step starts they're built into the
+ * `PropertyPatch` list a constant would give.
+ */
+type PropertyPatchesSource = {
+  kind: "property-patches";
+  patches: PropertyPatchSource[];
+};
+
+/** A source that builds one value from several, each with a source of its own (see `built-sources.ts`). */
+export type BuiltSource = PropertiesSource | PropertyPatchesSource;
+
+/**
+ * Where a step input's value comes from: one value, or several built into one.
+ */
+export type StepInputSource = ValueSource | BuiltSource;
 
 type StepDefinitionBase = {
   stepId: string;
@@ -685,7 +723,7 @@ export type ForEachStepDefinition<
 
 type ForEachListAndCollect = {
   /** The array whose items each run the nested steps once. */
-  over: StepInputSource;
+  over: ValueSource;
   /**
    * The output of a nested step, collected from every item into an array: singular outputs are gathered, and
    * array outputs concatenated. It must always be present, and it is the step's only output, called `as`.
@@ -776,6 +814,17 @@ export type ResolvedStepOutput = {
   payload: ResolvedPayload;
 };
 
+/**
+ * The value of one part of an input that's built from several (see `BuiltSource`), held by its step until the input
+ * has them all.
+ */
+export type StepInputPart = {
+  inputName: string;
+  /** Which part of the input's source the value is for (see `getSourceParts`). */
+  partKey: string;
+  payload: Payload;
+};
+
 export type ActionStep<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
 > = {
@@ -784,6 +833,8 @@ export type ActionStep<
   actionDefinitionId: ActionDefinitionId;
   retries?: number;
   inputs?: StepInput[];
+  /** Values for inputs that are built from several, and don't have them all yet. */
+  inputParts?: StepInputPart[];
   outputs?: StepOutput[];
 };
 

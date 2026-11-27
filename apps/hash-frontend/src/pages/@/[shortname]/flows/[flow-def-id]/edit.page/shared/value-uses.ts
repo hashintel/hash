@@ -1,8 +1,10 @@
+import { getValueSources } from "@local/hash-isomorphic-utils/flows/built-sources";
+
 import { getNameLabel } from "./name-label";
 
 import type {
   StepDefinition,
-  StepInputSource,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /** A flow input, or a step's output. */
@@ -21,9 +23,7 @@ const getValueKey = (value: FlowValue) =>
   );
 
 /** The value a source reads, if it reads a flow input or a step's output. */
-const getSourceValue = (
-  source: StepInputSource | undefined,
-): FlowValue | null =>
+const getSourceValue = (source: ValueSource | undefined): FlowValue | null =>
   source?.kind === "flow-input" || source?.kind === "step-output"
     ? source
     : null;
@@ -41,10 +41,13 @@ export const indexValueUses = (
   const visit = (step: StepDefinition<string>) => {
     const values: { property: string; value: FlowValue | null }[] =
       step.kind === "action"
-        ? Object.entries(step.inputs).map(([inputName, source]) => ({
-            property: getNameLabel(inputName),
-            value: getSourceValue(source),
-          }))
+        ? /* An input built from several values, such as an entity's properties, uses each of them. */
+          Object.entries(step.inputs).flatMap(([inputName, source]) =>
+            getValueSources(source).map((valueSource) => ({
+              property: getNameLabel(inputName),
+              value: getSourceValue(valueSource),
+            })),
+          )
         : [
             { property: "List", value: getSourceValue(step.over) },
             {
@@ -61,10 +64,14 @@ export const indexValueUses = (
     for (const { property, value } of values) {
       if (value) {
         const key = getValueKey(value);
-        propertiesByKey.set(key, [
-          ...(propertiesByKey.get(key) ?? []),
-          property,
-        ]);
+        const properties = propertiesByKey.get(key) ?? [];
+
+        propertiesByKey.set(
+          key,
+          properties.includes(property)
+            ? properties
+            : [...properties, property],
+        );
       }
     }
 

@@ -1414,6 +1414,389 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("properties and property patches built from several values", () => {
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const bioUrl = "https://example.com/types/property-type/bio/";
+    const scoreUrl = "https://example.com/types/property-type/score/";
+    const textId = "https://example.com/types/data-type/text/v/1";
+    const numberId = "https://example.com/types/data-type/number/v/1";
+
+    const flowInput = (inputName: string) => ({
+      kind: "flow-input",
+      inputName,
+    });
+    const answerOutput = (outputName: string) => ({
+      kind: "step-output",
+      stepId: "answer",
+      outputName,
+    });
+    const fixed = (kind: string, value: unknown) => ({
+      kind: "constant",
+      payload: { kind, value },
+    });
+
+    const definitionWith = (steps: unknown[]) => ({
+      ...baseDefinition,
+      inputs: [
+        { name: "name", payloadKind: "Text", array: false, required: true },
+        {
+          name: "nickname",
+          payloadKind: "Text",
+          array: false,
+          required: false,
+        },
+        { name: "names", payloadKind: "Text", array: true, required: true },
+        { name: "page", payloadKind: "WebPage", array: false, required: true },
+        {
+          name: "person",
+          payloadKind: "EntityId",
+          array: false,
+          required: true,
+        },
+      ],
+      steps: [
+        answerStep("answer", { question: flowInput("name") }),
+        ...steps,
+        /* Uses every flow input, so that none is reported as unused. */
+        answerStep("useInputs", {
+          question: flowInput("name"),
+          context: flowInput("nickname"),
+        }),
+        {
+          kind: "for-each",
+          stepId: "eachName",
+          description: "",
+          over: flowInput("names"),
+          steps: [answerStep("inner", { question: { kind: "item" } })],
+          collect: { stepId: "inner", outputName: "explanation", as: "all" },
+        },
+        {
+          kind: "action",
+          stepId: "useEntity",
+          actionDefinitionId: "updateEntity",
+          description: "",
+          inputs: {
+            entityId: flowInput("person"),
+            propertyPatches: fixed("PropertyPatch", [
+              { op: "remove", path: [nameUrl] },
+            ]),
+          },
+        },
+        {
+          kind: "action",
+          stepId: "usePage",
+          actionDefinitionId: "inferEntitiesFromContent",
+          description: "",
+          inputs: {
+            content: flowInput("page"),
+            entityTypeIds: fixed("VersionedUrl", [
+              "https://example.com/types/entity-type/person/v/1",
+            ]),
+          },
+        },
+      ],
+    });
+
+    const createStep = (properties: unknown, extra: object = {}) => ({
+      kind: "action",
+      stepId: "create",
+      actionDefinitionId: "createEntity",
+      description: "",
+      inputs: {
+        entityTypeIds: fixed("VersionedUrl", [
+          "https://example.com/types/entity-type/person/v/1",
+        ]),
+        properties,
+      },
+      ...extra,
+    });
+
+    const updateStep = (propertyPatches: unknown) => ({
+      kind: "action",
+      stepId: "update",
+      actionDefinitionId: "updateEntity",
+      description: "",
+      inputs: { entityId: flowInput("person"), propertyPatches },
+    });
+
+    const properties = (values: Record<string, unknown>) => ({
+      kind: "properties",
+      values,
+    });
+
+    const text = (from: unknown) => ({ dataTypeId: textId, from });
+
+    /* The step under test is the second, after the step whose outputs it takes. */
+    const inputPath = (inputName: string) => ["steps", 1, "inputs", inputName];
+    const nameFromPath = [
+      ...inputPath("properties"),
+      "values",
+      nameUrl,
+      "from",
+    ];
+
+    it("accepts properties that each take a flow input, a step's output or a fixed value", () => {
+      expect(
+        diagnosticsOf(
+          definitionWith([
+            createStep(
+              properties({
+                [nameUrl]: text(flowInput("name")),
+                [bioUrl]: text(answerOutput("explanation")),
+                [scoreUrl]: { dataTypeId: numberId, from: fixed("Number", 3) },
+              }),
+            ),
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    it("accepts a value that may be missing if the step is skipped when it is", () => {
+      expect(
+        diagnosticsOf(
+          definitionWith([
+            createStep(
+              properties({
+                [nameUrl]: text({
+                  ...flowInput("nickname"),
+                  whenMissing: "skip",
+                }),
+                [scoreUrl]: {
+                  dataTypeId: numberId,
+                  from: { ...answerOutput("confidence"), whenMissing: "skip" },
+                },
+              }),
+            ),
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    it("accepts property patches that set a property from a step's output and remove another", () => {
+      expect(
+        diagnosticsOf(
+          definitionWith([
+            updateStep({
+              kind: "property-patches",
+              patches: [
+                {
+                  op: "add",
+                  path: [bioUrl],
+                  ...text(answerOutput("explanation")),
+                },
+                { op: "remove", path: [nameUrl] },
+              ],
+            }),
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    it("accepts a for-each step's item as a property's value", () => {
+      expect(
+        diagnosticsOf({
+          ...baseDefinition,
+          inputs: [
+            { name: "names", payloadKind: "Text", array: true, required: true },
+          ],
+          steps: [
+            {
+              kind: "for-each",
+              stepId: "eachName",
+              description: "",
+              over: flowInput("names"),
+              steps: [
+                createStep(properties({ [nameUrl]: text({ kind: "item" }) })),
+              ],
+              collect: { stepId: "create", outputName: "entityId", as: "all" },
+            },
+          ],
+        }),
+      ).toEqual([]);
+    });
+
+    it("counts the step a property's value comes from as one its step depends on", () => {
+      const [answer, create, ...others] = definitionWith([
+        createStep(properties({ [bioUrl]: text(answerOutput("explanation")) })),
+      ]).steps;
+
+      /* `create` takes a value from `answer`, so `answer` can't also run after `create`. */
+      expect(
+        diagnosticsOf({
+          ...definitionWith([]),
+          steps: [
+            { ...(answer as object), runAfter: [{ stepId: "create" }] },
+            create,
+            ...others,
+          ],
+        }),
+      ).toEqual([{ severity: "error", code: "cycle", path: ["steps", 0] }]);
+    });
+
+    it.each<{ name: string; from: unknown; code: string; path?: unknown[] }>([
+      {
+        name: "a flow input that doesn't exist",
+        from: flowInput("gone"),
+        code: "unknownFlowInput",
+      },
+      {
+        name: "its own step's output",
+        from: { kind: "step-output", stepId: "create", outputName: "entityId" },
+        code: "selfReference",
+      },
+      {
+        name: "a value that isn't one text, number, date or true or false",
+        from: flowInput("page"),
+        code: "incompatibleConnection",
+      },
+      {
+        name: "an entity ID, which may be a reference to a stored list's item",
+        from: flowInput("person"),
+        code: "incompatibleConnection",
+      },
+      {
+        name: "a list",
+        from: flowInput("names"),
+        code: "incompatibleConnection",
+      },
+      {
+        name: "a value wrapped into a list",
+        from: { ...flowInput("name"), wrap: true },
+        code: "incompatibleConnection",
+      },
+      {
+        name: "a flow input that may be missing",
+        from: flowInput("nickname"),
+        code: "incompatibleConnection",
+      },
+      {
+        name: "a fixed value that isn't one of its kind",
+        from: fixed("Number", "three"),
+        code: "invalidConstant",
+        path: [...nameFromPath, "payload", "value"],
+      },
+      {
+        name: "a fixed value of a kind a property can't hold",
+        from: fixed("FormattedText", { format: "Plain", content: "Ada" }),
+        code: "incompatibleConnection",
+      },
+    ])("rejects a property's value from $name", ({ from, code, path }) => {
+      expect(
+        diagnosticsOf(
+          definitionWith([createStep(properties({ [nameUrl]: text(from) }))]),
+        ),
+      ).toEqual([{ severity: "error", code, path: path ?? nameFromPath }]);
+    });
+
+    it("says why a value can't be a property's", () => {
+      const { diagnostics } = validateFlowDefinition(
+        definitionWith([
+          createStep(properties({ [nameUrl]: text(flowInput("page")) })),
+        ]),
+      );
+
+      expect(diagnostics.map(({ message }) => message)).toEqual([
+        "A WebPage value can't be a property's value",
+      ]);
+    });
+
+    it.each([
+      {
+        name: "a property without a data type ID",
+        source: properties({
+          [nameUrl]: { dataTypeId: "text", from: flowInput("name") },
+        }),
+        inputName: "properties",
+        message: `Property ${nameUrl} must give the data type ID of each of its values.`,
+      },
+      {
+        name: "two patches to one property",
+        source: {
+          kind: "property-patches",
+          patches: [
+            { op: "add", path: [nameUrl], ...text(flowInput("name")) },
+            { op: "remove", path: [nameUrl] },
+          ],
+        },
+        inputName: "propertyPatches",
+        message: `Property patch 2 changes property ${nameUrl} again: give one patch per property.`,
+      },
+    ])(
+      "rejects $name, as it does in a constant",
+      ({ source, inputName, message }) => {
+        const step =
+          inputName === "properties" ? createStep(source) : updateStep(source);
+
+        expect(
+          validateFlowDefinition(definitionWith([step])).diagnostics,
+        ).toEqual([
+          {
+            severity: "error",
+            code: "invalidBuiltSource",
+            message,
+            path: inputPath(inputName),
+          },
+        ]);
+      },
+    );
+
+    it("rejects an updateEntity step that neither patches properties nor changes types", () => {
+      expect(
+        validateFlowDefinition(
+          definitionWith([
+            updateStep({ kind: "property-patches", patches: [] }),
+          ]),
+        ).diagnostics,
+      ).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message: noEntityChangesMessage,
+          path: inputPath("propertyPatches"),
+        },
+      ]);
+    });
+
+    it("only feeds an input that takes what it builds", () => {
+      expect(
+        diagnosticsOf(
+          definitionWith([
+            createStep({
+              kind: "property-patches",
+              patches: [
+                { op: "add", path: [nameUrl], ...text(flowInput("name")) },
+              ],
+            }),
+          ]),
+        ),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "incompatibleConnection",
+          path: inputPath("properties"),
+        },
+      ]);
+    });
+
+    it("can't be the list a for-each step iterates over", () => {
+      const result = validateFlowDefinition({
+        ...baseDefinition,
+        steps: [
+          {
+            kind: "for-each",
+            stepId: "each",
+            description: "",
+            over: properties({ [nameUrl]: text(flowInput("question")) }),
+            steps: [],
+          },
+        ],
+      });
+
+      expect(result.flowDefinition).toBeNull();
+      expect(result.diagnostics.map(({ code }) => code)).toEqual(["schema"]);
+    });
+  });
+
   describe("aggregations of aggregate steps", () => {
     const aggregateDefinition = (aggregation: Record<string, unknown>) => ({
       ...baseDefinition,

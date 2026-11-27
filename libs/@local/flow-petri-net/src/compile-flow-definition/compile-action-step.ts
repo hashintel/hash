@@ -1,4 +1,9 @@
 import {
+  getSourceParts,
+  isBuiltSource,
+} from "@local/hash-isomorphic-utils/flows/built-sources";
+
+import {
   failedStepRunsPlaceKey,
   generateGaveUpPortKey,
   generateInputPortKey,
@@ -21,7 +26,11 @@ import {
 } from "./shared/net-elements.js";
 import { consumes } from "./shared/value-places.js";
 
-import type { InputSource, InstanceMetadata } from "../flow-net-metadata.js";
+import type {
+  ConnectedValue,
+  InputSource,
+  InstanceMetadata,
+} from "../flow-net-metadata.js";
 import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
 import type { ValuePlaces } from "./shared/value-places.js";
@@ -32,7 +41,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type {
   ActionStepDefinition,
-  StepInputSource,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -65,8 +74,8 @@ export const compileActionStep = ({
 
   const connectedValue = (
     arc: { endpoint: ArcEndpoint },
-    source: StepInputSource,
-  ): InputSource => ({
+    source: ValueSource,
+  ): ConnectedValue => ({
     kind: "value",
     from: toPetrinautEndpoint(arc.endpoint),
     access: consumes(source) ? "consume" : "read",
@@ -77,7 +86,25 @@ export const compileActionStep = ({
   });
 
   for (const [inputName, source] of Object.entries(step.inputs)) {
-    if (source.kind === "constant") {
+    if (isBuiltSource(source)) {
+      /* The step takes each value the input is built from, and builds it when it starts. */
+      const parts: Record<string, ConnectedValue> = {};
+
+      for (const [partIndex, part] of getSourceParts(source).entries()) {
+        const arc = values.stepInputPartArc(step.stepId, inputName, partIndex);
+
+        if (arc) {
+          valueArcs.push(arc);
+          parts[part.key] = connectedValue(arc, part.from);
+        }
+      }
+
+      inputSources[inputName] = {
+        kind: "built",
+        source: source as JsonValue,
+        parts,
+      };
+    } else if (source.kind === "constant") {
       constants[inputName] = source.payload as JsonValue;
       inputSources[inputName] = { kind: "constant" };
     } else {
@@ -130,7 +157,7 @@ export const compileActionStep = ({
     createTransition({
       id: startStepKey,
       name: `Start ${step.stepId}`,
-      description: `Starts step ${step.stepId} once its inputs are available, feeding every input of ${step.actionDefinitionId}: connected values, constants, and absent values for unconnected optional inputs.`,
+      description: `Starts step ${step.stepId} once its inputs are available, feeding every input of ${step.actionDefinitionId}: connected values, constants, values built from several, and absent values for unconnected optional inputs.`,
       metadata: {
         role: "startStep",
         stepId: step.stepId,

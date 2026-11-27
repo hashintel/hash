@@ -8,6 +8,7 @@ import {
 } from "./flow-net-keys.js";
 
 import type {
+  ConnectedValue,
   FlowNetMetadata,
   InstanceMetadata,
   TransitionMetadata,
@@ -91,6 +92,16 @@ export type FlowNetValueRef =
   | { kind: "constant"; stepId: string; inputName: string }
   /** The default of an input nothing is connected to. */
   | { kind: "default"; stepId: string; inputName: string }
+  /**
+   * A value the step builds from several when it starts, as its `startStep` records in its `inputSources`. `parts`
+   * refers to each value it took, by part key; the source there gives its constants.
+   */
+  | {
+      kind: "built";
+      stepId: string;
+      inputName: string;
+      parts: Record<string, FlowNetValueRef>;
+    }
   /** One item of a `forEach` step's array: the last index of `itemPath` is the item's. */
   | { kind: "item"; forEachStepId: string; itemPath: number[] }
   /** A `forEach` step's collected output, from each of its items in order. */
@@ -700,21 +711,49 @@ export const startFlowNetRun = (
       );
     }
 
+    /** The token of a value the step takes or reads. */
+    const takenToken = ({ from }: ConnectedValue) => {
+      const binding = bindings.find(({ position: boundPosition }) =>
+        isAt(boundPosition, rootPosition(from)),
+      );
+
+      if (binding?.token.kind !== "value") {
+        throw new FlowNetInterpreterError(
+          `Step "${metadata.stepId}" takes no value for its ${inputName} input`,
+        );
+      }
+
+      return binding.token;
+    };
+
     switch (source.kind) {
       case "value": {
-        const binding = bindings.find(({ position: boundPosition }) =>
-          isAt(boundPosition, rootPosition(source.from)),
-        );
+        const token = takenToken(source);
 
-        if (binding?.token.kind !== "value") {
-          throw new FlowNetInterpreterError(
-            `Step "${metadata.stepId}" takes no value for its ${inputName} input`,
-          );
+        return token.present
+          ? { kind: "value", present: true, ref: token.ref, itemPath }
+          : { kind: "value", present: false, itemPath };
+      }
+      /* Built from every value it takes, so missing if one of them is. */
+      case "built": {
+        const parts: Record<string, FlowNetValueRef> = {};
+
+        for (const [partKey, part] of Object.entries(source.parts)) {
+          const token = takenToken(part);
+
+          if (!token.present) {
+            return { kind: "value", present: false, itemPath };
+          }
+
+          parts[partKey] = token.ref;
         }
 
-        return binding.token.present
-          ? { kind: "value", present: true, ref: binding.token.ref, itemPath }
-          : { kind: "value", present: false, itemPath };
+        return {
+          kind: "value",
+          present: true,
+          ref: { kind: "built", stepId: metadata.stepId, inputName, parts },
+          itemPath,
+        };
       }
       case "constant":
         return {
@@ -745,16 +784,28 @@ export const startFlowNetRun = (
   ) => {
     const { actionDefinition } = scopeOfStep(metadata.stepId);
 
-    return Object.entries(metadata.inputSources).some(
-      ([inputName, source]) =>
-        source.kind === "value" &&
-        source.whenMissing === "skip" &&
-        actionDefinition.inputs.some(
-          ({ name, required }) => name === inputName && required,
-        ) &&
+    /* A value an input is built from is always needed, whether or not the input is required. */
+    const neededValues = Object.entries(metadata.inputSources).flatMap(
+      ([inputName, source]): ConnectedValue[] => {
+        if (source.kind === "built") {
+          return Object.values(source.parts);
+        }
+
+        return source.kind === "value" &&
+          actionDefinition.inputs.some(
+            ({ name, required }) => name === inputName && required,
+          )
+          ? [source]
+          : [];
+      },
+    );
+
+    return neededValues.some(
+      ({ from, whenMissing }) =>
+        whenMissing === "skip" &&
         bindings.some(
           ({ position, token }) =>
-            isAt(position, rootPosition(source.from)) &&
+            isAt(position, rootPosition(from)) &&
             token.kind === "value" &&
             !token.present,
         ),

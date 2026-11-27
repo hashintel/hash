@@ -1,3 +1,4 @@
+import { getValueSources, mapValueSources } from "./built-sources.js";
 import {
   addStepIdsToDiagnostics,
   type FlowDefinitionDiagnosticWithStepId,
@@ -11,6 +12,7 @@ import type {
   ForEachStepDefinition,
   StepDefinition,
   StepInputSource,
+  ValueSource,
 } from "./types.js";
 
 export type StepPosition = NonNullable<StepDefinition<string>["position"]>;
@@ -108,8 +110,10 @@ const newStepId = (
   );
 
   const addSource = (source: StepInputSource) => {
-    if (source.kind === "step-output") {
-      usedStepIds.add(source.stepId);
+    for (const valueSource of getValueSources(source)) {
+      if (valueSource.kind === "step-output") {
+        usedStepIds.add(valueSource.stepId);
+      }
     }
   };
 
@@ -236,10 +240,10 @@ const getCollectedOutputName = (outputName: string) =>
 
 /** `source` reading the for-each step's output by `as`, if it reads that step's output by another name. */
 const repointToCollected = (
-  source: StepInputSource,
+  source: ValueSource,
   forEachStepId: string,
   as: string,
-): StepInputSource =>
+): ValueSource =>
   source.kind === "step-output" &&
   source.stepId === forEachStepId &&
   source.outputName !== as
@@ -537,7 +541,7 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /** Sets the list a for-each step runs its steps once per item of, or clears it if `source` is `null`. */
-    setForEachList: (stepId: string, source: StepInputSource | null) => {
+    setForEachList: (stepId: string, source: ValueSource | null) => {
       const { over: _over, ...step } = getForEachStep(stepId);
 
       setSteps(
@@ -564,7 +568,7 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       }
 
       const as = getCollectedOutputName(collected.outputName);
-      const repoint = (source: StepInputSource) =>
+      const repoint = (source: ValueSource) =>
         repointToCollected(source, stepId, as);
 
       setFlowDefinition({
@@ -602,7 +606,8 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
 
             const inputs = Object.entries(candidate.inputs);
             const repointed = inputs.map(
-              ([name, source]) => [name, repoint(source)] as const,
+              ([name, source]) =>
+                [name, mapValueSources(source, repoint)] as const,
             );
 
             return repointed.every(
