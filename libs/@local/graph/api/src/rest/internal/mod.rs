@@ -8,7 +8,7 @@ use hash_graph_store::pool::StorePool;
 
 use self::credentials::Credentials;
 pub use self::hashql::CompilerState;
-use super::{Api, ApiState, caller, documentation, openapi, routing::Routes};
+use super::{Api, ApiState, documentation, openapi, routing::Routes};
 
 /// The path the internal API, its documentation and the legacy document are served under.
 pub(super) const PREFIX: &str = "/_api";
@@ -20,11 +20,9 @@ where
         + Sync
         + 'static,
 {
-    caller::routes::<Credentials, _>().merge(
-        Routes::new()
-            .route("/hashql", hashql::route::<S>())
-            .tag("HashQL"),
-    )
+    Routes::new()
+        .route("/hashql", hashql::route::<S>())
+        .tag("HashQL")
 }
 
 pub(super) fn api<S>() -> Api<ApiState<S>>

@@ -1,4 +1,5 @@
 mod authentication;
+mod caller;
 
 use alloc::sync::Arc;
 use core::num::NonZero;
@@ -23,8 +24,10 @@ use http::Request;
 use serde_json::Value;
 use tower::ServiceExt as _;
 
-pub(super) use self::authentication::{assert_anonymous_authentication, assert_authentication};
-pub(super) use super::caller::caller as echo_caller;
+pub(super) use self::{
+    authentication::{assert_anonymous_authentication, assert_authentication},
+    caller::caller as echo_caller,
+};
 use super::{
     Api, ApiState, Audience, CompilerState, PublicApiConfig,
     credentials::Credentials,

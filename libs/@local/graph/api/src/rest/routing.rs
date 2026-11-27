@@ -57,11 +57,6 @@ impl<S: Clone + Send + Sync + 'static> Routes<S> {
         Self(self.0.api_route(path, route.0))
     }
 
-    /// Adds the routes of `other`, which keep their tags.
-    pub(in crate::rest) fn merge(self, other: Self) -> Self {
-        Self(self.0.merge(other.0))
-    }
-
     /// Tags the operations of every route added before this call with `tag`.
     pub(in crate::rest) fn tag(self, tag: &str) -> Self {
         Self(self.0.with_path_items(|item| item.tag(tag)))
