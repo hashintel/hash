@@ -1,4 +1,5 @@
 #![feature(proc_macro_diagnostic)]
+#![expect(clippy::indexing_slicing)]
 
 extern crate alloc;
 extern crate proc_macro;

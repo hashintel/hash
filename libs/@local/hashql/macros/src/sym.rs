@@ -68,15 +68,13 @@ fn try_pack_buckets(
         let hash = hash_symbol_bytes(symbol_text.as_bytes(), seed);
 
         let bucket = (hash as usize) & bucket_mask;
-        let count_slot = counts.get_mut(bucket).expect("bucket in bounds");
-        let lane = *count_slot;
+        let lane = counts[bucket];
         if lane >= 4 {
             return None;
         }
 
         let tag16 = ((hash >> 48) as u16) | 1;
-        let tag_slot = tags.get_mut(bucket).expect("bucket in bounds");
-        let existing_tags = *tag_slot;
+        let existing_tags = tags[bucket];
 
         for previous in 0..lane {
             if ((existing_tags >> (previous * 16)) as u16) == tag16 {
@@ -84,11 +82,9 @@ fn try_pack_buckets(
             }
         }
 
-        *tag_slot = existing_tags | (u64::from(tag16) << (lane * 16));
-
-        let row = indices.get_mut(bucket).expect("bucket in bounds");
-        *row.get_mut(lane).expect("lane < 4") = symbol_index as u16;
-        *count_slot = lane + 1;
+        tags[bucket] = existing_tags | (u64::from(tag16) << (lane * 16));
+        indices[bucket][lane] = symbol_index as u16;
+        counts[bucket] = lane + 1;
     }
 
     Some(StaticTable {
