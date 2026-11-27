@@ -32,7 +32,6 @@ use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
 use type_system::principal::actor::ActorId;
-use utoipa::OpenApi;
 
 use self::{
     compile::Compilation,
@@ -40,7 +39,7 @@ use self::{
     value::OwnedValue,
 };
 use crate::rest::legacy::{
-    AuthenticatedActorId, InteractiveHeader, JsonCompatHeader, json::Json, status::BoxedResponse,
+    AuthenticatedActorId, InteractiveHeader, JsonCompatHeader, status::BoxedResponse,
 };
 
 mod compile;
@@ -48,13 +47,13 @@ mod error;
 mod value;
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
-pub struct CompilerContext {
+pub struct CompilerState {
     pub scratches: Pool<Scratch, Global>,
     pub heaps: Pool<Heap, Global>,
     pub pool: LocalPoolHandle,
 }
 
-impl CompilerContext {
+impl CompilerState {
     /// Creates a new compiler context.
     ///
     /// `memory_pool_size` bounds the heap and scratch pools; `None` leaves them unbounded.
@@ -76,7 +75,6 @@ impl CompilerContext {
     }
 }
 
-/// Per-request database context.
 struct ExecutionContext<S> {
     temporal: Option<Arc<TemporalClient>>,
     actor_id: ActorId,
@@ -84,21 +82,23 @@ struct ExecutionContext<S> {
     filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
-/// Controls the response format for a HashQL query.
 pub(crate) struct CompilationOutputOptions {
-    /// Render errors as HTML with source annotations instead of structured JSON.
     pub interactive: bool,
-    /// Serialize the result as plain JSON values, stripping HashQL-specific type wrappers.
     pub json_compat: bool,
 }
 
 /// Compiles and executes a HashQL query, returning the result as a [`Status`].
 #[expect(clippy::future_not_send)]
 async fn query_local_impl<S>(
-    ctx: Arc<CompilerContext>,
-    exec: ExecutionContext<S>,
+    ctx: Arc<CompilerState>,
     spans: &mut SpanTable<Span>,
     source: &str,
+    ExecutionContext {
+        temporal,
+        actor_id,
+        store,
+        filter_protection,
+    }: ExecutionContext<S>,
 ) -> (
     Status<OwnedValue, HashQlDiagnosticCategory, SpanId>,
     JsonPointers,
@@ -122,15 +122,14 @@ where
         let Success {
             value: store,
             advisories,
-        } = exec
-            .store
-            .acquire(exec.temporal.clone())
+        } = store
+            .acquire(temporal.clone())
             .await
             .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
             .into_status()
             .with_diagnostics(advisories)?;
 
-        let mut policy_components = PolicyComponents::builder(&store, Some(exec.actor_id));
+        let mut policy_components = PolicyComponents::builder(&store, Some(actor_id));
         policy_components.add_actions(
             compilation.permissions.actions.iter().copied(),
             MergePolicies::Yes,
@@ -145,7 +144,7 @@ where
             })
             .into_status()
             .with_diagnostics(advisories)?;
-        let property = &*exec.filter_protection;
+        let property = &*filter_protection;
 
         let patch = AuthorizationPatch::new(&policy_components, property);
 
@@ -179,10 +178,10 @@ where
 
 #[expect(clippy::future_not_send)]
 async fn query_local<S>(
-    ctx: Arc<CompilerContext>,
-    exec: ExecutionContext<S>,
+    ctx: Arc<CompilerState>,
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
+    exec: ExecutionContext<S>,
 ) -> BoxedResponse
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
@@ -192,16 +191,16 @@ where
 
     let mut spans = SpanTable::new(source_id);
 
-    let (status, pointers) = query_local_impl(ctx, exec, &mut spans, query.get()).await;
+    let (status, pointers) = query_local_impl(ctx, &mut spans, query.get(), exec).await;
     status_to_response(status, &sources, &spans, &pointers, &options)
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.
 async fn run_query<S>(
-    ctx: Arc<CompilerContext>,
-    exec: ExecutionContext<S>,
+    ctx: Arc<CompilerState>,
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
+    exec: ExecutionContext<S>,
 ) -> BoxedResponse
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
@@ -214,7 +213,7 @@ where
     // is `Send` so the HTTP handler can await it normally.
     let pool = ctx.pool.clone();
     let result = pool
-        .spawn_pinned(|| query_local(ctx, exec, query, options))
+        .spawn_pinned(|| query_local(ctx, query, options, exec))
         .await;
 
     result.unwrap_or_else(|error| {
@@ -254,7 +253,7 @@ pub(crate) struct HashQlRequest {
 pub(crate) async fn query_hashql<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Extension(store_pool): Extension<Arc<S>>,
-    Extension(compiler): Extension<Arc<CompilerContext>>,
+    Extension(compiler): Extension<Arc<CompilerState>>,
     Extension(temporal): Extension<Option<Arc<TemporalClient>>>,
     Extension(filter_protection): Extension<Arc<PropertyProtectionFilterConfig<'static>>>,
     (InteractiveHeader(interactive), JsonCompatHeader(json_compat)): (
@@ -282,24 +281,4 @@ where
     };
 
     run_query(compiler, exec, request.query, options).await
-}
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(query_hashql),
-    components(schemas(HashQlRequest)),
-    tags((name = "HashQL", description = "HashQL query execution API"))
-)]
-pub(crate) struct HashQlResource;
-
-impl HashQlResource {
-    pub(crate) fn routes<S>() -> Router
-    where
-        S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
-            + Send
-            + Sync
-            + 'static,
-    {
-        Router::new().route("/hashql", post(query_hashql::<S>))
-    }
 }

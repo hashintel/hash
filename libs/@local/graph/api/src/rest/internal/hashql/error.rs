@@ -24,11 +24,10 @@ use super::{
     CompilationOutputOptions,
     value::{JsonValueSerialize, OwnedValue},
 };
-use crate::rest::legacy::{json::Json, status::BoxedResponse};
 
-const INFRASTRUCTURE_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "infrastructure",
-    name: "Infrastructure",
+const INTERNAL_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "internal",
+    name: "Internal",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -38,7 +37,7 @@ pub(crate) enum HashQlDiagnosticCategory {
     Hir(HirDiagnosticCategory),
     Mir(MirDiagnosticCategory),
     Eval(EvalDiagnosticCategory),
-    Infrastructure,
+    Internal,
 }
 
 impl serde::Serialize for HashQlDiagnosticCategory {
@@ -66,7 +65,7 @@ impl DiagnosticCategory for HashQlDiagnosticCategory {
             Self::Hir(hir) => Some(hir),
             Self::Mir(mir) => Some(mir),
             Self::Eval(eval) => Some(eval),
-            Self::Infrastructure => Some(&INFRASTRUCTURE_CATEGORY),
+            Self::Internal => Some(&INTERNAL_CATEGORY),
         }
     }
 }
@@ -87,10 +86,11 @@ pub(crate) fn store_acquire_diagnostic(
     report: &Report<impl core::error::Error>,
     root_span: SpanId,
 ) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
-    let mut diagnostic =
-        Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::BUG).primary(
-            Label::new(root_span, "failed to acquire database connection"),
-        );
+    let mut diagnostic = Diagnostic::new(HashQlDiagnosticCategory::Internal, Critical::BUG)
+        .primary(Label::new(
+            root_span,
+            "failed to acquire database connection",
+        ));
 
     diagnostic.add_message(Message::note(
         "the query compiled successfully but the server could not open a database connection to \
@@ -111,10 +111,11 @@ fn actor_not_found(
     root_span: SpanId,
     actor_id: &impl core::fmt::Display,
 ) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
-    let mut diagnostic =
-        Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::ERROR).primary(
-            Label::new(root_span, format!("actor `{actor_id}` does not exist")),
-        );
+    let mut diagnostic = Diagnostic::new(HashQlDiagnosticCategory::Internal, Critical::ERROR)
+        .primary(Label::new(
+            root_span,
+            format!("actor `{actor_id}` does not exist"),
+        ));
 
     diagnostic.add_message(Message::note(
         "every request must be authenticated with a valid actor ID; the provided ID does not \
@@ -130,10 +131,11 @@ fn authorization_context_failed(
     report: &Report<ContextCreationError>,
     root_span: SpanId,
 ) -> Diagnostic<HashQlDiagnosticCategory, SpanId, Critical> {
-    let mut diagnostic =
-        Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::BUG).primary(
-            Label::new(root_span, "failed to build authorization context"),
-        );
+    let mut diagnostic = Diagnostic::new(HashQlDiagnosticCategory::Internal, Critical::BUG)
+        .primary(Label::new(
+            root_span,
+            "failed to build authorization context",
+        ));
 
     diagnostic.add_message(Message::note(format!(
         "the authorization system reported: {}",

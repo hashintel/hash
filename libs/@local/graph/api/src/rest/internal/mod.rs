@@ -4,6 +4,7 @@ mod hashql;
 use aide::{openapi::Info, transform::TransformOpenApi};
 
 use self::credentials::Credentials;
+pub(super) use self::hashql::CompilerState;
 use super::{Api, caller, documentation, openapi};
 
 /// The path the internal API, its documentation and the legacy document are served under.
