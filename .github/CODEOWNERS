@@ -37,8 +37,8 @@
 /libs/@local/petrinaut*/ @hashintel/petrinaut
 
 # Brunch agent
-/apps/brunch-agent/ @hashintel/frontend
-/libs/@hashintel/brunch-agent/ @hashintel/frontend
+/apps/brunch-agent/ @hashintel/brunch
+/libs/@hashintel/brunch-agent/ @hashintel/brunch
 
 # Core backend logic
 /apps/hash-api/ @hashintel/backend-ts
