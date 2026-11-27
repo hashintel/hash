@@ -1,15 +1,18 @@
+import { generateFusionKey } from "../../flow-net-keys.js";
 import {
   createPayloadColor,
   pendingColor,
   stepFailureColor,
 } from "./colors.js";
-import { createPlace } from "./net-elements.js";
+import { createPlace, placeEndpoint } from "./net-elements.js";
 
 import type { ValueShape } from "./flow-steps.js";
 import type {
   ArcEndpoint,
   Color,
   ComponentInstance,
+  ComponentPortArcEndpoint,
+  Fusion,
   Place,
   Transition,
 } from "@hashintel/petrinaut-core";
@@ -27,6 +30,7 @@ export const createNetBuilder = () => {
   const places: Place[] = [];
   const transitions: Transition[] = [];
   const componentInstances: ComponentInstance[] = [];
+  const fusions: Fusion[] = [];
 
   /** Transition id → the input ports it feeds that nothing is connected to. */
   const absentInputPorts = new Map<string, Set<string>>();
@@ -41,18 +45,31 @@ export const createNetBuilder = () => {
     places,
     transitions,
     componentInstances,
+    fusions,
     registerColor,
     registerPayloadColor: ({ payloadKind, array }: ValueShape) =>
       registerColor(createPayloadColor(payloadKind, array)),
     addPlace: (place: Parameters<typeof createPlace>[0]) => {
-      places.push(createPlace(place));
-      return place.id;
+      const created = createPlace(place);
+      places.push(created);
+      return created;
     },
     addTransitions: (...newTransitions: Transition[]) => {
       transitions.push(...newTransitions);
     },
     addComponentInstance: (instance: ComponentInstance) => {
       componentInstances.push(instance);
+    },
+    /**
+     * Fuses ports of steps' instances with a place of the root net, which anchors the fusion. The fused place takes
+     * the fusion's name, so the fusion is named after its anchor, which kernels address it by.
+     */
+    addFusion: (anchor: Place, ports: ComponentPortArcEndpoint[]) => {
+      fusions.push({
+        id: generateFusionKey(anchor.id),
+        name: anchor.name,
+        members: [placeEndpoint(anchor.id), ...ports],
+      });
     },
     /** Records the input ports a transition feeds that nothing is connected to, which it gives absent tokens. */
     markAbsentInputPorts: (transitionId: string, portIds: string[]) => {

@@ -76,6 +76,49 @@ export const forEachFlowDefinition = defineFlow(
   },
 ).flowDefinition;
 
+/**
+ * A `research` step whose `proposedEntities` `persist` consumes and `review` reads, so they get a copy and a shared
+ * place, and a `forEach` step, `each`, over the flow's `urls`, which collects each `get`.
+ */
+export const sharedOutputFlowDefinition = defineFlow(
+  {
+    flowDefinitionId: "research-and-get-files",
+    name: "Research and get files",
+    description: "Persist and review research, then get a file from each URL",
+    inputs: {
+      prompt: flowInput("Text"),
+      urls: flowInput("Text", { array: true }),
+    },
+  },
+  ({ inputs, step, forEach }) => {
+    const research = step("research", actions.researchEntities, {
+      description: "Research the prompt",
+      inputs: { prompt: inputs.prompt },
+    });
+    step("persist", actions.persistEntities, {
+      description: "Persist what the research found",
+      inputs: { proposedEntities: research.outputs.proposedEntities.consume() },
+    });
+
+    step("review", actions.persistEntities, {
+      description: "Persist the same as drafts",
+      inputs: { proposedEntities: research.outputs.proposedEntities.read() },
+    });
+
+    const files = forEach("each", inputs.urls, {
+      description: "Retrieve each file",
+      collectAs: "files",
+      steps: (url, scope) =>
+        scope.step("get", actions.getFileFromUrl, {
+          description: "Retrieve the file",
+          inputs: { url },
+        }).outputs.fileEntity,
+    });
+
+    return { outputs: { files } };
+  },
+).flowDefinition;
+
 const getFileStep = (
   stepId: string,
   runAfter: StepDefinition["runAfter"],

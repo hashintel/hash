@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canonicalizePetrinautIds,
+  checkComposition,
   getArcEndpoint,
   parseSDCPNFile,
   serializeSDCPN,
@@ -19,10 +20,10 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 import { compileFlowDefinition } from "./compile-flow-definition.js";
 import {
   failedStepRunsPlaceKey,
-  generateActionSubnetName,
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
-  generateDonePortKey,
+  generateDonePlaceKey,
+  generateGaveUpPortKey,
   generateInputConsumerKey,
   generateInputPortKey,
   generateInputValueKey,
@@ -36,8 +37,11 @@ import {
   generateValuePlaceKey,
 } from "./flow-net-keys.js";
 import {
+  fileFlowDefinition,
+  forEachFlowDefinition,
   hardcodedFlowDefinitions,
   ifPathsFlowDefinition,
+  sharedOutputFlowDefinition,
 } from "./testing/flow-definitions.js";
 
 import type { TransitionMetadata } from "./flow-net-metadata.js";
@@ -216,6 +220,54 @@ describe("compileFlowDefinition", () => {
       });
     });
   }
+
+  it.each([
+    ...hardcodedFlowDefinitions,
+    ["fileFlowDefinition", fileFlowDefinition],
+    ["forEachFlowDefinition", forEachFlowDefinition],
+    ["ifPathsFlowDefinition", ifPathsFlowDefinition],
+    ["sharedOutputFlowDefinition", sharedOutputFlowDefinition],
+  ] as const)(
+    "fuses %s's ports into places that pass Petrinaut's composition checks",
+    async (_, flowDefinition) => {
+      const sdcpn = await compileFlowDefinition(flowDefinition, {
+        layout: false,
+      });
+
+      expect(sdcpn.fusions?.length).toBeGreaterThan(0);
+      expect(
+        checkComposition(sdcpn).filter(({ severity }) => severity === "error"),
+      ).toEqual([]);
+    },
+  );
+
+  it("fuses every action step's GaveUp port with FailedStepRuns, including a forEach step's", async () => {
+    const sdcpn = await compileFlowDefinition(sharedOutputFlowDefinition, {
+      layout: false,
+    });
+
+    expect(
+      sdcpn.fusions?.find(({ members }) =>
+        members.some(
+          (member) =>
+            member.kind === "place" &&
+            member.placeId === toPetrinautId(failedStepRunsPlaceKey),
+        ),
+      )?.members,
+    ).toEqual([
+      placeEndpointOf(failedStepRunsPlaceKey),
+      ...(
+        [
+          ["research", "researchEntities"],
+          ["persist", "persistEntities"],
+          ["review", "persistEntities"],
+          ["get", "getFileFromUrl"],
+        ] as const
+      ).map(([stepId, actionDefinitionId]) =>
+        portEndpointOf(stepId, generateGaveUpPortKey(actionDefinitionId)),
+      ),
+    ]);
+  });
 
   it("gives every place, transition and instance a distinct id, whatever the step ids", async () => {
     /* A step id can be any string without the step run id separator, including the key of a place. */
@@ -536,21 +588,11 @@ describe("compileFlowDefinition", () => {
       sdcpn.transitions.find(
         byKey(generateStepTransitionKey("startStep", stepId)),
       );
-    /** What an endpoint holds: a flow input, or an output of `check`'s instance, by name. */
-    const holderOf = (endpoint: ReturnType<typeof getArcEndpoint>) => {
-      if (endpoint.kind === "place") {
-        return sdcpn.places.find(({ id }) => id === endpoint.placeId)?.name;
-      }
-
-      const instance = sdcpn.componentInstances?.find(
-        ({ id }) => id === endpoint.componentInstanceId,
-      );
-      const port = sdcpn.components
-        ?.find(({ id }) => id === instance?.component.id)
-        ?.places.find(({ id }) => id === endpoint.portPlaceId);
-
-      return `${instance?.name.split(":")[0]}.${port?.name}`;
-    };
+    /** The name of the place of the root net an endpoint points at. */
+    const holderOf = (endpoint: ReturnType<typeof getArcEndpoint>) =>
+      endpoint.kind === "place"
+        ? sdcpn.places.find(({ id }) => id === endpoint.placeId)?.name
+        : "a port";
     const readsOf = (stepId: string) =>
       startOf(stepId)
         ?.inputArcs.filter(({ type }) => type === "read")
@@ -562,21 +604,32 @@ describe("compileFlowDefinition", () => {
           | undefined
       )?.paths?.map(holderOf);
     const url = generateInputValueKey("url");
+    const checkFalse = generateOutputValueKey("check", "false");
+    const checkTrue = generateOutputValueKey("check", "true");
 
     /* No reads its path's output, and lists it as a path. */
-    expect(readsOf("no")).toEqual([url, "check.false"]);
-    expect(pathsOf("no")).toEqual(["check.false"]);
+    expect(readsOf("no")).toEqual([url, checkFalse]);
+    expect(pathsOf("no")).toEqual([checkFalse]);
 
     /* Yes also takes its value from its path's output, through the same arc, which is still a path. */
-    expect(readsOf("yes")).toEqual(["check.true"]);
-    expect(pathsOf("yes")).toEqual(["check.true"]);
+    expect(readsOf("yes")).toEqual([checkTrue]);
+    expect(pathsOf("yes")).toEqual([checkTrue]);
 
-    /* A step after the if, on neither path, reads its Done port, whichever path it took. */
-    expect(readsOf("afterCheck")).toEqual([url, "check.Done"]);
+    /* A step after the if, on neither path, reads the place its Done port is fused with, whichever path it took. */
+    expect(readsOf("afterCheck")).toEqual([url, "Done: check"]);
     expect(pathsOf("afterCheck")).toBeUndefined();
+
+    expect(
+      sdcpn.fusions?.find(({ name }) => name === "Done: check")?.members,
+    ).toEqual([
+      placeEndpointOf(generateDonePlaceKey("check")),
+      expect.objectContaining({
+        componentInstanceId: toPetrinautId(generateInstanceKey("check")),
+      }),
+    ]);
   });
 
-  it("waits for an action on its Done port, without a place for an output another step consumes", async () => {
+  it("waits for an action on its Done port, without copying an output another step consumes", async () => {
     const [check] = ifPathsFlowDefinition.steps;
 
     const sdcpn = await compileFlowDefinition({
@@ -614,10 +667,7 @@ describe("compileFlowDefinition", () => {
         byKey(generateStepTransitionKey("startStep", "follow")),
       )?.inputArcs,
     ).toContainEqual({
-      endpoint: portEndpointOf(
-        "check",
-        generateDonePortKey(generateActionSubnetName("if", { value: "Text" })),
-      ),
+      endpoint: placeEndpointOf(generateDonePlaceKey("check")),
       weight: 1,
       type: "read",
     });
@@ -627,10 +677,16 @@ describe("compileFlowDefinition", () => {
       ),
     ).toBeUndefined();
     expect(
-      sdcpn.places.find(
-        byKey(generateValuePlaceKey(generateOutputValueKey("check", "true"))),
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("startStep", "take")),
+      )?.inputArcs,
+    ).toContainEqual({
+      endpoint: placeEndpointOf(
+        generateValuePlaceKey(generateOutputValueKey("check", "true")),
       ),
-    ).toBeUndefined();
+      weight: 1,
+      type: "standard",
+    });
   });
 
   it("keeps a path's output where a step that runs after the path reads it, when another step consumes it", async () => {
@@ -813,15 +869,14 @@ describe("compileFlowDefinition", () => {
       ],
     ]);
 
-    /* It iterates over step 2's output, read from its port. */
+    /* It iterates over step 2's output, read from the place its port is fused with. */
     expect(
       sdcpn.transitions.find(
         byKey(generateStepTransitionKey("startForEach", "3")),
       )?.metadata?.array,
     ).toEqual(
-      portEndpointOf(
-        "2",
-        generateOutputPortKey("persistEntities", "persistedEntities"),
+      placeEndpointOf(
+        generateValuePlaceKey(generateOutputValueKey("2", "persistedEntities")),
       ),
     );
 
@@ -929,38 +984,52 @@ describe("compileFlowDefinition", () => {
         byKey(generateCopyOutputTransitionKey("research", "proposedEntities")),
       );
 
-    it("lets every reader read the output port, when nothing consumes it", async () => {
+    /** The members of the fusion the output port is in, if it's in one. */
+    const outputPortFusion = (sdcpn: SDCPN) =>
+      sdcpn.fusions?.find(({ members }) =>
+        members.some(
+          (member) =>
+            member.kind === "componentPort" &&
+            member.componentInstanceId === outputPort.componentInstanceId &&
+            member.portPlaceId === outputPort.portPlaceId,
+        ),
+      )?.members;
+
+    it("fuses the output port with a place every reader reads, when nothing consumes it", async () => {
       const sdcpn = await compileWithConsumers(["read", "read"]);
 
       expect(copyTransition(sdcpn)).toBeUndefined();
+      expect(outputPortFusion(sdcpn)).toEqual([sharedPlace, outputPort]);
 
       for (const stepId of ["persist0", "persist1"]) {
         expect(routeInputArc(sdcpn, stepId)).toEqual({
-          endpoint: outputPort,
+          endpoint: sharedPlace,
           weight: 1,
           type: "read",
         });
       }
     });
 
-    it("lets a single consumer take the output from the port", async () => {
+    it("fuses the output port with a place a single consumer takes it from", async () => {
       const sdcpn = await compileWithConsumers(["consume"]);
 
       expect(copyTransition(sdcpn)).toBeUndefined();
+      expect(outputPortFusion(sdcpn)).toEqual([sharedPlace, outputPort]);
 
       expect(routeInputArc(sdcpn, "persist0")).toEqual({
-        endpoint: outputPort,
+        endpoint: sharedPlace,
         weight: 1,
         type: "standard",
       });
     });
 
-    it("leaves a flow output that nothing consumes in the port", async () => {
+    it("fuses the output port with the place of a flow output that nothing consumes", async () => {
       const sdcpn = await compileWithConsumers([], { asFlowOutput: true });
 
       expect(copyTransition(sdcpn)).toBeUndefined();
+      expect(outputPortFusion(sdcpn)).toEqual([sharedPlace, outputPort]);
       expect(sdcpn.metadata?.flowOutputs).toEqual({
-        proposedEntities: outputPort,
+        proposedEntities: sharedPlace,
       });
     });
 
@@ -969,6 +1038,8 @@ describe("compileFlowDefinition", () => {
 
       const copy = copyTransition(sdcpn);
 
+      /* `copyOutput` takes the output from the port, so the port can't be fused with a place it puts it in. */
+      expect(outputPortFusion(sdcpn)).toBeUndefined();
       expect(copy?.metadata).toMatchObject({
         role: "copyOutput",
         stepId: "research",
@@ -1028,20 +1099,8 @@ describe("compileFlowDefinition", () => {
               "research",
             ],
             [generateStepTransitionKey("startStep", "research"), "research"],
-            [
-              generateStepTransitionKey("recordStepFailure", "research"),
-              "research",
-            ],
             [generateStepTransitionKey("startStep", "persist0"), "persist0"],
-            [
-              generateStepTransitionKey("recordStepFailure", "persist0"),
-              "persist0",
-            ],
             [generateStepTransitionKey("startStep", "persist1"), "persist1"],
-            [
-              generateStepTransitionKey("recordStepFailure", "persist1"),
-              "persist1",
-            ],
           ] satisfies [key: string, stepId: string][]
         ).map(([key, stepId]) => [toPetrinautId(key), stepId]),
       );
@@ -1075,9 +1134,6 @@ describe("compileFlowDefinition", () => {
       expect(sdcpn.transitions.map(({ id }) => id).sort()).toEqual(
         idsOfKeys([
           generateCopyOutputTransitionKey("research", "proposedEntities"),
-          generateStepTransitionKey("recordStepFailure", "persist0"),
-          generateStepTransitionKey("recordStepFailure", "persist1"),
-          generateStepTransitionKey("recordStepFailure", "research"),
           generateStepTransitionKey("startStep", "persist0"),
           generateStepTransitionKey("startStep", "persist1"),
           generateStepTransitionKey("startStep", "research"),

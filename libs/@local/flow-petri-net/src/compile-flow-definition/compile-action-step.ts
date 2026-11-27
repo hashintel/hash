@@ -1,6 +1,4 @@
 import {
-  failedStepRunsPlaceKey,
-  generateGaveUpPortKey,
   generateInputPortKey,
   generateInstanceKey,
   generatePendingPlaceKey,
@@ -26,9 +24,9 @@ import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
 import type { ValuePlaces } from "./shared/value-places.js";
 import type {
-  ArcEndpoint,
   InputArc,
   JsonValue,
+  PlaceArcEndpoint,
 } from "@hashintel/petrinaut-core";
 import type {
   ActionStepDefinition,
@@ -36,8 +34,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
- * Adds an action step: an instance of its action's subnet, the `startStep` transition that starts it once its
- * `Pending` token and its connected inputs are available, and the `recordStepFailure` transition that records it giving up.
+ * Adds an action step: an instance of its action's subnet, and the `startStep` transition that starts it once its
+ * `Pending` token and its connected inputs are available.
  */
 export const compileActionStep = ({
   step,
@@ -53,7 +51,7 @@ export const compileActionStep = ({
   const actionDefinition = getActionDefinition(step);
   const subnetName = steps.getSubnetName(step);
 
-  const valueArcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
+  const valueArcs: (InputArc & { endpoint: PlaceArcEndpoint })[] = [];
 
   const constants: Record<string, JsonValue> = {};
 
@@ -64,7 +62,7 @@ export const compileActionStep = ({
   const inputSources: Record<string, InputSource> = {};
 
   const connectedValue = (
-    arc: { endpoint: ArcEndpoint },
+    arc: { endpoint: PlaceArcEndpoint },
     source: StepInputSource,
   ): InputSource => ({
     kind: "value",
@@ -84,7 +82,15 @@ export const compileActionStep = ({
       const arc = values.stepInputArc(step.stepId, inputName);
 
       if (arc) {
-        valueArcs.push(arc);
+        /* Two inputs that read one value read it through one arc: a transition can't reach a fused place twice. */
+        if (
+          !valueArcs.some(
+            ({ endpoint, type }) =>
+              endpoint.placeId === arc.endpoint.placeId && type === arc.type,
+          )
+        ) {
+          valueArcs.push(arc);
+        }
         inputSources[inputName] = connectedValue(arc, source);
       }
     }
@@ -141,21 +147,6 @@ export const compileActionStep = ({
       outputArcs: inputPortIds.map((portId) =>
         outputArc(portEndpoint(generateInstanceKey(step.stepId), portId)),
       ),
-    }),
-    createTransition({
-      id: generateStepTransitionKey("recordStepFailure", step.stepId),
-      name: `${step.stepId} gave up`,
-      description: `Records that step ${step.stepId} gave up, failing its run.`,
-      metadata: { role: "recordStepFailure", stepId: step.stepId },
-      inputArcs: [
-        inputArc(
-          portEndpoint(
-            generateInstanceKey(step.stepId),
-            generateGaveUpPortKey(subnetName),
-          ),
-        ),
-      ],
-      outputArcs: [outputArc(placeEndpoint(failedStepRunsPlaceKey))],
     }),
   );
 

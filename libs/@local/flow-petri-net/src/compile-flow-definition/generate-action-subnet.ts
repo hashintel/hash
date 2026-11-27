@@ -15,6 +15,7 @@ import {
   createOneOfPayloadColor,
   createPayloadColor,
   lifecycleColor,
+  stepFailureColor,
 } from "./shared/colors.js";
 import { type KernelPlace, withKernel } from "./shared/kernels.js";
 import { layOut } from "./shared/lay-out.js";
@@ -119,7 +120,7 @@ export const generateActionSubnet = async (
               input.required ? "Required." : "Optional.",
             ].join(" "),
             colorId: addColor(portColor(input, resolvedKinds)),
-            isPort: true,
+            portDirection: "in",
           }),
         )
       : [
@@ -128,7 +129,7 @@ export const generateActionSubnet = async (
             name: "Start",
             description: "Starts the action (it has no inputs).",
             colorId: lifecycleColor.id,
-            isPort: true,
+            portDirection: "in",
           }),
         ];
 
@@ -142,7 +143,7 @@ export const generateActionSubnet = async (
           output.required ? "Always produced." : "May be missing.",
         ].join(" "),
         colorId: addColor(portColor(output, resolvedKinds)),
-        isPort: true,
+        portDirection: "out",
       }),
     ),
     createPlace({
@@ -150,7 +151,7 @@ export const generateActionSubnet = async (
       name: generateDonePortName(actionDefinition),
       description: `${name} succeeded.`,
       colorId: lifecycleColor.id,
-      isPort: true,
+      portDirection: "out",
     }),
   ];
 
@@ -168,12 +169,13 @@ export const generateActionSubnet = async (
     colorId: lifecycleColor.id,
   });
 
+  /* Typed as the run's failed steps it's fused with. */
   const gaveUp = createPlace({
     id: generateGaveUpPortKey(subnetName),
     name: "GaveUp",
     description: `${name} failed on every attempt.`,
-    colorId: lifecycleColor.id,
-    isPort: true,
+    colorId: addColor(stepFailureColor),
+    portDirection: "out",
   });
 
   const places = [...inputPorts, inProgress, failed, gaveUp, ...outputPorts];

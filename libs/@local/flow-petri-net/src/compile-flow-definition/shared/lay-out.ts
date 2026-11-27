@@ -5,6 +5,7 @@ import {
 
 import type {
   ComponentInstance,
+  Fusion,
   Place,
   SDCPN,
   Transition,
@@ -30,6 +31,8 @@ export const layOut = async <
     places: Place[];
     transitions: Transition[];
     componentInstances?: ComponentInstance[];
+    /** Laid out as edges, so that fused places sit beside the instances whose ports they're fused with. */
+    fusions?: Fusion[];
   },
 >(
   nodes: Nodes,
@@ -38,6 +41,7 @@ export const layOut = async <
     places: nodes.places,
     transitions: nodes.transitions,
     componentInstances: nodes.componentInstances ?? [],
+    fusions: nodes.fusions ?? [],
     types: [],
     differentialEquations: [],
     parameters: [],

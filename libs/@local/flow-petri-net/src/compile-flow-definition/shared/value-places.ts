@@ -4,6 +4,7 @@ import {
   generateCopyKey,
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
+  generateDonePlaceKey,
   generateDonePortKey,
   generateInputConsumerKey,
   generateInputValueKey,
@@ -13,6 +14,7 @@ import {
   generateOutputValueKey,
   generateValuePlaceKey,
 } from "../../flow-net-keys.js";
+import { lifecycleColor } from "./colors.js";
 import { getActionDefinition, getRunAfterEntries } from "./flow-steps.js";
 import {
   createTransition,
@@ -25,9 +27,9 @@ import {
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
 import type {
-  ArcEndpoint,
   InputArc,
   OutputArc,
+  PlaceArcEndpoint,
 } from "@hashintel/petrinaut-core";
 import type {
   FlowDefinition,
@@ -62,15 +64,15 @@ type Value = {
 };
 
 /**
- * Where a value is held: where its readers (and a flow output) find it, where each consumer that consumes it
- * takes it from, and, for a value a transition of the root net produces, the places that transition puts it
- * in.
+ * Where a value is held, always in places of the root net: where its readers (and a flow output) find it, where each
+ * consumer that consumes it takes it from, and, for a value a transition of the root net produces, the places that
+ * transition puts it in.
  */
 type ValueLocation = {
-  shared: ArcEndpoint | null;
+  shared: PlaceArcEndpoint | null;
   /** Consumer key → where that consumer takes the value from. */
-  taken: Map<string, ArcEndpoint>;
-  producedInto: ArcEndpoint[];
+  taken: Map<string, PlaceArcEndpoint>;
+  producedInto: PlaceArcEndpoint[];
 };
 
 const sourceValueKey = (source: StepInputSource): string | null => {
@@ -99,13 +101,6 @@ const itemValueKeyIn = (scope: string[]) => {
 export const consumes = (source: StepInputSource) =>
   source.kind !== "constant" && source.access === "consume";
 
-const isSameEndpoint = (endpoint: ArcEndpoint, other: ArcEndpoint) =>
-  endpoint.kind === "place"
-    ? other.kind === "place" && other.placeId === endpoint.placeId
-    : other.kind === "componentPort" &&
-      other.componentInstanceId === endpoint.componentInstanceId &&
-      other.portPlaceId === endpoint.portPlaceId;
-
 /**
  * The arcs to and from the places every value is held in.
  */
@@ -115,11 +110,11 @@ export type ValuePlaces = ReturnType<typeof placeValues>;
  * Adds the places every flow input and step output is held in, and the transitions that copy a step's output
  * where more than one consumer needs it.
  *
- * A transition is only added where one token has to become several. An action step's output stays in its
- * port, where its readers read it, unless something consumes it: a single consumer with no readers takes it
- * from the port, and otherwise a `copyOutput` transition puts it in a place shared by the readers and in a copy for
- * each consumer, so consumers never race for a token. A value a root transition produces goes straight into
- * those places.
+ * A transition is only added where one token has to become several. An action step's output port is fused with a
+ * place of the root net where its readers read it, or where a single consumer with no readers takes it from.
+ * Otherwise a `copyOutput` transition takes it from the port and puts it in a place shared by the readers and in a
+ * copy for each consumer, so consumers never race for a token. A value a root transition produces goes straight
+ * into those places. An action's `Done` port is fused with a place of its own when a step runs after it.
  */
 export const placeValues = ({
   flowDefinition,
@@ -289,32 +284,47 @@ export const placeValues = ({
       value.isFlowOutput ||
       value.isWaitedOn ||
       takers.length < value.consumers.length;
+    const [onlyTaker] = takers;
 
-    if (value.producer.kind === "port") {
-      const port = portEndpoint(
-        generateInstanceKey(value.producer.stepId),
-        value.producer.portId,
-      );
-
-      if (takers.length === 0) {
+    if (
+      value.producer.kind === "port" &&
+      (takers.length === 0 || (onlyTaker && takers.length === 1 && !isShared))
+    ) {
+      if (!isShared && !onlyTaker) {
         valueLocations.set(value.key, {
-          shared: port,
+          shared: null,
           taken: new Map(),
           producedInto: [],
         });
         continue;
       }
 
-      const [onlyTaker] = takers;
+      const anchor = net.addPlace({
+        id: generateValuePlaceKey(value.key),
+        name: value.key,
+        description: onlyTaker
+          ? `${value.label}, for ${onlyTaker.label} to consume.`
+          : value.isFlowOutput
+            ? `${value.label}, an output of the flow.`
+            : `${value.label}, available to every step that reads it.`,
+        colorId,
+      });
 
-      if (onlyTaker && takers.length === 1 && !isShared) {
-        valueLocations.set(value.key, {
-          shared: null,
-          taken: new Map([[onlyTaker.key, port]]),
-          producedInto: [],
-        });
-        continue;
-      }
+      net.addFusion(anchor, [
+        portEndpoint(
+          generateInstanceKey(value.producer.stepId),
+          value.producer.portId,
+        ),
+      ]);
+
+      const anchorEndpoint = placeEndpoint(anchor.id);
+
+      valueLocations.set(value.key, {
+        shared: onlyTaker ? null : anchorEndpoint,
+        taken: new Map(onlyTaker ? [[onlyTaker.key, anchorEndpoint]] : []),
+        producedInto: [],
+      });
+      continue;
     }
 
     const shared =
@@ -327,7 +337,7 @@ export const placeValues = ({
                 ? `${value.label}, an output of the flow.`
                 : `${value.label}, available to every step that reads it.`,
               colorId,
-            }),
+            }).id,
           )
         : null;
 
@@ -340,7 +350,7 @@ export const placeValues = ({
             name: generateCopyKey(value.key, consumer.key),
             description: `${value.label}, for ${consumer.label} to consume.`,
             colorId,
-          }),
+          }).id,
         ),
       ]),
     );
@@ -369,6 +379,38 @@ export const placeValues = ({
       valueLocations.set(value.key, { shared, taken, producedInto: [] });
     } else {
       valueLocations.set(value.key, { shared, taken, producedInto });
+    }
+  }
+
+  /* Action step id → the place its `Done` port is fused with, for an action a step runs after with a plain line. */
+  const donePlaces = new Map<string, PlaceArcEndpoint>();
+
+  for (const { step } of steps.entries) {
+    for (const entry of getRunAfterEntries(step)) {
+      const { step: before } = steps.getStep(entry.stepId);
+
+      if (
+        before.kind !== "action" ||
+        entry.outputName !== undefined ||
+        donePlaces.has(before.stepId)
+      ) {
+        continue;
+      }
+
+      const anchor = net.addPlace({
+        id: generateDonePlaceKey(before.stepId),
+        name: `Done: ${before.stepId}`,
+        description: `Step ${before.stepId} succeeded, for the steps that run after it.`,
+        colorId: net.registerColor(lifecycleColor),
+      });
+
+      net.addFusion(anchor, [
+        portEndpoint(
+          generateInstanceKey(before.stepId),
+          generateDonePortKey(steps.getSubnetName(before)),
+        ),
+      ]);
+      donePlaces.set(before.stepId, placeEndpoint(anchor.id));
     }
   }
 
@@ -442,10 +484,10 @@ export const placeValues = ({
      */
     runAfterArcs: (
       step: StepDefinition,
-      valueArcs: { endpoint: ArcEndpoint }[],
+      valueArcs: { endpoint: PlaceArcEndpoint }[],
     ) => {
-      const arcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
-      const paths: ArcEndpoint[] = [];
+      const arcs: (InputArc & { endpoint: PlaceArcEndpoint })[] = [];
+      const paths: PlaceArcEndpoint[] = [];
       const entries = getRunAfterEntries(step);
 
       for (const entry of entries) {
@@ -454,12 +496,7 @@ export const placeValues = ({
 
         const waitedOn = valueKey
           ? getValueLocation(valueKey).shared
-          : before.kind === "action"
-            ? portEndpoint(
-                generateInstanceKey(entry.stepId),
-                generateDonePortKey(steps.getSubnetName(before)),
-              )
-            : null;
+          : (donePlaces.get(before.stepId) ?? null);
 
         if (!waitedOn) {
           throw new Error(`Step "${entry.stepId}" has nothing to wait on`);
@@ -468,8 +505,8 @@ export const placeValues = ({
         const arc = inputArc(waitedOn, "read");
 
         if (
-          ![...valueArcs, ...arcs].some(({ endpoint }) =>
-            isSameEndpoint(endpoint, arc.endpoint),
+          ![...valueArcs, ...arcs].some(
+            ({ endpoint }) => endpoint.placeId === arc.endpoint.placeId,
           )
         ) {
           arcs.push(arc);
@@ -508,7 +545,7 @@ export const placeValues = ({
       ]),
     ),
 
-    /** Where each flow output is found: a place of the root net, or an output port of a step's instance. */
+    /** Where each flow output is found. */
     flowOutputEndpoints: Object.fromEntries(
       flowDefinition.outputs.map((output) => {
         const { shared } = getValueLocation(

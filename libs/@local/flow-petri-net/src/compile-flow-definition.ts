@@ -20,12 +20,15 @@ import { layOut } from "./compile-flow-definition/shared/lay-out.js";
 import { createNetBuilder } from "./compile-flow-definition/shared/net-builder.js";
 import {
   placeEndpoint,
+  portEndpoint,
   toPetrinautEndpoint,
 } from "./compile-flow-definition/shared/net-elements.js";
 import { placeValues } from "./compile-flow-definition/shared/value-places.js";
 import {
   failedStepRunsPlaceKey,
   generateActionSubnetName,
+  generateGaveUpPortKey,
+  generateInstanceKey,
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
 
@@ -45,18 +48,19 @@ import type {
  *   `metadata.pendingAtStart` say where.
  * - Each action step is an instance of its action's subnet (see `generateActionSubnet`), started by a `startStep`
  *   transition once the step's `Pending` token and its connected inputs are available.
- * - A step's output stays in its instance's output port, where steps that read it read it. A single step that
- *   consumes it takes it from the port. Otherwise a `copyOutput` transition puts it in a place shared by the readers,
- *   and in a copy for each step that consumes it, so consumers never race for a token.
+ * - A step's output port is fused with a place of the root net, where steps that read it read it, or a single step
+ *   that consumes it takes it from. Otherwise a `copyOutput` transition takes it from the port and puts it in a place
+ *   shared by the readers, and in a copy for each step that consumes it, so consumers never race for a token. An
+ *   action's `Done` port is fused with a place of its own when a step runs after it.
  * - A for-each step iterates over its array with an iterator token, fanning out one item token (and one
  *   `Pending` token per nested step) at a time, and completes once an accumulator has counted every item's
  *   collected output.
- * - A step that gives up puts a token in `FailedStepRuns`.
+ * - A step that gives up puts a token in `FailedStepRuns`, which every instance's `GaveUp` port is fused with.
  *
  * Transitions carry their role in `metadata.role`, for the executor to interpret. Their kernels are placeholders,
  * which carry `run_id` and `item_path` forward and give every other attribute a default, and the net has no guards,
  * so it builds in Petrinaut but doesn't simulate meaningfully. Every transition added for a step names it in
- * `metadata.stepId`. The root's `metadata.flowOutputs` gives the endpoint each flow output is found at.
+ * `metadata.stepId`. The root's `metadata.flowOutputs` gives the place each flow output is found at.
  *
  * The result is deterministic, so compiled nets can be compared and stored.
  *
@@ -90,7 +94,7 @@ export const compileFlowDefinition = async (
     });
   }
 
-  net.addPlace({
+  const failedStepRuns = net.addPlace({
     id: failedStepRunsPlaceKey,
     name: "FailedStepRuns",
     description: "Steps that gave up after exhausting their retries.",
@@ -103,6 +107,22 @@ export const compileFlowDefinition = async (
     } else {
       compileForEachStep({ step, steps, net, values });
     }
+  }
+
+  /* A step that gives up puts its token straight into `FailedStepRuns`, failing its run. */
+  const gaveUpPorts = steps.entries.flatMap(({ step }) =>
+    step.kind === "action"
+      ? [
+          portEndpoint(
+            generateInstanceKey(step.stepId),
+            generateGaveUpPortKey(steps.getSubnetName(step)),
+          ),
+        ]
+      : [],
+  );
+
+  if (gaveUpPorts.length > 0) {
+    net.addFusion(failedStepRuns, gaveUpPorts);
   }
 
   /* A subnet per action, or per combination of resolved kinds for an action with derived kinds. */
@@ -180,6 +200,7 @@ export const compileFlowDefinition = async (
       ),
     ),
     componentInstances: net.componentInstances,
+    fusions: net.fusions,
   };
   const laidOut = layout ? await layOut(nodes) : nodes;
 
@@ -215,5 +236,6 @@ export const compileFlowDefinition = async (
     metrics: [],
     components: subnets,
     componentInstances: laidOut.componentInstances,
+    fusions: net.fusions,
   });
 };

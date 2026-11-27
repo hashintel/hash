@@ -20,7 +20,9 @@ import {
   failedStepRunsPlaceKey,
   generateDonePortKey,
   generateInstanceKey,
+  generateOutputValueKey,
   generatePendingPlaceKey,
+  generateValuePlaceKey,
 } from "./flow-net-keys.js";
 import {
   flowNetPathKey,
@@ -34,6 +36,7 @@ import {
   forEachFlowDefinition,
   hardcodedFlowDefinitions,
   ifPathsFlowDefinition,
+  sharedOutputFlowDefinition,
 } from "./testing/flow-definitions.js";
 
 import type { FlowNetMetadata } from "./flow-net-metadata.js";
@@ -198,9 +201,21 @@ const attemptEnds = (
 
 /**
  * Checks each firing takes from the places its transition's standard arcs point at, reads from those its read arcs
- * point at, and puts a token where each output arc points.
+ * point at, and puts a token where each output arc points: for a port fused with a place of the root net, that place.
  */
 const expectFiringsFollowArcs = (net: SDCPN, run: FlowNetRun) => {
+  const anchorKeys = new Map(
+    (net.fusions ?? []).flatMap(({ members }) => {
+      const anchor = members.find(({ kind }) => kind === "place");
+
+      return members.flatMap((member) =>
+        member.kind === "componentPort" && anchor?.kind === "place"
+          ? [[flowNetPathKey(endpointPath(member)), anchor.placeId] as const]
+          : [],
+      );
+    }),
+  );
+
   for (const firing of run.firings) {
     const { transitionPath } = firing;
 
@@ -224,12 +239,15 @@ const expectFiringsFollowArcs = (net: SDCPN, run: FlowNetRun) => {
       );
     }
 
-    const pathKeyOf = (endpoint: ArcEndpoint) =>
-      flowNetPathKey(
+    const pathKeyOf = (endpoint: ArcEndpoint) => {
+      const key = flowNetPathKey(
         instance && endpoint.kind === "place"
           ? [instance.id, endpoint.placeId]
           : endpointPath(endpoint),
       );
+
+      return anchorKeys.get(key) ?? key;
+    };
 
     const arcsOfType = (type: "standard" | "read") =>
       transition.inputArcs
@@ -392,6 +410,12 @@ describe("flow net paths", () => {
   });
 });
 
+/** The hardcoded flows, and a test flow with an output that is both consumed and read, so a `copyOutput` runs. */
+const flowDefinitionsThatRunToEnd = [
+  ...hardcodedFlowDefinitions,
+  ["sharedOutputFlowDefinition", sharedOutputFlowDefinition] as const,
+];
+
 describe("startFlowNetRun", () => {
   it("starts a step once its inputs are there, and holds its attempt's end", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
@@ -421,7 +445,7 @@ describe("startFlowNetRun", () => {
     );
   });
 
-  it("puts an action's outputs in its instance's output ports, and a signal in its Done port", async () => {
+  it("puts an action's output in the place its port is fused with, and a signal in its Done port", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });
 
@@ -436,10 +460,11 @@ describe("startFlowNetRun", () => {
 
     const fileOutput = flowOutputPath(net, "file");
 
-    expect(fileOutput).toEqual([
-      toPetrinautId(generateInstanceKey("get")),
-      expect.any(String),
-    ]);
+    expect(fileOutput).toEqual(
+      placeAt(
+        generateValuePlaceKey(generateOutputValueKey("get", "fileEntity")),
+      ),
+    );
     expect(tokensAt(run, fileOutput)).toEqual([
       {
         kind: "value",
@@ -483,10 +508,39 @@ describe("startFlowNetRun", () => {
 
     expect(
       run.fire({ role: "giveUp", stepRun }).map(({ role }) => role),
-    ).toEqual(["giveUp", "recordStepFailure"]);
+    ).toEqual(["giveUp"]);
     expect(run.held()).toEqual([]);
     expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([
       { kind: "stepFailure", stepId: "get", itemPath: [] },
+    ]);
+    expectFiringsFollowArcs(net, run);
+    expectActualModeReplays(run);
+  });
+
+  it("records each item of a forEach step that gives up", async () => {
+    const net = await compileFlowDefinition(forEachFlowDefinition);
+    const run = startFlowNetRun(net, { flowInputNames: ["urls"] });
+
+    run.fire({
+      role: "startForEach",
+      stepRun: { stepId: "each", itemPath: [] },
+      itemCount: 2,
+    });
+
+    for (const index of [1, 0]) {
+      const stepRun = { stepId: "get", itemPath: [index] };
+
+      run.fire({ role: "failAttempt", stepRun });
+
+      expect(
+        run.fire({ role: "giveUp", stepRun }).map(({ role }) => role),
+      ).toEqual(["giveUp"]);
+    }
+
+    expect(run.held()).toEqual([]);
+    expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([
+      { kind: "stepFailure", stepId: "get", itemPath: [1] },
+      { kind: "stepFailure", stepId: "get", itemPath: [0] },
     ]);
     expectFiringsFollowArcs(net, run);
     expectActualModeReplays(run);
@@ -667,10 +721,14 @@ describe("startFlowNetRun", () => {
       "startAttempt",
     ]);
 
-    const [startStep] = run.firings;
+    const [startStep, startAttempt] = run.firings;
 
-    expect(startStep?.read).toHaveLength(2);
-    expect(new Set(startStep?.read.map(({ token }) => token)).size).toBe(1);
+    /* One arc reads the value for both inputs: a transition can't reach a fused place twice. */
+    expect(startStep?.read).toHaveLength(1);
+    expect(run.attemptInputs(startAttempt!).inputs).toMatchObject({
+      url: { kind: "flowInput", inputName: "url" },
+      description: { kind: "flowInput", inputName: "url" },
+    });
     expectFiringsFollowArcs(net, run);
     expectActualModeReplays(run);
   });
@@ -1158,7 +1216,7 @@ describe("startFlowNetRun", () => {
     expect(run.isPending({ stepId: "get", itemPath: [] })).toBe(false);
   });
 
-  describe.each(hardcodedFlowDefinitions)(
+  describe.each(flowDefinitionsThatRunToEnd)(
     "the %s flow",
     (_, flowDefinition) => {
       const flowInputNames = flowDefinition.inputs.map(({ name }) => name);

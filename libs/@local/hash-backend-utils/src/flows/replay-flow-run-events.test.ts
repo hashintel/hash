@@ -189,17 +189,11 @@ const netStatusOf = (status: FlowStepStatus): NetStepRunStatus => {
   }
 };
 
-/** Whether a token is at a flow output's endpoint: a place of the root net, or a port of a step's instance. */
+/** Whether a token is at a flow output's place. */
 const isAt = (
   path: FlowNetPath,
-  endpoint: FlowNetMetadata["flowOutputs"][string],
-) =>
-  isSameFlowNetPath(
-    path,
-    endpoint.kind === "place"
-      ? [endpoint.placeId]
-      : [endpoint.componentInstanceId, endpoint.portPlaceId],
-  );
+  { placeId }: FlowNetMetadata["flowOutputs"][string],
+) => isSameFlowNetPath(path, [placeId]);
 
 const replayFixture = async (fixtureName: string) => {
   const fixture = loadFixture(fixtureName);

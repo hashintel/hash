@@ -85,30 +85,37 @@ describe("generateActionSubnet", () => {
         resolvedKinds,
       );
 
-      it("has a port per input and output, and ones it succeeds and gives up through", async () => {
+      it("has an in port per input, and an out port per output and for succeeding and giving up", async () => {
         const subnet = await generateActionSubnet(
           actionDefinition,
           resolvedKinds,
         );
 
+        const portDirections = (
+          places: { id: string; portDirection?: string }[],
+        ) =>
+          Object.fromEntries(
+            places.map(({ id, portDirection }) => [id, portDirection]),
+          );
+
         expect(
-          subnet.places
-            .filter(({ isPort }) => isPort)
-            .map(({ id }) => id)
-            .sort(),
+          portDirections(subnet.places.filter(({ isPort }) => isPort)),
         ).toEqual(
-          [
+          portDirections([
             ...(actionDefinition.inputs.length > 0
               ? actionDefinition.inputs.map(({ name }) =>
                   generateInputPortKey(subnetName, name),
                 )
-              : [generateStartPortKey(subnetName)]),
-            ...actionDefinition.outputs.map(({ name }) =>
-              generateOutputPortKey(subnetName, name),
-            ),
-            generateDonePortKey(subnetName),
-            generateGaveUpPortKey(subnetName),
-          ].sort(),
+              : [generateStartPortKey(subnetName)]
+            ).map((id) => ({ id, portDirection: "in" })),
+            ...[
+              ...actionDefinition.outputs.map(({ name }) =>
+                generateOutputPortKey(subnetName, name),
+              ),
+              generateDonePortKey(subnetName),
+              generateGaveUpPortKey(subnetName),
+            ].map((id) => ({ id, portDirection: "out" })),
+          ]),
         );
       });
 

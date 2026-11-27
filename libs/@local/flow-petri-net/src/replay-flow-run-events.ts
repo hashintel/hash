@@ -265,7 +265,9 @@ const countAtRootPlaces = (placedTokens: readonly FlowNetPlacedToken[]) => {
 /**
  * A replay as an execution for Petrinaut's Actual mode, on the root net only. Actual mode keys a marking by place id
  * alone, which can't tell the places of one instance of a subnet from another's, so it leaves out the tokens inside
- * instances and the firings of subnets' transitions.
+ * instances. A subnet's transition that puts a token into a port fused with a place of the root net is kept, under
+ * its instance's id, as that place's count changes: a recording parses ids into Petrinaut ids, which would change the
+ * flattener's scoped ids.
  */
 export const toRootNetActualModeExecution = (
   replay: FlowRunReplay,
@@ -274,12 +276,21 @@ export const toRootNetActualModeExecution = (
   transitionFirings: ActualModeTransitionFiring[];
 } => ({
   initialState: countAtRootPlaces(replay.initialMarking),
-  transitionFirings: replay.firings
-    .filter(({ transitionPath }) => transitionPath.length === 1)
-    .map((firing) => ({
-      transitionId: firing.transitionPath[0],
-      input: countAtRootPlaces(firing.consumed),
-      output: countAtRootPlaces(firing.produced),
-      ts: firing.occurredAt,
-    })),
+  transitionFirings: replay.firings.flatMap((firing) => {
+    const input = countAtRootPlaces(firing.consumed);
+    const output = countAtRootPlaces(firing.produced);
+
+    return firing.transitionPath.length === 1 ||
+      Object.keys(input).length > 0 ||
+      Object.keys(output).length > 0
+      ? [
+          {
+            transitionId: firing.transitionPath[0],
+            input,
+            output,
+            ts: firing.occurredAt,
+          },
+        ]
+      : [];
+  }),
 });
