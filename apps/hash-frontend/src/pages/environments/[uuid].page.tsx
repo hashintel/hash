@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { getLayoutWithSidebar } from "../../shared/layout";
-import { exampleTileBySlug } from "../processes.page/example-tiles-data";
+import { exampleTileBySlug } from "../environments.page/example-tiles-data";
 import {
   ProcessEditor,
   type ProcessEditorView,
@@ -11,7 +11,7 @@ import {
 import type { NextPageWithLayout } from "../../shared/layout";
 
 /**
- * Single page backing both `/processes/draft` and `/processes/<uuid>`.
+ * Single page backing both `/environments/draft` and `/environments/<uuid>`.
  *
  * We deliberately render `<ProcessEditor>` even before `router.isReady`
  * (passing `view={null}`) so the editor starts loading on the very first

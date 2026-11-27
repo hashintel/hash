@@ -21,8 +21,8 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
     .join("; ");
 
 /**
- * Whether `pathname` is the process editor (`/processes/<uuid>` or
- * `/processes/draft`, with an optional trailing slash), the one route whose
+ * Whether `pathname` is the process editor (`/environments/<uuid>` or
+ * `/environments/draft`, with an optional trailing slash), the one route whose
  * policy lets Petrinaut evaluate strings and load its `data:` fonts.
  *
  * The policy belongs to the document, not the route, so a client-side
@@ -30,7 +30,7 @@ const buildDirectiveString = (directives: Record<string, string[]>): string =>
  * both on arriving from another route and on leaving for one.
  */
 export const isProcessEditorPath = (pathname: string): boolean =>
-  /^\/processes\/[^/]+\/?$/.test(pathname);
+  /^\/environments\/[^/]+\/?$/.test(pathname);
 
 /** The Vercel toolbar, which Vercel injects into preview deployments. */
 const isVercelPreview = (): boolean =>

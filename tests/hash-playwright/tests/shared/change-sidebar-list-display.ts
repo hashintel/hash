@@ -8,14 +8,20 @@ const waitForUpdateEntity = (page: Page) =>
       res.request().postData()?.includes("updateEntity") === true,
   );
 
+const sidebarSections = {
+  Entities: { path: "/entities", settingLabel: "Show entity shortcuts" },
+  Types: { path: "/types", settingLabel: "Show type shortcuts" },
+} as const;
+
 /**
- * Changes the user's settings for how entities or types should be
- * displayed in the sidebar, waits for the sidebar to reflect the
- * change, and — in list mode — expands the section.
+ * Changes the user's setting for whether the sidebar lists shortcuts to
+ * entities or types (`list`) or only links to them (`link`).
  *
- * Each step waits for its `updateEntity` PATCH to complete before
- * proceeding to avoid concurrent-update errors on the user entity
- * (see FE-600).
+ * The sidebar link itself is always shown. The shortcuts appear under it
+ * while that section is open; see {@link expandSidebarSection}.
+ *
+ * Waits for the `updateEntity` PATCH to complete before returning, to avoid
+ * concurrent-update errors on the user entity (see FE-600).
  */
 export const changeSidebarListDisplay = async ({
   displayAs,
@@ -30,7 +36,7 @@ export const changeSidebarListDisplay = async ({
   await page.getByRole("link", { name: "Settings" }).click();
   await page.getByRole("link", { name: "Personalization" }).click();
 
-  const toggle = page.getByLabel(`${section} as a`);
+  const toggle = page.getByLabel(sidebarSections[section].settingLabel);
   await expect(toggle).toBeVisible();
 
   const alreadyCorrect =
@@ -50,26 +56,16 @@ export const changeSidebarListDisplay = async ({
     await patchDone;
   }
 
-  const sidebar = page.getByTestId("page-sidebar");
-  const sidebarLink = sidebar.getByRole("link", {
-    name: section,
-    exact: true,
-  });
-
-  if (displayAs === "list") {
-    await expect(sidebarLink).toBeHidden();
-  } else {
-    await expect(sidebarLink).toBeVisible();
-  }
+  await expect(toggle).toBeChecked({ checked: displayAs === "list" });
 };
 
 /**
- * Ensure a sidebar section is expanded. If the section is collapsed
- * (`MuiCollapse-hidden`), clicks the header and waits for the
- * `updateEntity` PATCH to complete (FE-600).
+ * Opens a section from its sidebar link and ensures its shortcuts are
+ * expanded. If they are collapsed, clicks the expand button and waits for
+ * the `updateEntity` PATCH to complete (FE-600).
  *
- * The section must already be in list mode (i.e. the NavLink header
- * exists in the DOM).
+ * The section must already be in list mode: the shortcuts are only rendered
+ * in list mode, and only while the section's own page is open.
  */
 export const expandSidebarSection = async ({
   page,
@@ -80,21 +76,22 @@ export const expandSidebarSection = async ({
 }) => {
   const sidebar = page.getByTestId("page-sidebar");
 
-  // The NavLink renders: <div> <div>…header…</div> <div class="MuiCollapse-root">…</div> </div>
-  // The Collapse's previousElementSibling contains the section header text.
-  const isCollapsed = await sidebar.evaluate((sidebarEl, sectionName) => {
-    const collapse = Array.from(
-      sidebarEl.querySelectorAll(".MuiCollapse-root"),
-    ).find((col) => {
-      const text = col.previousElementSibling?.textContent;
-      return text != null && text.trim().startsWith(sectionName);
-    });
-    return collapse?.classList.contains("MuiCollapse-hidden") ?? false;
-  }, section);
+  await sidebar.getByRole("link", { name: section, exact: true }).click();
+  await page.waitForURL(
+    (url) => url.pathname === sidebarSections[section].path,
+  );
 
-  if (isCollapsed) {
+  const expandButton = sidebar.getByRole("button", {
+    name: section,
+    exact: true,
+  });
+  await expect(expandButton).toBeVisible();
+
+  if ((await expandButton.getAttribute("aria-expanded")) !== "true") {
     const expandDone = waitForUpdateEntity(page);
-    await sidebar.getByText(section, { exact: true }).click();
+    await expandButton.click();
     await expandDone;
   }
+
+  await expect(expandButton).toHaveAttribute("aria-expanded", "true");
 };

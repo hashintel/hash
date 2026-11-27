@@ -33,6 +33,12 @@ export const queryEntitySubgraphQuery = gql`
   }
 `;
 
+export const querySidebarDashboardsQuery = gql`
+  query querySidebarDashboards($request: QueryEntitySubgraphRequest!) {
+    queryEntitySubgraph(request: $request)
+  }
+`;
+
 export const summarizeEntitiesQuery = gql`
   query summarizeEntities($request: SummarizeEntitiesParams!) {
     summarizeEntities(request: $request)

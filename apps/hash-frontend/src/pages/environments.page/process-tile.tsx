@@ -6,7 +6,7 @@ import { PetriNetPreview } from "./petri-net-preview";
 import type { SDCPN } from "@hashintel/petrinaut";
 
 /**
- * Card UI used for each entry in the `/processes` list. The card body shows
+ * Card UI used for each entry in the `/environments` list. The card body shows
  * a small SVG preview of the net, and the strip at the bottom shows the
  * process title.
  */

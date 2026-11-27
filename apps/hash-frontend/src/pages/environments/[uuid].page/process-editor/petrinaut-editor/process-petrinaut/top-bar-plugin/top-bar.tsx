@@ -63,7 +63,7 @@ export const TopBarBreadcrumbs = () => {
            * styles are the only reliable channel, hence the styled span
            * and the inline-styled icon above.
            */}
-          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
+          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Environments</span>
         </Button>
         <Icon name="chevronRight" size="xs" />
       </Box>
@@ -72,7 +72,7 @@ export const TopBarBreadcrumbs = () => {
         size="sm"
         value={topBar.title}
         onChange={topBar.onTitleChange}
-        placeholder="Process"
+        placeholder="Environment"
         readonly={topBar.readonly}
       />
     </>

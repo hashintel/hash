@@ -67,7 +67,7 @@ export const getPersistedNetsFromSubgraph = (
 /**
  * Fetch the persisted Petri net entities visible to the current user.
  *
- * Used both by the `/processes` list page (to render tiles) and by the editor
+ * Used both by the `/environments` list page (to render tiles) and by the editor
  * (to resolve a URL uuid back to the full entity record).
  */
 export const usePersistedNets = () => {

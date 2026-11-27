@@ -34,12 +34,18 @@ const directiveSources = (header: string, directive: string): string[] => {
 };
 
 const processEditorPaths = [
-  "/processes/00000000-0000-4000-8000-000000000002",
-  "/processes/00000000-0000-4000-8000-000000000002/",
-  "/processes/draft",
+  "/environments/00000000-0000-4000-8000-000000000002",
+  "/environments/00000000-0000-4000-8000-000000000002/",
+  "/environments/draft",
 ];
 
-const otherPaths = ["/processes", "/processes/", "/processes/x/y", "/", "/new"];
+const otherPaths = [
+  "/environments",
+  "/environments/",
+  "/environments/x/y",
+  "/",
+  "/new",
+];
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -86,7 +92,7 @@ describe("buildCspHeader in production", () => {
     vi.stubEnv("NODE_ENV", "production");
     const processHeader = buildCspHeader({
       nonce: "abc",
-      pathname: "/processes/draft",
+      pathname: "/environments/draft",
     });
     const defaultHeader = buildCspHeader({ nonce: "abc", pathname: "/" });
 

@@ -22,11 +22,9 @@ import { Suspense, useEffect, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeEmail } from "@local/hash-isomorphic-utils/normalize";
 
-import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-instance.queries";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
 import { constructMinimalUser } from "../lib/user-and-org";
@@ -42,6 +40,7 @@ import { PropertyTypesContextProvider } from "../shared/property-types-context-p
 import { RoutePageInfoProvider } from "../shared/routing";
 import { trackPageView } from "../shared/telemetry-client";
 import { ErrorFallback } from "./_app.page/error-fallback";
+import { isFeatureFlaggedPageHidden } from "./_app.page/is-feature-flagged-page-hidden";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthInfoProvider } from "./shared/auth-info-provider";
@@ -52,18 +51,13 @@ import { setSentryUser } from "./shared/sentry";
 import { SlideStackProvider } from "./shared/slide-stack";
 import { WorkspaceContextProvider } from "./shared/workspace-context-provider";
 
-import type {
-  GetHashInstanceSettingsQueryQuery,
-  HasAccessToHashQuery,
-  MeQuery,
-} from "../graphql/api-types.gen";
+import type { HasAccessToHashQuery, MeQuery } from "../graphql/api-types.gen";
 import type { MinimalUser } from "../lib/user-and-org";
 import type { NextPageWithLayout } from "../shared/layout";
 import type { AppPage } from "./shared/_app.util";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EmotionCache } from "@emotion/react";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type { AppProps as NextAppProps } from "next/app";
 import type { FunctionComponent } from "react";
@@ -318,21 +312,6 @@ const getPrimaryEmailVerificationStatus = async (cookie?: string) =>
     })
     .catch(() => undefined);
 
-/**
- * A map from a feature flag, to the list of pages which should not be accessible
- * if that feature flag is not enabled for the user.
- */
-const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
-  pages: [],
-  documents: [],
-  canvases: [],
-  notes: ["/notes"],
-  workers: ["/goals", "/flows", "/workers", "/agents"],
-  ai: ["/goals"],
-  supplyChain: [],
-  dashboards: ["/dashboards", "/dashboard/[dashboard-id]"],
-};
-
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const {
     ctx: { req, pathname, asPath },
@@ -473,34 +452,17 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     });
   }
 
-  // For each feature flag...
-  if (!redirectTo) {
-    for (const featureFlag of featureFlags) {
-      /**
-       * ...if the user has not enabled the feature flag,
-       * and the page is a hidden pathname for that feature flag...
-       */
-      if (
-        !user.enabledFeatureFlags.includes(featureFlag) &&
-        featureFlagHiddenPathnames[featureFlag].includes(pathname)
-      ) {
-        const isUserAdmin = await apolloClient
-          .query<GetHashInstanceSettingsQueryQuery>({
-            query: getHashInstanceSettings,
-            context: { headers: { cookie } },
-          })
-          .then(({ data }) => !!data.hashInstanceSettings?.isUserAdmin);
-
-        if (!isUserAdmin) {
-          // ...then redirect them to the home page instead.
-          redirectTo = redirectInGetInitialProps({
-            appContext,
-            location: "/",
-          });
-          break;
-        }
-      }
-    }
+  if (
+    !redirectTo &&
+    isFeatureFlaggedPageHidden({
+      pathname,
+      enabledFeatureFlags: user.enabledFeatureFlags,
+    })
+  ) {
+    redirectTo = redirectInGetInitialProps({
+      appContext,
+      location: "/",
+    });
   }
 
   return { initialAuthenticatedUserSubgraph, user, redirectTo };

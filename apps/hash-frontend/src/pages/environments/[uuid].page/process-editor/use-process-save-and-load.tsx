@@ -22,7 +22,7 @@ import {
   getPersistedNetsFromSubgraph,
   type PersistedNet,
   usePersistedNets,
-} from "../../../processes.page/use-persisted-nets";
+} from "../../../environments.page/use-persisted-nets";
 import { useActiveWorkspace } from "../../../shared/workspace-context";
 
 import type {

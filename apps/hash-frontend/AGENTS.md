@@ -218,7 +218,7 @@ Examples in the codebase:
 - Querying with links: `src/pages/notifications.page/notifications-with-links-context.tsx`
 - Creating entities: `src/pages/@/[shortname]/entities/[entity-uuid].page/create-entity-page.tsx`
 - Updating entities: `src/components/hooks/use-update-authenticated-user.ts`
-- Dashboard queries: `src/pages/dashboards.page.tsx`
+- Dashboard queries: `src/shared/layout/layout-with-sidebar/sidebar/pages-section/dashboard-list.tsx`
 
 <!-- BEGIN:nextjs-agent-rules -->
 

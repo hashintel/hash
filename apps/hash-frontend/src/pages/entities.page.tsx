@@ -28,6 +28,7 @@ import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { getPathFromAsPath } from "../lib/routes";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../shared/generate-link-parameters";
@@ -38,11 +39,14 @@ import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
+import { CreateDashboard } from "./entities.page/create-dashboard";
+import { usePageEntityTypeIds } from "./entities.page/use-page-entity-type-ids";
 import { CreateButton } from "./shared/create-button";
 import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { largePageMaxWidthCss } from "./shared/page-width";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
+import { useEnabledSections } from "./shared/use-enabled-sections";
 import { useActiveWorkspace } from "./shared/workspace-context";
 
 import type { NextPageWithLayout } from "../shared/layout";
@@ -174,8 +178,14 @@ export const CreateButtons: FunctionComponent<{
 
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
+  const enabledSections = useEnabledSections();
+  const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
+
+  const isPagesRoute = getPathFromAsPath(router.asPath) === "/pages";
+  const { pageEntityTypeIds, loading: pageEntityTypesLoading } =
+    usePageEntityTypeIds();
 
   const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
     if (router.isReady) {
@@ -340,20 +350,38 @@ const EntitiesPage: NextPageWithLayout = () => {
                 {pageTitle}
               </Typography>
             </Stack>
-            <Fade in={displayCreateEntityButton}>
-              <Box>
-                <CreateButtons entityType={entityType} />
-              </Box>
-            </Fade>
+            <Stack direction="row" gap={3} alignItems="center">
+              <Fade in={displayCreateEntityButton}>
+                <Box>
+                  <CreateButtons entityType={entityType} />
+                </Box>
+              </Fade>
+              {isViewAllPagesPage &&
+                enabledSections.dashboards &&
+                activeWorkspaceWebId && (
+                  <CreateDashboard
+                    key={activeWorkspaceWebId}
+                    webId={activeWorkspaceWebId}
+                  />
+                )}
+            </Stack>
           </Stack>
         </Container>
       </Box>
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
-        <EntitiesVisualizer
-          entityTypeBaseUrl={entityTypeBaseUrl}
-          entityTypeId={entityTypeId}
-          hideColumns={hideColumns}
-        />
+        {isPagesRoute && !pageEntityTypeIds ? (
+          <Typography>
+            {pageEntityTypesLoading ? "Loading pages…" : "No pages to display."}
+          </Typography>
+        ) : (
+          <EntitiesVisualizer
+            entityTypeBaseUrl={isPagesRoute ? undefined : entityTypeBaseUrl}
+            entityTypeId={isPagesRoute ? undefined : entityTypeId}
+            entityTypeIds={isPagesRoute ? pageEntityTypeIds : undefined}
+            isViewingPages={isPagesRoute}
+            hideColumns={hideColumns}
+          />
+        )}
       </Container>
     </>
   );

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { StarRegularIcon, StarSolidIcon } from "@hashintel/design-system";
 
 import { useUpdateAuthenticatedUser } from "../../../../../../../components/hooks/use-update-authenticated-user";
+import { useEnabledSections } from "../../../../../../../pages/shared/use-enabled-sections";
 import { useUserPreferences } from "../../../../../../use-user-preferences";
 import { SidebarMenuItem } from "./sidebar-menu-item";
 
@@ -31,6 +32,7 @@ export const FavoriteMenuItem = ({
   item: Favorite;
   popupState: PopupState;
 }) => {
+  const enabledSections = useEnabledSections();
   const preferences = useUserPreferences();
 
   const isFavorite = useMemo(
@@ -56,6 +58,12 @@ export const FavoriteMenuItem = ({
 
     popupState.close();
   };
+
+  // The sidebar only lists favorites behind this flag, so without it a new
+  // favorite would be saved and never shown.
+  if (!enabledSections.favorites) {
+    return null;
+  }
 
   return (
     <SidebarMenuItem

@@ -674,7 +674,7 @@ const seedDashboardDemo = async () => {
   }
 
   logger.info(
-    `✅ Demo dashboard seeded (${createdCount} new item(s), ${updatedCount} synchronized). Open /dashboards in the app to view it.`,
+    `✅ Demo dashboard seeded (${createdCount} new item(s), ${updatedCount} synchronized). Open /pages in the app to view it.`,
   );
 };
 

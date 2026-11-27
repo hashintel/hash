@@ -10,14 +10,14 @@ import {
 import type { SDCPN } from "@hashintel/petrinaut";
 
 export type ExampleTile = {
-  /** URL-safe identifier, used in the `/processes/draft?example=<slug>` query. */
+  /** URL-safe identifier, used in the `/environments/draft?example=<slug>` query. */
   slug: string;
   title: string;
   petriNetDefinition: SDCPN;
 };
 
 /**
- * Curated set of example nets surfaced on the `/processes` list page so the
+ * Curated set of example nets surfaced on the `/environments` list page so the
  * grid is never empty. The slug doubles as the `?example=` query parameter
  * the editor reads when seeding a fresh draft.
  */

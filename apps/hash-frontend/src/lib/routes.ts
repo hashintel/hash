@@ -12,3 +12,13 @@ export const constructPageRelativeUrl = (params: {
       ? `#${getBlockDomId(params.highlightedBlockEntityId)}`
       : ``
   }`;
+
+export const constructDashboardRelativeUrl = (params: {
+  dashboardEntityUuid: string;
+}): string => `/dashboard/${params.dashboardEntityUuid}`;
+
+/**
+ * The path part of the router's `asPath`, without its query string or hash.
+ */
+export const getPathFromAsPath = (asPath: string): string =>
+  asPath.split(/[?#]/)[0]!;

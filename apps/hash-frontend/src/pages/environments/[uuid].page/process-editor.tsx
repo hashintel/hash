@@ -129,13 +129,15 @@ type Loaded = {
 };
 
 const draftPathForSeedKey = (seedKey: string | null): string =>
-  seedKey === null ? "/processes/draft" : `/processes/draft?example=${seedKey}`;
+  seedKey === null
+    ? "/environments/draft"
+    : `/environments/draft?example=${seedKey}`;
 
 const pathForLoadedView = (loadedView: NetMode): string => {
   if (loadedView.kind === "draft") {
     return draftPathForSeedKey(loadedView.seedKey);
   }
-  return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
+  return `/environments/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
 };
 
 const viewMatchesLoaded = (
@@ -264,7 +266,7 @@ export const ProcessEditor = ({
           view: { kind: "draft", seedKey: target.seedKey },
           load: {
             definition: target.seed?.petriNetDefinition ?? emptySDCPN,
-            title: target.seed?.title ?? "Process",
+            title: target.seed?.title ?? "Environment",
             mode: { kind: "draft", seedKey: target.seedKey },
             savedSnapshot: null,
             reason: "open",
@@ -439,7 +441,7 @@ export const ProcessEditor = ({
   );
 
   const navigateBack = useCallback(() => {
-    void router.push("/processes");
+    void router.push("/environments");
   }, [router]);
 
   /** Loads a saved revision of the open net, fetched with its history. */
@@ -492,7 +494,7 @@ export const ProcessEditor = ({
             ? { ...current, view: { kind: "saved", entityId: result.entityId } }
             : current,
         );
-        void router.replace(`/processes/${savedUuid}`);
+        void router.replace(`/environments/${savedUuid}`);
       }
       return result;
     },

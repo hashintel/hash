@@ -71,6 +71,8 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
         </Typography>
 
         <IconButton
+          aria-expanded={expanded}
+          aria-label={title}
           size="xs"
           unpadded
           rounded

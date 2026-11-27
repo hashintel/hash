@@ -276,7 +276,7 @@ const exportLiveNet = async (
 };
 
 const processUrl = (entityUuid: string) =>
-  new URL(`/processes/${entityUuid}`, hashOrigins.frontend).href;
+  new URL(`/environments/${entityUuid}`, hashOrigins.frontend).href;
 
 /**
  * Written to the run directory when a capture fails and removed by the next

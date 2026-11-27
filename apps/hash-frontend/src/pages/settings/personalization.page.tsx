@@ -39,17 +39,7 @@ const SidebarItemDisplaySwitch = ({
           fontWeight: 500,
         })}
       >
-        {`${section === "entities" ? "Entities" : "Types"} as a`}
-      </Typography>
-      <Typography
-        variant="smallTextLabels"
-        sx={({ palette }) => ({
-          color:
-            currentDisplay === "link" ? palette.gray[80] : palette.gray[40],
-          fontWeight: 500,
-        })}
-      >
-        link
+        {`Show ${section === "entities" ? "entity" : "type"} shortcuts`}
       </Typography>
       <Switch
         checked={currentDisplay === "list"}
@@ -63,16 +53,6 @@ const SidebarItemDisplaySwitch = ({
         size="small"
         sx={{ mx: 0.5 }}
       />
-      <Typography
-        variant="smallTextLabels"
-        sx={({ palette }) => ({
-          color:
-            currentDisplay === "list" ? palette.gray[80] : palette.gray[40],
-          fontWeight: 500,
-        })}
-      >
-        list
-      </Typography>
     </Stack>
   );
 };
@@ -94,7 +74,7 @@ const Personalization: NextPageWithLayout = () => {
             mb: 2,
           })}
         >
-          In the sidebar, show...
+          Additional sidebar lists
         </Typography>
         <Stack gap={1.5}>
           <SidebarItemDisplaySwitch section="entities" />
