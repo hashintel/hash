@@ -150,6 +150,12 @@ pages from the guide template.
 - [Handle contract gaps](doc:core.handle/contract-gaps): where the
   `PetrinautDocHandle` contract leaves behaviour open, what happens today, and
   the change each gap calls for.
+- [Visualizers off the main thread](doc:visualizers/pipeline): the proposal
+  for checking, compiling and running visualizers away from the UI thread,
+  with the measurements behind it. Type checking and the view HIR are built,
+  and [Compiling user code](doc:core.hir/user-code) describes them. Evaluation
+  in a worker, visualizers on nets and the canvas backend are not. Its "Today"
+  section describes the Babel compiler as it was.
 
 ## Measurements
 
