@@ -146,7 +146,24 @@ pub(super) fn expand_enum(
         };
     });
 
-    // 4. Id trait impl
+    // 4. Derived `PartialEq`
+    // rustc accepts a constant as a pattern only when its type derives `PartialEq`. The match below
+    // therefore fails to compile for an enum whose `PartialEq` is written by hand.
+    // Why does this work? because `PartialEq` also derives `StructuralPartialEq`, so you _could_
+    // implement it your own, but this is a cheap sanity check.
+    let later_variants = variants.iter().skip(1);
+    output.extend(quote! {
+        const _: () = {
+            const FIRST: #name = #name::from_discriminant(0);
+
+            match FIRST {
+                FIRST => {}
+                #(#name::#later_variants => {})*
+            }
+        };
+    });
+
+    // 5. Id trait impl
     let max = Literal::usize_unsuffixed(variant_count.saturating_sub(1));
     let count = Literal::usize_unsuffixed(variant_count);
     let check = range_check(
@@ -161,9 +178,9 @@ pub(super) fn expand_enum(
         // SAFETY: `Id` requires every operation on an id to be a pure function of the number it
         // stands for, and equality to be equality of that number. The discriminant is that number,
         // and a unit enum holds no other state. The conversions generated here read the
-        // discriminant alone. Comparison, hashing and `Debug` are the enum's own impls, which this
-        // derive requires to be derived: a derived impl on a unit enum reads the discriminant
-        // alone.
+        // discriminant alone. `PartialEq` is derived, which the match above checks. Ordering,
+        // hashing and `Debug` are the enum's own impls, which this derive requires to be derived
+        // as well. A derived impl on a unit enum reads the discriminant alone.
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
         #konst unsafe impl #krate::id::Id for #name {
@@ -218,7 +235,7 @@ pub(super) fn expand_enum(
         }
     });
 
-    // 5. TryFrom impls
+    // 6. TryFrom impls
     for int in [quote!(u32), quote!(u64), quote!(usize)] {
         output.extend(quote! {
             #[automatically_derived]
@@ -243,7 +260,7 @@ pub(super) fn expand_enum(
         });
     }
 
-    // 6. HasId impl
+    // 7. HasId impl
     output.extend(quote! {
         #[automatically_derived]
         #konst impl #krate::id::HasId for #name {
@@ -256,7 +273,7 @@ pub(super) fn expand_enum(
         }
     });
 
-    // 7. Display
+    // 8. Display
     match display {
         DisplayAttribute::None => {}
         DisplayAttribute::Format(format) => {
@@ -286,7 +303,7 @@ pub(super) fn expand_enum(
         }
     }
 
-    // 8. Step (optional)
+    // 9. Step (optional)
     if traits.contains(&Trait::Step) {
         output.extend(quote! {
             impl ::core::iter::Step for #name {

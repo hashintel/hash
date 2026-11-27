@@ -17,7 +17,9 @@ mod sym;
 /// implementations. For struct-based Id types, use [`define_id!`] instead.
 ///
 /// The enum must have `#[repr(u8)]` (or the appropriate integer type for the
-/// variant count) and derive the standard traits required by [`Id`].
+/// variant count) and derive the standard traits required by [`Id`]. [`PartialEq`] must come from
+/// `#[derive(PartialEq)]` or `#[derive_const(PartialEq)]`: the expansion fails to compile when it
+/// is implemented by hand.
 ///
 /// # Example
 ///

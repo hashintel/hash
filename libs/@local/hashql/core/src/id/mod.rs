@@ -55,6 +55,25 @@ impl Display for IdError {
 /// Provides type safety for IDs of different domains (nodes, users, etc.)
 /// while maintaining a consistent conversion API.
 ///
+/// [`newtype!`] implements this trait for a struct and [`#[derive(Id)]`](derive@Id) for a unit enum.
+/// The derive refuses an enum whose [`PartialEq`] is written by hand, because such an impl could
+/// compare something other than the variant:
+///
+/// ```compile_fail
+/// # use hashql_core::id::Id;
+/// #[derive(Debug, Copy, Clone, Eq, PartialOrd, Ord, Hash, Id)]
+/// enum Axis {
+///     Horizontal,
+///     Vertical,
+/// }
+///
+/// impl PartialEq for Axis {
+///     fn eq(&self, _: &Self) -> bool {
+///         true
+///     }
+/// }
+/// ```
+///
 /// # Safety
 ///
 /// An ID stands for one number, fixed when the ID is created. Every operation this trait and its
