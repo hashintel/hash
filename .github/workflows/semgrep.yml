@@ -52,7 +52,7 @@ jobs:
 
       - name: Run Semgrep
         # Exit code 1 means blocking findings, which code scanning reports; any other code is a failed scan.
-        run: semgrep ci --sarif --output=semgrep.sarif || [[ $? -eq 1 ]]
+        run: semgrep ci --sarif --output=semgrep.sarif --no-suppress-errors || [[ $? -eq 1 ]]
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_TOKEN }}
 
