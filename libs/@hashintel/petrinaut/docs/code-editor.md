@@ -36,3 +36,7 @@ Changes apply automatically to the model. Simulation modes keep model functions 
 Visualizer edits are saved immediately. The preview and diagnostics update after a brief pause while typing, with periodic updates during longer bursts. Clicking elsewhere or leaving the editor applies the latest preview update.
 
 The Properties Panel and Definitions show the same saved code. Switching between them keeps your latest edits.
+
+## Theme
+
+Every code editor shares one theme. Choose it under **User settings › General › Code editor**: **Petrinaut Light** (the default) or **HASH Light**. Open editors change immediately, and the choice is saved with your other [preferences](visual-settings.md#code-editor-theme).

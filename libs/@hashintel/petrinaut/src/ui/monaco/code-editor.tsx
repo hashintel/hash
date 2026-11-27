@@ -3,7 +3,9 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { CODE_FONT_FAMILY } from "../shared/ui-constants";
+import { resolveCodeEditorThemeId } from "./code-editor-themes";
 import { MonacoContext } from "./context";
 import { releaseReplacedModels } from "./release-replaced-models";
 
@@ -214,6 +216,7 @@ const CodeEditorInner: React.FC<
   ...props
 }) => {
   const { Editor } = environment;
+  const { codeEditorTheme } = use(UserSettingsContext);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   // While the editor has focus its model is the source of truth: the wrapper
   // must not echo the (possibly one-keystroke-stale) controlled value back
@@ -400,7 +403,7 @@ const CodeEditorInner: React.FC<
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
-        theme="petrinaut-light"
+        theme={resolveCodeEditorThemeId(codeEditorTheme)}
         saveViewState={false}
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
