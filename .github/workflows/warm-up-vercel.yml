@@ -11,10 +11,15 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   warm_up_production_site:
     name: Warm up Vercel lambdas
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
 
     steps:
       - name: Warm up Vercel lambdas

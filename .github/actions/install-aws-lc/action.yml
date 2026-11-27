@@ -24,13 +24,13 @@ runs:
 
     - name: Restore AWS-LC
       id: restore
-      uses: actions/cache/restore@v4.3.0
+      uses: actions/cache/restore@v6.1.0
       with:
         path: ${{ steps.key.outputs.prefix }}
         key: ${{ steps.key.outputs.key }}
 
     - name: Build AWS-LC
-      if: steps.restore.outputs.cache-hit != 'true'
+      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
       shell: bash
       env:
         BUILD_PREFIX: ${{ github.action_path }}/build-prefix.sh
@@ -39,8 +39,8 @@ runs:
       run: '"$BUILD_PREFIX" "$PREFIX" "$PROFILE"'
 
     - name: Save AWS-LC
-      if: steps.restore.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4.3.0
+      if: ${{ steps.restore.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v6.1.0
       with:
         path: ${{ steps.key.outputs.prefix }}
         key: ${{ steps.key.outputs.key }}

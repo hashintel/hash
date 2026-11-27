@@ -14,31 +14,47 @@ on:
   schedule:
     - cron: "30 0 1,15 * *" # scheduled for 00:30 UTC on both the 1st and 15th of the month
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   semgrep:
     name: Scan
+    environment:
+      name: Semgrep
+      deployment: false
 
     permissions:
       contents: read
-      security-events: write
+      security-events: write # uploads the findings to code scanning
 
     # Change this in the event of future self-hosting of Action runner:
     runs-on: ubuntu-26.04
+    # A pull request scans only its diff; a push or a scheduled run scans the whole repository, which takes hours.
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 360 }}
 
     container:
       image: returntocorp/semgrep:1.151.0@sha256:d3d1be3a3770514d16a6a57b9761575d7536d70f45a5220274f4ec7d55c442b9
 
-    # Skip any PR created by Dependabot to avoid permission issues:
-    if: (github.actor != 'dependabot[bot]')
+    # Pull requests from Dependabot and from forks get no secrets, and the scan fails without a token.
+    if: ${{ github.actor != 'dependabot[bot]' && !github.event.pull_request.head.repo.fork }}
 
     steps:
       - uses: actions/checkout@v6.0.2
         name: Check-out Git project source
 
       - name: Run Semgrep
-        run: semgrep ci --sarif --output=semgrep.sarif || true
+        # Exit code 1 means blocking findings, which code scanning reports; any other code is a failed scan.
+        run: semgrep ci --sarif --output=semgrep.sarif --no-suppress-errors || [[ $? -eq 1 ]]
         env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_TOKEN }}
 
       - name: Check SARIF file exists following Semgrep run
         id: sarif_file_check
@@ -48,6 +64,6 @@ jobs:
 
       - name: Upload SARIF file for GitHub Advanced Security Dashboard
         uses: github/codeql-action/upload-sarif@v4.32.2
-        if: steps.sarif_file_check.outputs.files_exists == 'true'
+        if: ${{ steps.sarif_file_check.outputs.files_exists == 'true' }}
         with:
           sarif_file: semgrep.sarif

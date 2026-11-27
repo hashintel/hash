@@ -14,21 +14,23 @@ runs:
 
     - name: Restore yarn corepack cache
       id: cache-restore
-      uses: actions/cache/restore@v4.3.0
+      uses: actions/cache/restore@v6.1.0
       with:
         path: .yarn/corepack.tgz
         key: yarn-corepack-${{ steps.find-version.outputs.version }}
 
     - name: Download yarn corepack
-      if: steps.cache-restore.outputs.cache-hit != 'true'
+      if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
       shell: bash
+      env:
+        YARN_VERSION: ${{ steps.find-version.outputs.version }}
       run: |
-        corepack pack yarn@${{ steps.find-version.outputs.version }}
+        corepack pack "yarn@$YARN_VERSION"
         mv corepack.tgz .yarn/corepack.tgz
 
     - name: Save yarn corepack cache
-      uses: actions/cache/save@v4.3.0
-      if: steps.cache-restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6.1.0
+      if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
       with:
         path: .yarn/corepack.tgz
         key: yarn-corepack-${{ steps.find-version.outputs.version }}

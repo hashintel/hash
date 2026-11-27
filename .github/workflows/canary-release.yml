@@ -1,17 +1,27 @@
 name: Canary Release
 on: workflow_dispatch
 
-permissions:
-  contents: write
-  pull-requests: read # the changelog formatter in `@local/repo-chores`
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   sccache-credentials:
     name: Sccache credentials
+    environment:
+      name: Sccache
+      deployment: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write # Vault OIDC
+      id-token: write # Vault JWT login that fetches the sccache credentials
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
@@ -22,17 +32,21 @@ jobs:
         id: mint
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   release:
     name: Release
+    environment:
+      name: Sccache
+      deployment: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 90
     needs: [sccache-credentials]
     permissions:
-      contents: write
+      contents: write # push of the canary version commit and its revert
       pull-requests: read # the changelog formatter in `@local/repo-chores`
       id-token: write # npm trusted publishing
 
@@ -54,6 +68,8 @@ jobs:
       # trusted-publishing exchange itself. Yarn generates provenance only when asked to,
       # and publishes to `registry.yarnpkg.com` unless told otherwise.
       - name: Publish changesets to npm, with 'canary' tags
+        # `changeset version` rewrites the manifests, so the install has to update the lockfile.
+        # jactionlint ignore=unlocked-install
         run: |
           yarn changeset version --snapshot canary
 

@@ -75,11 +75,13 @@ runs:
     - name: "Install Rust"
       if: ${{ inputs.rust == true || inputs.rust == 'true' }}
       uses: nick-fields/retry@v3.0.2
+      env:
+        INSTALL_RUST: ${{ github.action_path }}/install-rust.sh
       with:
         timeout_minutes: 20
         max_attempts: 5
         retry_wait_seconds: 60
-        command: ${{ github.action_path }}/install-rust.sh
+        command: '"$INSTALL_RUST"'
 
     # The action builds AWS-LC with tools from the checked-out revision's mise config, which a
     # revision without the action, such as the base branch a bench compares against, lacks.

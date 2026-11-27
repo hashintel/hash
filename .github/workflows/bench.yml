@@ -7,7 +7,6 @@ on:
       - main
 
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
   # The legacy Vault, still holding `aws/creds/dev-deploy`. Inline rather than a
@@ -15,9 +14,15 @@ env:
   # is the per-environment one and would resolve to the wrong instance here.
   VAULT_ADDR: https://vault.blockprotocol.org
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   # Only the top of a stack runs this workflow: it contains every layer below
@@ -25,9 +30,12 @@ jobs:
   setup:
     name: Setup
     if: >-
+      ${{
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
+      }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -65,13 +73,19 @@ jobs:
 
   sccache-credentials:
     name: Sccache credentials
+    environment:
+      name: Sccache
+      deployment: false
     if: >-
+      ${{
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
+      }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Vault JWT login that fetches the sccache credentials
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
@@ -82,22 +96,28 @@ jobs:
         id: mint
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   unit-benches:
     name: Unit
+    environment:
+      name: Sccache
+      deployment: false
     needs: [setup, sccache-credentials]
     permissions:
-      id-token: write
+      id-token: write # Vault JWT login for the legacy AWS credentials that upload the benchmark results
       contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
-    if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
+    if: ${{ needs.setup.outputs.unit != '{"name":[],"include":[]}' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Show selection reason
         env:
@@ -105,19 +125,19 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout base branch
-        if: github.event_name == 'pull_request' && matrix.criterion
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Clean up disk
-        if: github.event_name == 'pull_request' && matrix.criterion
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
         uses: hashintel/actions/.github/actions/clean-up-disk@main
         with:
           required-free-gib: 20
 
       - name: Install tools
-        if: github.event_name == 'pull_request' && matrix.criterion
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -126,7 +146,7 @@ jobs:
           aws_lc_profile: release
 
       - name: Prune repository
-        if: github.event_name == 'pull_request' && matrix.criterion
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
         uses: $/.github/actions/prune-repository
         with:
           scope: |
@@ -134,26 +154,28 @@ jobs:
             hash-repo-chores
 
       - name: Warm up repository
-        if: github.event_name == 'pull_request' && matrix.criterion
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
         uses: $/.github/actions/warm-up-repo
 
       - name: Run base benches
-        if: github.event_name == 'pull_request' && matrix.criterion
-        run: turbo run bench:unit --filter "${{ matrix.name }}"
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run bench:unit --filter "$PACKAGE_NAME"
 
       - name: Checkout head branch
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@v6.0.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         uses: hashintel/actions/.github/actions/clean-up-disk@main
         with:
           required-free-gib: 20
@@ -177,22 +199,27 @@ jobs:
         uses: $/.github/actions/warm-up-repo
 
       - name: Run head benches
-        run: turbo run bench:unit --filter "${{ matrix.name }}"
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run bench:unit --filter "$PACKAGE_NAME"
 
       - name: Analyze benchmarks
-        if: github.event_name == 'pull_request' && matrix.criterion
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
-          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
+          TRIMMED_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
-          echo '<details><summary><h2>${{ matrix.name }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          echo "<details><summary><h2>$PACKAGE_NAME – Units</h2></summary>" > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/$PACKAGE_PATH/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
       - name: Authenticate Vault
         id: secrets
-        if: github.event.pull_request.head.repo.full_name == github.repository && matrix.criterion
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository && matrix.criterion }}
         uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ env.VAULT_ADDR }}
@@ -204,27 +231,36 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        if: github.event.pull_request.head.repo.full_name == github.repository && matrix.criterion
-        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository && matrix.criterion }}
+        env:
+          PACKAGE_PATH: ${{ matrix.path }}
+        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/$PACKAGE_PATH/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
-        if: github.event_name == 'pull_request' && matrix.criterion
-        uses: actions/upload-artifact@v4.6.2
+        if: ${{ github.event_name == 'pull_request' && matrix.criterion }}
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
+          if-no-files-found: error
 
   integration-benches:
     name: Integration
+    environment:
+      name: Sccache
+      deployment: false
     needs: [setup, sccache-credentials]
     permissions:
-      id-token: write
+      id-token: write # Vault JWT login for the legacy AWS credentials that upload the benchmark results
       contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration) }}
       fail-fast: false
-    if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
+    if: ${{ needs.setup.outputs.integration != '{"name":[],"include":[]}' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 240
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Show selection reason
         env:
@@ -232,19 +268,19 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout base branch
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Clean up disk
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: hashintel/actions/.github/actions/clean-up-disk@main
         with:
           required-free-gib: 20
 
       - name: Install tools
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -253,7 +289,7 @@ jobs:
           aws_lc_profile: release
 
       - name: Prune repository
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: $/.github/actions/prune-repository
         with:
           scope: |
@@ -261,14 +297,14 @@ jobs:
             hash-repo-chores
 
       - name: Warm up repository
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: $/.github/actions/warm-up-repo
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
       - name: Launch external services
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         # Retried because BuildKit occasionally fails with transient rpc errors on
         # individual runners (e.g. "failed to receive status: rpc error: code =
         # Unavailable desc = error reading from server: EOF"), failing the job
@@ -282,7 +318,7 @@ jobs:
           command: cd infra/compose && docker compose --profile dev up -d
 
       - name: Start background tasks
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         id: base-background-tasks
         env:
           # Set terminal logging to WARN level and enable verbose file logging for CI
@@ -301,13 +337,17 @@ jobs:
           turbo run start:healthcheck --filter hash-graph --env-mode=loose
 
       - name: Run base benches
-        if: github.event_name == 'pull_request'
-        run: turbo run bench:integration --filter "${{ matrix.name }}"
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run bench:integration --filter "$PACKAGE_NAME"
 
       - name: Show background tasks logs
-        if: always() && github.event_name == 'pull_request'
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        env:
+          BACKGROUND_TASKS_PID: ${{ steps.base-background-tasks.outputs.pid }}
         run: |
-          kill -15 ${{ steps.base-background-tasks.outputs.pid }} || true
+          kill -15 "$BACKGROUND_TASKS_PID" || true
           # `kill` only signals the `turbo` wrapper; the spawned Graph server
           # survives it and keeps its ports (REST API and type fetcher) bound,
           # so the head-branch server would fail to bind while the healthcheck
@@ -323,23 +363,23 @@ jobs:
           cat var/logs/base-background-task.log
 
       - name: Tear down external services
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         working-directory: infra/compose
         run: docker compose --profile dev down
 
       - name: Checkout head branch
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/checkout@v6.0.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
-        if: github.event_name != 'pull_request'
+        if: ${{ github.event_name != 'pull_request' }}
         uses: hashintel/actions/.github/actions/clean-up-disk@main
         with:
           required-free-gib: 20
@@ -396,28 +436,35 @@ jobs:
           turbo run start:healthcheck --filter hash-graph --env-mode=loose
 
       - name: Run head benches
-        run: turbo run bench:integration --filter "${{ matrix.name }}"
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run bench:integration --filter "$PACKAGE_NAME"
 
       - name: Show background tasks logs
-        if: always()
+        if: ${{ always() }}
+        env:
+          BACKGROUND_TASKS_PID: ${{ steps.head-background-tasks.outputs.pid }}
         run: |
-          kill -15 ${{ steps.head-background-tasks.outputs.pid }} || true
+          kill -15 "$BACKGROUND_TASKS_PID" || true
           cat var/logs/head-background-task.log
 
       - name: Analyze benchmarks
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
-          TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
+          TRIMMED_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
-          echo '<details><summary><h2>${{ matrix.name }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
+          echo "<details><summary><h2>$PACKAGE_NAME – Integrations</h2></summary>" > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
-          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
+          turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/$PACKAGE_PATH/out" --enforce-flame-graph
           cat "/tmp/benches.md" >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo '</details>' >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
 
       - name: Authenticate Vault
         id: secrets
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ env.VAULT_ADDR }}
@@ -429,15 +476,18 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          PACKAGE_PATH: ${{ matrix.path }}
+        run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/$PACKAGE_PATH/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4.6.2
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
           path: /tmp/${{ env.TRIMMED_PACKAGE_NAME }}.md
+          if-no-files-found: error
 
       - name: Show container logs
         if: ${{ success() || failure() }}
@@ -445,58 +495,57 @@ jobs:
         run: docker compose --profile dev logs --timestamps
 
       - name: Upload background tasks logs
-        uses: actions/upload-artifact@v4.6.2
-        if: success() || failure()
+        uses: actions/upload-artifact@v7.0.2
+        if: ${{ success() || failure() }}
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
           path: |
             var/logs
+          if-no-files-found: ignore
 
   passed:
     name: Benches passed
     needs: [setup, sccache-credentials, unit-benches, integration-benches]
-    if: always()
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
-      pull-requests: write
+      contents: read
+      pull-requests: write # posts the benchmark summary as a comment on the pull request
     steps:
       - name: Check setup script
-        run: |
-          [[ ${{ needs.setup.result }} =~ success|skipped ]]
-      - name: Check sccache credentials
-        run: |
-          [[ ${{ needs.sccache-credentials.result }} =~ success|skipped ]]
-      - name: Check unit benches
-        run: |
-          [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
-      - name: Check integration benches
-        run: |
-          [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
-
-      - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@v2.4.0
-        if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
-          SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one bench job for a Pull Request in the Merge Queue failed <!subteam^S09KH99698T>" # Notifies @devops
-          SLACK_TITLE: Tests failed
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_USERNAME: GitHub
-          VAULT_ADDR: ""
-          VAULT_TOKEN: ""
+          SETUP_RESULT: ${{ needs.setup.result }}
+        run: |
+          [[ "$SETUP_RESULT" =~ success|skipped ]]
+      - name: Check sccache credentials
+        env:
+          SCCACHE_CREDENTIALS_RESULT: ${{ needs.sccache-credentials.result }}
+        run: |
+          [[ "$SCCACHE_CREDENTIALS_RESULT" =~ success|skipped ]]
+      - name: Check unit benches
+        env:
+          UNIT_BENCHES_RESULT: ${{ needs.unit-benches.result }}
+        run: |
+          [[ "$UNIT_BENCHES_RESULT" =~ success|skipped ]]
+      - name: Check integration benches
+        env:
+          INTEGRATION_BENCHES_RESULT: ${{ needs.integration-benches.result }}
+        run: |
+          [[ "$INTEGRATION_BENCHES_RESULT" =~ success|skipped ]]
 
       - name: Checkout
-        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
+        if: ${{ github.event_name == 'pull_request' && needs.integration-benches.result == 'success' }}
         uses: actions/checkout@v6.0.2
 
       - name: Download reports' artifacts
-        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/download-artifact@v5.0.0
+        if: ${{ github.event_name == 'pull_request' && needs.integration-benches.result == 'success' }}
+        uses: actions/download-artifact@v8.0.2
         with:
           path: downloads
 
       - name: Create comment
-        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
+        if: ${{ github.event_name == 'pull_request' && needs.integration-benches.result == 'success' }}
         run: |
           echo "## Benchmark results" > /tmp/summary.md
           cat downloads/*/*.md >> /tmp/summary.md
@@ -504,7 +553,7 @@ jobs:
 
       - name: Post comment
         uses: mshick/add-pr-comment@v2.8.2
-        if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ github.event_name == 'pull_request' && needs.integration-benches.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository }}
         with:
           message-path: /tmp/summary.md
           message-id: benchmark-results
