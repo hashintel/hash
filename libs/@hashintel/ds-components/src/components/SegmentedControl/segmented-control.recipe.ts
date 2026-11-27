@@ -26,7 +26,7 @@ export const styles = sva({
       // Integer item boxes also make every stacked offsetTop exact in the
       // vertical layout, keeping the last item's bottom gap consistent.
       "--sc-item-height":
-        "[round(round(var(--form-line-height) * var(--leading-factor, 1), 1px) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
+        "[round(round(var(--form-line-height) * var(--leading-factor, 1), 2px) + var(--form-padding-y) * 2 + var(--form-border-width) * 2 - 4px, 1px)]",
       "--sc-frost-bg": "[25.5]",
       _dark: {
         "--sc-frost-bg": "[0]",
@@ -70,8 +70,8 @@ export const styles = sva({
       paddingX: "[var(--sc-item-px, 6px)]",
       minHeight: "var(--sc-item-height)",
       // Pin the line box to the item height: at xs the textStyle line-height
-      // (1.6em) exceeds the item and would grow the control past the shared
-      // form-size height.
+      // exceeds the item and would grow the control past the shared form-size
+      // height.
       lineHeight: "[var(--sc-item-height)]",
       borderRadius: "[var(--sc-item-radius)]",
       fontWeight: "medium",

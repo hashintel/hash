@@ -197,67 +197,72 @@ export function createPreset(options?: PresetOptions) {
             to: { backgroundPosition: "-200% 0" },
           },
         },
+        /**
+         * Line heights sit on a 2px grid: the font size plus 2px up to 12px,
+         * plus 4px at 14px, and plus 6px from 16px. Rounding to 2px keeps them
+         * on the grid under any `--leading-factor`.
+         */
         textStyles: {
           xxs: {
             value: {
               fontSize: "{fontSizes.xxs}",
-              lineHeight: "round(1em * 1.6 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(12px * var(--leading-factor, 1), 2px)",
               letterSpacing: "0.01em",
             },
           },
           xs: {
             value: {
               fontSize: "{fontSizes.xs}",
-              lineHeight: "round(1em * 1.6 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(14px * var(--leading-factor, 1), 2px)",
               letterSpacing: "0.01em",
             },
           },
           sm: {
             value: {
               fontSize: "{fontSizes.sm}",
-              lineHeight: "round(1em * 1.6 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(18px * var(--leading-factor, 1), 2px)",
               letterSpacing: "0.005em",
             },
           },
           base: {
             value: {
               fontSize: "{fontSizes.base}",
-              lineHeight: "round(1em * 1.5 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(22px * var(--leading-factor, 1), 2px)",
               letterSpacing: "0em",
             },
           },
           lg: {
             value: {
               fontSize: "{fontSizes.lg}",
-              lineHeight: "round(1em * 1.5 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(24px * var(--leading-factor, 1), 2px)",
               letterSpacing: "-0.005em",
             },
           },
           xl: {
             value: {
               fontSize: "{fontSizes.xl}",
-              lineHeight: "round(1em * 1.4 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(26px * var(--leading-factor, 1), 2px)",
               letterSpacing: "-0.01em",
             },
           },
           "2xl": {
             value: {
               fontSize: "{fontSizes.2xl}",
-              lineHeight: "round(1em * 1.4 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(30px * var(--leading-factor, 1), 2px)",
               letterSpacing: "-0.015em",
             },
           },
           "3xl": {
             value: {
               fontSize: "{fontSizes.3xl}",
-              lineHeight: "round(1em * 1.3 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(36px * var(--leading-factor, 1), 2px)",
               letterSpacing: "-0.02em",
             },
           },
           "4xl": {
             value: {
               fontSize: "{fontSizes.4xl}",
-              lineHeight: "round(1em * 1.3 * var(--leading-factor, 1), 1px)",
+              lineHeight: "round(42px * var(--leading-factor, 1), 2px)",
               letterSpacing: "-0.025em",
             },
           },

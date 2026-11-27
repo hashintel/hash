@@ -15,15 +15,16 @@ import { cva } from "@hashintel/ds-helpers/css";
  *
  *   size | textStyle | --form-padding-y | --form-line-height | --base-input-connector-width
  *   -----+-----------+------------------+--------------------+-----------------------------
- *   xxs  | xxs       | 1px              | 1.6em              | 5px
- *   xs   | xs        | spacing.0        | 1.6em              | 6px
- *   sm   | sm        | spacing.0.5      | 1.6em              | 8px
- *   md   | base      | spacing.1        | 1.5em              | 10px
- *   lg   | base      | spacing.2        | 1.5em              | 12px
+ *   xxs  | xxs       | 1px              | 12px               | 5px
+ *   xs   | xs        | spacing.0        | 14px               | 6px
+ *   sm   | sm        | spacing.0.5      | 18px               | 8px
+ *   md   | base      | spacing.1        | 22px               | 10px
+ *   lg   | base      | spacing.2        | 22px               | 12px
  *
  * `--form-border-width` is `1px` for every size. The line-height matches
  * the corresponding `textStyle` definition; call sites multiply it by
- * `var(--leading-factor)` so the global leading utility still applies.
+ * `var(--leading-factor)` and round to 2px, as the text styles do, so the
+ * global leading utility still applies.
  */
 export const formSizes = {
   variants: {
@@ -32,35 +33,35 @@ export const formSizes = {
         textStyle: "xxs",
         "--form-border-width": "1px",
         "--form-padding-y": "1px",
-        "--form-line-height": "1.6em",
+        "--form-line-height": "12px",
         "--base-input-connector-width": "5px",
       },
       xs: {
         textStyle: "xs",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.0",
-        "--form-line-height": "1.6em",
+        "--form-line-height": "14px",
         "--base-input-connector-width": "6px",
       },
       sm: {
         textStyle: "sm",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.0.5",
-        "--form-line-height": "1.6em",
+        "--form-line-height": "18px",
         "--base-input-connector-width": "8px",
       },
       md: {
         textStyle: "base",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.1",
-        "--form-line-height": "1.5em",
+        "--form-line-height": "22px",
         "--base-input-connector-width": "10px",
       },
       lg: {
         textStyle: "base",
         "--form-border-width": "1px",
         "--form-padding-y": "spacing.2",
-        "--form-line-height": "1.5em",
+        "--form-line-height": "22px",
         "--base-input-connector-width": "12px",
       },
     },

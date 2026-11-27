@@ -127,7 +127,7 @@ export const styles = sva({
       flexShrink: "0",
       display: "flex",
       alignItems: "center",
-      minHeight: "[1.6em]",
+      minHeight: "[1lh]",
       color: "var(--toast-icon-color, var(--toast-text-color))",
     },
     defaultIcon: {},

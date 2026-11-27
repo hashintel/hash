@@ -41,7 +41,7 @@ export const styles = sva({
       flexShrink: "0",
       display: "flex",
       alignItems: "center",
-      minHeight: "[1.6em]",
+      minHeight: "[1lh]",
       marginRight: "[4px]",
       color: "var(--banner-text-color)",
     },

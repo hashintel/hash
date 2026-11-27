@@ -66,7 +66,7 @@ export const styles = sva({
       paddingX: "[var(--tabs-trigger-px)]",
       paddingY: "var(--form-padding-y)",
       minHeight:
-        "[calc(round(var(--form-line-height) * var(--leading-factor, 1), 1px) + var(--form-padding-y) * 2)]",
+        "[calc(round(var(--form-line-height) * var(--leading-factor, 1), 2px) + var(--form-padding-y) * 2)]",
       fontWeight: "medium",
       whiteSpace: "nowrap",
       textDecoration: "none",
