@@ -406,7 +406,6 @@ export {
   type AdHocStateFromScenario,
 } from "./scenario/ad-hoc/scenario-to-ad-hoc-state";
 export { adHocScenarioStateSchema } from "./scenario/ad-hoc/ad-hoc-state-schema";
-export { runSandboxed, SHADOWED_GLOBALS } from "./scenario/ad-hoc/sandbox";
 
 // --- HIR: core.hir ---
 // Type-only from the main entry: the compiler itself stays in the LSP worker,

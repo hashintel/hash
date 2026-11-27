@@ -44,14 +44,13 @@
  */
 
 import { toPetrinautId } from "../../document/petrinaut-id";
-import { isDangerousRecordKey } from "../../validation/record-keys";
-import { range } from "../helpers";
-import { runSandboxed, SHADOWED_GLOBALS } from "./sandbox";
-
-// The helpers in scope for the module's own constant evaluation (bounds,
-// exposed defaults, place totals). The synthesized scenario itself runs
-// through the HIR interpreter, which binds `range` natively.
-const SCENARIO_HELPERS: Record<string, unknown> = { range };
+import { interpretHirExpr } from "../../hir/interpret";
+import { parseHirExpression } from "../../hir/parse-expression";
+import {
+  createUserKeyedRecord,
+  defineOwn,
+  isDangerousRecordKey,
+} from "../../validation/record-keys";
 
 import type {
   PetrinautOptimizationManifest,
@@ -358,7 +357,7 @@ const RESERVED_NAMES = new Set([
   "scenario",
   "i",
   "count",
-  ...Object.keys(SCENARIO_HELPERS),
+  "range",
   ..."break case catch class const continue debugger default delete do else enum export extends false finally for function if import in instanceof new null return super switch this throw true try typeof var void while with yield let static await".split(
     " ",
   ),
@@ -412,52 +411,50 @@ function referencedNames(expression: string): Set<string> {
   return names;
 }
 
-// -- Sandbox evaluation for bounds, defaults and totals ---------------------------
+// -- Constant evaluation for bounds, defaults and totals ------------------------
 
-const HELPER_NAMES = Object.keys(SCENARIO_HELPERS);
-const HELPER_VALUES = Object.values(SCENARIO_HELPERS);
-
-function freeze<T extends Record<string, unknown>>(record: T): T {
-  return Object.freeze(Object.assign(Object.create(null), record)) as T;
-}
+/** Evaluates one constant expression. Callers narrow the value themselves. */
+type ConstantEvaluator = (expression: string) => unknown;
 
 /**
- * Evaluates one expression as raw JavaScript with best-effort hardening.
- * Synthesis runs synchronously, where HIR lowering (which
- * needs the TypeScript compiler, worker-only in the browser) is unavailable.
- * The non-optimized top-level Variables are in scope as `scenario.<name>`,
- * built in declaration order so later Variables may read earlier ones. Used
- * for bound expressions (which must resolve to constants at synthesis time),
- * for generated parameters' preview defaults, and for place totals.
+ * Builds the evaluator for one synthesis's constant expressions: bounds
+ * (which must resolve at synthesis time), generated parameters' preview
+ * defaults, and place totals. Each expression is parsed into HIR by
+ * `parseHirExpression` and run by the HIR interpreter, so no text from the
+ * form executes as JavaScript. Synthesis runs synchronously while the form
+ * renders, where the TypeScript lowering (worker-only in the browser) is
+ * unavailable.
+ *
+ * The non-optimized top-level Variables are evaluated once, here, in
+ * declaration order, so later ones may read earlier ones as
+ * `scenario.<name>`. One that does not evaluate stays undefined, which fails
+ * only the expressions that read it. The evaluator throws with a readable
+ * message when an expression does not parse or evaluate.
  */
-function evaluateConstant(
-  expression: string,
+const constantEvaluator = (
   parameters: Record<string, number | boolean>,
   variables: readonly { name: string; expression: string }[],
-): unknown {
-  const assignments = variables
-    .map(
-      ({ name, expression: value }) =>
-        `__adhocVars[${JSON.stringify(name)}] = (${value});`,
-    )
-    .join("\n");
-  const body = [
-    `"use strict"; var ${SHADOWED_GLOBALS};`,
-    `const __adhocVars = {};`,
-    `{`,
-    `  const scenario = __adhocVars;`,
-    assignments,
-    `}`,
-    `return (function (scenario) { return (${expression}); })(__adhocVars);`,
-  ].join("\n");
-  // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions in the shared hardened sandbox (see sandbox.ts)
-  const fn = new Function("parameters", "scenario", ...HELPER_NAMES, body) as (
-    ...args: unknown[]
-  ) => unknown;
-  return runSandboxed(() =>
-    fn(freeze(parameters), freeze({}), ...HELPER_VALUES),
-  );
-}
+): ConstantEvaluator => {
+  const scenario = createUserKeyedRecord<number | boolean>();
+  const evaluate = (expression: string): unknown => {
+    const parsed = parseHirExpression(expression);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostic.message);
+    }
+    return interpretHirExpr(parsed.expr, new Map(), { parameters, scenario });
+  };
+  for (const variable of variables) {
+    try {
+      const value = evaluate(variable.expression);
+      if (typeof value === "number" || typeof value === "boolean") {
+        defineOwn(scenario, variable.name, value);
+      }
+    } catch {
+      // Left undefined: the expressions that read it report it as unknown.
+    }
+  }
+  return evaluate;
+};
 
 function netParameterDefaults(
   context: AdHocSynthesisContext,
@@ -894,8 +891,10 @@ export function createAdHocPlaceTotalResolver(
   // Empty expressions read as their neutral here too, so an emptied count
   // never leaks "" into the printed total.
   const normalized = withNeutralAdHocExpressions(state, context, true);
-  const parameters = netParameterDefaults(context);
-  const constants = constantVariables(normalized);
+  const evaluateConstant = constantEvaluator(
+    netParameterDefaults(context),
+    constantVariables(normalized),
+  );
 
   const optimizedNames = new Set<string>();
   for (const variable of normalized.variables) {
@@ -938,11 +937,7 @@ export function createAdHocPlaceTotalResolver(
       }
     }
     try {
-      const value = evaluateConstant(
-        inline(count.expression),
-        parameters,
-        constants,
-      );
+      const value = evaluateConstant(inline(count.expression));
       if (typeof value === "number" && Number.isFinite(value)) {
         return Math.max(0, Math.round(value));
       }
@@ -1357,15 +1352,13 @@ function resolveOptimized(
   plan: SynthesisPlan,
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
+  evaluateConstant: ConstantEvaluator,
 ): {
   scenarioParameters: ScenarioParameter[];
   optimizedFields: AdHocOptimizedField[];
 } {
   const scenarioParameters: ScenarioParameter[] = [];
   const optimizedFields: AdHocOptimizedField[] = [];
-
-  const parameterDefaults = netParameterDefaults(context);
-  const constants = constantVariables(state);
 
   const evaluateBound = (
     entity: OptimizedEntity,
@@ -1385,7 +1378,7 @@ function resolveOptimized(
       }
     }
     try {
-      const value = evaluateConstant(expression, parameterDefaults, constants);
+      const value = evaluateConstant(expression);
       if (typeof value !== "number" || !Number.isFinite(value)) {
         plan.errors.push({
           source: "bounds",
@@ -1547,11 +1540,7 @@ function resolveOptimized(
     // exactly what the user typed; otherwise the domain midpoint stands in.
     let defaultValue = fallbackDefault;
     try {
-      const current = evaluateConstant(
-        entity.expression,
-        parameterDefaults,
-        constants,
-      );
+      const current = evaluateConstant(entity.expression);
       if (typeof current === "number" && Number.isFinite(current)) {
         defaultValue =
           entity.type === "integer" ? Math.round(current) : current;
@@ -1618,12 +1607,10 @@ const SNAKE_CASE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
 function resolveExposed(
   plan: SynthesisPlan,
   state: AdHocScenarioState,
-  context: AdHocSynthesisContext,
+  evaluateConstant: ConstantEvaluator,
   includeOptimize: boolean,
 ): ScenarioParameter[] {
   const scenarioParameters: ScenarioParameter[] = [];
-  const parameterDefaults = netParameterDefaults(context);
-  const constants = constantVariables(state);
 
   const takenIdentifiers = new Set<string>();
   for (const [index, variable] of state.variables.entries()) {
@@ -1667,11 +1654,7 @@ function resolveExposed(
     takenIdentifiers.add(identifier);
     let defaultValue: number;
     try {
-      const value = evaluateConstant(
-        variable.expression,
-        parameterDefaults,
-        constants,
-      );
+      const value = evaluateConstant(variable.expression);
       if (typeof value === "boolean") {
         defaultValue = value ? 1 : 0;
       } else if (typeof value === "number" && Number.isFinite(value)) {
@@ -2048,15 +2031,19 @@ function synthesize(
   );
   const plan = collectPlan(normalized, context, includeOptimize);
   collectCountErrors(plan, normalized, context, includeOptimize);
+  const evaluateConstant = constantEvaluator(
+    netParameterDefaults(context),
+    constantVariables(normalized),
+  );
   const exposedParameters = resolveExposed(
     plan,
     normalized,
-    context,
+    evaluateConstant,
     includeOptimize,
   );
   const { scenarioParameters: optimizedParameters, optimizedFields } =
     includeOptimize
-      ? resolveOptimized(plan, normalized, context)
+      ? resolveOptimized(plan, normalized, context, evaluateConstant)
       : { scenarioParameters: [], optimizedFields: [] };
   const scenarioParameters = [...exposedParameters, ...optimizedParameters];
   // Exposed identifiers are user-derived, generated ones sanitize user text
