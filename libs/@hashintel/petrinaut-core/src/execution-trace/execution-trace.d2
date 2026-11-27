@@ -1,0 +1,31 @@
+# Hand-written; rendered by the arch-docs build. What writes a trace is on the
+# left, the trace in the middle, what reads it on the right.
+direction: right
+
+classes: {
+  source: {style.fill: "#fff6e5"; style.stroke: "#b7791f"}
+  core: {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+  reader: {style.fill: "#f7f4ff"; style.stroke: "#7051b5"}
+}
+
+simulator: "Simulator worker\nframes and derivatives\nof a run it computes" {class: source}
+host: "Host mapping\nmarkings and firings\nof what a system did" {class: source}
+encoder: "TraceEncoder\napplies firings,\npacks frames" {class: core}
+writer: "TraceWriter\nappend, cover, end" {class: core}
+trace: "ExecutionTrace" {
+  class: core
+  events: "Events\na full state each"
+  coverage: "Coverage\nstart, covered end, ended"
+  axis: "Axis\nclock, continuity, epoch"
+}
+player: "TracePlayer\nviewed position,\nplay, seek, step, follow" {class: reader}
+views: "Canvas and timeline\nstate at a position" {class: reader}
+
+simulator -> writer: "writes events to"
+host -> encoder: "reports a state\nand firings to"
+encoder -> writer: "writes events to"
+writer -> trace: "fills"
+player -> trace: "reads coverage and\nevents of"
+player -> simulator: "asks to cover a\nposition, through demand" {style.stroke-dash: 4}
+views -> trace: "read the state\nat a position from"
+player -> views: "gives the viewed\nposition to"

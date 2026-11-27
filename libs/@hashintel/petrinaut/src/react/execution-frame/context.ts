@@ -6,14 +6,13 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /**
- * A mode-agnostic source of execution frames.
+ * The viewed execution by frame index.
  *
- * Petrinaut can show an execution coming from different backends: local
- * simulation playback, or a host-provided Actual mode stream. Frame consumers
- * (place nodes, visualizers, the timeline chart) read this interface instead
- * of a backend-specific context, so they do not need to know which backend is
- * active. The {@link ExecutionFrameProvider} in `./provider.tsx` decides which
- * adapter feeds the context based on the editor's global mode.
+ * A frame is a recorded event of the viewed execution's trace, whichever
+ * produced it: a simulation's run, or the host's execution in Actual mode.
+ * Place nodes and visualizers read the viewed frame here; what reads the
+ * trace itself, as the timeline does, takes it from the execution-trace
+ * context instead.
  */
 export type ExecutionFrameSource = {
   /**

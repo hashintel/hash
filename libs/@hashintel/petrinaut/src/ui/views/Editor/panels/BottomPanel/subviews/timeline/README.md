@@ -1,6 +1,6 @@
 ---
 layer: ui.views.editor.bottom-panel.timeline
-role: Charts a run over time in the bottom panel, with a ruler to scrub the run and a legend to hide series
+role: Charts an execution over time in the bottom panel, with a ruler to scrub it and a legend to hide series
 ---
 
 The timeline is the chart of the Timeline tab. It draws the series of the view the user picked: tokens per place, per type or per transition, a metric, or the error of the solver.
@@ -9,13 +9,12 @@ The timeline is the chart of the Timeline tab. It draws the series of the view t
 
 Other blocks import the entry files:
 
-| File                          | Export                       | What it is                                                                                                                          |
-| ----------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `run-timeline.tsx`            | `EventTimeline`              | The timeline of a run the editor started, drawn from its event trace, or of a Stochastic simulation. The tab `simulation-timeline`. |
-| `actual-timeline.tsx`         | `ActualTimeline`             | The timeline of the frames a host streams in Actual mode. The tab `actual-timeline`.                                                |
-| `timeline-header-actions.tsx` | `EventTimelineHeaderActions` | The view picker and the chart type selector that the tab of a run adds to the header of the panel.                                  |
+| File                          | Export                       | What it is                                                                                                                                                                                                                                                 |
+| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run-timeline.tsx`            | `EventTimeline`              | The timeline of the viewed execution, drawn from its execution trace: a run the editor started, or the execution a host reports in Actual mode. For a Stochastic simulation, its counts across runs. The tabs `simulation-timeline` and `actual-timeline`. |
+| `timeline-header-actions.tsx` | `EventTimelineHeaderActions` | The view picker and the chart type selector that the tab of a run adds to the header of the panel.                                                                                                                                                         |
 
-The [preview](layer:ui.preview) mounts `EventTimeline` and `ActualTimeline`. The id of a tab is stored with the user's settings, so the ids keep their names whatever the files are called.
+The [preview](layer:ui.preview) mounts `EventTimeline`, for a Quick Simulation and for an execution in Actual mode. The id of a tab is stored with the user's settings, so the ids keep their names whatever the files are called.
 
 Each entry has a folder of its name with its own parts, and `shared/` holds what the entries share: the legend, the styles, the tooltip and the view to draw.
 
@@ -27,8 +26,8 @@ Each entry has a folder of its name with its own parts, and `shared/` holds what
 
 ## Rules
 
-| Rule                                                                                       | Reason                                                                         | Held by                                |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | -------------------------------------- |
-| The store reads an event once and reads again only the cells past the last recorded event. | A batch then costs the events it brought and never the whole run.              | `run-timeline/series-store.test.ts`    |
-| The zoom of a run's timeline outlives the tab.                                             | A tab unmounts when another is picked, and the user returns to the same span.  | `run-timeline/use-view-range.test.tsx` |
-| A pick that Actual mode has no data for draws tokens per place.                            | A host reports token counts only: it evaluates no metric and records no error. | `actual-timeline.test.tsx`             |
+| Rule                                                                                       | Reason                                                                                                                                | Held by                                 |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| The store reads an event once and reads again only the cells past the last recorded event. | A batch then costs the events it brought and never the whole run.                                                                     | `run-timeline/series-store.test.ts`     |
+| The zoom of a run's timeline outlives the tab.                                             | A tab unmounts when another is picked, and the user returns to the same span.                                                         | `run-timeline/use-view-range.test.tsx`  |
+| A pick that Actual mode has no data for draws tokens per place.                            | A host reports token counts only: no solver recorded an error, and no metric is offered there yet. The pick is kept for the next run. | `shared/use-run-timeline-view.test.tsx` |

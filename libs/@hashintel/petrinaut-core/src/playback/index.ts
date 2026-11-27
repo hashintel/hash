@@ -1,16 +1,8 @@
 /**
  * @layerRoot core.playback
- * @role Moves the viewed position of a run, by simulation time or by frame, and defines how far each play mode computes ahead
+ * @role The speeds, play states and play modes of playback, and the frame-indexed player of the headless runtime
  */
 
-export {
-  createEventPlayback,
-  EVENT_PLAY_MODE_LEAD,
-  type EventPlayback,
-  type EventPlaybackSnapshot,
-  type EventTickInput,
-  type EventTickResult,
-} from "./event-playback";
 export {
   createPlayback,
   formatPlaybackSpeed,

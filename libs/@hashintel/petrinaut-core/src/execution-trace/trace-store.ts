@@ -1,11 +1,11 @@
-import { compileSimulationFrameReader } from "../frames/frame-reader";
-import { createEngineFrameLayout } from "../frames/internal-frame";
+import { compileSimulationFrameReader } from "../simulation/frames/frame-reader";
+import { createEngineFrameLayout } from "../simulation/frames/internal-frame";
 import { interpolateFrame } from "./interpolation";
-import { isDiscreteEvent } from "./trace";
+import { isDiscreteEvent } from "./trace-event";
 
-import type { SDCPN } from "../../types/sdcpn";
-import type { SimulationFrameReader } from "../api";
-import type { TraceEvent } from "./trace";
+import type { SimulationFrameReader } from "../simulation/api";
+import type { SDCPN } from "../types/sdcpn";
+import type { TraceEvent } from "./trace-event";
 
 export interface EventTraceStore {
   /** Frame place index by place id: the order of an event's per-place arrays. */

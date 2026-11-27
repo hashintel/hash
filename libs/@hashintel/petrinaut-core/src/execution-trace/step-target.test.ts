@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { findStepTargetIndex, type StepTargetTrace } from "./step-target";
+import { findStepTargetIndex } from "./trace-player";
+
+type StepTargetTrace = Parameters<typeof findStepTargetIndex>[0];
 
 type Kind = "initial" | "firing" | "reference";
 
 const traceOf = (events: { time: number; kind: Kind }[]): StepTargetTrace => ({
   findEventIndexAt: (time) =>
     events.findLastIndex((event) => event.time <= time),
-  getEvent: (index) => events[index] ?? null,
+  getEvent: (index) =>
+    (events[index] ?? null) as ReturnType<StepTargetTrace["getEvent"]>,
   findDiscreteEventAtOrBefore: (index) => {
     for (let at = Math.min(index, events.length - 1); at >= 0; at -= 1) {
       if (events[at]!.kind !== "reference") {

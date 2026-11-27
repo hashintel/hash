@@ -23,15 +23,13 @@ import { BottomPanel } from "./panel";
 
 import type { ReactNode } from "react";
 
-// The timelines draw charts, which this file does not look at.
+// The timeline draws a chart, which this file does not look at. One
+// timeline shows a run and an execution the host reports.
 vi.mock("./subviews/timeline/run-timeline", () => ({
-  EventTimeline: () => "Timeline of the run",
+  EventTimeline: () => "Timeline of the execution",
 }));
 vi.mock("./subviews/timeline/timeline-header-actions", () => ({
   EventTimelineHeaderActions: () => null,
-}));
-vi.mock("./subviews/timeline/actual-timeline", () => ({
-  ActualTimeline: () => "Timeline of the execution",
 }));
 
 afterEach(cleanup);
@@ -224,7 +222,7 @@ describe("BottomPanel", () => {
     ]);
     expect(selectedTab()).toBe("Timeline");
     expect(screen.getByRole("tabpanel").textContent).toBe(
-      "Timeline of the run",
+      "Timeline of the execution",
     );
   });
 

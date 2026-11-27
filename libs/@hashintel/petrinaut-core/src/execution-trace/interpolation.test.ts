@@ -5,11 +5,11 @@ import {
   createEngineFrameLayout,
   readEngineFrame,
   type EngineFrame,
-} from "../frames/internal-frame";
+} from "../simulation/frames/internal-frame";
 import { hermite, interpolateFrame } from "./interpolation";
 
-import type { SDCPN } from "../../types/sdcpn";
-import type { TraceEvent } from "./trace";
+import type { SDCPN } from "../types/sdcpn";
+import type { TraceEvent } from "./trace-event";
 
 /** One coloured place `moving` with a real attribute `x`, one plain place `still`. */
 const sdcpn: SDCPN = {

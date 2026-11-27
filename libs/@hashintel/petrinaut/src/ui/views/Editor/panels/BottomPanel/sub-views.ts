@@ -2,7 +2,6 @@ import { ActualEventsContent } from "./subviews/actual-events";
 import { CompilationContent } from "./subviews/compilation";
 import { DiagnosticsPanel } from "./subviews/diagnostics";
 import { SimulationSettingsContent } from "./subviews/simulation-settings";
-import { ActualTimeline } from "./subviews/timeline/actual-timeline";
 import { EventTimeline } from "./subviews/timeline/run-timeline";
 import { EventTimelineHeaderActions } from "./subviews/timeline/timeline-header-actions";
 
@@ -46,12 +45,16 @@ export const compilationSubView: SubView = {
   component: CompilationContent,
 };
 
+/**
+ * The Timeline tab of the execution the host reports: the timeline of a
+ * run, drawn from the trace that execution was mapped to.
+ */
 export const actualTimelineSubView: SubView = {
   id: "actual-timeline",
   title: "Timeline",
   tooltip:
-    "View the actual execution timeline with compartment time-series. Click/drag to scrub through frames.",
-  component: ActualTimeline,
+    "View the execution over time. Drag to scrub, scroll sideways to pan, pinch or scroll to zoom.",
+  component: EventTimeline,
   noPadding: true,
 };
 

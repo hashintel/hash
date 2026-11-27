@@ -2,9 +2,9 @@ import {
   readEngineFrame,
   type EngineFrame,
   type EngineFrameLayout,
-} from "../frames/internal-frame";
+} from "../simulation/frames/internal-frame";
 
-import type { TraceEvent } from "./trace";
+import type { TraceEvent } from "./trace-event";
 
 /**
  * Cubic Hermite interpolation between `(y0, slope0)` at the start of a span

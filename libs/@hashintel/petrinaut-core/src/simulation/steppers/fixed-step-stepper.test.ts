@@ -12,8 +12,8 @@ import {
 } from "../frames/internal-frame";
 import { createFixedStepStepper } from "./fixed-step-stepper";
 
+import type { TraceEvent } from "../../execution-trace/trace-event";
 import type { SDCPN } from "../../types/sdcpn";
-import type { TraceEvent } from "../event-trace/trace";
 
 const place = (id: string, name: string): SDCPN["places"][number] => ({
   id,

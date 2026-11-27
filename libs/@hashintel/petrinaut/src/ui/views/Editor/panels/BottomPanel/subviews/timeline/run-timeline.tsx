@@ -2,6 +2,7 @@ import { use, useRef } from "react";
 
 import { usePetrinautDefinitionSelector } from "../../../../../../../react/document/use-document";
 import { EventPlaybackContext } from "../../../../../../../react/event-playback/context";
+import { ExecutionTraceContext } from "../../../../../../../react/execution-trace/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { useEditorState } from "../../../../../../../react/state/editor-context";
 import { StochasticTimeline } from "./run-timeline/stochastic-content";
@@ -12,7 +13,7 @@ import { useElementOnScreen } from "./shared/use-element-on-screen";
 import { useRunTimelineView } from "./shared/use-run-timeline-view";
 
 /**
- * The timeline of a run: token counts step at the events, metrics follow the
+ * The timeline of an execution trace: token counts step at the events, metrics follow the
  * interpolated state, and every firing is marked on the ruler. So are the
  * reference frames of a continuous run. A discrete run has nothing to
  * interpolate, so the frames a simulator kept between its firings mark
@@ -23,7 +24,7 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
 }) => {
   const chartType = useEditorState((editor) => editor.timelineChartType);
   const transitions = usePetrinautDefinitionSelector((net) => net.transitions);
-  const { continuity } = use(SimulationContext);
+  const { continuity } = use(ExecutionTraceContext);
   const { eventCount, stepToEvent } = use(EventPlaybackContext);
   const timelineView = useRunTimelineView();
   const view = useTimelineViewRange();
@@ -60,12 +61,13 @@ const RunTimeline: React.FC<{ showLegend?: boolean }> = ({
 };
 
 /**
- * The Timeline of whatever Play computed: one run's events, or a Stochastic
- * simulation's counts across runs.
+ * The Timeline of the viewed execution: the events of a run or of what the
+ * host reports, or a Stochastic simulation's counts across runs.
  */
 export const EventTimeline: React.FC<{ showLegend?: boolean }> = (props) => {
   const { mode } = use(SimulationContext);
-  return mode === "stochastic" ? (
+  const { origin } = use(ExecutionTraceContext);
+  return origin === "simulation" && mode === "stochastic" ? (
     <StochasticTimeline {...props} />
   ) : (
     <RunTimeline {...props} />

@@ -623,10 +623,35 @@ export {
 export type {
   EventSimulation,
   EventSimulationEvent,
-  EventTraceSummary,
+} from "./simulation/event-trace";
+
+// --- Execution trace (experimental): core.execution-trace ---
+export {
+  createExecutionTrace,
+  createTraceEncoder,
+  createTracePlayer,
+  effectivePlayMode,
+  EVENT_PLAY_MODE_LEAD,
+  findRestingTime,
+  findStepTargetIndex,
+  wallClockMsAt,
+} from "./execution-trace";
+export type {
+  ExecutionTrace,
+  ExecutionTraceConfig,
+  PlayableTrace,
+  TraceCoverage,
+  TraceEncoder,
   TraceEvent,
   TraceEventKind,
-} from "./simulation/event-trace";
+  TraceFiring,
+  TraceMarking,
+  TracePlayer,
+  TracePlayerLoadOptions,
+  TracePlayerSnapshot,
+  TraceToken,
+  TraceWriter,
+} from "./execution-trace";
 
 // --- Simulators (experimental): core.simulators ---
 export {
@@ -740,17 +765,11 @@ export type {
 
 // --- Playback: core.playback ---
 export {
-  createEventPlayback,
   createPlayback,
-  EVENT_PLAY_MODE_LEAD,
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
 } from "./playback";
 export type {
-  EventPlayback,
-  EventPlaybackSnapshot,
-  EventTickInput,
-  EventTickResult,
   Playback,
   ComputePlayMode,
   PlaybackSnapshot,
@@ -764,18 +783,15 @@ export type {
 // --- Actual mode: core.actual-mode ---
 export {
   ACTUAL_MODE_RECORDING_VERSION,
-  ACTUAL_MODE_TIMELINE_TICK_MS,
   actualModeMarkingSchema,
   actualModeRecordingSchema,
   actualModeSourceSchema,
   actualModeTransitionEffectSchema,
   actualModeTransitionFiringSchema,
   applyActualModeTransitionFiring,
-  buildActualModeTimelinePoints,
   createActualModeRecording,
-  createActualModeTimelineFrameReader,
-  getActualModeMarkingAtTransitionFiringIndex,
-  getActualModeTransitionFiringTimesMs,
+  createActualModeTrace,
+  getActualModeEpochMs,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
   unavailableActualMode,
@@ -785,9 +801,8 @@ export type {
   ActualModeMarking,
   ActualModeRecording,
   ActualModeSource,
-  ActualModeTimelinePoint,
-  ActualModeTimelinePointKind,
   ActualModeTokenColour,
+  ActualModeTrace,
   ActualModeTransitionEffect,
   ActualModeTransitionFiring,
 } from "./actual-mode";

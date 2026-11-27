@@ -16,6 +16,8 @@ import {
   deriveDefaultParameterValues,
   type AdHocScenarioState,
   type EventSimulation,
+  type PlayableTrace,
+  type ReadableStore,
   type SimulationRequestBase,
   type SimulationState as CoreSimulationState,
   type CompiledScenarioResult,
@@ -39,7 +41,6 @@ import {
 } from "../simulators/context";
 import {
   type InitialMarking,
-  type PlaybackSource,
   type StochasticRun,
   SimulationContext,
   type SimulationContextValue,
@@ -65,7 +66,10 @@ import {
   startSimulatorExperiment,
   startSimulatorRun,
 } from "./provider/start-on-simulator";
-import { createStochasticPlaybackSource } from "./provider/stochastic-playback-source";
+import {
+  createStochasticPlaybackSource,
+  stochasticRunStatus,
+} from "./provider/stochastic-playback-source";
 import { useRunScenario } from "./provider/use-run-scenario";
 import { runEndOf } from "./run-end";
 
@@ -272,10 +276,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     useState<EventSimulation | null>(null);
   const eventSimulationRef = useLatest(eventSimulation);
   // A Stochastic simulation's experiment, with the source playback moves
-  // over made once beside it.
+  // over and its status in the words of a run, each made once beside it.
   const [stochastic, setStochastic] = useState<{
     run: StochasticRun;
-    playbackSource: PlaybackSource;
+    playbackSource: PlayableTrace;
+    status: ReadableStore<CoreSimulationState>;
   } | null>(null);
   const stochasticRef = useLatest(stochastic);
   const initializationGenerationRef = useRef(0);
@@ -290,9 +295,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Subscribe to the active simulation's stores. EMPTY_*_STORE provides a
   // stable fallback so hook order doesn't change when no sim is active.
   const coreStatus = useStore(
-    eventSimulation?.status ??
-      stochastic?.playbackSource.status ??
-      EMPTY_STATUS_STORE,
+    eventSimulation?.status ?? stochastic?.status ?? EMPTY_STATUS_STORE,
   );
 
   useEffect(() => {
@@ -716,6 +719,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? {
           run: stochasticRun,
           playbackSource: createStochasticPlaybackSource(stochasticRun),
+          status: stochasticRunStatus(stochasticRun),
         }
       : null;
     // Write the refs synchronously *before* the state so a same-tick caller
@@ -756,14 +760,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const simulationState =
     eventSimulation || stochastic ? simulationStateOf[coreStatus] : "NotRun";
-  // The run's own stores, so the source holds still for as long as the run.
-  const playbackSource: PlaybackSource | null = eventSimulation
-    ? {
-        coverage: eventSimulation.trace,
-        status: eventSimulation.status,
-        demand: eventSimulation.demand,
-      }
-    : (stochastic?.playbackSource ?? null);
+  // The run's own trace, so the source holds still for as long as the run.
+  const playbackSource: PlayableTrace | null =
+    eventSimulation?.trace ?? stochastic?.playbackSource ?? null;
   useEffect(() => {
     if (
       shouldNormalizeScenarioSelection({
@@ -800,11 +799,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // The run or the experiment says what its positions count. Before one
   // exists the net does: an untimed net is simulated in steps in either mode.
   const clock =
-    eventSimulation?.clock ??
+    eventSimulation?.trace.clock ??
     stochastic?.run.clock ??
     runClockOf(petriNetDefinition, extensions);
   const continuity =
-    eventSimulation?.continuity ??
+    eventSimulation?.trace.continuity ??
     runContinuityOf(petriNetDefinition, extensions);
 
   const contextValue: SimulationContextValue = {

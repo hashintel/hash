@@ -5,9 +5,15 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
 import { useEventPlaybackFrame } from "../../../../../react/event-playback/use-event-playback-frame";
-import { SimulationContext } from "../../../../../react/simulation/context";
+import { ExecutionTraceContext } from "../../../../../react/execution-trace/context";
 import { usePetrinautPresentation } from "../../../../presentation/presentation-context";
-import { formatRunPosition, stepAt } from "../../shared/run-position";
+import {
+  describeWallClock,
+  formatRunPosition,
+  formatWallClock,
+  stepAt,
+  type RunAxis,
+} from "../../shared/run-position";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
@@ -121,11 +127,68 @@ const arrowDirection = (key: string): -1 | 1 | null =>
       : null;
 
 /**
+ * Where the viewed position is, in the words of the execution's axis: a
+ * step, seconds since the start, or the time of day when the execution
+ * happened in real time. The full instant is in the tooltip.
+ */
+const PositionReadout: React.FC<{
+  axis: RunAxis;
+  time: number;
+  coveredTime: number;
+  compact: boolean;
+}> = ({ axis, time, coveredTime, compact }) => {
+  const inSteps = axis.clock === "steps";
+  const wallClock = formatWallClock(axis, time);
+  const elapsed = formatRunPosition(axis.clock, time);
+  const total = formatRunPosition(axis.clock, coveredTime);
+
+  if (wallClock !== null) {
+    const instant = describeWallClock(axis, time) ?? wallClock;
+    return (
+      <div
+        role="timer"
+        aria-label={`Viewing ${instant}`}
+        title={instant}
+        className={timeReadoutStyle({ compact })}
+      >
+        <span className={elapsedTimeStyle}>{wallClock}</span>
+        <span className={totalTimeStyle}>
+          of {formatWallClock(axis, coveredTime)}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      role="timer"
+      aria-label={
+        inSteps
+          ? `Step ${elapsed} of ${total} computed`
+          : `Elapsed ${elapsed} seconds of ${total} seconds computed`
+      }
+      className={timeReadoutStyle({ compact })}
+    >
+      <span className={elapsedTimeStyle}>
+        {inSteps ? <span className={timeUnitStyle}>Step </span> : null}
+        {elapsed}
+        {inSteps ? null : <span className={timeUnitStyle}> s</span>}
+      </span>
+      <span className={totalTimeStyle}>
+        of {total}
+        {inSteps ? null : " s"}
+      </span>
+    </div>
+  );
+};
+
+/**
  * The part of the event controls that shows the viewed position: the
- * readout, the scrubber and the event steppers. A timed run reads in
- * seconds; an untimed one in steps, and its scrubber moves a step at a time.
- * The scrubber of a discrete run lands on its events, and its arrow keys
- * move from one to the next.
+ * readout, the scrubber and the event steppers. A timed execution reads in
+ * seconds, or as the time of day when it happened in real time; an untimed
+ * one in steps, and its scrubber moves a step at a time.
+ * The scrubber of a discrete execution lands on its events, and its arrow
+ * keys move from one to the next.
  * It re-renders on every animation frame while playing, which is why it is
  * its own component: the rest of the bar stays put.
  */
@@ -135,12 +198,11 @@ export const EventTimeControls: React.FC<{
   showEventSteppers?: boolean;
 }> = ({ disabled, showEventSteppers = true }) => {
   const presentation = usePetrinautPresentation();
-  const { clock, continuity } = use(SimulationContext);
-  const { coveredTime, setTime, stepToEvent } = use(EventPlaybackContext);
+  const { trace, clock, continuity } = use(ExecutionTraceContext);
+  const { startTime, coveredTime, setTime, stepToEvent } =
+    use(EventPlaybackContext);
   const { time, hasPreviousEvent, hasNextEvent } = useEventPlaybackFrame();
   const inSteps = clock === "steps";
-  const elapsed = formatRunPosition(clock, time);
-  const total = formatRunPosition(clock, coveredTime);
   const wording = WORDING[clock];
 
   return (
@@ -166,35 +228,22 @@ export const EventTimeControls: React.FC<{
         </>
       ) : null}
 
-      <div
-        role="timer"
-        aria-label={
-          inSteps
-            ? `Step ${elapsed} of ${total} computed`
-            : `Elapsed ${elapsed} seconds of ${total} seconds computed`
-        }
-        className={timeReadoutStyle({ compact: presentation.compactControls })}
-      >
-        <span className={elapsedTimeStyle}>
-          {inSteps ? <span className={timeUnitStyle}>Step </span> : null}
-          {elapsed}
-          {inSteps ? null : <span className={timeUnitStyle}> s</span>}
-        </span>
-        <span className={totalTimeStyle}>
-          of {total}
-          {inSteps ? null : " s"}
-        </span>
-      </div>
+      <PositionReadout
+        axis={{ clock, epochMs: trace?.epochMs ?? null }}
+        time={time}
+        coveredTime={coveredTime}
+        compact={presentation.compactControls}
+      />
 
       <input
         type="range"
-        min="0"
+        min={startTime}
         max={coveredTime}
         step={inSteps ? 1 : "any"}
         // Between two steps the thumb stays on the one reached, as the
         // readout does.
         value={inSteps ? stepAt(time) : time}
-        disabled={disabled || coveredTime === 0}
+        disabled={disabled || coveredTime === startTime}
         onChange={(event) => setTime(Number(event.target.value))}
         onKeyDown={(event) => {
           // An arrow key moves a range by a share of its span, which in a

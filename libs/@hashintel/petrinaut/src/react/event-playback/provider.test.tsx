@@ -5,14 +5,14 @@ import { act, cleanup, render } from "@testing-library/react";
 import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  EVENT_PLAY_MODE_LEAD,
-  type EventSimulation,
-  type EventTraceSummary,
-  type RunContinuity,
-} from "@hashintel/petrinaut-core";
+import { EVENT_PLAY_MODE_LEAD } from "@hashintel/petrinaut-core";
 
-import { constantStore } from "../shared/use-store";
+import {
+  ExecutionTraceContext,
+  NO_VIEWED_EXECUTION,
+  type ViewedExecution,
+} from "../execution-trace/context";
+import { createQueueTrace } from "../execution-trace/trace.test-helpers";
 import {
   DEFAULT_SIMULATION_CONTEXT,
   SimulationContext,
@@ -24,64 +24,40 @@ import {
 } from "./context";
 import { EventPlaybackProvider } from "./provider";
 
-/** A run that has recorded three events over five simulated seconds. */
-const runningSource = () => ({
-  coverage: constantStore<EventTraceSummary>({
-    eventCount: 3,
-    coveredTime: 5,
-    latest: null,
-  }),
-  status: constantStore("Running" as const),
-  demand: vi.fn<(time: number) => void>(),
+/** The viewed execution a trace stands for, as the provider above would say it. */
+const viewing = (
+  trace: ViewedExecution["trace"],
+  origin: ViewedExecution["origin"] = "simulation",
+): ViewedExecution => ({
+  origin,
+  trace,
+  playable: trace,
+  clock: trace?.clock ?? "time",
+  continuity: trace?.continuity ?? "continuous",
 });
 
-/**
- * The run behind `runningSource`: the initial state, a firing at 1.5 s and
- * another at 3 s, then a reference frame where its coverage ends.
- */
-const runOf = (continuity: RunContinuity): EventSimulation => {
-  const events = [
-    { time: 0, discrete: true },
-    { time: 1.5, discrete: true },
-    { time: 3, discrete: true },
-    { time: 5, discrete: false },
-  ];
-  const run: Pick<
-    EventSimulation,
-    | "continuity"
-    | "findEventIndexAt"
-    | "getEvent"
-    | "findDiscreteEventAtOrBefore"
-  > = {
-    continuity,
-    findEventIndexAt: (time) =>
-      events.findLastIndex((event) => event.time <= time),
-    getEvent: (index) =>
-      (events[index] ?? null) as ReturnType<EventSimulation["getEvent"]>,
-    findDiscreteEventAtOrBefore: (index) => {
-      const found = events.findLastIndex(
-        (event, at) => at <= index && event.discrete,
-      );
-      return found === -1 ? null : found;
-    },
-  };
-  return run as EventSimulation;
-};
-
-const mount = (simulation: Partial<SimulationContextValue>) => {
+const mount = (
+  simulation: Partial<SimulationContextValue>,
+  viewed: ViewedExecution = NO_VIEWED_EXECUTION,
+) => {
   const read: { value: EventPlaybackContextValue | null } = { value: null };
   const Probe: React.FC = () => {
     read.value = use(EventPlaybackContext);
     return null;
   };
-  const tree = (overrides: Partial<SimulationContextValue>) => (
+  const tree = (
+    overrides: Partial<SimulationContextValue>,
+    execution: ViewedExecution,
+  ) => (
     <SimulationContext value={{ ...DEFAULT_SIMULATION_CONTEXT, ...overrides }}>
-      <EventPlaybackProvider>
-        <Probe />
-      </EventPlaybackProvider>
+      <ExecutionTraceContext value={execution}>
+        <EventPlaybackProvider>
+          <Probe />
+        </EventPlaybackProvider>
+      </ExecutionTraceContext>
     </SimulationContext>
   );
-  const view = render(tree(simulation));
+  const view = render(tree(simulation, viewed));
   return {
     playback: () => {
       if (!read.value) {
@@ -89,8 +65,10 @@ const mount = (simulation: Partial<SimulationContextValue>) => {
       }
       return read.value;
     },
-    update: (next: Partial<SimulationContextValue>) =>
-      view.rerender(tree(next)),
+    update: (
+      next: Partial<SimulationContextValue>,
+      execution: ViewedExecution = NO_VIEWED_EXECUTION,
+    ) => view.rerender(tree(next, execution)),
   };
 };
 
@@ -178,36 +156,42 @@ describe("EventPlaybackProvider", () => {
     expect(playback().playbackState).toBe("Playing");
   });
 
-  it("asks the run for the viewed time plus the mode's lead, and for nothing in view-only mode", () => {
-    const source = runningSource();
-    const pause = vi.fn();
-    const { playback } = mount({
-      state: "Paused",
-      playbackSource: source,
-      pause,
+  it("keeps the play pressed before the run existed once its trace is viewed", async () => {
+    const { playback, update } = mount({
+      initialize: () => Promise.resolve(true),
     });
-    expect(source.demand).toHaveBeenLastCalledWith(
+    await act(() => playback().play());
+
+    update({ state: "Running" }, viewing(createQueueTrace().trace));
+
+    expect(playback().playbackState).toBe("Playing");
+    expect(playback().coveredTime).toBe(5);
+  });
+
+  it("asks the run for the viewed time plus the mode's lead, and for nothing in view-only mode", () => {
+    const onDemand = vi.fn<(time: number) => void>();
+    const pause = vi.fn();
+    const { trace } = createQueueTrace({ continuity: "continuous", onDemand });
+    const { playback } = mount({ state: "Paused", pause }, viewing(trace));
+    expect(onDemand).toHaveBeenLastCalledWith(
       EVENT_PLAY_MODE_LEAD.computeBuffer,
     );
 
     act(() => playback().setTime(2));
-    expect(source.demand).toHaveBeenLastCalledWith(
+    expect(onDemand).toHaveBeenLastCalledWith(
       2 + EVENT_PLAY_MODE_LEAD.computeBuffer,
     );
 
     act(() => playback().setPlayMode("viewOnly"));
     expect(pause).toHaveBeenCalledTimes(1);
-    const demandsSoFar = source.demand.mock.calls.length;
+    const demandsSoFar = onDemand.mock.calls.length;
     act(() => playback().setTime(4));
-    expect(source.demand).toHaveBeenCalledTimes(demandsSoFar);
+    expect(onDemand).toHaveBeenCalledTimes(demandsSoFar);
   });
 
   it("views a continuous run at any time it covers", () => {
-    const { playback } = mount({
-      state: "Paused",
-      playbackSource: runningSource(),
-      eventSimulation: runOf("continuous"),
-    });
+    const { trace } = createQueueTrace({ continuity: "continuous" });
+    const { playback } = mount({ state: "Paused" }, viewing(trace));
 
     act(() => playback().setTime(2));
     expect(playback().playbackStore.get().time).toBe(2);
@@ -216,46 +200,73 @@ describe("EventPlaybackProvider", () => {
   });
 
   it("views a discrete run at the event at or before the time it is put at", () => {
-    const { playback } = mount({
-      state: "Paused",
-      playbackSource: runningSource(),
-      eventSimulation: runOf("discrete"),
-    });
+    const { playback } = mount(
+      { state: "Paused" },
+      viewing(createQueueTrace().trace),
+    );
 
     act(() => playback().setTime(2));
     expect(playback().playbackStore.get().time).toBe(1.5);
-  });
-
-  it("rests a discrete run on the event it last passed when paused", () => {
-    const source = runningSource();
-    const { playback, update } = mount({
-      state: "Paused",
-      playbackSource: source,
-      eventSimulation: runOf("continuous"),
-    });
-    // Playing leaves the viewed time between two events. Put there here by
-    // a run that lets it.
-    act(() => playback().setTime(2.4));
-    update({
-      state: "Paused",
-      playbackSource: source,
-      eventSimulation: runOf("discrete"),
-    });
-    expect(playback().playbackStore.get().time).toBe(2.4);
-
-    act(() => playback().pause());
-    expect(playback().playbackStore.get().time).toBe(1.5);
+    act(() => playback().stepToEvent(1));
+    expect(playback().playbackStore.get().time).toBe(3);
   });
 
   it("returns to the start when the run is discarded", () => {
-    const { playback, update } = mount({
-      state: "Paused",
-      playbackSource: runningSource(),
-    });
+    const { trace } = createQueueTrace({ continuity: "continuous" });
+    const { playback, update } = mount({ state: "Paused" }, viewing(trace));
     act(() => playback().setTime(2));
     expect(playback().playbackStore.get().time).toBe(2);
 
-    update({ state: "NotRun", playbackSource: null });
-    expect(playback().playbackStore.get().time).toBe(0);
+    update({ state: "NotRun" });
+    expect(playback().playbackStore.get()).toMatchObject({
+      playState: "Stopped",
+      time: 0,
+    });
+  });
+
+  describe("over an execution the host reports", () => {
+    it("opens at the end and follows the execution as it happens", () => {
+      const { trace, finish } = createQueueTrace();
+      const { playback } = mount({}, viewing(trace, "host"));
+      expect(playback().playbackStore.get()).toMatchObject({
+        playState: "Playing",
+        time: 5,
+        following: true,
+      });
+
+      act(() => finish(8));
+      expect(playback().playbackStore.get().time).toBe(8);
+      expect(playback().eventCount).toBe(4);
+    });
+
+    it("moves the view and never starts, runs or pauses a simulation", async () => {
+      const simulation = {
+        initialize: vi.fn(() => Promise.resolve(true)),
+        run: vi.fn(),
+        pause: vi.fn(),
+      };
+      const { playback } = mount(
+        simulation,
+        viewing(createQueueTrace().trace, "host"),
+      );
+
+      act(() => playback().pause());
+      expect(playback().playbackStore.get()).toMatchObject({
+        playState: "Paused",
+        following: false,
+      });
+      act(() => playback().setTime(2));
+      await act(() => playback().play());
+
+      expect(playback().playbackStore.get()).toMatchObject({
+        playState: "Playing",
+        time: 1.5,
+        following: false,
+      });
+      expect(playback().isComputeAvailable).toBe(false);
+      expect(simulation.initialize).not.toHaveBeenCalled();
+      expect(simulation.run).not.toHaveBeenCalled();
+      expect(simulation.pause).not.toHaveBeenCalled();
+    });
   });
 });

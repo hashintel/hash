@@ -119,9 +119,11 @@ bytes.
 
 ## Reading a frame
 
-A host reads a frame through a `SimulationFrameReader` of `../api.ts`. The
-handle of a run returns one: `getEventState(index)` for the state an event
-recorded, and `getStateAt(time)` for the state at any time the trace covers.
+A host reads a frame through a `SimulationFrameReader` of `../api.ts`. An
+[execution trace](layer:core.execution-trace) returns one, for a run and for
+an execution a host reports alike: `getEventState(index)` for the state an
+event recorded, and `getStateAt(time)` for the state at any time the trace
+covers.
 
 Inside Core, `compileSimulationFrameReader` in `frame-reader.ts` derives the
 layout from the net once and returns the function that wraps one frame:

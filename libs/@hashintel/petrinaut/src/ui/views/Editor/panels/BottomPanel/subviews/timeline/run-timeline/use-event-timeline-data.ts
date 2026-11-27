@@ -4,7 +4,7 @@ import { SOLVER_ERROR_DIAGNOSTIC } from "@hashintel/petrinaut-core";
 
 import { useSDCPNState } from "../../../../../../../../react/document/sdcpn-context";
 import { usePetrinautDefinitionSelector } from "../../../../../../../../react/document/use-document";
-import { SimulationContext } from "../../../../../../../../react/simulation/context";
+import { ExecutionTraceContext } from "../../../../../../../../react/execution-trace/context";
 import { buildTimelineSeriesConfig } from "../shared/series-config";
 import { useRunTimelineView } from "../shared/use-run-timeline-view";
 import {
@@ -81,8 +81,8 @@ const sameView = (
 };
 
 /**
- * One series store per run and view. A new run or a changed view starts a
- * new store; the previous one is left to the garbage collector once its
+ * One series store per trace and view. A new trace or a changed view starts
+ * a new store; the previous one is left to the garbage collector once its
  * subscription effect has cleaned up.
  */
 const useTimelineSeriesStore = (
@@ -131,7 +131,7 @@ export function useEventTimelineData({
   references: readonly number[];
   metricError: string | null;
 } {
-  const { eventSimulation } = use(SimulationContext);
+  const { trace } = use(ExecutionTraceContext);
   const timelineView = useRunTimelineView();
   const colorsEnabled = useSDCPNState((document) => document.extensions.colors);
   const places = usePetrinautDefinitionSelector((net) => net.places);
@@ -161,7 +161,7 @@ export function useEventTimelineData({
   const solverErrorPlaceIndices =
     timelineView.kind === "solver-error"
       ? seriesConfig.series.map((series) =>
-          eventSimulation?.placeIndexById.get(
+          trace?.placeIndexById.get(
             series.seriesId.replace(/^solver-error__/, ""),
           ),
         )
@@ -190,7 +190,7 @@ export function useEventTimelineData({
               extract: seriesConfig.extract,
             };
 
-  const store = useTimelineSeriesStore(eventSimulation, view);
+  const store = useTimelineSeriesStore(trace, view);
   useEffect(() => (paused ? undefined : store?.attach()), [store, paused]);
   useEffect(() => {
     if (!paused) {

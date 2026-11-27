@@ -4,7 +4,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EventPlaybackContext } from "../../../../../../../../react/event-playback/context";
-import { SimulationContext } from "../../../../../../../../react/simulation/context";
+import { ExecutionTraceContext } from "../../../../../../../../react/execution-trace/context";
 import {
   useEditorActions,
   useEditorState,
@@ -48,9 +48,9 @@ const NO_REFERENCES: readonly number[] = [];
 const NO_TRANSITION_NAMES: ReadonlyMap<string, string> = new Map();
 
 /**
- * What the timeline of a run and of a Stochastic simulation share: the chart
- * with its Fit button and its legend, a scrub that holds playback while it
- * lasts, and the message shown while there is nothing to draw.
+ * What the timeline of an execution and of a Stochastic simulation share:
+ * the chart with its Fit button and its legend, a scrub that holds playback
+ * while it lasts, and the message shown while there is nothing to draw.
  */
 export const TimelineFrame: React.FC<{
   view: TimelineViewRange;
@@ -87,12 +87,12 @@ export const TimelineFrame: React.FC<{
     (editor) => editor.hiddenTimelineSeriesIds,
   );
   const { setHiddenTimelineSeriesIds: setHiddenSeries } = useEditorActions();
-  const { clock } = use(SimulationContext);
+  const { origin, trace, clock } = use(ExecutionTraceContext);
   const {
+    startTime,
     coveredTime,
     playbackStore,
     setTime,
-    playbackState,
     play,
     pause,
     isComputeAvailable,
@@ -100,27 +100,35 @@ export const TimelineFrame: React.FC<{
 
   // Scrubbing pauses playback for the drag and resumes it on release, unless
   // the drag ended at the end of a finished run, where play would start
-  // over.
+  // over. A view that was following an execution as it happens was not
+  // playing it back: let go of before the end, it stays where it was put.
   const resumeAfterScrubRef = useRef(false);
   const onScrubStart = () => {
-    resumeAfterScrubRef.current = playbackState === "Playing";
-    if (resumeAfterScrubRef.current) {
+    const { playState, following } = playbackStore.get();
+    resumeAfterScrubRef.current = playState === "Playing" && !following;
+    if (playState === "Playing") {
       pause();
     }
   };
   const onScrubEnd = () => {
-    if (!resumeAfterScrubRef.current) {
+    const resume = resumeAfterScrubRef.current;
+    resumeAfterScrubRef.current = false;
+    const { time, playState, following } = playbackStore.get();
+    // The drag ended at the end of an execution still going: it is followed.
+    if (following) {
       return;
     }
-    resumeAfterScrubRef.current = false;
     if (
+      resume &&
       resumesAfterScrub({
-        time: playbackStore.get().time,
+        time,
         coveredTime,
         runIsOver: !isComputeAvailable,
       })
     ) {
       void play();
+    } else if (playState === "Playing") {
+      pause();
     }
   };
 
@@ -138,7 +146,11 @@ export const TimelineFrame: React.FC<{
           {error}
         </span>
       ) : data === null || chartData === null ? (
-        <span className={messageStyle}>No simulation data available</span>
+        <span className={messageStyle}>
+          {origin === "host"
+            ? "No execution data available"
+            : "No simulation data available"}
+        </span>
       ) : (
         <>
           <div className={chartHostStyle}>
@@ -154,6 +166,7 @@ export const TimelineFrame: React.FC<{
             )}
             <EventTimelineChart
               clock={clock}
+              epochMs={trace?.epochMs ?? null}
               className={chartAreaStyle}
               data={chartData}
               firings={firings}
@@ -168,7 +181,9 @@ export const TimelineFrame: React.FC<{
               onScrubStart={onScrubStart}
               onScrubEnd={onScrubEnd}
               onStep={onStep}
-              onJump={(edge) => setTime(edge === "start" ? 0 : coveredTime)}
+              onJump={(edge) =>
+                setTime(edge === "start" ? startTime : coveredTime)
+              }
               paused={!onScreen}
             />
           </div>

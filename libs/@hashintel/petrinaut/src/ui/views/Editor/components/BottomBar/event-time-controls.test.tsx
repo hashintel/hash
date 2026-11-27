@@ -5,15 +5,20 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
-import { constantStore } from "../../../../../react/shared/use-store";
 import {
-  DEFAULT_SIMULATION_CONTEXT,
-  SimulationContext,
-} from "../../../../../react/simulation/context";
+  ExecutionTraceContext,
+  NO_VIEWED_EXECUTION,
+} from "../../../../../react/execution-trace/context";
+import { createQueueTrace } from "../../../../../react/execution-trace/trace.test-helpers";
+import { constantStore } from "../../../../../react/shared/use-store";
 import { EventTimeControls } from "./event-time-controls";
 
 import type { EventPlaybackContextValue } from "../../../../../react/event-playback/context";
-import type { RunClock, RunContinuity } from "@hashintel/petrinaut-core";
+import type {
+  ExecutionTrace,
+  RunClock,
+  RunContinuity,
+} from "@hashintel/petrinaut-core";
 
 const stepToEvent = vi.fn<(direction: -1 | 1) => void>();
 
@@ -24,6 +29,7 @@ afterEach(() => {
 
 const playback = (time: number, coveredTime: number) =>
   ({
+    startTime: 0,
     coveredTime,
     eventCount: 1,
     playbackStore: constantStore({
@@ -39,15 +45,16 @@ const playback = (time: number, coveredTime: number) =>
 const renderControls = (
   clock: RunClock,
   continuity: RunContinuity = clock === "steps" ? "discrete" : "continuous",
+  trace: ExecutionTrace | null = null,
 ) =>
   render(
-    <SimulationContext
-      value={{ ...DEFAULT_SIMULATION_CONTEXT, clock, continuity }}
+    <ExecutionTraceContext
+      value={{ ...NO_VIEWED_EXECUTION, trace, clock, continuity }}
     >
       <EventPlaybackContext value={playback(3.4, 12)}>
         <EventTimeControls disabled={false} />
       </EventPlaybackContext>
-    </SimulationContext>,
+    </ExecutionTraceContext>,
   );
 
 describe("EventTimeControls", () => {
@@ -109,5 +116,15 @@ describe("EventTimeControls", () => {
       { key: "ArrowRight" },
     );
     expect(stepToEvent).not.toHaveBeenCalled();
+  });
+
+  it("reads an execution that happened in real time as the time of day", () => {
+    // Local noon, so the reading is the same in every time zone.
+    const epochMs = new Date(2026, 5, 5, 12, 0, 0).getTime();
+    renderControls("time", "discrete", createQueueTrace({ epochMs }).trace);
+
+    const readout = screen.getByRole("timer");
+    expect(readout.textContent).toBe("12:00:03of 12:00:12");
+    expect(readout.getAttribute("title")).toContain("12:00:03.400");
   });
 });

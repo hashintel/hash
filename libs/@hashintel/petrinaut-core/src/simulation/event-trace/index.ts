@@ -1,11 +1,12 @@
 /**
  * @layerRoot core.simulation.event-trace
- * @role Runs a net as a trace of events, one frame per firing with its derivatives, and reads the state at any time by interpolating between them
+ * @role Runs a net in a worker and writes the run as an execution trace: one event per firing, with its frame and its derivatives
  *
  * The worker advances the run with the stepper of the simulator the host
- * selected and records only the states that stepper finds worth keeping; the
- * host keeps those events and reconstructs the state at any time from them,
- * so playback addresses time rather than frame indices.
+ * selected and records only the states that stepper finds worth keeping. The
+ * host writes those events into an execution trace, which answers the state
+ * at any time from them, so playback addresses time rather than frame
+ * indices.
  */
 
 export { createEventSimulation } from "./runtime";
@@ -14,16 +15,10 @@ export type {
   EventSimulation,
   EventSimulationConfig,
 } from "./runtime";
-export { interpolateFrame } from "./interpolation";
-export { createInMemoryEventTraceStore } from "./trace-store";
-export type { EventTraceStore } from "./trace-store";
 export type {
   EventSimulationCompleteEvent,
   EventSimulationErrorEvent,
   EventSimulationEvent,
-  EventTraceSummary,
-  TraceEvent,
-  TraceEventKind,
 } from "./trace";
 export { SOLVER_ERROR_DIAGNOSTIC } from "./trace";
 export {

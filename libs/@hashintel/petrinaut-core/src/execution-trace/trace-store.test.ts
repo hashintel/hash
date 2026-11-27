@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   createEngineFrame,
   createEngineFrameLayout,
-} from "../frames/internal-frame";
+} from "../simulation/frames/internal-frame";
 import {
   createInMemoryEventTraceStore,
   findLastEventIndexAt,
 } from "./trace-store";
 
-import type { SDCPN } from "../../types/sdcpn";
-import type { TraceEvent, TraceEventKind } from "./trace";
+import type { SDCPN } from "../types/sdcpn";
+import type { TraceEvent, TraceEventKind } from "./trace-event";
 
 const sdcpn: SDCPN = {
   places: [

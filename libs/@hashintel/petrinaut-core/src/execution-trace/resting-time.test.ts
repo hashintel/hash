@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { findRestingTime, type RestingTrace } from "./resting-time";
+import { findRestingTime } from "./trace-player";
 
-import type { RunContinuity } from "@hashintel/petrinaut-core";
+import type { RunContinuity } from "../extensions/net-class";
+
+type RestingTrace = Parameters<typeof findRestingTime>[0];
 
 type Kind = "initial" | "firing" | "reference";
 
@@ -12,10 +14,21 @@ const traceOf = (
   events: readonly (readonly [time: number, kind: Kind])[],
 ): RestingTrace => ({
   continuity,
+  coverage: {
+    get: () => ({
+      eventCount: events.length,
+      startTime: events[0]?.[0] ?? 0,
+      coveredTime: events.at(-1)?.[0] ?? 0,
+      ended: false,
+    }),
+    subscribe: () => () => {},
+  },
   findEventIndexAt: (time) => events.findLastIndex(([at]) => at <= time),
   getEvent: (index) => {
     const event = events[index];
-    return event ? { time: event[0] } : null;
+    return event
+      ? ({ time: event[0] } as ReturnType<RestingTrace["getEvent"]>)
+      : null;
   },
   findDiscreteEventAtOrBefore: (index) => {
     for (let at = Math.min(index, events.length - 1); at >= 0; at--) {
@@ -60,9 +73,17 @@ describe("findRestingTime", () => {
     expect(findRestingTime(run, 2)).toBe(1.7);
   });
 
-  it("rests on the initial state before any event, and with no trace yet", () => {
+  it("rests on the first state before any event, and with no trace yet", () => {
     expect(findRestingTime(traceOf("discrete", EVENTS), -1)).toBe(0);
     expect(findRestingTime(traceOf("discrete", []), 3)).toBe(0);
+  });
+
+  it("rests where the trace starts when it holds no discrete event", () => {
+    const joined = traceOf("discrete", [
+      [40, "reference"],
+      [45, "reference"],
+    ]);
+    expect(findRestingTime(joined, 43)).toBe(40);
   });
 
   it("rests an untimed run on the step it has reached", () => {

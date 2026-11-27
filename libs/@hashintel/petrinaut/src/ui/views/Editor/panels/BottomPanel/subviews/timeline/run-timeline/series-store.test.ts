@@ -9,6 +9,7 @@ import {
 import type { TimelineSeriesSource } from "./series-store";
 import type {
   SimulationFrameReader,
+  TraceCoverage,
   TraceEvent,
 } from "@hashintel/petrinaut-core";
 
@@ -25,14 +26,13 @@ type Fake = {
  */
 const createSource = (initial: Fake[]) => {
   const events = [...initial];
-  const listeners = new Set<
-    (value: { eventCount: number; coveredTime: number; latest: null }) => void
-  >();
+  const listeners = new Set<(value: TraceCoverage) => void>();
   let coveredTime = events[events.length - 1]?.time ?? 0;
-  const summary = () => ({
+  const summary = (): TraceCoverage => ({
     eventCount: events.length,
+    startTime: events[0]?.time ?? 0,
     coveredTime,
-    latest: null,
+    ended: false,
   });
   const reader = (time: number, extrapolated: boolean) =>
     ({ time, extrapolated }) as unknown as SimulationFrameReader;
@@ -65,7 +65,7 @@ const createSource = (initial: Fake[]) => {
       const last = events[events.length - 1];
       return last ? reader(time, time >= last.time) : null;
     },
-    trace: {
+    coverage: {
       get: summary,
       subscribe: (listener) => {
         listeners.add(listener);
@@ -120,7 +120,7 @@ describe("createTimelineSeriesStore", () => {
     expect(notified).toBe(1);
     // Two updates inside one interval reach the chart as one.
     const before = store.getSnapshot();
-    source.trace.get();
+    source.coverage.get();
     append([{ time: 0.1, kind: "firing", fired: ["t1"] }], 0.1);
     expect(notified).toBe(2);
     expect(store.getSnapshot()).not.toBe(before);

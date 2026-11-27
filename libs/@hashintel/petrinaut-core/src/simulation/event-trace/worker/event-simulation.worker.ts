@@ -19,9 +19,9 @@ import {
 } from "./flush-policy";
 import { createTraceRecorder, type TraceRecorder } from "./trace-recorder";
 
+import type { TraceEvent } from "../../../execution-trace/trace-event";
 import type { StringPool } from "../../../tokens/string-pool";
 import type { SimulationFrameNewStrings } from "../../frames/frame-payload";
-import type { TraceEvent } from "../trace";
 import type { ToEventMainMessage, ToEventWorkerMessage } from "./messages";
 
 const runtime = createWorkerThreadRuntime<

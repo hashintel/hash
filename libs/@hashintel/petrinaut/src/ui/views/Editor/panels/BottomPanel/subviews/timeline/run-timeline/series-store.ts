@@ -19,8 +19,7 @@ import type {
 } from "../shared/types";
 import type { EventTimelineData, FiringMark, TraceReader } from "./series";
 import type {
-  EventTraceSummary,
-  ReadableStore,
+  ExecutionTrace,
   TraceEvent,
   Transition,
 } from "@hashintel/petrinaut-core";
@@ -33,9 +32,8 @@ import type uPlot from "uplot";
  */
 export const TRACE_UPDATE_INTERVAL_MS = 250;
 
-export type TimelineSeriesSource = TraceReader & {
-  trace: ReadableStore<EventTraceSummary>;
-};
+export type TimelineSeriesSource = TraceReader &
+  Pick<ExecutionTrace, "coverage">;
 
 /** Reads a series' value off an event's own record rather than its state. */
 export type TimelineEventExtractor = (
@@ -296,7 +294,7 @@ export const createTimelineSeriesStore = (
   };
 
   const rebuild = () => {
-    const { eventCount, coveredTime } = source.trace.get();
+    const { eventCount, coveredTime } = source.coverage.get();
     for (let index = builtEvents; index < eventCount; index++) {
       const event = source.getEvent(index);
       if (!event) {
@@ -341,7 +339,7 @@ export const createTimelineSeriesStore = (
       notify();
       let lastUpdate = Date.now();
       let timer: ReturnType<typeof setTimeout> | null = null;
-      const unsubscribe = source.trace.subscribe(() => {
+      const unsubscribe = source.coverage.subscribe(() => {
         if (timer !== null) {
           return;
         }
@@ -371,7 +369,7 @@ export const createTimelineSeriesStore = (
       if (view.kind !== "sampled" || snapshot.data === null) {
         return;
       }
-      const { coveredTime } = source.trace.get();
+      const { coveredTime } = source.coverage.get();
       snapshot = {
         ...snapshot,
         data: builder.update(

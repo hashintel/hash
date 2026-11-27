@@ -955,9 +955,10 @@ stored in the frame.
 
 Actual mode implements the same source from its recording: its firings are
 events, its initial marking is the initial keyframe, and it has no flow, so
-`getState` is the marking after the last firing at or before `t`. The
-adapter in `actual-mode/timeline.ts` that turns firings into timeline points
-goes.
+`getState` is the marking after the last firing at or before `t`. This part
+is built: [The execution trace](doc:core.execution-trace/execution-trace)
+is the object a run's worker and Actual mode both write, and one player
+plays it.
 
 ### Plugin-provided backends
 
