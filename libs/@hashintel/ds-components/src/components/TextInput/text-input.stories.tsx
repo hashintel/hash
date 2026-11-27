@@ -285,7 +285,7 @@ export const Alignment: Story = {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "auto auto",
+        gridTemplateColumns: "auto auto auto",
         columnGap: 32,
         rowGap: 12,
         alignItems: "center",
@@ -294,6 +294,7 @@ export const Alignment: Story = {
     >
       <span style={subheadingStyle}>Editable</span>
       <span style={subheadingStyle}>Read-only</span>
+      <span style={subheadingStyle}>Kitchen sink</span>
       {alignments.map((align) => (
         <Fragment key={align}>
           <Controlled
@@ -308,6 +309,14 @@ export const Alignment: Story = {
             onChange={noop}
             align={align}
             readonly
+          />
+          <ClearableInput
+            {...args}
+            value={`Align: ${align}`}
+            align={align}
+            prefix={{ iconName: "search" }}
+            suffix={{ text: "kg" }}
+            loading
           />
         </Fragment>
       ))}

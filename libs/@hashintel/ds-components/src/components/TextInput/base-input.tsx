@@ -3,6 +3,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { ClearGlyph } from "../../util/clear-glyph";
 import {
   preventAutocompleteProps,
   resolveAutoFocusProps,
@@ -13,7 +14,6 @@ import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
 import { InputConnector } from "./input-connector";
-import { iconSizeMap } from "./text-input-util";
 
 import type {
   FormInputSize,
@@ -34,7 +34,7 @@ export type BaseInputProps = {
   loading?: boolean;
   /** The input's visual style: `subtle` removes the border so it reads as inline text. */
   variant?: "default" | "subtle";
-  /** The alignment of the text inside the input. */
+  /** The alignment of the text inside the input. With `right`, the loading spinner, clear button and edit icon sit on the left instead. */
   align?: "left" | "center" | "right";
   /** A set of standard width presets, for aligning with other inputs. */
   width?: FormInputWidth;
@@ -173,7 +173,9 @@ export const BaseInput = ({
 
   const hasBrowserControls = type === "number";
   const noAutocomplete = !!clearable || !autocomplete;
-  const showClear = clearable !== undefined && !disabled;
+  // Rendered while disabled too, hidden, so toggling disabled never moves the layout
+  const showClear = clearable !== undefined;
+  const clearHidden = !clearable || !value || !!disabled;
 
   const {
     value: _extraValue,
@@ -296,6 +298,12 @@ export const BaseInput = ({
     />
   );
 
+  const loadingSpinner = loading && (
+    <span className={classes.loading} data-part="loading">
+      <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
+    </span>
+  );
+
   return (
     <div
       ref={ref as React.Ref<HTMLDivElement>}
@@ -324,6 +332,8 @@ export const BaseInput = ({
           />
         )}
 
+        {align === "right" && loadingSpinner}
+
         <div className={classes.inputWrapper}>
           {input}
           {styledValue && !focused && (
@@ -350,32 +360,21 @@ export const BaseInput = ({
                 clearValue();
                 internalRef.current?.focus();
               }}
-              data-hidden={!clearable || !value ? "" : undefined}
-              className={cx(
-                classes.clear,
-                (!clearable || !value) && classes.hideClear,
-              )}
+              data-hidden={clearHidden ? "" : undefined}
+              className={cx(classes.clear, clearHidden && classes.hideClear)}
               aria-label="Clear input"
             >
-              <Icon
-                name="close"
-                size={iconSizeMap[size]}
-                className={classes.clearIcon}
-              />
+              <ClearGlyph className={classes.clearIcon} />
             </button>
           )}
-          {!disabled && showEditIcon && (
+          {showEditIcon && (
             <span className={classes.editIcon} data-part="edit">
               <Icon name="pencil" size={loadingSizeMap[size]} />
             </span>
           )}
         </div>
 
-        {loading && (
-          <span className={classes.loading} data-part="loading">
-            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-          </span>
-        )}
+        {align !== "right" && loadingSpinner}
 
         {suffix != null && renderAdornment("suffix", suffix, size, classes)}
         {connectToRightInput && variant === "default" && (

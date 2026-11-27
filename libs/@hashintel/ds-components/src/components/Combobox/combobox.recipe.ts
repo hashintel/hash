@@ -12,8 +12,17 @@ const presetWidthWrapper = {
   minWidth: "[max(var(--form-min-width), min(var(--form-width), 100%))]",
 } as const;
 const presetWidthFrame = {
+  width: "[fit-content]",
   maxWidth: "[100%]",
   minWidth: "var(--form-min-width)",
+} as const;
+// The preset sizes the content between the adornments, as BaseInput's
+// inputWrapper: a definite width, which holds in a shrink-to-fit container
+// and against any number of values.
+const presetWidthContent = {
+  flex: "[1 1 auto]",
+  width: "var(--form-width)",
+  maxWidth: "var(--form-width)",
 } as const;
 
 export const comboboxDropdownRecipe = cva({
@@ -103,6 +112,10 @@ export const comboboxMultiRecipe = sva({
       ...formWidths.base,
       display: "inline-flex",
       position: "relative",
+      // The clear X matches Select's: an even glyph inside whole-pixel padding
+      "--clear-size": "round(0.625em, 2px)",
+      "--clear-padding": "round(0.3125em, 1px)",
+      "--clear-icon-size": "calc(var(--clear-size) + var(--clear-padding) * 2)",
     },
     frame: {
       display: "flex",
@@ -121,6 +134,10 @@ export const comboboxMultiRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
+      // The room the row's empty input takes after the last value: the gap
+      // before it (set below) and its own 1px.
+      "--caret-slot":
+        "calc(var(--before-input-inset, var(--spacing-1)) + var(--caret-gap-boost, 0px) + 1px)",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
@@ -132,7 +149,7 @@ export const comboboxMultiRecipe = sva({
         right: "[auto]",
         flexShrink: "0",
         marginRight:
-          "[calc(var(--clear-right-offset, var(--spacing-2)) - var(--content-pad-x, 0px))]",
+          "[calc(var(--clear-edge-offset, var(--spacing-2)) - var(--content-pad-x, 0px))]",
         _before: {
           display: "none",
         },
@@ -174,7 +191,8 @@ export const comboboxMultiRecipe = sva({
     clear: {
       position: "absolute",
       zIndex: "[1]",
-      right: "[var(--clear-right-offset, var(--spacing-2))]",
+      right: "[var(--clear-edge-offset, var(--spacing-2))]",
+      padding: "[var(--clear-padding)]",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -189,7 +207,7 @@ export const comboboxMultiRecipe = sva({
         position: "absolute",
         paddingY: "[var(--form-padding-y)]",
         left: "[calc(-1 * var(--clear-backdrop-overhang, 12px))]",
-        right: "[calc(-1 * var(--clear-right-offset, var(--spacing-2)))]",
+        right: "[calc(-1 * var(--clear-edge-offset, var(--spacing-2)))]",
         maskImage:
           "[linear-gradient(to right, transparent, #000 var(--clear-backdrop-fade, 16px))]",
         background: "[var(--base-input-background-color)]",
@@ -206,7 +224,10 @@ export const comboboxMultiRecipe = sva({
       },
     },
     clearIcon: {
-      padding: "0.5",
+      width: "var(--clear-size)",
+      height: "var(--clear-size)",
+      overflow: "visible",
+      strokeWidth: "1px",
     },
     hideClear: {
       visibility: "hidden !important",
@@ -286,7 +307,7 @@ export const comboboxMultiRecipe = sva({
           "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) [data-scope='tags-input'][data-part='root']":
             {
               "--clear-mask-span":
-                "[calc(var(--clear-right-offset, var(--spacing-2)) + var(--clear-icon-size, 24px) - var(--content-pad-x, 0px))]",
+                "[calc(var(--clear-edge-offset, var(--spacing-2)) + var(--clear-icon-size, 24px) - var(--content-pad-x, 0px))]",
               maskImage:
                 "[linear-gradient(to right, black, black calc(100% - var(--clear-mask-span) - var(--clear-backdrop-fade, 13px)), transparent calc(100% - var(--clear-mask-span)))]",
             },
@@ -308,9 +329,9 @@ export const comboboxMultiRecipe = sva({
       xxs: {
         wrapper: {
           ...formSizes.variants.sizes.xxs,
-          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.1.5",
           "--clear-backdrop-overhang": "5px",
           "--clear-backdrop-fade": "7px",
           "--caret-gap-boost": "1px",
@@ -322,9 +343,9 @@ export const comboboxMultiRecipe = sva({
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
-          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.1.5",
           "--clear-backdrop-overhang": "6px",
           "--clear-backdrop-fade": "8px",
           "--caret-gap-boost": "1px",
@@ -336,9 +357,9 @@ export const comboboxMultiRecipe = sva({
       sm: {
         wrapper: {
           ...formSizes.variants.sizes.sm,
-          "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
+          "--base-input-padding-right": "spacing.2",
           "--clear-backdrop-overhang": "8px",
           "--clear-backdrop-fade": "10px",
           "--caret-gap-boost": "1px",
@@ -350,9 +371,9 @@ export const comboboxMultiRecipe = sva({
       md: {
         wrapper: {
           ...formSizes.variants.sizes.md,
-          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
+          "--base-input-padding-right": "spacing.2",
           "--clear-backdrop-overhang": "10px",
           "--clear-backdrop-fade": "13px",
           "--caret-gap-boost": "1px",
@@ -364,9 +385,9 @@ export const comboboxMultiRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
-          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.3.5",
+          "--base-input-padding-right": "spacing.2.5",
           "--clear-backdrop-overhang": "12px",
           "--clear-backdrop-fade": "16px",
           "--before-input-inset": "5px",
@@ -404,18 +425,22 @@ export const comboboxMultiRecipe = sva({
       xs: {
         wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.xs },
         frame: presetWidthFrame,
+        content: presetWidthContent,
       },
       sm: {
         wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.sm },
         frame: presetWidthFrame,
+        content: presetWidthContent,
       },
       md: {
         wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.md },
         frame: presetWidthFrame,
+        content: presetWidthContent,
       },
       lg: {
         wrapper: { ...presetWidthWrapper, ...formWidths.variants.widths.lg },
         frame: presetWidthFrame,
+        content: presetWidthContent,
       },
       fullWidth: {
         wrapper: {
@@ -438,13 +463,15 @@ export const comboboxMultiRecipe = sva({
     contentInset: {
       chips: {
         content: {
-          paddingX: "[var(--before-input-inset, var(--spacing-1))]",
+          paddingLeft: "[var(--before-input-inset, var(--spacing-1))]",
+          paddingRight: "[var(--before-input-inset, var(--spacing-1))]",
           "--content-pad-x": "[var(--before-input-inset, var(--spacing-1))]",
         },
       },
       text: {
         content: {
-          paddingX: "var(--base-input-padding-x)",
+          paddingLeft: "var(--base-input-padding-x)",
+          paddingRight: "var(--base-input-padding-x)",
           "--content-pad-x": "[var(--base-input-padding-x)]",
         },
       },
@@ -452,7 +479,51 @@ export const comboboxMultiRecipe = sva({
     loading: {
       true: {
         clear: {
-          "--clear-right-offset": "spacing.1.5",
+          "--clear-edge-offset": "spacing.1.5",
+        },
+      },
+    },
+    // Off the left, the values are what aligns: the input's slot after them
+    // comes out of the padding, and an input alone gives the slot back.
+    align: {
+      left: {},
+      center: {
+        frame: {
+          "& input[data-part='input']:first-child": {
+            marginRight: "var(--caret-slot)",
+          },
+        },
+      },
+      // As BaseInput: the spinner and clear button sit on the left, clear of
+      // where the values end
+      right: {
+        frame: {
+          "& input[data-part='input']:first-child": {
+            marginRight: "var(--caret-slot)",
+          },
+          "&:focus-within [data-part='clear']": {
+            order: "[-1]",
+            left: "[auto]",
+            marginRight: "0",
+            marginLeft:
+              "[calc(var(--clear-edge-offset, var(--spacing-2)) - var(--content-pad-x, 0px))]",
+          },
+        },
+        clear: {
+          right: "[auto]",
+          left: "[var(--clear-edge-offset, var(--spacing-2))]",
+          _before: {
+            left: "[calc(-1 * var(--clear-edge-offset, var(--spacing-2)))]",
+            right: "[calc(-1 * var(--clear-backdrop-overhang, 12px))]",
+            maskImage:
+              "[linear-gradient(to left, transparent, #000 var(--clear-backdrop-fade, 16px))]",
+            borderRightRadius: "[0px]",
+            borderLeftRadius: "var(--base-input-border-radius)",
+          },
+        },
+        loading: {
+          paddingRight: "0",
+          paddingLeft: "2",
         },
       },
     },
@@ -515,30 +586,86 @@ export const comboboxMultiRecipe = sva({
         },
       },
     },
+    // Values end where a right-aligned BaseInput's text does.
+    {
+      align: "right",
+      css: {
+        content: {
+          paddingRight:
+            "[calc(var(--base-input-padding-right) - var(--caret-slot))]",
+        },
+      },
+    },
+    {
+      align: "center",
+      css: {
+        content: {
+          paddingLeft: "[calc(var(--content-pad-x, 0px) + var(--caret-slot))]",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      align: "right",
+      css: {
+        frame: {
+          "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) [data-scope='tags-input'][data-part='root']":
+            {
+              maskImage:
+                "[linear-gradient(to left, black, black calc(100% - var(--clear-mask-span) - var(--clear-backdrop-fade, 13px)), transparent calc(100% - var(--clear-mask-span)))]",
+            },
+        },
+      },
+    },
     {
       variant: "subtle",
       size: "xxs",
-      css: { frame: { "--base-input-padding-x": "spacing.2" } },
+      css: {
+        frame: {
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.2",
+        },
+      },
     },
     {
       variant: "subtle",
       size: "xs",
-      css: { frame: { "--base-input-padding-x": "spacing.2" } },
+      css: {
+        frame: {
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.2",
+        },
+      },
     },
     {
       variant: "subtle",
       size: "sm",
-      css: { frame: { "--base-input-padding-x": "spacing.2" } },
+      css: {
+        frame: {
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.2",
+        },
+      },
     },
     {
       variant: "subtle",
       size: "md",
-      css: { frame: { "--base-input-padding-x": "spacing.2" } },
+      css: {
+        frame: {
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.2",
+        },
+      },
     },
     {
       variant: "subtle",
       size: "lg",
-      css: { frame: { "--base-input-padding-x": "spacing.2" } },
+      css: {
+        frame: {
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.2",
+        },
+      },
     },
   ],
   defaultVariants: {
@@ -546,5 +673,6 @@ export const comboboxMultiRecipe = sva({
     size: "md",
     width: "fullWidth",
     contentInset: "chips",
+    align: "left",
   },
 });

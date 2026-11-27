@@ -45,6 +45,10 @@ export const baseInputRecipe = sva({
       ...formWidths.base,
       display: "inline-flex",
       position: "relative",
+      // The clear X matches Select's: an even glyph inside whole-pixel padding
+      "--clear-size": "round(0.625em, 2px)",
+      "--clear-padding": "round(0.3125em, 1px)",
+      "--clear-icon-size": "calc(var(--clear-size) + var(--clear-padding) * 2)",
     },
     root: {
       display: "inline-flex",
@@ -73,9 +77,6 @@ export const baseInputRecipe = sva({
         visibility: "visible",
         position: "relative",
         flexShrink: "0",
-      },
-      "&:focus-within:has([data-part='clear']) input": {
-        paddingRight: "[max(var(--clear-offset), 0px)]",
       },
       "&:focus-within [data-part='edit']": {
         display: "none",
@@ -148,6 +149,8 @@ export const baseInputRecipe = sva({
       justifyContent: "center",
       flexShrink: 0,
       whiteSpace: "nowrap",
+      // Zero-width strut: the field's baseline stays on its text, not an icon's bottom edge
+      _before: { content: "'\\200B'", width: "0" },
       "&[data-variant='subtle']": {
         background: "[transparent]",
         borderRightColor: "[transparent]",
@@ -193,13 +196,17 @@ export const baseInputRecipe = sva({
     },
     loading: {
       alignSelf: "center",
-      paddingRight: "2",
+      "--loading-pad": "spacing.2",
+      paddingRight: "var(--loading-pad)",
       position: "relative",
+      right: "[var(--loading-shift, auto)]",
     },
+    // --edit-inset and --clear-inset are each one's distance from the side it sits on
     editIcon: {
       position: "absolute",
       zIndex: "[1]",
-      right: "2",
+      "--edit-inset": "spacing.2",
+      right: "var(--edit-inset)",
       paddingX: "0.5",
       display: "flex",
       alignItems: "center",
@@ -218,7 +225,9 @@ export const baseInputRecipe = sva({
     clear: {
       position: "absolute",
       zIndex: "[1]",
-      right: "[var(--clear-offset, var(--spacing-2))]",
+      "--clear-inset": "var(--clear-offset, var(--spacing-2))",
+      right: "var(--clear-inset)",
+      padding: "[var(--clear-padding)]",
       display: "flex",
       alignItems: "center",
       opacity: "0",
@@ -248,7 +257,10 @@ export const baseInputRecipe = sva({
       },
     },
     clearIcon: {
-      padding: "0.5",
+      width: "var(--clear-size)",
+      height: "var(--clear-size)",
+      overflow: "visible",
+      strokeWidth: "1px",
     },
     hideClear: {
       visibility: "hidden !important",
@@ -338,10 +350,10 @@ export const baseInputRecipe = sva({
           paddingRight: "var(--base-input-padding-right)",
         },
         loading: {
-          paddingRight: "var(--base-input-padding-right)",
+          "--loading-pad": "var(--base-input-padding-right)",
         },
         editIcon: {
-          right: "var(--base-input-padding-right)",
+          "--edit-inset": "var(--base-input-padding-right)",
         },
       },
       subtle: {
@@ -396,11 +408,11 @@ export const baseInputRecipe = sva({
           },
         },
         loading: {
-          right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
+          "--loading-shift": "calc(var(--base-input-padding-x) * -1 + 1px)",
         },
         editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          "--edit-inset":
+            "calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))",
         },
         adornment: {
           position: "relative",
@@ -414,13 +426,13 @@ export const baseInputRecipe = sva({
       xxs: {
         wrapper: {
           ...formSizes.variants.sizes.xxs,
-          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--base-input-padding-right": "spacing.1.5",
         },
         adornment: {
           gap: "1",
+          _before: { marginRight: "-1" },
           "--base-input-adornment-padding-x": "spacing.2",
           "--base-input-adornment-icon-padding-x": "spacing.1.5",
         },
@@ -429,13 +441,13 @@ export const baseInputRecipe = sva({
       xs: {
         wrapper: {
           ...formSizes.variants.sizes.xs,
-          "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--base-input-padding-right": "spacing.1.5",
         },
         adornment: {
           gap: "1",
+          _before: { marginRight: "-1" },
           "--base-input-adornment-padding-x": "spacing.2",
           "--base-input-adornment-icon-padding-x": "spacing.1.5",
         },
@@ -444,13 +456,13 @@ export const baseInputRecipe = sva({
       sm: {
         wrapper: {
           ...formSizes.variants.sizes.sm,
-          "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
           "--base-input-padding-right": "spacing.2",
         },
         adornment: {
           gap: "1",
+          _before: { marginRight: "-1" },
           "--base-input-adornment-padding-x": "spacing.2.5",
           "--base-input-adornment-icon-padding-x": "spacing.2",
         },
@@ -459,13 +471,13 @@ export const baseInputRecipe = sva({
       md: {
         wrapper: {
           ...formSizes.variants.sizes.md,
-          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
           "--base-input-padding-right": "spacing.2",
         },
         adornment: {
           gap: "1",
+          _before: { marginRight: "-1" },
           "--base-input-adornment-padding-x": "spacing.3",
           "--base-input-adornment-icon-padding-x": "spacing.2",
         },
@@ -474,13 +486,13 @@ export const baseInputRecipe = sva({
       lg: {
         wrapper: {
           ...formSizes.variants.sizes.lg,
-          "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.3.5",
           "--base-input-padding-right": "spacing.2.5",
         },
         adornment: {
           gap: "2",
+          _before: { marginRight: "-2" },
           "--base-input-adornment-padding-x": "spacing.3.5",
           "--base-input-adornment-icon-padding-x": "spacing.2.5",
         },
@@ -501,6 +513,9 @@ export const baseInputRecipe = sva({
         root: {
           ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
+        },
+        editIcon: {
+          visibility: "hidden",
         },
       },
     },
@@ -548,24 +563,70 @@ export const baseInputRecipe = sva({
           "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
             {
               marginLeft: "1.5",
+              // The stepper's native width varies by platform; a fixed basis makes its space known
+              flexBasis: "[16px]",
             },
+          // Empty, the browser sizes to the placeholder alone, so it carries the stepper's space
+          "&[type=number]::-webkit-input-placeholder": {
+            paddingRight: "[calc(var(--spacing-1\\.5) + 16px)]",
+          },
         },
         clear: {
           position: "relative",
-          right: "[auto]",
+          "--clear-inset": "auto",
           gridArea: "[1 / 2]",
         },
         editIcon: {
           position: "relative",
-          right: "[auto]",
+          "--edit-inset": "auto",
           gridArea: "[1 / 2]",
         },
       },
     },
     align: {
-      left: { input: { textAlign: "start" } },
-      center: { input: { textAlign: "center" } },
-      right: { input: { textAlign: "end" } },
+      left: {
+        input: { textAlign: "start" },
+        root: {
+          "&:focus-within:has([data-part='clear']) input": {
+            paddingRight: "[max(var(--clear-offset), 0px)]",
+          },
+        },
+      },
+      center: {
+        input: { textAlign: "center" },
+        root: {
+          "&:focus-within:has([data-part='clear']) input": {
+            paddingRight: "[max(var(--clear-offset), 0px)]",
+          },
+        },
+      },
+      // The spinner, clear button and edit icon sit on the left, clear of where the text ends
+      right: {
+        input: { textAlign: "end" },
+        inputWrapper: { flexDirection: "row-reverse" },
+        loading: {
+          paddingRight: "0",
+          paddingLeft: "var(--loading-pad)",
+          right: "[auto]",
+          left: "[var(--loading-shift, auto)]",
+        },
+        editIcon: {
+          right: "[auto]",
+          left: "var(--edit-inset)",
+          _before: {
+            borderRightRadius: "[0px]",
+            borderLeftRadius: "var(--base-input-border-radius)",
+          },
+        },
+        clear: {
+          right: "[auto]",
+          left: "var(--clear-inset)",
+          _before: {
+            borderRightRadius: "[0px]",
+            borderLeftRadius: "var(--base-input-border-radius)",
+          },
+        },
+      },
     },
     loading: {
       true: {
@@ -573,7 +634,7 @@ export const baseInputRecipe = sva({
           "--clear-gap": "spacing.1.5",
         },
         editIcon: {
-          right: "1.5",
+          "--edit-inset": "spacing.1.5",
         },
       },
     },
@@ -595,7 +656,7 @@ export const baseInputRecipe = sva({
         },
         clear: {
           position: "relative",
-          right: "1",
+          "--clear-inset": "spacing.1",
           gridArea: "[1 / 2]",
         },
         editIcon: {
@@ -637,12 +698,12 @@ export const baseInputRecipe = sva({
       loading: true,
       css: {
         clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+          "--clear-inset":
+            "calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))",
         },
         editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+          "--edit-inset":
+            "calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))",
         },
       },
     },
@@ -778,6 +839,7 @@ export const baseInputRecipe = sva({
     {
       hasBrowserControls: true,
       hasIcons: true,
+      align: ["left", "center"],
       css: {
         input: {
           paddingRight: "1",
@@ -791,6 +853,85 @@ export const baseInputRecipe = sva({
         editIcon: {
           _before: {
             left: "0",
+          },
+        },
+      },
+    },
+    // Right-aligned: the same rules as above, mirrored for controls that sit on the left
+    {
+      hasBrowserControls: true,
+      hasIcons: true,
+      align: "right",
+      variant: "default",
+      css: {
+        input: {
+          // trimmed by as much as the right padding is on the other alignments
+          paddingLeft:
+            "[calc(var(--base-input-padding-x) - var(--base-input-padding-right) + var(--spacing-1))]",
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      hasIcons: true,
+      align: "right",
+      variant: "subtle",
+      css: {
+        input: {
+          paddingLeft: "1",
+        },
+      },
+    },
+    // In the fitContent grid the edit icon has its own cell, so the spinner must not offset it
+    {
+      width: "fitContent",
+      loading: true,
+      css: {
+        editIcon: { "--edit-inset": "auto" },
+      },
+    },
+    {
+      width: "fitContent",
+      align: "right",
+      css: {
+        input: { gridArea: "[1 / 2]" },
+        clear: { gridArea: "[1 / 1]" },
+        editIcon: { gridArea: "[1 / 1]" },
+      },
+    },
+    {
+      variant: "subtle",
+      align: "right",
+      css: {
+        root: {
+          "&:hover:not(:focus-within):has([data-part='clear']:not([data-hidden])) :is(input, [data-part='styled-value'])":
+            {
+              maskImage:
+                "[linear-gradient(to left, black, black calc(100% - var(--clear-offset) - var(--clear-icon-size, 24px) - 12px), transparent calc(100% - var(--clear-offset) - var(--clear-icon-size, 24px)))]",
+            },
+        },
+      },
+    },
+    {
+      editAndClear: true,
+      align: "right",
+      css: {
+        editIcon: {
+          _before: {
+            left: "0",
+            right: "[calc(var(--spacing-1\\.5) * -1 - 1px)]",
+          },
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      editAndClear: true,
+      align: "right",
+      css: {
+        editIcon: {
+          _before: {
+            right: "0",
           },
         },
       },

@@ -34,6 +34,7 @@ import {
   getVisibleTabbables,
   useCollapsibleExpansion,
 } from "../../primitives/SelectableList/selectable-list-util";
+import { ClearGlyph } from "../../util/clear-glyph";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
@@ -99,7 +100,7 @@ type SelectBaseProps<TValue extends string> = {
   loading?: boolean;
   /** The input's visual style: `subtle` removes the border so it reads as inline text; `naked` strips all input chrome and inherits the surrounding text styles (`size` then only affects the dropdown). */
   variant?: "default" | "subtle" | "naked";
-  /** The alignment of the text inside the input. */
+  /** The alignment of the text inside the input. With `right`, the loading spinner and clear button sit on the left instead. */
   align?: "left" | "center" | "right";
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
   width?: FormInputWidth;
@@ -484,8 +485,8 @@ export const Select = <TValue extends string>({
   const canClear = multiple
     ? !!clearable
     : required !== true || clearable === true;
-  const showClear =
-    (multiple ? clearable !== undefined : canClear) && !disabled;
+  // Rendered while disabled too, hidden, so toggling disabled never moves the layout
+  const showClear = multiple ? clearable !== undefined : canClear;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
@@ -497,6 +498,7 @@ export const Select = <TValue extends string>({
     return single != null && single !== "" ? [single] : [];
   }, [multiple, value]);
   const hasSelection = selectedValues.length > 0;
+  const clearHidden = !canClear || !hasSelection || !!disabled;
 
   const orphans = useMemo<Array<SelectItem<TValue>>>(
     () =>
@@ -1107,6 +1109,12 @@ export const Select = <TValue extends string>({
     );
   }
 
+  const loadingSpinner = loading && (
+    <span className={classes.loading} data-part="loading">
+      <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
+    </span>
+  );
+
   return (
     <ArkSelect.Root
       collection={collection}
@@ -1205,6 +1213,8 @@ export const Select = <TValue extends string>({
           />
         )}
 
+        {align === "right" && loadingSpinner}
+
         <div className={classes.triggerWrapper}>
           <ArkSelect.Trigger
             id={inputId}
@@ -1247,35 +1257,16 @@ export const Select = <TValue extends string>({
                 clearSelection();
                 internalRef.current?.focus();
               }}
-              data-hidden={!canClear || !hasSelection ? "" : undefined}
-              className={cx(
-                classes.clear,
-                (!canClear || !hasSelection) && classes.hideClear,
-              )}
+              data-hidden={clearHidden ? "" : undefined}
+              className={cx(classes.clear, clearHidden && classes.hideClear)}
               aria-label="Clear input"
             >
-              {/* Stroked rather than the close icon so its weight follows the arrow's */}
-              <svg
-                viewBox="0 0 10 10"
-                aria-hidden="true"
-                className={classes.clearIcon}
-                fill="none"
-                stroke="currentColor"
-              >
-                <path
-                  d="M0 0L10 10M10 0L0 10"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
+              <ClearGlyph className={classes.clearIcon} />
             </button>
           )}
         </div>
 
-        {loading && (
-          <span className={classes.loading} data-part="loading">
-            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-          </span>
-        )}
+        {align !== "right" && loadingSpinner}
 
         {connectToRightInput && variant === "default" && (
           <InputConnector

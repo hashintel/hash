@@ -446,7 +446,7 @@ export const Alignment: Story = {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "auto auto auto",
+        gridTemplateColumns: "auto auto auto auto",
         columnGap: 32,
         rowGap: 12,
         alignItems: "center",
@@ -456,6 +456,7 @@ export const Alignment: Story = {
       <span />
       <span style={subheadingStyle}>Editable</span>
       <span style={subheadingStyle}>Read-only</span>
+      <span style={subheadingStyle}>Kitchen sink</span>
       {alignments.map((align) => (
         <Fragment key={align}>
           <span style={subheadingStyle}>{align}</span>
@@ -466,6 +467,14 @@ export const Alignment: Story = {
             align={align}
             width="sm"
             readonly
+          />
+          <Controlled
+            {...args}
+            value="apple"
+            align={align}
+            width="sm"
+            prefix={{ iconName: "search" }}
+            loading
           />
         </Fragment>
       ))}

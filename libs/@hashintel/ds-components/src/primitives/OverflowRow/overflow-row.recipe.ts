@@ -187,19 +187,37 @@ export const styles = sva({
         root: { "--overflow-row-ring-room": "[2px]" },
       },
     },
+    // Off the left, the input takes only the room its text needs — the
+    // caret's, while empty — so the items themselves reach the aligned edge.
     align: {
       left: {},
       right: {
         root: { justifyContent: "flex-end" },
-        input: { flexGrow: "0" },
+        input: { flexGrow: "0", minWidth: "[1px]" },
       },
       center: {
         root: { justifyContent: "center" },
-        input: { flexGrow: "0" },
+        input: { flexGrow: "0", minWidth: "[1px]" },
       },
     },
   },
   compoundVariants: [
+    // An input alone in a row that cannot size to its text fills the row
+    // instead, so its placeholder shows in full.
+    {
+      align: "right",
+      overflow: ["truncate", "summary"],
+      css: {
+        input: { "&:first-child": { flexGrow: "1", textAlign: "end" } },
+      },
+    },
+    {
+      align: "center",
+      overflow: ["truncate", "summary"],
+      css: {
+        input: { "&:first-child": { flexGrow: "1", textAlign: "center" } },
+      },
+    },
     {
       align: "right",
       overflow: "scroll",
@@ -219,9 +237,21 @@ export const styles = sva({
       align: "center",
       overflow: "scroll",
       css: {
+        // The centring pseudo-elements are flex items, so each cancels the
+        // gap it would otherwise add at its end of the row.
         scroller: {
-          _before: { content: '""', marginLeft: "auto" },
-          _after: { content: '""', marginRight: "auto" },
+          _before: {
+            content: '""',
+            marginLeft: "auto",
+            marginRight:
+              "[calc(-1 * var(--overflow-row-gap, var(--spacing-1)))]",
+          },
+          _after: {
+            content: '""',
+            marginRight: "auto",
+            marginLeft:
+              "[calc(-1 * var(--overflow-row-gap, var(--spacing-1)))]",
+          },
         },
       },
     },

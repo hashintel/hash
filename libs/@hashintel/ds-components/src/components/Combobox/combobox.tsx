@@ -30,6 +30,7 @@ import {
   getItemId,
   useCollapsibleExpansion,
 } from "../../primitives/SelectableList/selectable-list-util";
+import { ClearGlyph } from "../../util/clear-glyph";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { isInteractiveTarget } from "../../util/interactive-target";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
@@ -297,14 +298,6 @@ const chipSizeMap: Record<FormInputSize, ChipSize> = {
   lg: "xl",
 };
 
-const iconSizeMap: Record<FormInputSize, FormInputSize> = {
-  xxs: "xs",
-  xs: "xs",
-  sm: "sm",
-  md: "md",
-  lg: "md",
-};
-
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
   xs: "xs",
@@ -409,10 +402,10 @@ export const Combobox = <TValue extends string>({
 }: ComboboxProps<TValue>) => {
   // Leftover TextInput props: the single variant hands them to BaseInput
   // wholesale below; the multi variant forwards the input-element ones onto
-  // the row's input and wires the connectors onto its frame itself
-  // (`align`/`showEditIcon` stay single-only).
+  // the row's input and wires `align` and the connectors onto its row and
+  // frame itself (`showEditIcon` stays single-only).
   const {
-    align: _align,
+    align = "left",
     showEditIcon: _showEditIcon,
     connectToLeftInput,
     connectToRightInput,
@@ -1189,6 +1182,7 @@ export const Combobox = <TValue extends string>({
     contentInset,
     connectsLeft,
     connectsRight,
+    align,
   });
 
   if (readonly) {
@@ -1206,9 +1200,14 @@ export const Combobox = <TValue extends string>({
                 separator=", "
                 overflow="summary"
                 total={optionCount}
+                align={align}
               />
             ) : (
-              <OverflowRow items={rowItems} overflow={overflowMode} />
+              <OverflowRow
+                items={rowItems}
+                overflow={overflowMode}
+                align={align}
+              />
             ))}
         </span>
       );
@@ -1460,6 +1459,11 @@ export const Combobox = <TValue extends string>({
     };
     const rowKeyboardControl = { onRemove: handleRowRemove };
     const adornmentClasses = baseInputRecipe({ variant, size });
+    const loadingSpinner = loading && (
+      <span className={multiClasses.loading} data-part="loading">
+        <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
+      </span>
+    );
     // Interactions with the combobox's own widget — the frame around the row
     // and the portaled dropdown — must not blur the row's tags machine, or
     // its keyboard chip control would stall until the input re-focuses.
@@ -1555,6 +1559,7 @@ export const Combobox = <TValue extends string>({
                 data-part="connector"
               />
             )}
+            {align === "right" && loadingSpinner}
             <div className={multiClasses.content}>
               {customSelection !== undefined && (
                 <span className={multiClasses.customSelection}>
@@ -1568,6 +1573,7 @@ export const Combobox = <TValue extends string>({
                   separator=", "
                   overflow="summary"
                   total={optionCount}
+                  align={align}
                   withInput={rowInput}
                   withKeyboardControl={rowKeyboardControl}
                   inputElementProps={inputElementProps}
@@ -1580,6 +1586,7 @@ export const Combobox = <TValue extends string>({
                   overflow={
                     renderSelectedAll !== undefined ? "scroll" : overflowMode
                   }
+                  align={align}
                   withInput={rowInput}
                   withKeyboardControl={rowKeyboardControl}
                   inputElementProps={inputElementProps}
@@ -1612,19 +1619,11 @@ export const Combobox = <TValue extends string>({
                   )}
                   aria-label="Clear input"
                 >
-                  <Icon
-                    name="close"
-                    size={iconSizeMap[size]}
-                    className={multiClasses.clearIcon}
-                  />
+                  <ClearGlyph className={multiClasses.clearIcon} />
                 </button>
               )}
             </div>
-            {loading && (
-              <span className={multiClasses.loading} data-part="loading">
-                <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-              </span>
-            )}
+            {align !== "right" && loadingSpinner}
             {suffix != null &&
               renderAdornment("suffix", suffix, size, adornmentClasses)}
             {connectsRight && (

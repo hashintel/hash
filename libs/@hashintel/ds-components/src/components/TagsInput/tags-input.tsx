@@ -4,6 +4,7 @@ import { useMergeRefs } from "use-callback-ref";
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { OverflowRow } from "../../primitives/OverflowRow/overflow-row";
+import { ClearGlyph } from "../../util/clear-glyph";
 import {
   preventAutocompleteProps,
   resolveAutoFocusProps,
@@ -14,7 +15,6 @@ import { renderAdornment } from "../../util/render-adornment";
 import { Chip } from "../Chip/chip";
 import { comboboxMultiRecipe } from "../Combobox/combobox.recipe";
 import { useFieldId } from "../Form/field-id-context";
-import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "../TextInput/base-input.recipe";
 import { InputConnector } from "../TextInput/input-connector";
@@ -60,14 +60,6 @@ const chipSizeMap: Record<FormInputSize, ChipSize> = {
   sm: "md",
   md: "lg",
   lg: "xl",
-};
-
-const iconSizeMap: Record<FormInputSize, FormInputSize> = {
-  xxs: "xs",
-  xs: "xs",
-  sm: "sm",
-  md: "md",
-  lg: "md",
 };
 
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
@@ -201,6 +193,7 @@ export const TagsInput = ({
         : "text",
     connectsLeft,
     connectsRight,
+    align,
   });
 
   if (readonly) {
@@ -213,9 +206,14 @@ export const TagsInput = ({
       >
         {customSelection ??
           (overflow === "summary" ? (
-            <OverflowRow items={rowItems} separator=", " overflow="summary" />
+            <OverflowRow
+              items={rowItems}
+              separator=", "
+              overflow="summary"
+              align={align}
+            />
           ) : (
-            <OverflowRow items={rowItems} overflow={overflow} />
+            <OverflowRow items={rowItems} overflow={overflow} align={align} />
           ))}
       </span>
     );
@@ -316,6 +314,12 @@ export const TagsInput = ({
     onRemove: (identity: string) => removeValueAt(parseInt(identity, 10)),
   };
 
+  const loadingSpinner = loading && (
+    <span className={multiClasses.loading} data-part="loading">
+      <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
+    </span>
+  );
+
   return (
     <div
       ref={mergedWrapperRef as React.Ref<HTMLDivElement>}
@@ -373,6 +377,7 @@ export const TagsInput = ({
             data-part="connector"
           />
         )}
+        {align === "right" && loadingSpinner}
         <div className={multiClasses.content}>
           {customSelection !== undefined && (
             <span className={multiClasses.customSelection}>
@@ -424,19 +429,11 @@ export const TagsInput = ({
               )}
               aria-label="Clear input"
             >
-              <Icon
-                name="close"
-                size={iconSizeMap[size]}
-                className={multiClasses.clearIcon}
-              />
+              <ClearGlyph className={multiClasses.clearIcon} />
             </button>
           )}
         </div>
-        {loading && (
-          <span className={multiClasses.loading} data-part="loading">
-            <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
-          </span>
-        )}
+        {align !== "right" && loadingSpinner}
         {suffix != null &&
           renderAdornment("suffix", suffix, size, adornmentClasses)}
         {connectsRight && (

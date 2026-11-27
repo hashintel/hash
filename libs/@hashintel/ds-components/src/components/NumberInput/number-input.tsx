@@ -54,6 +54,10 @@ const hideStepperStyle = css({
   "& input[type=number]::-webkit-inner-spin-button": {
     display: "none",
   },
+  // No stepper, so the fitContent placeholder has no space to hold for it
+  "& input[type=number]::-webkit-input-placeholder": {
+    paddingRight: "0",
+  },
 });
 
 export const NumberInput = ({

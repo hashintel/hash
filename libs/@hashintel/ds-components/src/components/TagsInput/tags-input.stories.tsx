@@ -9,10 +9,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type TagsInputProps = React.ComponentProps<typeof TagsInput>;
 type Variant = NonNullable<TagsInputProps["variant"]>;
+type Align = NonNullable<TagsInputProps["align"]>;
 
 const variants = ["default", "subtle"] as const satisfies readonly Variant[];
+const alignments = [
+  "left",
+  "center",
+  "right",
+] as const satisfies readonly Align[];
 
 const sampleValues = ["Apple", "Banana", "Cherry"];
+// Few enough to leave slack in the field for the alignment to show.
+const alignmentValues = sampleValues.slice(0, 2);
 const manyValues = [
   "Apple",
   "Banana",
@@ -219,6 +227,52 @@ export const Default: Story = {
             ))}
           </div>
         </div>
+      ))}
+    </div>
+  ),
+};
+
+export const Alignment: Story = {
+  render: (args: TagsInputProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto auto auto auto",
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span />
+      <span style={subheadingStyle}>Editable</span>
+      <span style={subheadingStyle}>Read-only</span>
+      <span style={subheadingStyle}>Kitchen sink</span>
+      {alignments.map((align) => (
+        <Fragment key={align}>
+          <span style={subheadingStyle}>{align}</span>
+          <Controlled
+            {...args}
+            value={alignmentValues}
+            align={align}
+            width="md"
+          />
+          <div style={{ width: 240 }}>
+            <Controlled
+              {...args}
+              value={alignmentValues}
+              align={align}
+              readonly
+            />
+          </div>
+          <Controlled
+            {...args}
+            value={alignmentValues}
+            align={align}
+            width="md"
+            {...kitchenSinkProps}
+          />
+        </Fragment>
       ))}
     </div>
   ),

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -12,6 +12,12 @@ import type { ItemOrGroup } from "../../primitives/SelectableList/selectable-lis
 import type { ComboboxItem, ComboboxProps } from "./combobox";
 import type { MultiComboboxProps } from "./multi-combobox.story";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+
+const alignments = [
+  "left",
+  "center",
+  "right",
+] as const satisfies readonly NonNullable<ComboboxProps["align"]>[];
 
 // Every example's items: ungrouped fruits, a labelled group, and a group of
 // stateful options labelled after their state. The fruits and vegetables
@@ -426,6 +432,68 @@ export const Default: Story = {
           placeholder="Pick a food…"
         />
       </div>
+    </div>
+  ),
+};
+
+// The multiple counterpart for the Alignment story. Kept unexported — every
+// export of a stories file becomes a story of its own.
+const AlignedMulti = (args: ControlArgs) => {
+  const spreadArgs = args as Omit<
+    MultiComboboxProps,
+    "items" | "value" | "onChange" | "allowNewValue" | "multiple"
+  >;
+  const [values, setValues] = useState<string[]>(["fig", "apple"]);
+  return (
+    <Combobox
+      multiple
+      items={sampleItems}
+      renderItem={renderSampleItem}
+      {...spreadArgs}
+      value={values}
+      onChange={setValues}
+    />
+  );
+};
+
+export const Alignment: Story = {
+  render: (args: ControlArgs) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto auto auto auto auto",
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span />
+      <span style={subheadingStyle}>Editable</span>
+      <span style={subheadingStyle}>Read-only</span>
+      <span style={subheadingStyle}>Kitchen sink</span>
+      <span style={subheadingStyle}>Multiple</span>
+      {alignments.map((align) => (
+        <Fragment key={align}>
+          <span style={subheadingStyle}>{align}</span>
+          <Controlled {...args} value="banana" align={align} width="sm" />
+          <Controlled
+            {...args}
+            value="banana"
+            align={align}
+            width="sm"
+            readonly
+          />
+          <Controlled
+            {...args}
+            value="banana"
+            align={align}
+            width="sm"
+            {...kitchenSinkProps}
+          />
+          <AlignedMulti {...args} align={align} width="sm" />
+        </Fragment>
+      ))}
     </div>
   ),
 };

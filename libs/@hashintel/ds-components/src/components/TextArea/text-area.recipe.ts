@@ -44,9 +44,9 @@ export const textAreaRecipe = sva({
       position: "absolute",
       positionAnchor: "[--textarea-root]",
       top: "[calc(anchor(--textarea-root top))]",
-      left: "[calc(anchor(--textarea-root left) - var(--base-input-padding-x))]",
+      left: "[calc(anchor(--textarea-root left) - var(--base-input-padding-x) + var(--form-border-width))]",
       width:
-        "[calc(anchor-size(--textarea-root width) + var(--base-input-padding-x))]",
+        "[calc(anchor-size(--textarea-root width) + (var(--base-input-padding-x) - var(--form-border-width)) * 2)]",
       height: "[calc(anchor-size(--textarea-root height))]",
       zIndex: "[-1]",
       borderRadius: "var(--base-input-border-radius)",
@@ -105,7 +105,8 @@ export const textAreaRecipe = sva({
           },
         },
         textarea: {
-          paddingX: "var(--base-input-padding-x)",
+          paddingLeft: "var(--base-input-padding-x)",
+          paddingRight: "var(--base-input-padding-right)",
         },
       },
       subtle: {
@@ -128,9 +129,6 @@ export const textAreaRecipe = sva({
         root: {
           background: "[transparent]",
         },
-        textarea: {
-          paddingRight: "[calc(var(--base-input-padding-x) * 3 / 4)]",
-        },
       },
     },
     size: {
@@ -139,6 +137,7 @@ export const textAreaRecipe = sva({
           ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.1.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
       },
@@ -147,6 +146,7 @@ export const textAreaRecipe = sva({
           ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.1.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
       },
@@ -155,6 +155,7 @@ export const textAreaRecipe = sva({
           ...formSizes.variants.sizes.sm,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
+          "--base-input-padding-right": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.sm.textStyle },
       },
@@ -163,6 +164,7 @@ export const textAreaRecipe = sva({
           ...formSizes.variants.sizes.md,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
+          "--base-input-padding-right": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.md.textStyle },
       },
@@ -171,6 +173,7 @@ export const textAreaRecipe = sva({
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.3.5",
+          "--base-input-padding-right": "spacing.2.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.lg.textStyle },
       },
