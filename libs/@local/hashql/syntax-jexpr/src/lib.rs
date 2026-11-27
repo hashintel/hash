@@ -4,6 +4,7 @@
 //!
 //! Start with [`Parser`] for parsing a J-Expr document into a [`hashql_ast::node::expr::Expr`] or
 //! [`hashql_ast::node::value::Value`], or [`JsonPointers`] for RFC 6901 JSON Pointer resolution.
+//! With the `schemars` feature, `schemas` describes both kinds of document as JSON Schemas.
 //!
 //! # Example
 //!
@@ -60,6 +61,8 @@ pub(crate) mod lexer;
 pub(crate) mod lower;
 pub(crate) mod parser;
 pub(crate) mod pointer;
+#[cfg(feature = "schemars")]
+pub mod schemas;
 pub mod span;
 pub(crate) mod stack;
 pub(crate) mod syntax_kind;
