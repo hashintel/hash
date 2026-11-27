@@ -67,12 +67,26 @@ impl Display for IdError {
 /// while maintaining a consistent conversion API.
 ///
 /// [`newtype!`] implements this trait for a struct and [`#[derive(Id)]`](derive@Id) for a unit enum.
-/// The derive refuses an enum whose [`PartialEq`] is written by hand, because such an impl could
-/// compare something other than the variant:
+/// The derive also implements [`PartialEq`], [`Eq`], [`PartialOrd`], [`Ord`] and [`Hash`] for the
+/// enum, each over the position of the variant:
 ///
-/// ```compile_fail
+/// ```
 /// # use hashql_core::id::Id;
-/// #[derive(Debug, Copy, Clone, Eq, PartialOrd, Ord, Hash, Id)]
+/// #[derive(Debug, Copy, Clone, Id)]
+/// enum Axis {
+///     Horizontal,
+///     Vertical,
+/// }
+///
+/// assert!(Axis::Horizontal < Axis::Vertical);
+/// ```
+///
+/// An enum that implements one of them itself does not compile, because such an impl could compare
+/// something other than the variant:
+///
+/// ```compile_fail,E0119
+/// # use hashql_core::id::Id;
+/// #[derive(Debug, Copy, Clone, Id)]
 /// enum Axis {
 ///     Horizontal,
 ///     Vertical,

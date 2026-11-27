@@ -48,7 +48,6 @@ use crate::math::{DPositive, UnitFraction};
     Debug,
     Copy,
     Clone,
-    Hash,
     hashql_core::id::Id,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
@@ -56,7 +55,6 @@ use crate::math::{DPositive, UnitFraction};
     zerocopy::KnownLayout,
     zerocopy::TryFromBytes,
 )]
-#[derive_const(PartialEq, Eq, PartialOrd, Ord)]
 #[id(const)]
 #[repr(u8)]
 pub(crate) enum SubgroupDimension {

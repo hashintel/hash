@@ -327,6 +327,23 @@ fn const_comparison() {
     assert_eq!([RANGED, BYTES, REVERSED], [true, true, false]);
 }
 
+#[derive(Debug, Copy, Clone, Id)]
+#[id(crate = crate, const)]
+enum Axis {
+    Horizontal,
+    Vertical,
+    Depth,
+}
+
+#[test]
+fn enum_comparison() {
+    const ORDERED: bool = precedes(&Axis::Horizontal, &Axis::Depth);
+    const REVERSED: bool = precedes(&Axis::Depth, &Axis::Vertical);
+
+    assert_eq!([ORDERED, REVERSED], [true, false]);
+    assert_eq!(Axis::all().into_iter().max(), Some(Axis::Depth));
+}
+
 #[cfg(feature = "rayon")]
 mod par {
     use alloc::{vec, vec::Vec};

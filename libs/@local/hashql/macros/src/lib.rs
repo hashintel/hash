@@ -17,14 +17,14 @@ mod sym;
 /// implementations. For struct-based Id types, use [`define_id!`] instead.
 ///
 /// The enum must have `#[repr(u8)]` (or the appropriate integer type for the
-/// variant count) and derive the standard traits required by [`Id`]. [`PartialEq`] must come from
-/// `#[derive(PartialEq)]` or `#[derive_const(PartialEq)]`: the expansion fails to compile when it
-/// is implemented by hand.
+/// variant count) and derive [`Debug`](core::fmt::Debug), [`Copy`] and [`Clone`]. The expansion
+/// implements [`PartialEq`], [`Eq`], [`PartialOrd`], [`Ord`] and [`Hash`] over the discriminant. An
+/// enum that derives or implements one of them as well does not compile.
 ///
 /// # Example
 ///
 /// ```ignore
-/// #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_macros::Id)]
+/// #[derive(Debug, Copy, Clone, hashql_macros::Id)]
 /// #[repr(u8)]
 /// pub enum TargetId {
 ///     Interpreter,

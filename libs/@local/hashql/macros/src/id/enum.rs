@@ -146,21 +146,42 @@ pub(super) fn expand_enum(
         };
     });
 
-    // 4. Derived `PartialEq`
-    // rustc accepts a constant as a pattern only when its type derives `PartialEq`. The match below
-    // therefore fails to compile for an enum whose `PartialEq` is written by hand.
-    // Why does this work? because `PartialEq` also derives `StructuralPartialEq`, so you _could_
-    // implement it your own, but this is a cheap sanity check.
-    let later_variants = variants.iter().skip(1);
+    // 4. Comparison and hashing
     output.extend(quote! {
-        const _: () = {
-            const FIRST: #name = #name::from_discriminant(0);
-
-            match FIRST {
-                FIRST => {}
-                #(#name::#later_variants => {})*
+        #[automatically_derived]
+        #konst impl ::core::cmp::PartialEq for #name {
+            #[inline]
+            fn eq(&self, other: &Self) -> bool {
+                self.into_discriminant() == other.into_discriminant()
             }
-        };
+        }
+
+        #[automatically_derived]
+        #konst impl ::core::cmp::Eq for #name {}
+
+        #[automatically_derived]
+        #konst impl ::core::cmp::PartialOrd for #name {
+            #[inline]
+            fn partial_cmp(&self, other: &Self) -> ::core::option::Option<::core::cmp::Ordering> {
+                ::core::option::Option::Some(::core::cmp::Ord::cmp(self, other))
+            }
+        }
+
+        #[automatically_derived]
+        #konst impl ::core::cmp::Ord for #name {
+            #[inline]
+            fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
+                ::core::cmp::Ord::cmp(&self.into_discriminant(), &other.into_discriminant())
+            }
+        }
+
+        #[automatically_derived]
+        impl ::core::hash::Hash for #name {
+            #[inline]
+            fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+                ::core::hash::Hash::hash(&self.into_discriminant(), state);
+            }
+        }
     });
 
     // 5. Id trait impl
@@ -177,10 +198,9 @@ pub(super) fn expand_enum(
     output.extend(quote! {
         // SAFETY: `Id` requires every operation on an id other than formatting to be a pure
         // function of the number it stands for, and equality to be equality of that number. The
-        // discriminant is that number, and a unit enum holds no other state. The conversions
-        // generated here read the discriminant alone. `PartialEq` is derived, which the match above
-        // checks. Ordering and hashing are the enum's own impls, which this derive requires to be
-        // derived as well. A derived impl on a unit enum reads the discriminant alone.
+        // discriminant is that number, and a unit enum holds no other state. This expansion
+        // generates each of those operations: conversion, comparison and hashing read the
+        // discriminant and no other state. Therefore each depends on the number alone.
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
         #konst unsafe impl #krate::id::Id for #name {

@@ -36,7 +36,6 @@
     byte_str,
     const_cmp,
     const_convert,
-    derive_const,
     portable_simd,
 )]
 
