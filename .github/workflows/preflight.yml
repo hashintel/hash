@@ -13,10 +13,10 @@ jobs:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-todo-comments.yml@8ff7be6f2bd6cd402e416a3b462428b156b41498 # main
+    uses: hashintel/actions/.github/workflows/preflight-todo-comments.yml@5495f1b4c301fd582eb366b2c0ed12e71ebb58a7 # main
 
   lint:
     name: Lint
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-lint.yml@8ff7be6f2bd6cd402e416a3b462428b156b41498 # main
+    uses: hashintel/actions/.github/workflows/preflight-lint.yml@5495f1b4c301fd582eb366b2c0ed12e71ebb58a7 # main
