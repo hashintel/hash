@@ -77,6 +77,7 @@ const DEFAULT_EF_SEARCH: usize = 128;
 
 /// Pinned hannoy storage, build, and query settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct HannoyIndexOptions {
     /// Upper bound of the LMDB memory map, in bytes.
     ///
@@ -92,12 +93,6 @@ pub(crate) struct HannoyIndexOptions {
     /// A search never runs below the requested neighbour count. Larger values buy recall with
     /// per-query cost. By default, uses 128 candidates, raised to at least the requested neighbour count.
     pub ef_search: usize = DEFAULT_EF_SEARCH,
-}
-
-const impl Default for HannoyIndexOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// A failure of the [`HannoyIndex`] backend.

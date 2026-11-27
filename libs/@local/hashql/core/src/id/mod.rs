@@ -3,6 +3,7 @@ pub mod bit_vec;
 mod chunk_vec;
 mod index;
 mod matrix;
+pub mod ranged;
 mod slice;
 pub mod snapshot_vec;
 #[cfg(test)]
@@ -69,10 +70,10 @@ impl Display for IdError {
 )]
 pub const unsafe trait Id:
     Copy
-    + PartialEq
-    + Eq
-    + PartialOrd
-    + Ord
+    + [const] PartialEq
+    + [const] Eq
+    + [const] PartialOrd
+    + [const] Ord
     + Hash
     + Debug
     + Display

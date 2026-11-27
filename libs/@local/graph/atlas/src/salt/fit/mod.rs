@@ -117,6 +117,7 @@ mod tests;
 /// edge stream carries: an override for a relation without edges contradicts the corpus and aborts
 /// the fit at resolution.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct PolicyOptions {
     /// Higher-precedence policy records superseding classifier predictions.
     pub overrides: Vec<PolicyOverride> = Vec::new(),
@@ -128,12 +129,6 @@ pub(crate) struct PolicyOptions {
     pub classifier_fit: ClassifierFitConfig = ClassifierFitConfig::default(),
 }
 
-const impl Default for PolicyOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
-}
-
 /// The landmark support anchors' shared weight.
 ///
 /// Every skeleton landmark anchors its node at the laid-out coordinate with this weight. The fit
@@ -143,14 +138,9 @@ const impl Default for PolicyOptions {
 /// value because no evidence distinguishes landmark reliability yet. The per-anchor slot exists for
 /// the day it does.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct LandmarkSupport {
     pub weight: Positive = Positive::ONE,
-}
-
-const impl Default for LandmarkSupport {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// Selection of a trained objective without relation attraction.

@@ -24,15 +24,10 @@ use crate::{
 /// The mass excludes degree normalization, strength and class-energy derivatives, and is not a
 /// movement bound. Protection masses never pass through this predicate.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct AttractionOptions {
     coincident_coefficient: NonNegative = NonNegative::ZERO,
     pruning_threshold: NonNegative = NonNegative::ZERO,
-}
-
-const impl Default for AttractionOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 impl AttractionOptions {

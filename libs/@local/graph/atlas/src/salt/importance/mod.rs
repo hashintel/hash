@@ -19,6 +19,7 @@ mod tests;
 ///
 /// Uses [`Self::IncidentDegree`] by default.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) enum RankingConfig {
     /// A constant column.
     ///
@@ -26,13 +27,8 @@ pub(crate) enum RankingConfig {
     /// preference and does not guarantee an unbiased sample.
     ConstantColumns,
     /// Incident degree over the adjacency, favoring nodes with more incident edge slots.
+    #[default]
     IncidentDegree,
-}
-
-const impl Default for RankingConfig {
-    fn default() -> Self {
-        Self::IncidentDegree
-    }
 }
 
 /// A derivation of per-node ordinal importance scores.

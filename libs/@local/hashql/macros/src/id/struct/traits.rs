@@ -13,26 +13,41 @@ pub(super) fn scalar(
         ..
     }: &Definition,
 ) -> TokenStream {
-    if generics.is_empty() {
-        return TokenStream::new();
-    }
-
     let konst = &attributes.r#const;
     let parameters = generics.parameters();
     let value = definition.value();
     let other = storage.read(quote!(other._internal_do_not_use));
     let hasher = generics.fresh_ident("__HashqlHasher");
 
-    // Standard derives bind every type parameter, including non-owning phantom parameters.
-    quote! {
-        #[automatically_derived]
-        impl #parameters ::core::marker::Copy for #name #generics {}
+    // The zerocopy derives compare bytes and are never const.
+    let comparison_only = generics.is_empty() && storage.is_bytes() && !konst.is_empty();
+    if generics.is_empty() && !comparison_only {
+        return TokenStream::new();
+    }
 
-        #[automatically_derived]
-        impl #parameters ::core::clone::Clone for #name #generics {
-            #[inline]
-            fn clone(&self) -> Self { *self }
+    // Standard derives bind every type parameter, including non-owning phantom parameters.
+    let ownership = (!comparison_only).then(|| {
+        quote! {
+            #[automatically_derived]
+            impl #parameters ::core::marker::Copy for #name #generics {}
+
+            #[automatically_derived]
+            impl #parameters ::core::clone::Clone for #name #generics {
+                #[inline]
+                fn clone(&self) -> Self { *self }
+            }
+
+            #[automatically_derived]
+            impl #parameters ::core::hash::Hash for #name #generics {
+                fn hash<#hasher: ::core::hash::Hasher>(&self, state: &mut #hasher) {
+                    ::core::hash::Hash::hash(&#value, state);
+                }
+            }
         }
+    });
+
+    quote! {
+        #ownership
 
         #[automatically_derived]
         #konst impl #parameters ::core::cmp::PartialEq for #name #generics {
@@ -56,13 +71,6 @@ pub(super) fn scalar(
             #[inline]
             fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
                 ::core::cmp::Ord::cmp(&#value, &#other)
-            }
-        }
-
-        #[automatically_derived]
-        impl #parameters ::core::hash::Hash for #name #generics {
-            fn hash<#hasher: ::core::hash::Hasher>(&self, state: &mut #hasher) {
-                ::core::hash::Hash::hash(&#value, state);
             }
         }
     }

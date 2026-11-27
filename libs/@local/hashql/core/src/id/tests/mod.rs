@@ -4,7 +4,7 @@ mod generic;
 
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
-use super::{Id as _, IdError, newtype};
+use super::{Id, IdError, newtype};
 
 newtype!(
     #[id(crate = crate)]
@@ -151,6 +151,89 @@ fn native_bytes_round_trip() {
         id
     );
     assert_eq!(id.as_u64(), 0x1234);
+}
+
+newtype!(
+    #[id(crate = crate, const)]
+    struct RangedId(u32 is 0..=0xFFFF_FF00)
+);
+
+newtype!(
+    #[id(crate = crate)]
+    struct ExclusiveId(u16 is 10..20)
+);
+
+#[test]
+fn ranged_niche() {
+    assert_eq!(size_of::<RangedId>(), 4);
+    assert_eq!(size_of::<Option<RangedId>>(), 4);
+    assert_eq!(size_of::<Option<Option<ExclusiveId>>>(), 2);
+
+    assert_eq!(size_of::<Option<NarrowUnboundedId>>(), 4);
+}
+
+#[test]
+fn ranged_bounds() {
+    const IN_CONST: RangedId = RangedId::new(0xFFFF_FF00);
+
+    assert_eq!(IN_CONST.get(), 0xFFFF_FF00);
+    assert_eq!(RangedId::MAX, IN_CONST);
+    assert_eq!(RangedId::MIN.get(), 0);
+
+    assert_eq!(ExclusiveId::MIN.get(), 10);
+    assert_eq!(ExclusiveId::MAX.get(), 19);
+    assert_eq!(ExclusiveId::MAX.prev(), Some(ExclusiveId::new(18)));
+    assert_eq!(ExclusiveId::MIN.prev(), None);
+    assert_eq!(
+        ExclusiveId::try_from(20_u32),
+        Err(IdError::OutOfRange {
+            value: 20,
+            min: 10,
+            max: 19,
+        })
+    );
+    assert_eq!(
+        [Some(ExclusiveId::new(19)), None].map(|id| id.map(ExclusiveId::get)),
+        [Some(19), None]
+    );
+    assert!(ExclusiveId::new(10) < ExclusiveId::new(11));
+}
+
+#[test]
+#[should_panic(expected = "id value must be between 10<20")]
+fn ranged_above() {
+    let _id = ExclusiveId::new(20);
+}
+
+#[test]
+fn ranged_constant_pattern() {
+    const FIRST: RangedId = RangedId::new(0);
+
+    let label = match RangedId::new(1) {
+        FIRST => "first",
+        RangedId::MAX => "last",
+        _ => "other",
+    };
+
+    assert_eq!(label, "other");
+}
+
+newtype!(
+    #[id(crate = crate, const, endian = big, unaligned)]
+    struct ConstBytesId(u16 is 10..=20)
+);
+
+const fn precedes<I: [const] Id>(lhs: &I, rhs: &I) -> bool {
+    *lhs < *rhs && *lhs != *rhs
+}
+
+#[test]
+fn const_comparison() {
+    const RANGED: bool = precedes(&RangedId::new(1), &RangedId::new(2));
+    const BYTES: bool = precedes(&ConstBytesId::new(10), &ConstBytesId::new(20));
+    const REVERSED: bool = precedes(&ConstBytesId::new(20), &ConstBytesId::new(10));
+
+    assert_eq!([RANGED, BYTES, REVERSED], [true, true, false]);
 }
 
 #[cfg(feature = "rayon")]

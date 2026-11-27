@@ -52,6 +52,7 @@ const DEFAULT_ZOOM: Zoom = Zoom::new(18).expect("18 lies within the key width");
 /// across real generations when revising them, retaining each generation's configuration with its
 /// measurements.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
@@ -63,12 +64,6 @@ pub(crate) struct LodConfig {
     ///
     /// By default this is 18. The deepest cascade grid is `max_tile_depth + span`, depth 24 with both defaults. Its cells have axis width 2⁻²³ in the wire frame. Distinct `f32` coordinates can still share a cell at this or any supported grid depth.
     pub max_tile_depth: Zoom = DEFAULT_ZOOM,
-}
-
-const impl Default for LodConfig {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 impl LodConfig {

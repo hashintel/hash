@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 
+use super::constraint::Constraint;
 use crate::{
     emit_error,
     id::{
@@ -22,16 +23,21 @@ impl From<StructScalar> for IntegerScalar {
     }
 }
 
-/// The stored form of an id is a native scalar or a zerocopy byteorder integer.
+/// The stored form of an id is a native scalar, a ranged scalar or a zerocopy byteorder integer.
 pub(super) struct Storage {
     r#type: TokenStream,
 
     bytes: bool,
     byteorder: bool,
+    ranged: bool,
 }
 
 impl Storage {
-    pub(super) fn new(scalar: IntegerScalar, attributes: &Attributes) -> Self {
+    pub(super) fn new(
+        scalar: IntegerScalar,
+        attributes: &Attributes,
+        constraint: Option<&Constraint>,
+    ) -> Self {
         let mut endian = attributes
             .endian
             .map_or(Endianness::Native, |Spanned { value, .. }| value);
@@ -86,6 +92,15 @@ impl Storage {
             };
 
             quote!(::zerocopy::#width<::zerocopy::#order>)
+        } else if let Some(constraint) = constraint
+            && !bytes
+        {
+            let krate = &attributes.krate;
+            let name = format_ident!("Ranged{}", scalar.to_string().to_uppercase());
+            let min = constraint.min_value();
+            let max = constraint.max_value();
+
+            quote!(#krate::id::ranged::#name<{ #min }, { #max }>)
         } else {
             quote!(#scalar)
         };
@@ -94,6 +109,7 @@ impl Storage {
             r#type,
             bytes,
             byteorder,
+            ranged: constraint.is_some() && !bytes,
         }
     }
 
@@ -113,26 +129,41 @@ impl Storage {
         }
     }
 
+    /// Expands to the stored form of `value`.
+    ///
+    /// For a ranged scalar the expansion does not check `value`. Every caller places it after a
+    /// check of `value` against the declared range, or inside an `unsafe fn` whose caller
+    /// guarantees the range.
     pub(super) fn wrap(&self, value: TokenStream) -> TokenStream {
+        let ty = &self.r#type;
+
         if self.byteorder {
-            let ty = &self.r#type;
             quote!(<#ty>::new(#value))
+        } else if self.ranged {
+            quote!(unsafe { <#ty>::new_unchecked(#value) })
         } else {
             value
         }
     }
 
     pub(super) fn read(&self, place: TokenStream) -> TokenStream {
-        if self.byteorder {
+        if self.byteorder || self.ranged {
             quote!(#place.get())
         } else {
             place
         }
     }
 
-    pub(super) fn derives(&self, bounded: bool, generic: bool) -> TokenStream {
+    pub(super) fn derives(&self, bounded: bool, generic: bool, konst: bool) -> TokenStream {
         let standard = if generic {
             TokenStream::new()
+        } else if self.bytes && konst {
+            quote!(#[derive(Copy, Clone, ::zerocopy::ByteHash)])
+        } else if konst {
+            quote! {
+                #[derive(Copy, Clone, Hash)]
+                #[derive_const(PartialEq, Eq, PartialOrd, Ord)]
+            }
         } else if self.bytes {
             quote! {
                 #[derive(Copy, Clone, PartialOrd, Ord, ::zerocopy::ByteEq, ::zerocopy::ByteHash)]

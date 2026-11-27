@@ -51,6 +51,7 @@ const _: () = assert!(
 
 /// Pinned tolerance and sampling settings for one norm spot check.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct SpotCheckOptions {
     /// Admitted deviation of a row's squared norm from one, two-sided.
     pub tolerance: DPositive = DEFAULT_TOLERANCE,
@@ -62,12 +63,6 @@ pub(crate) struct SpotCheckOptions {
     ///
     /// See [`acceptance_sample_size`]. Higher confidence grows the sample.
     pub confidence: OpenUnitFraction = DEFAULT_CONFIDENCE,
-}
-
-const impl Default for SpotCheckOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// One sampled row's violation of the representation contract.

@@ -259,6 +259,7 @@ const PROJECTED_DIMENSIONS: usize = 2;
 /// and depth are benchmark axes: the defaults are the candidate the quality and throughput
 /// criteria judge first rather than validated optima.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct Architecture {
     /// Hidden width of the stem and every residual block.
     pub width: NonZero<usize> = DEFAULT_WIDTH,
@@ -272,12 +273,6 @@ pub(crate) struct Architecture {
     ///
     /// The built pipeline feeds the single relation-lens column `[eta]`. The width is configurable, and the model is parametric in it.
     pub condition_dimensions: NonZero<usize> = DEFAULT_CONDITION_DIMENSIONS,
-}
-
-const impl Default for Architecture {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// One projection batch.

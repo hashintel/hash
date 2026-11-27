@@ -9,7 +9,8 @@ use hashql_core::id::{Id, IdArray, bit_vec::FiniteBitSet};
 /// The discriminant order determines iteration order in [`TargetId::all`] and affects cost
 /// estimation during placement. The interpreter is evaluated last so it can incorporate traversal
 /// costs computed by the other backends.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
+#[derive(Debug, Copy, Clone, Hash, Id)]
+#[derive_const(PartialEq, Eq, PartialOrd, Ord)]
 #[id(const)]
 pub enum TargetId {
     /// In-process evaluator that supports all MIR operations.

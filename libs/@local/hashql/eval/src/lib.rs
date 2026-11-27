@@ -10,7 +10,9 @@
 
     // Library Features
     allocator_ext,
+    const_cmp,
     const_convert,
+    derive_const,
     const_trait_impl,
     get_mut_unchecked,
     impl_trait_in_assoc_type,

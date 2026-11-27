@@ -54,6 +54,7 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 /// k-NN distances in `[0, 2]`, the defaults keep both trial and returned bandwidths finite and
 /// positive. Custom settings must preserve that condition to implement the exponential model.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct SmoothingOptions {
     /// Absolute membership-sum residual below which bisection stops early.
     ///
@@ -67,12 +68,6 @@ pub(crate) struct SmoothingOptions {
     ///
     /// This is `64` by default. Zero iterations keep the initial trial bandwidth of `1.0` before applying the floor. Large limits can drive the trial bandwidth to zero or infinity in `f32`.
     pub bisection_iterations: usize = 64,
-}
-
-const impl Default for SmoothingOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// Checks the graph's shape, weight domain and symmetry.

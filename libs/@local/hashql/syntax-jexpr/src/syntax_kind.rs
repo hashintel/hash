@@ -1,6 +1,7 @@
 use core::fmt::{self, Display};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_core::id::Id)]
+#[derive(Debug, Copy, Clone, Hash, hashql_core::id::Id)]
+#[derive_const(PartialEq, Eq, PartialOrd, Ord)]
 #[id(const, display = !)]
 #[repr(u8)]
 pub(crate) enum SyntaxKind {

@@ -228,6 +228,8 @@ pub(super) fn expand_enum(
                 #[inline]
                 fn try_from(value: #int) -> ::core::result::Result<Self, #krate::id::IdError> {
                     if value >= #count {
+                        ::core::hint::cold_path();
+
                         return Err(#krate::id::IdError::OutOfRange {
                             value: value as u64,
                             min: 0,

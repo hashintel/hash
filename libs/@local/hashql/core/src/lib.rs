@@ -11,6 +11,7 @@
     impl_trait_in_assoc_type,
     macro_metavar_expr,
     macro_metavar_expr_concat,
+    pattern_types,
     type_alias_impl_trait,
 
     // Library Features
@@ -33,6 +34,7 @@
     const_range,
     const_range_bounds,
     const_trait_impl,
+    derive_const,
     extend_one,
     extern_types,
     generic_atomic,
@@ -47,6 +49,7 @@
     slice_partition_dedup,
     slice_swap_unchecked,
     step_trait,
+    structural_match,
     sync_nonpoison,
     try_trait_v2,
     variant_count,

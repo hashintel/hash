@@ -43,7 +43,8 @@ impl Definition {
     ) -> Self {
         let attributes = Attributes::parse(attributes);
         let scalar = IntegerScalar::from(r#type);
-        let storage = Storage::new(scalar, &attributes);
+        let constraint = bounds.map(|bounds| Constraint::new(scalar, bounds));
+        let storage = Storage::new(scalar, &attributes, constraint.as_ref());
 
         Self {
             attributes,
@@ -52,7 +53,7 @@ impl Definition {
             generics: Generics::new(parameters),
             scalar,
             storage,
-            constraint: bounds.map(|bounds| Constraint::new(scalar, bounds)),
+            constraint,
         }
     }
 
@@ -139,9 +140,11 @@ impl Definition {
 
     fn declaration(&self) -> TokenStream {
         let extra = &self.attributes.extra;
-        let derives = self
-            .storage
-            .derives(self.constraint.is_some(), !self.generics.is_empty());
+        let derives = self.storage.derives(
+            self.constraint.is_some(),
+            !self.generics.is_empty(),
+            !self.attributes.r#const.is_empty(),
+        );
         let vis = &self.visibility;
         let name = &self.name;
         let generics = &self.generics;
@@ -280,6 +283,8 @@ impl Definition {
                     if #comparison {
                         ::core::result::Result::Ok(#stored)
                     } else {
+                        ::core::hint::cold_path();
+
                         ::core::result::Result::Err(#krate::id::IdError::OutOfRange {
                             value: value as u64,
                             min: #min as u64,
@@ -295,6 +300,7 @@ impl Definition {
             #konst impl #parameters ::core::convert::TryFrom<#param> for #name #generics {
                 type Error = #krate::id::IdError;
 
+                #[inline]
                 fn try_from(value: #param) -> ::core::result::Result<Self, Self::Error> {
                     #body
                 }

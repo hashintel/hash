@@ -35,7 +35,7 @@ pub(crate) struct DeliveredEdge {
 
 impl DeliveredEdge {
     /// Returns the endpoint opposite `node`, or [`None`] when `node` is neither endpoint.
-    pub(crate) fn partner_of(self, node: NodeRowId) -> Option<NodeRowId> {
+    pub(crate) const fn partner_of(self, node: NodeRowId) -> Option<NodeRowId> {
         let [source, target] = self.endpoints;
 
         if source == node {
