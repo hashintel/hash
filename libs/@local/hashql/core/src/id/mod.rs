@@ -53,7 +53,21 @@ impl Display for IdError {
 ///
 /// Provides type safety for IDs of different domains (nodes, users, etc.)
 /// while maintaining a consistent conversion API.
-pub const trait Id:
+///
+/// # Safety
+///
+/// An ID stands for one number, fixed when the ID is created. Every operation this trait and its
+/// supertraits provide must be pure: its result depends only on that number and on the operation's
+/// other arguments, and it has no other effect. Two IDs must be equal exactly when they stand for
+/// the same number.
+///
+/// Unsafe code relies on this for any of these operations without checking it. It may repeat an
+/// operation and expect the result it got before.
+#[expect(
+    unsafe_code,
+    reason = "implementors guarantee that an id behaves as the number it stands for"
+)]
+pub const unsafe trait Id:
     Copy
     + PartialEq
     + Eq

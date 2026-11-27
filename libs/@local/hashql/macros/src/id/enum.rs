@@ -7,7 +7,7 @@ use crate::{
     emit_error,
     id::{
         attr::{Attributes, DisplayAttribute, Trait},
-        common::IntegerScalar,
+        common::{IntegerScalar, range_check},
     },
 };
 
@@ -149,32 +149,44 @@ pub(super) fn expand_enum(
     // 4. Id trait impl
     let max = Literal::usize_unsuffixed(variant_count.saturating_sub(1));
     let count = Literal::usize_unsuffixed(variant_count);
-    let message = format!(
-        "ID must be between 0 and {}",
-        variant_count.saturating_sub(1)
+    let check = range_check(
+        &quote!(index < #count),
+        &format!(
+            "ID must be between 0 and {}",
+            variant_count.saturating_sub(1)
+        ),
     );
 
     output.extend(quote! {
+        // SAFETY: `Id` requires every operation on an id to be a pure function of the number it
+        // stands for, and equality to be equality of that number. The discriminant is that number,
+        // and a unit enum holds no other state. The conversions generated here read the
+        // discriminant alone. Comparison, hashing and `Debug` are the enum's own impls, which this
+        // derive requires to be derived: a derived impl on a unit enum reads the discriminant
+        // alone.
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
-        #konst impl #krate::id::Id for #name {
+        #konst unsafe impl #krate::id::Id for #name {
             const MIN: Self = Self::from_discriminant(0);
             const MAX: Self = Self::from_discriminant(#max);
 
+            #[inline]
             fn from_u32(index: u32) -> Self {
-                assert!(index < #count, #message);
+                #check
 
                 Self::from_discriminant(index as #backing)
             }
 
+            #[inline]
             fn from_u64(index: u64) -> Self {
-                assert!(index < #count, #message);
+                #check
 
                 Self::from_discriminant(index as #backing)
             }
 
+            #[inline]
             fn from_usize(index: usize) -> Self {
-                assert!(index < #count, #message);
+                #check
 
                 Self::from_discriminant(index as #backing)
             }

@@ -1,7 +1,7 @@
 use core::fmt;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::ToTokens;
+use quote::{ToTokens, quote};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum IntegerScalar {
@@ -48,5 +48,24 @@ impl ToTokens for IntegerScalar {
         };
 
         tokens.extend([ident]);
+    }
+}
+
+/// Expands to a statement that panics with `message` unless `condition` holds.
+///
+/// The panic is a call to a cold function that is never inlined. A constructor inlined into its
+/// caller then adds the comparison and one branch there, and the panic machinery stays out of
+/// line.
+pub(crate) fn range_check(condition: &TokenStream, message: &str) -> TokenStream {
+    quote! {
+        if !(#condition) {
+            #[cold]
+            #[inline(never)]
+            const fn out_of_range() -> ! {
+                panic!(#message)
+            }
+
+            out_of_range();
+        }
     }
 }

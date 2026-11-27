@@ -4,7 +4,10 @@ use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use unsynn::ToTokens as _;
 
-use crate::id::{common::IntegerScalar, grammar};
+use crate::id::{
+    common::{IntegerScalar, range_check},
+    grammar,
+};
 
 enum RangeKind {
     Inclusive,
@@ -89,9 +92,8 @@ impl Constraint {
 
     pub(super) fn assertion(&self, ident: &Ident, ident_scalar: IntegerScalar) -> TokenStream {
         let comparison = self.comparison(ident, ident_scalar);
-        let message = self.message();
 
-        quote!(assert!((#comparison), #message);)
+        range_check(&comparison, &self.message())
     }
 
     pub(super) fn range_assertion(&self) -> TokenStream {
@@ -123,8 +125,8 @@ pub(super) fn width_assertion(
         return TokenStream::new();
     }
 
-    let message = format!("id value must fit in `{scalar}`");
-    quote! {
-        assert!((#ident as #ident_scalar) <= (#scalar::MAX as #ident_scalar), #message);
-    }
+    range_check(
+        &quote!((#ident as #ident_scalar) <= (#scalar::MAX as #ident_scalar)),
+        &format!("id value must fit in `{scalar}`"),
+    )
 }

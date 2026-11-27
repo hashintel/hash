@@ -196,22 +196,30 @@ impl Definition {
         let usize_assertion = self.assertion(IntegerScalar::U64);
 
         quote! {
+            // SAFETY: `Id` requires every operation on an id to be a pure function of the number it
+            // stands for, and equality to be equality of that number. The stored scalar is that
+            // number. This expansion generates every operation: conversion, comparison, hashing
+            // and formatting each read the stored scalar and no other state. Therefore each
+            // depends on the number alone.
             #[automatically_derived]
             #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
-            #konst impl #parameters #krate::id::Id for #name #generics {
+            #konst unsafe impl #parameters #krate::id::Id for #name #generics {
                 const MIN: Self = Self::new(#min);
                 const MAX: Self = Self::new(#max);
 
+                #[inline]
                 fn from_u32(value: u32) -> Self {
                     #u32_assertion
                     #stored_cast
                 }
 
+                #[inline]
                 fn from_u64(value: u64) -> Self {
                     #u64_assertion
                     #stored_cast
                 }
 
+                #[inline]
                 fn from_usize(value: usize) -> Self {
                     #usize_assertion
                     #stored_cast
