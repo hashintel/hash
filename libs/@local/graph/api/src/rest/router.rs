@@ -23,7 +23,7 @@ use super::{
     authentication::{self, api_token::ApiTokenRejection},
     cors::CorsConfig,
     documentation,
-    legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext, hashql},
+    legacy::{self, ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext},
     middleware::{self, Middleware},
     probe, rate_limit, telemetry,
 };

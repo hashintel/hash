@@ -14,7 +14,6 @@ pub mod status;
 pub mod admin;
 mod auth;
 
-pub mod hashql;
 mod json;
 mod utoipa_typedef;
 use alloc::borrow::Cow;
@@ -240,7 +239,6 @@ where
         permissions::PermissionResource::routes::<S>(),
         principal::PrincipalResource::routes::<S>(),
         api_token::ApiTokenResource::routes::<S>(),
-        hashql::HashQlResource::routes::<S>(),
     ]
     .into_iter()
     .fold(Router::new(), Router::merge)
@@ -255,7 +253,6 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         permissions::PermissionResource::openapi(),
         principal::PrincipalResource::openapi(),
         api_token::ApiTokenResource::openapi(),
-        hashql::HashQlResource::openapi(),
     ]
 }
 

@@ -244,36 +244,13 @@ where
 }
 
 /// Request body for the `/hashql` endpoint.
-#[derive(serde::Deserialize, utoipa::ToSchema)]
+#[derive(serde::Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct HashQlRequest {
-    #[schema(value_type = serde_json::Value)]
     query: Arc<RawValue>,
-    /// Input values for the query. Must be an empty list until input support ships.
-    #[expect(
-        dead_code,
-        reason = "inputs will be required once HashQL input support ships"
-    )]
-    #[serde(deserialize_with = "deserialize_empty_inputs")]
-    inputs: Vec<()>,
+    inputs: Vec<Arc<RawValue>>,
 }
 
-#[utoipa::path(
-    post,
-    path = "/hashql",
-    request_body = HashQlRequest,
-    tag = "HashQL",
-    params(
-        ("Interactive" = Option<String>, Header, nullable = false, description = "When true, error responses are rendered as HTML instead of JSON"),
-        ("Json-Compat" = Option<String>, Header, nullable = false, description = "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers"),
-    ),
-    responses(
-        (status = 200, content_type = "application/json", description = "Query executed successfully"),
-        (status = 400, content_type = "application/json", description = "Query compilation or validation error"),
-        (status = 401, description = "Missing or invalid authentication credentials"),
-        (status = 500, description = "Internal compiler or database error"),
-    )
-)]
 pub(crate) async fn query_hashql<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Extension(store_pool): Extension<Arc<S>>,

@@ -1,4 +1,5 @@
 mod credentials;
+mod hashql;
 
 use aide::{openapi::Info, transform::TransformOpenApi};
 
