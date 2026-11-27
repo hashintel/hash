@@ -206,16 +206,6 @@ jobs:
             --jq .number)
           echo "Created #${created_number}."
 
-      - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@v2.4.0
-        if: ${{ failure() }}
-        env:
-          SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error releasing NPM packages <!subteam^S09KH99698T>" # Notifies @devops
-          SLACK_TITLE: Package release failed
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_USERNAME: GitHub
-
       # Yarn writes each lifecycle script's output to `<tmpdir>/xfs-*/<script>.log` and keeps
       # the file only when the script fails; the publish error names the path.
       - name: Print Yarn lifecycle script logs on failure
@@ -241,6 +231,26 @@ jobs:
           path: |
             /tmp/xfs-*/*.log
             **/.turbo/*.log
+
+  notify:
+    name: Notify Slack on failure
+    # The webhook lives in `Slack`, and a job reads the secrets of its one environment only.
+    environment:
+      name: Slack
+      deployment: false
+    needs: release
+    if: ${{ failure() }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - name: Notify Slack
+        uses: rtCamp/action-slack-notify@v2.4.0
+        env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "Error releasing NPM packages <!subteam^S09KH99698T>" # Notifies @devops
+          SLACK_TITLE: Package release failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub
 
   publish-rust:
     name: Publish (Rust)
