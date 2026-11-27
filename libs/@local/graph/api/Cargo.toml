@@ -80,6 +80,7 @@ semver               = { workspace = true, features = ["serde"] }
 sentry               = { workspace = true }
 serde                = { workspace = true, features = ['derive'] }
 serde_json           = { workspace = true, features = ["raw_value"] }
+serde_plain          = { workspace = true }
 simple-mermaid       = { workspace = true }
 stacker              = { workspace = true }
 time                 = { workspace = true }

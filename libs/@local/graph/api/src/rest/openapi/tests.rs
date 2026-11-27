@@ -18,7 +18,7 @@ use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejectio
 use super::reference_responses;
 use crate::rest::{
     Api,
-    extract::{Json, Path, Query},
+    extract::{Header, Json, Path, Query},
     middleware, openapi,
     routing::{self, Routes},
     test_utils::NoCredentials,
@@ -484,8 +484,37 @@ fn parameter_data(name: &str) -> ParameterData {
     }
 }
 
+/// Header parameters with a sequence for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct SequenceHeader {
+    ids: Vec<u8>,
+}
+
 #[test]
-#[should_panic(expected = "should read no header parameter such as `x-trace`")]
+#[should_panic(expected = "should read its header parameter `ids` as a single value")]
+fn build_header_parameter_sequence() {
+    let _: Api = openapi::build::<NoCredentials, _>(
+        "/test",
+        Info::default(),
+        || {
+            Routes::new().route(
+                "/entities",
+                routing::get(
+                    async |Header(SequenceHeader { ids }): Header<SequenceHeader>| {
+                        Json::<_, 200>(ids)
+                    },
+                    named,
+                ),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(
+    expected = "should read its header parameter `x-trace` through `rest::extract::Header`"
+)]
 fn build_header_parameter() {
     build_with_parameter(Parameter::Header {
         parameter_data: parameter_data("x-trace"),

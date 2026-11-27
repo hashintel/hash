@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize, Serializer, ser::Error as _};
 use serde_json::{Value, json};
 use tower::ServiceExt as _;
 
-use super::{Json, NextPage, Page, Path, Query, json::content_status};
+use super::{Header, Json, NextPage, Page, Path, Query, json::content_status};
 use crate::rest::{
     Api, openapi,
     routing::{self, Routes},
@@ -280,6 +280,156 @@ async fn query_repeated_key() {
     );
 }
 
+/// Header parameters with a header that a request may leave out.
+#[derive(Deserialize, JsonSchema)]
+struct Preference {
+    limit: u8,
+    #[serde(default, rename = "Dry-Run")]
+    dry_run: bool,
+}
+
+async fn send_headers<const N: usize>(headers: [(&str, &[u8]); N]) -> Reply {
+    let router: Router = ApiRouter::new()
+        .api_route(
+            "/limit",
+            get(
+                async |Header(Preference { limit, dry_run }): Header<Preference>| {
+                    Json::<_, 200>((limit, dry_run))
+                },
+            ),
+        )
+        .into();
+    let mut request = Request::builder().uri("/limit");
+    for (name, value) in headers {
+        request = request.header(name, value);
+    }
+    let request = request
+        .body(Body::empty())
+        .expect("the request should build");
+
+    send(router, request).await
+}
+
+#[tokio::test]
+async fn header_parameters_read() {
+    let reply = send_headers([("limit", b"5"), ("dry-run", b"true")]).await;
+
+    assert_eq!(reply.status, 200, "both headers should parse");
+    assert_eq!(
+        reply.body,
+        json!([5, true]),
+        "each field should hold the value of its header, whatever the case of its name"
+    );
+}
+
+#[tokio::test]
+async fn header_parameter_defaulted() {
+    let reply = send_headers([("limit", b"5")]).await;
+
+    assert_eq!(
+        reply.body,
+        json!([5, false]),
+        "a field with a default should take it when its header is absent"
+    );
+}
+
+#[tokio::test]
+async fn header_parameter_missing() {
+    let reply = send_headers([("dry-run", b"true")]).await;
+
+    assert_eq!(reply.status, 400, "a missing header should answer 400");
+    assert_eq!(
+        reply.body["detail"], "Missing header `limit`",
+        "the document should name the missing header"
+    );
+}
+
+#[tokio::test]
+async fn header_parameter_unparsable() {
+    let reply = send_headers([("limit", b"over-nine-thousand")]).await;
+
+    assert_eq!(reply.status, 400, "an unparsable header should answer 400");
+    assert!(
+        reply.body["detail"]
+            .as_str()
+            .is_some_and(|detail| detail.contains("`limit`")),
+        "the document should name the header that failed, got {}",
+        reply.body
+    );
+}
+
+#[tokio::test]
+async fn header_parameter_repeated() {
+    let reply = send_headers([("limit", b"5"), ("limit", b"6")]).await;
+
+    assert_eq!(reply.status, 400, "a repeated header should answer 400");
+    assert_eq!(
+        reply.body["detail"], "Header `limit` occurs more than once",
+        "the document should name the repeated header"
+    );
+}
+
+#[tokio::test]
+async fn header_parameter_not_text() {
+    let reply = send_headers([("limit", b"\xFF")]).await;
+
+    assert_eq!(
+        reply.status, 400,
+        "a header value outside ASCII should answer 400"
+    );
+}
+
+/// A handler reading the headers into anything but a struct is a defect of the route. The document
+/// says nothing about it.
+#[tokio::test]
+async fn header_parameters_unnamed() {
+    let router: Router = ApiRouter::new()
+        .api_route(
+            "/limit",
+            get(async |Header((limit,)): Header<(u8,)>| limit.to_string()),
+        )
+        .into();
+    let request = Request::builder()
+        .uri("/limit")
+        .header("limit", "5")
+        .body(Body::empty())
+        .expect("the request should build");
+
+    let reply = send(router, request).await;
+
+    assert_eq!(
+        reply.status, 500,
+        "a handler reading headers without naming them should answer 500"
+    );
+    assert_eq!(
+        reply.body["detail"],
+        InternalServerError.to_string(),
+        "the document should not describe the route's wiring"
+    );
+}
+
+#[tokio::test]
+async fn header_parameter_sequence() {
+    let router: Router = ApiRouter::new()
+        .api_route(
+            "/ids",
+            get(async |Header(Ids { id }): Header<Ids>| Json::<_, 200>(id)),
+        )
+        .into();
+    let request = Request::builder()
+        .uri("/ids")
+        .header("id", "1")
+        .body(Body::empty())
+        .expect("the request should build");
+
+    let reply = send(router, request).await;
+
+    assert_eq!(
+        reply.status, 500,
+        "a field no header value can hold should answer 500"
+    );
+}
+
 /// A body that fails to serialize.
 struct Unserializable;
 
@@ -500,6 +650,27 @@ async fn query_documents_parameter_rejection() {
 }
 
 #[tokio::test]
+async fn header_documents_parameter_rejection() {
+    let mut document = OpenApi::default();
+    let _: Router = ApiRouter::new()
+        .api_route(
+            "/limit",
+            get(async |Header(Limit { limit }): Header<Limit>| limit.to_string()),
+        )
+        .finish_api(&mut document);
+
+    assert!(
+        is_problem_response(documented(
+            &document,
+            "/limit",
+            |item| item.get.as_ref(),
+            400
+        )),
+        "the operation should document 400 as a problem document"
+    );
+}
+
+#[tokio::test]
 async fn json_documents_response() {
     let mut document = OpenApi::default();
     let _: Router = ApiRouter::new()
@@ -544,6 +715,14 @@ struct EchoQuery {
     repeat: Option<u8>,
 }
 
+/// The case the response repeats the value in.
+#[derive(Deserialize, JsonSchema)]
+struct EchoHeaders {
+    /// Whether the response carries `value` in upper case. Defaults to `false`.
+    #[serde(default, rename = "Uppercase")]
+    uppercase: bool,
+}
+
 /// The value the response repeats.
 #[derive(Deserialize, JsonSchema)]
 struct EchoRequest {
@@ -564,8 +743,14 @@ struct EchoResponse {
 async fn echo(
     Path(EchoPath { label }): Path<EchoPath>,
     Query(EchoQuery { repeat }): Query<EchoQuery>,
+    Header(EchoHeaders { uppercase }): Header<EchoHeaders>,
     Json(EchoRequest { value }): Json<EchoRequest>,
 ) -> Json<EchoResponse> {
+    let value = if uppercase {
+        value.to_uppercase()
+    } else {
+        value
+    };
     Json(EchoResponse {
         label,
         values: vec![value; usize::from(repeat.unwrap_or(1))],
@@ -589,7 +774,8 @@ fn echo_document() {
                 routing::post(echo, |operation| {
                     operation.id("echo").summary("Echo a request").description(
                         "Returns the label from the path and the value from the body, repeated as \
-                         often as the query parameter `repeat` asks.",
+                         often as the query parameter `repeat` asks and in upper case when the \
+                         header `Uppercase` asks.",
                     )
                 }),
             )

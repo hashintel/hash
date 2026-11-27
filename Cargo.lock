@@ -6598,6 +6598,7 @@ dependencies = [
  "sentry",
  "serde",
  "serde_json",
+ "serde_plain",
  "simple-mermaid",
  "stacker",
  "time",
