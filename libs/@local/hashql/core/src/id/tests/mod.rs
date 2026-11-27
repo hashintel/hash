@@ -163,6 +163,63 @@ newtype!(
     struct ExclusiveId(u16 is 10..20)
 );
 
+newtype!(
+    #[id(crate = crate)]
+    struct CompoundEndId(u8 is 0..2 | 8)
+);
+
+newtype!(
+    #[id(crate = crate)]
+    struct InferredEndId(u8 is 0..=(!0 >> 1))
+);
+
+newtype!(
+    #[id(crate = crate, endian = big, unaligned)]
+    struct CompoundEndBytesId(u16 is 0..2 | 8)
+);
+
+#[test]
+fn ranged_compound_end() {
+    assert_eq!(CompoundEndId::MAX.get(), 9);
+    assert_eq!(CompoundEndId::new(9).get(), 9);
+    assert_eq!(CompoundEndId::try_from(9_u32), Ok(CompoundEndId::MAX));
+    assert_eq!(
+        CompoundEndId::try_from(10_u32),
+        Err(IdError::OutOfRange {
+            value: 10,
+            min: 0,
+            max: 9,
+        })
+    );
+    assert_eq!(size_of::<Option<CompoundEndId>>(), 1);
+
+    assert_eq!(CompoundEndBytesId::MAX.get(), 9);
+    CompoundEndBytesId::try_read_from_bytes(&[0, 9]).expect("9 lies in the range");
+    CompoundEndBytesId::try_read_from_bytes(&[0, 10]).expect_err("10 lies above the range");
+}
+
+#[test]
+fn ranged_inferred_end() {
+    assert_eq!(InferredEndId::MAX.get(), 127);
+    assert_eq!(InferredEndId::try_from(127_u32), Ok(InferredEndId::MAX));
+    assert_eq!(
+        InferredEndId::try_from(128_u32),
+        Err(IdError::OutOfRange {
+            value: 128,
+            min: 0,
+            max: 127,
+        })
+    );
+    assert_eq!(
+        InferredEndId::try_from(u64::from(u32::MAX)),
+        Err(IdError::OutOfRange {
+            value: u64::from(u32::MAX),
+            min: 0,
+            max: 127,
+        })
+    );
+}
+
 #[test]
 fn ranged_niche() {
     assert_eq!(size_of::<RangedId>(), 4);

@@ -68,13 +68,9 @@ impl Definition {
     }
 
     fn min_value(&self) -> TokenStream {
-        self.constraint.as_ref().map_or_else(
-            || quote!(0),
-            |constraint| {
-                let min = constraint.min_value();
-                quote!(#min)
-            },
-        )
+        self.constraint
+            .as_ref()
+            .map_or_else(|| quote!(0), Constraint::min_value)
     }
 
     fn max_value(&self) -> TokenStream {

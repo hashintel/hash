@@ -1,9 +1,10 @@
 //! Integer storage for an id whose values lie in a range.
 //!
 //! The [`define_id!`](super::newtype) macro stores an id declared with `is MIN..=MAX` in one of
-//! these types. The range is then part of the stored type, and the compiler uses it in two ways. An
-//! enum around the id, such as `Option`, takes a value outside the range as its discriminant and is
-//! no larger than the id. The compiler also optimizes code that reads the id for the range, for
+//! these types, unless the id is stored as bytes (`endian` or `unaligned`). The range is then part
+//! of the stored type, and the compiler uses it in two ways. When the range leaves out a value of
+//! the scalar, an enum around the id, such as `Option`, takes such a value as its discriminant and
+//! is no larger than the id. The compiler also optimizes code that reads the id for the range, for
 //! example when the id indexes an array whose length exceeds `MAX`.
 #![expect(
     unsafe_code,

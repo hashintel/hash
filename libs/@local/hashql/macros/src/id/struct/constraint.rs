@@ -43,15 +43,32 @@ impl Constraint {
         }
     }
 
-    pub(super) const fn min_value(&self) -> &TokenStream {
-        &self.min
+    // An endpoint is an arbitrary expression. Spliced into a larger expression its value changes
+    // with what surrounds it: `2 | 8 - 1` is 7, and `(!0 >> 1) as u32` takes `!0` as an `i32`.
+    // Every use therefore reads the endpoint through a binding of the id's scalar type.
+    fn bound(&self, endpoint: &TokenStream, value: &TokenStream) -> TokenStream {
+        let scalar = self.scalar;
+
+        quote!({
+            #[allow(unused_parens)]
+            let bound: #scalar = #endpoint;
+            #value
+        })
     }
 
+    fn end_value(&self) -> TokenStream {
+        self.bound(&self.max, &quote!(bound))
+    }
+
+    pub(super) fn min_value(&self) -> TokenStream {
+        self.bound(&self.min, &quote!(bound))
+    }
+
+    /// Expands to the largest value in the range, whichever way the range is declared.
     pub(super) fn max_value(&self) -> TokenStream {
-        let max = &self.max;
         match self.kind {
-            RangeKind::Inclusive => quote!(#max),
-            RangeKind::Exclusive => quote!(#max - 1),
+            RangeKind::Inclusive => self.end_value(),
+            RangeKind::Exclusive => self.bound(&self.max, &quote!(bound - 1)),
         }
     }
 
@@ -75,18 +92,12 @@ impl Constraint {
 
     pub(super) fn comparison(&self, ident: &Ident, ident_scalar: IntegerScalar) -> TokenStream {
         let width = cmp::max(self.scalar, ident_scalar);
-        let min = &self.min;
-        let max = &self.max;
+        let min = self.min_value();
+        let max = self.max_value();
 
-        match self.kind {
-            RangeKind::Inclusive => quote! {
-                (#ident as #width) >= (#min as #width) &&
-                (#ident as #width) <= (#max as #width)
-            },
-            RangeKind::Exclusive => quote! {
-                (#ident as #width) >= (#min as #width) &&
-                (#ident as #width) < (#max as #width)
-            },
+        quote! {
+            (#ident as #width) >= (#min as #width) &&
+            (#ident as #width) <= (#max as #width)
         }
     }
 
@@ -97,19 +108,15 @@ impl Constraint {
     }
 
     pub(super) fn range_assertion(&self) -> TokenStream {
-        let Self {
-            scalar,
-            min,
-            max,
-            kind,
-        } = self;
+        let min = self.min_value();
+        let end = self.end_value();
 
-        match kind {
+        match self.kind {
             RangeKind::Inclusive => quote! {
-                const _: () = assert!((#min as #scalar) <= (#max as #scalar), "inclusive range requires min <= max");
+                const _: () = assert!(#min <= #end, "inclusive range requires min <= max");
             },
             RangeKind::Exclusive => quote! {
-                const _: () = assert!((#min as #scalar) < (#max as #scalar), "exclusive range requires min < max");
+                const _: () = assert!(#min < #end, "exclusive range requires min < max");
             },
         }
     }
