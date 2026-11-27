@@ -32,7 +32,7 @@ const rootStyle = css({
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   backgroundColor: "neutral.s00",
   transition:
     "[border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease]",

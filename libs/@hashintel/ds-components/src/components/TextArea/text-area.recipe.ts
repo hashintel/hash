@@ -170,7 +170,7 @@ export const textAreaRecipe = sva({
         wrapper: {
           ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
-          "--base-input-padding-x": "spacing.4",
+          "--base-input-padding-x": "spacing.3.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.lg.textStyle },
       },

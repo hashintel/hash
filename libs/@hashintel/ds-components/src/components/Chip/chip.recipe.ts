@@ -73,7 +73,7 @@ export const styles = sva({
         "[color-mix(in oklab, var(--chip-hover-ink) calc(5% + var(--chip-active-boost, 0%)), transparent)]",
       "--chip-ring-color":
         "[color-mix(in oklab, {colors.colorPalette.fg.link} 65%, transparent)]",
-      "--chip-ring-soft": "[3px]",
+      "--chip-ring-soft": "[calc((var(--radii-xs) + var(--radii-sm)) / 2)]",
       // A segment ring's round outer corner, capped at ~half the chip height. A
       // radii-full chip's ~9999px radius would trigger border-radius
       // overflow-scaling that shrinks even the 3px inner corners toward sharp;
@@ -211,7 +211,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[0px]",
           "--chip-padding-x": "var(--spacing-1)",
-          "--chip-radius": "5px",
+          "--chip-radius": "calc((var(--radii-sm) + var(--radii-md)) / 2)",
         },
       },
       sm: {
@@ -221,7 +221,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[0.5px]",
           "--chip-padding-x": "var(--spacing-1)",
-          "--chip-radius": "5px",
+          "--chip-radius": "calc((var(--radii-sm) + var(--radii-md)) / 2)",
         },
       },
       md: {
@@ -251,7 +251,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[2px]",
           "--chip-padding-x": "[6px]",
-          "--chip-radius": "7px",
+          "--chip-radius": "calc((var(--radii-md) + var(--radii-lg)) / 2)",
         },
       },
     },

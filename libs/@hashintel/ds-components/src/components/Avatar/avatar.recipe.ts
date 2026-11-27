@@ -90,7 +90,7 @@ export const styles = sva({
       // (avatar-size.recipe.ts), applied to the root alongside these styles.
       xxs: {
         root: {
-          "--avatar-radius": "0.25rem",
+          "--avatar-radius": "var(--radii-sm)",
         },
         placeholder: {
           fontSize: "[7px]",
@@ -98,7 +98,7 @@ export const styles = sva({
       },
       xs: {
         root: {
-          "--avatar-radius": "0.25rem",
+          "--avatar-radius": "var(--radii-sm)",
         },
         placeholder: {
           fontSize: "[9px]",
@@ -106,7 +106,7 @@ export const styles = sva({
       },
       sm: {
         root: {
-          "--avatar-radius": "0.375rem",
+          "--avatar-radius": "var(--radii-md)",
         },
         placeholder: {
           fontSize: "[11px]",
@@ -114,7 +114,7 @@ export const styles = sva({
       },
       md: {
         root: {
-          "--avatar-radius": "0.375rem",
+          "--avatar-radius": "var(--radii-md)",
         },
         placeholder: {
           fontSize: "sm",
@@ -122,7 +122,7 @@ export const styles = sva({
       },
       lg: {
         root: {
-          "--avatar-radius": "0.5rem",
+          "--avatar-radius": "var(--radii-lg)",
         },
         placeholder: {
           fontSize: "[20px]",

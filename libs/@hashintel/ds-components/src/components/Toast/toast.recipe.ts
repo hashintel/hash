@@ -59,7 +59,7 @@ export const styles = sva({
       "&:is([data-placement=top], [data-placement=bottom])": {
         "--toast-width-default": "[450px]",
       },
-      borderRadius: "xl",
+      borderRadius: "2xl",
       borderWidth: "1px",
       borderStyle: "solid",
       boxShadow:

@@ -35,7 +35,7 @@ const dropTargetStyle: React.CSSProperties = {
   width: 320,
   height: 160,
   border: "2px dashed currentColor",
-  borderRadius: 8,
+  borderRadius: "var(--radii-lg)",
   userSelect: "none",
 };
 

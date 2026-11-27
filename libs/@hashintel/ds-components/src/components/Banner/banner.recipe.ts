@@ -27,7 +27,7 @@ export const styles = sva({
       display: "flex",
       alignItems: "flex-start",
       padding: "[12px]",
-      borderRadius: "xl",
+      borderRadius: "2xl",
       borderWidth: "1px",
       borderStyle: "solid",
       textStyle: "sm",

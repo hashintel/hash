@@ -86,7 +86,7 @@ export const styles = sva({
         button: {
           ...formSizes.variants.sizes.lg,
           paddingX: "4",
-          borderRadius: "lg",
+          borderRadius: "xl",
           "--button-icon-margin": "var(--spacing-2)",
         },
         // The md icon step (24px) reads oversized in lg buttons. && outranks

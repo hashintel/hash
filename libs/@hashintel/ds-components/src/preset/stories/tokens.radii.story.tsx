@@ -75,7 +75,7 @@ const ComponentDemo = ({ roundness }: { roundness: Roundness }) => {
   const items = [
     { label: "Badge", radius: "sm" as const, w: "56px", h: "24px" },
     { label: "Input", radius: "md" as const, w: "120px", h: "36px" },
-    { label: "Card", radius: "xl" as const, w: "120px", h: "80px" },
+    { label: "Card", radius: "2xl" as const, w: "120px", h: "80px" },
     { label: "Pill", radius: "full" as const, w: "80px", h: "32px" },
   ];
 
@@ -123,8 +123,7 @@ export const RadiiDemo = ({ roundness }: { roundness: Roundness }) => (
             maxWidth: "[640px]",
           })}
         >
-          Radii use the standard Panda preset scale (xs–4xl, full) with each
-          value multiplied by{" "}
+          Radii run from xs to 4xl, plus full, with each value multiplied by{" "}
           <code
             className={css({
               fontFamily: "mono",

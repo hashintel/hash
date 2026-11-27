@@ -42,6 +42,7 @@ export const styles = sva({
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
       "--panel-top-padding": "var(--spacing-4)",
       "--panel-close-button-gap": "var(--spacing-3\\.5)",
+      "--panel-card-radius": "var(--radii-lg)",
       position: "relative",
       display: "flex",
       flexDirection: "column",
@@ -50,7 +51,7 @@ export const styles = sva({
       outline: "none",
       boxShadow:
         "[0 0 0 1px rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 8px 16px -6px rgba(0, 0, 0, 0.09), 0 18px 32px -14px rgba(0, 0, 0, 0.16)]",
-      borderRadius: "xl",
+      borderRadius: "2xl",
       backgroundColor: "neutral.s10",
       padding: "1",
 
@@ -104,10 +105,18 @@ export const styles = sva({
         content: { maxWidth: "[640px]" },
       },
       lg: {
-        content: { maxWidth: "[860px]" },
+        content: {
+          maxWidth: "[860px]",
+          borderRadius: "3xl",
+          "--panel-card-radius": "var(--radii-2xl)",
+        },
       },
       xl: {
-        content: { maxWidth: "[1060px]" },
+        content: {
+          maxWidth: "[1060px]",
+          borderRadius: "3xl",
+          "--panel-card-radius": "var(--radii-2xl)",
+        },
       },
       fullScreen: {
         positioner: { padding: "0" },
@@ -117,6 +126,7 @@ export const styles = sva({
           height: "[100dvh]",
           maxHeight: "[100dvh]",
           borderRadius: "[0]",
+          "--panel-card-radius": "var(--radii-2xl)",
         },
       },
     },

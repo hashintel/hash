@@ -162,7 +162,7 @@ const Example = ({
 // Edge-to-edge custom content for the `withPadding={false}` example.
 const customStripe = css({
   height: "[56px]",
-  borderTopRadius: "[calc(token(radii.xl) - 1px)]",
+  borderTopRadius: "[calc(token(radii.2xl) - 1px)]",
   background:
     "[linear-gradient(135deg, var(--colors-blue-s90), var(--colors-purple-s90))]",
 });

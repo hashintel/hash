@@ -74,7 +74,7 @@ const cardStyle = cva({
     floating: {
       true: {
         borderLeftColor: "[transparent]",
-        borderRadius: "xl",
+        borderRadius: "2xl",
         boxShadow:
           "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
       },

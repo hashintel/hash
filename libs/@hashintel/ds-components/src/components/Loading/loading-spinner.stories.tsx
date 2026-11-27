@@ -47,7 +47,7 @@ export const Default: Story = {
           alignItems: "center",
           backgroundColor: "black",
           padding: "[16px]",
-          borderRadius: "[8px]",
+          borderRadius: "lg",
           color: "white",
         })}
       >
@@ -85,7 +85,7 @@ export const Bars: Story = {
           alignItems: "center",
           backgroundColor: "black",
           padding: "[16px]",
-          borderRadius: "[8px]",
+          borderRadius: "lg",
           color: "white",
         })}
       >

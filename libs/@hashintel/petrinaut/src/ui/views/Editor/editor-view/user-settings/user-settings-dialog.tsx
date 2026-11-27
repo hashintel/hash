@@ -150,7 +150,7 @@ const descriptionStyle = css({
 });
 const groupStyle = css({
   border: "[1px solid {colors.neutral.s40}]",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   overflow: "hidden",
   marginTop: "3",
 });

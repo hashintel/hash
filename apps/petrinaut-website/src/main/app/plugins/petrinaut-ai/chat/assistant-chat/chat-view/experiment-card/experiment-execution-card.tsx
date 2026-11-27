@@ -25,7 +25,7 @@ const cardStyle = css({
   flexDirection: "column",
   gap: "2.5",
   padding: "2.5",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   border: "[1px solid]",
   borderColor: "blue.a30",
   backgroundColor: "blue.s10",

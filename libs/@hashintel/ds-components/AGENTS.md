@@ -82,12 +82,12 @@ With `strictTokens: true`, you must use the exact token names:
 | Token Type       | ❌ Invalid               | ✅ Valid                                     |
 | ---------------- | ------------------------ | -------------------------------------------- |
 | Spacing          | `spacing.4`, `default.4` | `"4"`, `"2"`, `"0.5"`                        |
-| Radii            | `radius.2`, `md.2`       | `sm`, `md`, `lg`, `full`                     |
+| Radii            | `radius.2`, `md.2`       | `sm`, `md`, `lg`, `xl`, `full`               |
 | FontSize         | `size.textsm`            | `xxs`, `xs`, `sm`, `base`, `lg`, `xl`, `2xl` |
 | LineHeight       | `leading.none.textsm`    | `none.text-sm`, `normal.text-base`           |
 | Arbitrary values | `64px`                   | `[64px]`                                     |
 
-Spacing and radii are the standard Panda scales, runtime-scaled via `--density-factor` and `--roundness-factor` (see `src/preset/tokens.ts`).
+Spacing is the standard Panda scale, runtime-scaled via `--density-factor`. Radii are scaled via `--roundness-factor` and use the Panda names with their own values (see `src/preset/tokens.ts`): `xs` 2px, `sm` 4px, `md` 6px, `lg` 8px, `xl` 10px, `2xl` 12px, `3xl` 16px, `4xl` 24px, `full`. From `xl` up each name is one step smaller than Panda's, and the Figma radius collection names the same values differently (`lg-xl` 10px, `xl` 12px, `2xl` 16px, `3xl` 24px).
 
 Token types for stories and public token access should come from `@hashintel/ds-helpers/tokens`.
 

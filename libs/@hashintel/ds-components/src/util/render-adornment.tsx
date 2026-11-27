@@ -36,7 +36,8 @@ export function renderAdornment(
     | "disabledButton"
   >,
 ): React.ReactNode {
-  const content = isIconAdornment(adornment) ? (
+  const isIcon = isIconAdornment(adornment);
+  const content = isIcon ? (
     <Icon name={adornment.iconName} size={iconSizeMap[size]} />
   ) : isTextAdornment(adornment) ? (
     adornment.text
@@ -44,6 +45,7 @@ export function renderAdornment(
     adornment.content
   );
   const dataVariant = adornment.variant === "subtle" ? "subtle" : undefined;
+  const dataIcon = isIcon ? "" : undefined;
   if (!("content" in adornment) && adornment.onClick) {
     return (
       <button
@@ -52,6 +54,7 @@ export function renderAdornment(
         disabled={adornment.disabled}
         data-part="adornment-button"
         data-variant={dataVariant}
+        data-icon={dataIcon}
         className={cx(
           classes[type],
           classes.adornment,
@@ -68,6 +71,7 @@ export function renderAdornment(
       className={cx(classes[type], classes.adornment, classes.adornmentText)}
       data-part="adornment-text"
       data-variant={dataVariant}
+      data-icon={dataIcon}
     >
       {content}
     </span>

@@ -366,7 +366,7 @@ export const comboboxMultiRecipe = sva({
           ...formSizes.variants.sizes.lg,
           "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.xl",
-          "--base-input-padding-x": "spacing.4",
+          "--base-input-padding-x": "spacing.3.5",
           "--clear-backdrop-overhang": "12px",
           "--clear-backdrop-fade": "16px",
           "--before-input-inset": "5px",

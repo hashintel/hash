@@ -4,7 +4,7 @@ export const resizeExampleRecipe = cva({
   base: {
     // Dashed border marks the frame as demo chrome, not part of the demo.
     border: "1px dashed {colors.bd.subtle}",
-    borderRadius: "[6px]",
+    borderRadius: "md",
     padding: "[8px]",
     overflow: "hidden",
     minWidth: "[24px]",

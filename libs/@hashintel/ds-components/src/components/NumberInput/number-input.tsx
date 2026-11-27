@@ -35,7 +35,7 @@ const numberInputStyle = css({
   // Number inputs can be much smaller than text inputs. Size to fit two digits
   // (the `0` advance width × 2) plus the input's horizontal padding on each side.
   "--form-min-width":
-    "[calc(2ch + 2 * var(--base-input-padding-x)) !important]",
+    "[calc(2ch + var(--base-input-padding-x) + var(--base-input-padding-right)) !important]",
 });
 
 const subtleNumberInputStyle = css({
@@ -108,7 +108,7 @@ export const NumberInput = ({
   ) {
     const charCount = getMaxNumberCharCount(max, step);
     style = {
-      width: `calc(${charCount}ch +${props.variant === "subtle" ? "" : " 2 * var(--base-input-padding-x) +"} ${charCount}px)`,
+      width: `calc(${charCount}ch +${props.variant === "subtle" ? "" : " var(--base-input-padding-x) + var(--base-input-padding-right) +"} ${charCount}px)`,
     };
   }
 

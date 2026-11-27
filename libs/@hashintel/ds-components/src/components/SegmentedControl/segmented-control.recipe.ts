@@ -196,7 +196,7 @@ export const styles = sva({
       lg: {
         root: {
           ...formSizes.variants.sizes.lg,
-          "--sc-radius": "radii.xl",
+          "--sc-radius": "radii.2xl",
           "--sc-item-px": "[12px]",
         },
         itemText: { fontSize: "[15px]" },

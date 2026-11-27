@@ -52,7 +52,7 @@ const aiCtaModalIconStyle = css({
   justifyContent: "center",
   width: "[56px]",
   height: "[56px]",
-  borderRadius: "2xl",
+  borderRadius: "3xl",
   backgroundColor: "blue.s20",
   boxShadow: "[0px 0px 0px 8px rgba(42, 128, 200, 0.08)]",
   color: "blue.s90",

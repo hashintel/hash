@@ -58,7 +58,7 @@ export const styles = cva({
         "--group-padding-y": "8px",
         "--group-padding-left": "12px",
         "--group-padding-right": "12px",
-        "--group-radius": "6px",
+        "--group-radius": "radii.md",
       },
       xs: {
         "--group-gap": "10px",
@@ -66,7 +66,7 @@ export const styles = cva({
         "--group-padding-y": "10px",
         "--group-padding-left": "15px",
         "--group-padding-right": "18px",
-        "--group-radius": "6px",
+        "--group-radius": "radii.md",
       },
       sm: {
         "--group-gap": "12px",
@@ -74,7 +74,7 @@ export const styles = cva({
         "--group-padding-y": "11px",
         "--group-padding-left": "17px",
         "--group-padding-right": "22px",
-        "--group-radius": "8px",
+        "--group-radius": "radii.lg",
       },
       md: {
         "--group-gap": "14px",
@@ -82,7 +82,7 @@ export const styles = cva({
         "--group-padding-y": "13px",
         "--group-padding-left": "19px",
         "--group-padding-right": "26px",
-        "--group-radius": "8px",
+        "--group-radius": "radii.lg",
       },
       lg: {
         "--group-gap": "16px",
@@ -90,7 +90,7 @@ export const styles = cva({
         "--group-padding-y": "15px",
         "--group-padding-left": "22px",
         "--group-padding-right": "32px",
-        "--group-radius": "10px",
+        "--group-radius": "radii.xl",
       },
     },
     layout: {

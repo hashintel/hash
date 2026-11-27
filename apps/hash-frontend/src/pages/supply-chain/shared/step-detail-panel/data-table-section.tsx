@@ -47,7 +47,7 @@ const modalDialog = css({
   position: "relative",
   zIndex: "[10]",
   bg: "bgSolid.min",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   boxShadow: "2xl",
   width: "[calc(95vw-48px)]",
   maxWidth: "[1700px]",
