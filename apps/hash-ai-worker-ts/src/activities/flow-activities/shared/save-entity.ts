@@ -1,6 +1,7 @@
 import { backOff } from "exponential-backoff";
 
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
+import { ConversationClassificationError } from "@local/hash-graph-sdk/conversation-entity-restrictions";
 
 import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
@@ -53,10 +54,11 @@ export const getSavingActorId = async ({
   return botActorId;
 };
 
-/** Saves an entity, retrying a failed attempt twice. */
+/** Saves an entity, retrying a failed attempt twice (excluding permanent classification refusals). */
 export const retrySave = <T>(save: () => Promise<T>): Promise<T> =>
   backOff(save, {
     jitter: "full",
     numOfAttempts: 3,
     startingDelay: 1_000,
+    retry: (error) => !(error instanceof ConversationClassificationError),
   });

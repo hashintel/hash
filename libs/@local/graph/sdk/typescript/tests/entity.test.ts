@@ -1,6 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { ConversationClassificationError } from "../src/conversation-entity-restrictions.js";
+import {
+  ConversationClassificationError,
+  ensureConversationClassificationsPreserved,
+} from "../src/conversation-entity-restrictions.js";
 import {
   deserializeSearchEntitiesResponse,
   HashEntity,
@@ -630,5 +633,49 @@ describe("conversation classification preservation in patch", () => {
       }),
     ).rejects.toThrow(ConversationClassificationError);
     expect(addMock.patchEntity).not.toHaveBeenCalled();
+  });
+
+  test("batches multiple entity type transitions into one getClosedMultiEntityTypes call", async () => {
+    const definitions = {
+      [conversationTypeId]: {},
+      [noteTypeId]: {},
+      [childConversationTypeId]: { parents: [conversationTypeId] },
+    };
+    const { raw } = entityWithTypes([noteTypeId]);
+    const { graphApi, getClosedMultiEntityTypes } = createMockGraphApi(
+      definitions,
+      raw,
+    );
+
+    await ensureConversationClassificationsPreserved({
+      graphApi,
+      authentication,
+      transitions: [
+        {
+          previousEntityTypeIds: [noteTypeId],
+          nextEntityTypeIds: [noteTypeId],
+        },
+        {
+          previousEntityTypeIds: [conversationTypeId],
+          nextEntityTypeIds: [conversationTypeId, noteTypeId],
+        },
+        {
+          previousEntityTypeIds: [conversationTypeId],
+          nextEntityTypeIds: [childConversationTypeId],
+        },
+      ],
+    });
+
+    expect(getClosedMultiEntityTypes).toHaveBeenCalledTimes(1);
+    expect(getClosedMultiEntityTypes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityTypeIds: [
+          [conversationTypeId],
+          [conversationTypeId, noteTypeId],
+          [childConversationTypeId],
+        ],
+      }),
+      expect.anything(),
+    );
   });
 });

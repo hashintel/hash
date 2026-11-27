@@ -37,6 +37,13 @@ const currentTimeInstantTemporalAxes = {
   },
 };
 
+export type NonEmptyEntityTypeIds = [VersionedUrl, ...VersionedUrl[]];
+
+export type EntityTypeTransition = {
+  previousEntityTypeIds: NonEmptyEntityTypeIds;
+  nextEntityTypeIds: NonEmptyEntityTypeIds;
+};
+
 /**
  * Thrown when an entity patch attempts to add or remove a creator-private
  * conversation classification (`Agent Conversation` or `Has Agent Conversation Focus`).
@@ -49,9 +56,12 @@ export class ConversationClassificationError extends Error {
 }
 
 const hasUnchangedTypeSet = (
-  previousTypeIds: readonly VersionedUrl[],
-  nextTypeIds: readonly VersionedUrl[],
+  previousTypeIds: NonEmptyEntityTypeIds,
+  nextTypeIds: NonEmptyEntityTypeIds,
 ): boolean => {
+  if (previousTypeIds.length === 1 && nextTypeIds.length === 1) {
+    return previousTypeIds[0] === nextTypeIds[0];
+  }
   const previous = new Set(previousTypeIds);
   const next = new Set(nextTypeIds);
   if (previous.size !== next.size) {
@@ -65,22 +75,54 @@ const hasUnchangedTypeSet = (
   return true;
 };
 
-const collectClassificationBaseUrls = async (
-  graphApi: GraphApi,
-  authentication: AuthenticationContext,
-  previousTypeIds: [VersionedUrl, ...VersionedUrl[]],
-  nextTypeIds: [VersionedUrl, ...VersionedUrl[]],
-): Promise<{ previous: Set<BaseUrl>; next: Set<BaseUrl> }> => {
+/**
+ * Refuses any entity type transition in `transitions` that adds or removes the
+ * `Agent Conversation` or `Has Agent Conversation Focus` classification
+ * (directly or through inheritance), issuing at most one batched
+ * `getClosedMultiEntityTypes` call for all transitions whose type set changed.
+ *
+ * Conversations and their focus links are private to their creator by default,
+ * so reclassifying an entity would hide a shared entity from its web or expose
+ * a private conversation to it. Lives at the TypeScript Graph SDK boundary
+ * until the Graph's own hook/type-change permission model lands (BE-1204).
+ */
+export const ensureConversationClassificationsPreserved = async ({
+  graphApi,
+  authentication,
+  transitions,
+}: {
+  graphApi: GraphApi;
+  authentication: AuthenticationContext;
+  transitions: readonly EntityTypeTransition[];
+}): Promise<void> => {
+  const changed = transitions.filter(
+    ({ previousEntityTypeIds, nextEntityTypeIds }) =>
+      !hasUnchangedTypeSet(previousEntityTypeIds, nextEntityTypeIds),
+  );
+  if (changed.length === 0) {
+    return;
+  }
+
+  const uniqueTypeSets = new Map<string, NonEmptyEntityTypeIds>();
+  for (const { previousEntityTypeIds, nextEntityTypeIds } of changed) {
+    for (const typeIds of [previousEntityTypeIds, nextEntityTypeIds]) {
+      const key = [...typeIds].toSorted().join("\0");
+      if (!uniqueTypeSets.has(key)) {
+        uniqueTypeSets.set(key, typeIds);
+      }
+    }
+  }
+
   const { entityTypes } = await getClosedMultiEntityTypes(
     graphApi,
     authentication,
     {
-      entityTypeIds: [previousTypeIds, nextTypeIds],
+      entityTypeIds: [...uniqueTypeSets.values()],
       temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 
-  const baseUrlsFor = (typeIds: [VersionedUrl, ...VersionedUrl[]]) => {
+  const baseUrlsFor = (typeIds: NonEmptyEntityTypeIds) => {
     const closed = getClosedMultiEntityTypeFromMap(entityTypes, typeIds);
     const urls = new Set<BaseUrl>();
     for (const entry of closed.allOf) {
@@ -92,22 +134,18 @@ const collectClassificationBaseUrls = async (
     return urls;
   };
 
-  return {
-    previous: baseUrlsFor(previousTypeIds),
-    next: baseUrlsFor(nextTypeIds),
-  };
+  for (const { previousEntityTypeIds, nextEntityTypeIds } of changed) {
+    const previous = baseUrlsFor(previousEntityTypeIds);
+    const next = baseUrlsFor(nextEntityTypeIds);
+    for (const { baseUrl, title } of guardedClassifications) {
+      if (previous.has(baseUrl) !== next.has(baseUrl)) {
+        throw new ConversationClassificationError(title);
+      }
+    }
+  }
 };
 
-/**
- * Refuses an entity update that adds or removes the `Agent Conversation` or
- * `Has Agent Conversation Focus` classification (directly or through
- * inheritance).
- *
- * Conversations and their focus links are private to their creator by default,
- * so reclassifying an entity would hide a shared entity from its web or expose
- * a private conversation to it. Lives at the TypeScript Graph SDK boundary
- * until the Graph's own hook/type-change permission model lands (BE-1204).
- */
+/** Single-entity convenience wrapper over {@link ensureConversationClassificationsPreserved}. */
 export const ensureConversationClassificationPreserved = async ({
   graphApi,
   authentication,
@@ -116,30 +154,11 @@ export const ensureConversationClassificationPreserved = async ({
 }: {
   graphApi: GraphApi;
   authentication: AuthenticationContext;
-  previousEntityTypeIds: [VersionedUrl, ...VersionedUrl[]];
-  nextEntityTypeIds: readonly string[] | undefined;
-}): Promise<void> => {
-  if (!nextEntityTypeIds || nextEntityTypeIds.length === 0) {
-    return;
-  }
-  const typedNextEntityTypeIds = nextEntityTypeIds as [
-    VersionedUrl,
-    ...VersionedUrl[],
-  ];
-  if (hasUnchangedTypeSet(previousEntityTypeIds, typedNextEntityTypeIds)) {
-    return;
-  }
-
-  const { previous, next } = await collectClassificationBaseUrls(
+  previousEntityTypeIds: NonEmptyEntityTypeIds;
+  nextEntityTypeIds: NonEmptyEntityTypeIds;
+}): Promise<void> =>
+  ensureConversationClassificationsPreserved({
     graphApi,
     authentication,
-    previousEntityTypeIds,
-    typedNextEntityTypeIds,
-  );
-
-  for (const { baseUrl, title } of guardedClassifications) {
-    if (previous.has(baseUrl) !== next.has(baseUrl)) {
-      throw new ConversationClassificationError(title);
-    }
-  }
-};
+    transitions: [{ previousEntityTypeIds, nextEntityTypeIds }],
+  });

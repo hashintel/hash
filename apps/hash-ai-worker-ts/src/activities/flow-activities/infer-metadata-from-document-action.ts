@@ -1,7 +1,10 @@
 import { Context } from "@temporalio/activity";
 import PDFParser from "pdf2json";
 
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import {
   getStorageProvider,
   resolvePayloadValue,
@@ -214,7 +217,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity<
     graphApiClient,
     { actorId: aiAssistantAccountId },
     {
-      entityTypeIds: [...entityTypeIds],
+      entityTypeIds: mustHaveAtLeastOne([...entityTypeIds]),
       propertyPatches,
       provenance,
     },

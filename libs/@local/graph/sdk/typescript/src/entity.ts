@@ -201,8 +201,9 @@ export type CreateEntityParameters<
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
-  "entityId" | "decisionTime" | "properties" | "provenance"
+  "entityId" | "decisionTime" | "entityTypeIds" | "properties" | "provenance"
 > & {
+  entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   propertyPatches?: PropertyPatchOperation[];
   provenance: ProvidedEntityEditionProvenance;
   /**
@@ -1282,12 +1283,14 @@ export class HashEntity<
      *    )
      */
   ): Promise<this> {
-    await ensureConversationClassificationPreserved({
-      graphApi: graphAPI,
-      authentication,
-      previousEntityTypeIds: this.metadata.entityTypeIds,
-      nextEntityTypeIds: entityTypeIds,
-    });
+    if (entityTypeIds) {
+      await ensureConversationClassificationPreserved({
+        graphApi: graphAPI,
+        authentication,
+        previousEntityTypeIds: this.metadata.entityTypeIds,
+        nextEntityTypeIds: entityTypeIds,
+      });
+    }
     return graphAPI
       .patchEntity(
         this.preparePatch({
@@ -1584,12 +1587,14 @@ export class HashLinkEntity<
       ...params
     }: PatchEntityParameters,
   ): Promise<this> {
-    await ensureConversationClassificationPreserved({
-      graphApi: graphAPI,
-      authentication,
-      previousEntityTypeIds: this.metadata.entityTypeIds,
-      nextEntityTypeIds: entityTypeIds,
-    });
+    if (entityTypeIds) {
+      await ensureConversationClassificationPreserved({
+        graphApi: graphAPI,
+        authentication,
+        previousEntityTypeIds: this.metadata.entityTypeIds,
+        nextEntityTypeIds: entityTypeIds,
+      });
+    }
     return graphAPI
       .patchEntity(
         this.preparePatch({
