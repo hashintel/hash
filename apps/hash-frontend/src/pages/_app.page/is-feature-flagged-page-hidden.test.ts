@@ -7,7 +7,10 @@ test.each([
   "/environments",
   "/environments/[uuid]",
   "/flows",
+  "/flows/triggers",
   "/workers",
+  "/@/[shortname]/flows/[flow-def-id]",
+  "/@/[shortname]/flows/[flow-def-id]/edit",
 ])("%s requires the workers flag", (pathname) => {
   expect(
     isFeatureFlaggedPageHidden({ pathname, enabledFeatureFlags: [] }),
@@ -23,21 +26,26 @@ test.each([
   ).toBe(false);
 });
 
-test("goals requires both workers and AI", () => {
-  const pathname = "/goals";
-  expect(
-    isFeatureFlaggedPageHidden({ pathname, enabledFeatureFlags: ["workers"] }),
-  ).toBe(true);
-  expect(
-    isFeatureFlaggedPageHidden({ pathname, enabledFeatureFlags: ["ai"] }),
-  ).toBe(true);
-  expect(
-    isFeatureFlaggedPageHidden({
-      pathname,
-      enabledFeatureFlags: ["workers", "ai"],
-    }),
-  ).toBe(false);
-});
+test.each(["/goals", "/goals/new"])(
+  "%s requires both workers and AI",
+  (pathname) => {
+    expect(
+      isFeatureFlaggedPageHidden({
+        pathname,
+        enabledFeatureFlags: ["workers"],
+      }),
+    ).toBe(true);
+    expect(
+      isFeatureFlaggedPageHidden({ pathname, enabledFeatureFlags: ["ai"] }),
+    ).toBe(true);
+    expect(
+      isFeatureFlaggedPageHidden({
+        pathname,
+        enabledFeatureFlags: ["workers", "ai"],
+      }),
+    ).toBe(false);
+  },
+);
 
 test.each(["/", "/entities", "/types", "/actions"])(
   "%s does not require a flag",

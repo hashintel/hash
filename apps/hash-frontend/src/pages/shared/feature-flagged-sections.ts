@@ -31,11 +31,18 @@ export const featureFlaggedSections: Record<
 > = {
   processes: {
     requiredFlags: ["workers"],
-    pathnames: ["/processes", "/flows", "/workers"],
+    pathnames: [
+      "/processes",
+      "/flows",
+      "/flows/triggers",
+      "/workers",
+      "/@/[shortname]/flows/[flow-def-id]",
+      "/@/[shortname]/flows/[flow-def-id]/edit",
+    ],
   },
   goals: {
     requiredFlags: ["workers", "ai"],
-    pathnames: ["/goals"],
+    pathnames: ["/goals", "/goals/new"],
   },
   environments: {
     requiredFlags: ["workers"],
