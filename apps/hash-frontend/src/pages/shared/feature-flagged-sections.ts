@@ -62,7 +62,7 @@ export const featureFlaggedSections: Record<
   },
   supplyChain: {
     requiredFlags: ["supplyChain"],
-    // Only the sidebar link needs the flag: the pages are not gated.
+    // The flag decides whether the sidebar links to Supply Chain.
     pathnames: [],
   },
 };
