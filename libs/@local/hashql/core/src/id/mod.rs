@@ -1,5 +1,6 @@
 mod array;
 pub mod bit_vec;
+mod chunk_vec;
 mod index;
 mod matrix;
 mod slice;
@@ -10,18 +11,19 @@ mod union_find;
 mod vec;
 
 use core::{
+    cell::Cell,
     fmt::{self, Debug, Display},
     hash::Hash,
     marker::PhantomData,
-    sync::atomic::AtomicU32,
+    sync::atomic::Atomic,
 };
 
 use ::core::sync::atomic;
 pub use hashql_macros::{Id, define_id as newtype};
 
 pub use self::{
-    array::IdArray, index::IntoSliceIndex, matrix::IdMatrix, slice::IdSlice,
-    snapshot_vec::IdSnapshotVec, union_find::IdUnionFind, vec::IdVec,
+    array::IdArray, chunk_vec::IdLocalChunkVec, index::IntoSliceIndex, matrix::IdMatrix,
+    slice::IdSlice, snapshot_vec::IdSnapshotVec, union_find::IdUnionFind, vec::IdVec,
 };
 
 /// Represents errors that can occur when converting values to an [`Id`].
@@ -257,7 +259,7 @@ where
 /// [`next`]: IdProducer::next
 #[derive(Debug)]
 pub struct IdProducer<I> {
-    next: AtomicU32,
+    next: Atomic<u32>,
     _marker: PhantomData<fn() -> I>,
 }
 
@@ -266,7 +268,7 @@ impl<I> IdProducer<I> {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            next: AtomicU32::new(0),
+            next: Atomic::<u32>::new(0),
             _marker: PhantomData,
         }
     }
@@ -293,6 +295,59 @@ impl<I> IdProducer<I> {
 }
 
 impl<I> Default for IdProducer<I> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Single-threaded ID generator that starts at zero.
+///
+/// Like [`IdProducer`], it generates sequential IDs through a shared reference.
+/// It uses a [`Cell`] instead of an atomic counter, so it is not [`Sync`].
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::id::{Id, IdLocalProducer, newtype};
+/// # newtype!(struct NodeId(u32 is 0..=1000));
+/// let producer = IdLocalProducer::<NodeId>::new();
+/// assert_eq!(producer.next().as_u32(), 0);
+/// assert_eq!(producer.next().as_u32(), 1);
+/// ```
+#[derive(Debug)]
+pub struct IdLocalProducer<I> {
+    next: Cell<u32>,
+    _marker: PhantomData<fn() -> I>,
+}
+
+impl<I> IdLocalProducer<I> {
+    /// Creates a new [`IdLocalProducer`] starting from ID 0.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            next: Cell::new(0),
+            _marker: PhantomData,
+        }
+    }
+
+    /// Generates and returns the next sequential ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the current counter value is outside the valid range for the ID type.
+    #[inline]
+    pub const fn next(&self) -> I
+    where
+        I: [const] Id,
+    {
+        let value = self.next.get();
+        self.next.set(value.wrapping_add(1));
+
+        I::from_u32(value)
+    }
+}
+
+impl<I> Default for IdLocalProducer<I> {
     fn default() -> Self {
         Self::new()
     }

@@ -66,7 +66,7 @@ use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
-use std::sync::{Mutex, MutexGuard};
+use std::sync::nonpoison::{Mutex, MutexGuard};
 
 /// Trait for types that can parameterize [`Lock`] to be either thread-local or thread-safe.
 ///
@@ -112,7 +112,8 @@ impl LockType for Local {
 /// Marker type for thread-safe locks.
 ///
 /// When used with [`Lock`], creates a [`SharedLock<T>`] that can be safely
-/// shared across threads.
+/// shared across threads. The underlying [`Mutex`] does not poison on panic.
+/// Unwinding releases the lock and leaves it acquirable by subsequent callers.
 ///
 /// # Examples
 ///
@@ -142,13 +143,8 @@ enum LockGuardInner<'lock, T, L: LockType> {
 
 /// RAII guard for a locked value.
 ///
-/// When this guard is dropped, the lock is released. The guard dereferences to the inner `T`,
-/// allowing both immutable and mutable access to the locked data.
-///
-/// # Panics
-///
-/// Operations on this guard will panic if the underlying lock has been poisoned (for [`Mutex`])
-/// or if borrow rules are violated (for [`RefCell`]).
+/// Dropping this guard releases the lock. It provides shared and mutable access to the locked `T`.
+/// Calling [`Lock::lock`] or [`Lock::map`] on a [`LocalLock`] whose guard is still live panics.
 ///
 /// # Examples
 ///
@@ -172,6 +168,7 @@ pub struct LockGuard<'lock, T, L: LockType> {
 impl<T, L: LockType> Deref for LockGuard<'_, T, L> {
     type Target = T;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         match &self.inner {
             LockGuardInner::Local(inner, _) => inner,
@@ -181,6 +178,7 @@ impl<T, L: LockType> Deref for LockGuard<'_, T, L> {
 }
 
 impl<T, L: LockType> DerefMut for LockGuard<'_, T, L> {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         match &mut self.inner {
             LockGuardInner::Local(inner, _) => inner,
@@ -225,7 +223,8 @@ unsafe impl<T: Send> Sync for LockInner<T, Shared> {}
 /// # Thread Safety
 ///
 /// - [`Lock<T, Local>`] (aka [`LocalLock<T>`]) is **not** thread-safe
-/// - [`Lock<T, Shared>`] (aka [`SharedLock<T>`]) is thread-safe when `T: Send`
+/// - [`Lock<T, Shared>`] (aka [`SharedLock<T>`]) is thread-safe when `T: Send` and does not poison
+///   if a panic occurs while the lock is held
 ///
 /// # Examples
 ///
@@ -289,6 +288,7 @@ impl<T> Lock<T, Local> {
     ///
     /// let lock = Lock::<_, Local>::new(42);
     /// ```
+    #[inline]
     pub const fn new(value: T) -> Self {
         Self {
             inner: LockInner::Local(RefCell::new(value), ()),
@@ -309,6 +309,7 @@ impl<T> Lock<T, Shared> {
     ///
     /// let lock = Lock::<_, Shared>::new(42);
     /// ```
+    #[inline]
     pub const fn new(value: T) -> Self {
         Self {
             inner: LockInner::Shared(Mutex::new(value), ()),
@@ -325,9 +326,9 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// # Panics
     ///
-    /// Panics if:
-    /// - The lock is poisoned (for [`Mutex`]-based locks)
-    /// - The value is already borrowed (for [`RefCell`]-based locks)
+    /// Panics if the value is already borrowed (for [`RefCell`]-based locks). For [`SharedLock`],
+    /// a panic inside a prior critical section releases the lock without poisoning. Later calls
+    /// acquire it normally and observe the current state.
     ///
     /// # Examples
     ///
@@ -344,6 +345,7 @@ impl<T, L: LockType> Lock<T, L> {
     /// lock.map(|data| data.push(4));
     /// assert_eq!(lock.map(|data| data.len()), 4);
     /// ```
+    #[inline]
     pub fn map<U>(&self, closure: impl FnOnce(&mut T) -> U) -> U {
         match &self.inner {
             LockInner::Local(cell, _) => {
@@ -352,7 +354,7 @@ impl<T, L: LockType> Lock<T, L> {
                 closure(&mut *data)
             }
             LockInner::Shared(mutex, _) => {
-                let mut data = mutex.lock().expect("lock shouldn't have been poisoned");
+                let mut data = mutex.lock();
 
                 closure(&mut *data)
             }
@@ -370,9 +372,9 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// # Panics
     ///
-    /// Panics if:
-    /// - The lock is poisoned (for [`Mutex`]-based locks)
-    /// - The value is already borrowed (for [`RefCell`]-based locks)
+    /// Panics if the value is already borrowed (for [`RefCell`]-based locks). For [`SharedLock`],
+    /// a panic before an earlier guard is dropped releases the lock without poisoning. Later calls
+    /// acquire it normally and observe the current state.
     ///
     /// # Examples
     ///
@@ -390,6 +392,7 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// assert_eq!(lock.lock().len(), 5);
     /// ```
+    #[inline]
     pub fn lock(&self) -> LockGuard<'_, T, L> {
         match &self.inner {
             LockInner::Local(cell, _) => {
@@ -400,7 +403,7 @@ impl<T, L: LockType> Lock<T, L> {
                 }
             }
             LockInner::Shared(mutex, _) => {
-                let data = mutex.lock().expect("lock shouldn't have been poisoned");
+                let data = mutex.lock();
 
                 LockGuard {
                     inner: LockGuardInner::Shared(data, PhantomData),
@@ -415,10 +418,6 @@ impl<T, L: LockType> Lock<T, L> {
     /// ensures exclusive access. This is the most efficient way to access the data when
     /// you have exclusive ownership of the lock.
     ///
-    /// # Panics
-    ///
-    /// For [`Mutex`]-based locks, panics if the mutex has been poisoned.
-    ///
     /// # Examples
     ///
     /// ```
@@ -431,12 +430,11 @@ impl<T, L: LockType> Lock<T, L> {
     ///
     /// assert_eq!(lock.lock().len(), 4);
     /// ```
+    #[inline]
     pub fn get_mut(&mut self) -> &mut T {
         match &mut self.inner {
             LockInner::Local(cell, _) => cell.get_mut(),
-            LockInner::Shared(mutex, _) => {
-                mutex.get_mut().expect("lock shouldn't have been poisoned")
-            }
+            LockInner::Shared(mutex, _) => mutex.get_mut(),
         }
     }
 }
@@ -498,7 +496,9 @@ pub type LocalLock<T> = Lock<T, Local>;
 ///
 /// # Thread Safety
 ///
-/// **Thread-safe** when `T: Send`. Can be safely shared across threads using [`Arc`].
+/// **Thread-safe** when `T: Send`. Can be safely shared across threads using [`Arc`]. The
+/// underlying [`Mutex`] does not poison on panic. Unwinding releases the lock and leaves it
+/// acquirable afterward.
 ///
 /// [`Arc`]: std::sync::Arc
 ///
@@ -520,3 +520,28 @@ pub type LocalLock<T> = Lock<T, Local>;
 /// assert_eq!(*lock.lock(), 1);
 /// ```
 pub type SharedLock<T> = Lock<T, Shared>;
+
+#[cfg(test)]
+mod tests {
+    use core::panic::AssertUnwindSafe;
+    use std::panic::catch_unwind;
+
+    use super::SharedLock;
+
+    #[test]
+    fn shared_lock_remains_usable_after_panic() {
+        let lock = SharedLock::new(1_u32);
+
+        let panicked = catch_unwind(AssertUnwindSafe(|| {
+            lock.map(|value| {
+                *value = 2;
+                panic!("unwind while holding shared lock");
+            });
+        }));
+        drop(panicked.expect_err("closure inside map should panic"));
+
+        assert_eq!(*lock.lock(), 2);
+        lock.map(|value| *value = 3);
+        assert_eq!(*lock.lock(), 3);
+    }
+}

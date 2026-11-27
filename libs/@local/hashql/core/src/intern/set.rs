@@ -1,12 +1,14 @@
-#![expect(clippy::type_repetition_in_bounds)]
-use core::hash::{BuildHasher as _, Hash};
+use core::{
+    fmt,
+    hash::{BuildHasher as _, Hash},
+};
 
-use hashbrown::hash_map::RawEntryMut;
+use hashbrown::HashTable;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
-    heap::{Heap, PhaseAllocator as _, TransferInto as _},
+    collections::FastHasher,
+    heap::{Heap, PhaseAllocator, TransferInto as _},
     sync::lock::LocalLock,
 };
 
@@ -21,8 +23,8 @@ use crate::{
 ///
 /// # Memory Management
 ///
-/// `InternSet` allocates memory from the provided [`Heap`], which should outlive the interner.
-/// Interned values remain valid for the lifetime of the heap, not the interner itself.
+/// `InternSet` allocates storage from its [`PhaseAllocator`] `A` (defaulting to `&'heap` [`Heap`]).
+/// Interned values remain valid for `'heap`, even after the interner is dropped.
 ///
 /// # Constraints
 ///
@@ -32,12 +34,10 @@ use crate::{
 ///
 /// # Thread Safety
 ///
-/// This implementation uses [`LocalLock`] and is **not thread-safe**. The architecture supports
-/// upgrading to [`SharedLock`] for thread-safety, but the underlying [`Heap`] allocator would
-/// also need to become thread-safe first.
+/// `InternSet` is not thread-safe. It uses [`LocalLock`] for thread-local interior mutability
+/// alongside a [`PhaseAllocator`] that is typically thread-local such as [`Heap`].
 ///
 /// [`LocalLock`]: crate::sync::lock::LocalLock
-/// [`SharedLock`]: crate::sync::lock::SharedLock
 ///
 /// # Examples
 ///
@@ -94,11 +94,10 @@ use crate::{
 /// });
 /// assert!(core::ptr::eq(int_type.as_ref(), int_type2.as_ref()));
 /// ```
-#[derive(derive_more::Debug)]
-#[debug(bound(T: Eq))]
-pub struct InternSet<'heap, T: ?Sized> {
-    inner: LocalLock<FastHashMap<&'heap T, ()>>,
-    heap: &'heap Heap,
+pub struct InternSet<'heap, T: ?Sized, A: PhaseAllocator<'heap> = &'heap Heap> {
+    alloc: A,
+    hasher: FastHasher,
+    inner: LocalLock<HashTable<&'heap T, A>>,
 }
 
 impl<'heap, T: ?Sized> InternSet<'heap, T> {
@@ -115,11 +114,9 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// let heap = Heap::new();
     /// let interner = InternSet::<i32>::new(&heap);
     /// ```
+    #[inline]
     pub fn new(heap: &'heap Heap) -> Self {
-        Self {
-            inner: LocalLock::new(fast_hash_map()),
-            heap,
-        }
+        Self::new_in(heap)
     }
 
     /// Creates a new `InternSet` with the specified initial capacity.
@@ -129,7 +126,7 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// particularly during AST construction or bulk data processing.
     ///
     /// The capacity represents the number of unique values the set can hold before needing
-    /// to reallocate. Note that this is the capacity of the internal hash set, not the heap.
+    /// to reallocate. Note that this is the capacity of the internal hash table, not the heap.
     ///
     /// # Examples
     ///
@@ -162,15 +159,59 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     ///     type_interner.intern(TypeId(id));
     /// }
     /// ```
+    #[inline]
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
+        Self::with_capacity_in(capacity, heap)
+    }
+}
+
+impl<'heap, T: ?Sized, A> InternSet<'heap, T, A>
+where
+    A: PhaseAllocator<'heap>,
+{
+    /// Creates an empty `InternSet` backed by `alloc`.
+    ///
+    /// Interned values stay valid for `'heap`, even after the interner is dropped.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hashql_core::{heap::Scratch, intern::InternSet};
+    ///
+    /// let scratch = Scratch::new();
+    /// let interner = InternSet::<i32, _>::new_in(&scratch);
+    /// let first = interner.intern(42);
+    /// let second = interner.intern(42);
+    /// assert!(core::ptr::eq(first.as_ref(), second.as_ref()));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn new_in(alloc: A) -> Self {
         Self {
-            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
-            heap,
+            alloc,
+            hasher: FastHasher::default(),
+            inner: LocalLock::new(HashTable::new_in(alloc)),
+        }
+    }
+
+    /// Creates an empty `InternSet` backed by `alloc` with capacity for at least `capacity`
+    /// unique values.
+    #[inline]
+    #[must_use]
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+        Self {
+            alloc,
+            hasher: FastHasher::default(),
+            inner: LocalLock::new(HashTable::with_capacity_in(capacity, alloc)),
         }
     }
 }
 
-impl<T: ?Sized + Eq + Hash> InternSet<'_, T> {
+impl<'heap, T, A> InternSet<'heap, T, A>
+where
+    T: ?Sized + Eq + Hash,
+    A: PhaseAllocator<'heap>,
+{
     /// Assertion that ensures T doesn't require drop.
     ///
     /// This is necessary because we allocate memory for T on the heap and don't run
@@ -179,23 +220,10 @@ impl<T: ?Sized + Eq + Hash> InternSet<'_, T> {
         !core::mem::needs_drop::<T>(),
         "Cannot intern a type that needs drop"
     );
-}
 
-impl<'heap, T> InternSet<'heap, T>
-where
-    T: Eq + Hash,
-{
-    /// Assertion that ensures T is not a zero-sized type.
+    /// Reserves capacity for at least `capacity` additional elements to be inserted into the set.
     ///
-    /// Interning zero-sized types (ZSTs) is disallowed as it indicates a bug in the code.
-    const ASSERT_T_IS_NOT_ZERO_SIZED: () = assert!(
-        core::mem::size_of::<T>() != 0,
-        "Cannot intern a zero-sized type"
-    );
-
-    /// Reserves capacity for at least `capacity` elements to be inserted into the set.
-    ///
-    /// This method is useful for preallocating memory to avoid frequent reallocations.
+    /// This method preallocates table slots to avoid repeated reallocations during bulk interning.
     ///
     /// # Examples
     ///
@@ -206,9 +234,26 @@ where
     ///
     /// interner.reserve(100);
     /// ```
+    #[inline]
     pub fn reserve(&self, capacity: usize) {
-        self.inner.lock().reserve(capacity);
+        self.inner.map(|inner| {
+            inner.reserve(capacity, |existing| self.hasher.hash_one(existing));
+        });
     }
+}
+
+impl<'heap, T, A> InternSet<'heap, T, A>
+where
+    T: Eq + Hash,
+    A: PhaseAllocator<'heap>,
+{
+    /// Assertion that ensures T is not a zero-sized type.
+    ///
+    /// Interning zero-sized types (ZSTs) is disallowed as it indicates a bug in the code.
+    const ASSERT_T_IS_NOT_ZERO_SIZED: () = assert!(
+        core::mem::size_of::<T>() != 0,
+        "Cannot intern a zero-sized type"
+    );
 
     /// Interns a value into the set.
     ///
@@ -292,36 +337,31 @@ where
     ///
     /// assert_eq!(interned.as_ref(), &value);
     /// ```
+    #[inline]
     pub fn intern(&self, value: T) -> Interned<'heap, T> {
         const { Self::ASSERT_T_IS_NOT_DROP };
         const { Self::ASSERT_T_IS_NOT_ZERO_SIZED };
 
-        let heap = self.heap;
+        let hash = self.hasher.hash_one(&value);
 
         let value = self.inner.map(|inner| {
-            let hash_value = inner.hasher().hash_one(&value);
-
-            match inner
-                .raw_entry_mut()
-                .from_key_hashed_nocheck(hash_value, &value)
-            {
-                RawEntryMut::Vacant(entry) => {
-                    let value = heap.alloc(value);
-
-                    let (key, ()) = entry.insert_hashed_nocheck(hash_value, &*value, ());
-                    *key
-                }
-                RawEntryMut::Occupied(entry) => *entry.key(),
+            if let Some(&existing) = inner.find(hash, |existing| **existing == value) {
+                return existing;
             }
+
+            let allocated: &'heap T = self.alloc.alloc(value);
+            inner.insert_unique(hash, allocated, |existing| self.hasher.hash_one(existing));
+            allocated
         });
 
         Interned::new_unchecked(value)
     }
 }
 
-impl<'heap, T> InternSet<'heap, [T]>
+impl<'heap, T, A> InternSet<'heap, [T], A>
 where
     T: Copy + Eq + Hash,
+    A: PhaseAllocator<'heap>,
 {
     /// Assertion that ensures T is not a zero-sized type.
     ///
@@ -338,7 +378,7 @@ where
     ///
     /// # Type Constraints
     ///
-    /// - `T` must be `Debug + Copy + Eq + Hash`
+    /// - `T` must be `Copy + Eq + Hash`
     /// - `T` must not be a zero-sized type
     /// - `T` must not implement `Drop`
     ///
@@ -386,6 +426,7 @@ where
     /// let slice = &[String::new()];
     /// let interned = interner.intern_slice(slice);
     /// ```
+    #[inline]
     pub fn intern_slice(&self, value: &[T]) -> Interned<'heap, [T]> {
         const { Self::ASSERT_T_IS_NOT_DROP };
         const { Self::ASSERT_T_IS_NOT_ZERO_SIZED };
@@ -394,26 +435,31 @@ where
             return Interned::empty();
         }
 
-        let heap = self.heap;
+        let hash = self.hasher.hash_one(value);
 
         let value = self.inner.map(|inner| {
-            let hash_value = inner.hasher().hash_one(value);
-
-            match inner
-                .raw_entry_mut()
-                .from_key_hashed_nocheck(hash_value, value)
-            {
-                RawEntryMut::Vacant(entry) => {
-                    let value = value.transfer_into(heap);
-
-                    let (key, ()) = entry.insert_hashed_nocheck(hash_value, &*value, ());
-                    *key
-                }
-                RawEntryMut::Occupied(entry) => *entry.key(),
+            if let Some(&existing) = inner.find(hash, |existing| *existing == value) {
+                return existing;
             }
+
+            let allocated: &'heap [T] = value.transfer_into(self.alloc);
+            inner.insert_unique(hash, allocated, |existing| self.hasher.hash_one(existing));
+            allocated
         });
 
         Interned::new_unchecked(value)
+    }
+}
+
+impl<'heap, T, A> fmt::Debug for InternSet<'heap, T, A>
+where
+    T: ?Sized,
+    A: PhaseAllocator<'heap>,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("InternSet")
+            .field("len", &self.inner.map(|inner| inner.len()))
+            .finish_non_exhaustive()
     }
 }
 
@@ -635,6 +681,34 @@ mod tests {
             // Only hash collision_group to force collisions
             self.collision_group.hash(state);
         }
+    }
+
+    #[test]
+    fn scratch_allocator_constructors() {
+        let scratch = crate::heap::Scratch::new();
+        let sized = InternSet::<i32, _>::new_in(&scratch);
+        let slices = InternSet::<[i32], _>::with_capacity_in(16, &scratch);
+
+        assert!(ptr::eq(
+            sized.intern(42).as_ref(),
+            sized.intern(42).as_ref()
+        ));
+        assert!(ptr::eq(
+            slices.intern_slice(&[1, 2, 3]).as_ref(),
+            slices.intern_slice(&[1, 2, 3]).as_ref()
+        ));
+    }
+
+    #[test]
+    fn slice_interner_reserve() {
+        let heap = Heap::new();
+        let slices = InternSet::<[i32]>::new(&heap);
+
+        let before = slices.intern_slice(&[1, 2, 3]);
+        slices.reserve(64);
+        let after = slices.intern_slice(&[1, 2, 3]);
+
+        assert!(ptr::eq(before.as_ref(), after.as_ref()));
     }
 
     #[test]
