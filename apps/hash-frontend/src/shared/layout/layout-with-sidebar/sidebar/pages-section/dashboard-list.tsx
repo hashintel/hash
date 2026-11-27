@@ -9,10 +9,7 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  blockProtocolPropertyTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { querySidebarDashboardsQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../../ui/button";
@@ -24,6 +21,9 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import type { WebId } from "@blockprotocol/type-system";
 import type { Dashboard } from "@local/hash-isomorphic-utils/system-types/dashboard";
+
+const dashboardNameBaseUrl =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/" satisfies keyof Dashboard["properties"];
 
 export const DashboardList = ({ webId }: { webId: WebId }) => {
   const router = useRouter();
@@ -67,10 +67,9 @@ export const DashboardList = ({ webId }: { webId: WebId }) => {
 
     return getRoots(subgraph)
       .flatMap((entity) => {
-        const title =
-          entity.properties[
-            blockProtocolPropertyTypes.name.propertyTypeBaseUrl
-          ];
+        // The type says the name is a string; stored data is not guaranteed to
+        // match it, so one malformed dashboard must not break the list.
+        const title: unknown = entity.properties[dashboardNameBaseUrl];
 
         if (typeof title !== "string") {
           return [];

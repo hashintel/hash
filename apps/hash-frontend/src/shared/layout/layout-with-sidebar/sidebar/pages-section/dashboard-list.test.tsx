@@ -52,10 +52,15 @@ vi.mock("@hashintel/design-system", async () => {
 const webId = "00000000-0000-4000-8000-000000000001" as WebId;
 const nameUrl =
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/";
-const dashboard = (id: string, title: unknown) => ({
-  metadata: { recordId: { entityId: `${webId}~${id}` } },
-  properties: { [nameUrl]: title },
-});
+const dashboard = (id: string, title: unknown) => {
+  // Tests add and remove properties, so the fixture is not limited to the name.
+  const properties: Record<string, unknown> = { [nameUrl]: title };
+
+  return {
+    metadata: { recordId: { entityId: `${webId}~${id}` } },
+    properties,
+  };
+};
 const listResult = (roots: ReturnType<typeof dashboard>[]) => ({
   data: { queryEntitySubgraph: { roots } },
 });
