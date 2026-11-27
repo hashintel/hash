@@ -37,7 +37,7 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
           alignItems: "center",
           gap: "[8px]",
           padding: "[12px]",
-          borderRadius: "[8px]",
+          borderRadius: "lg",
           _hover: {
             backgroundColor: "neutral.s30",
           },

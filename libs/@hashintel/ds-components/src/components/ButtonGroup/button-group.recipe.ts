@@ -22,12 +22,12 @@ export const styles = cva({
         // Square the interior corners of the control, keeping the outer radius
         // on each row's first/last.
         "& [data-variant]:not([data-row-start])": {
-          borderTopLeftRadius: "[0]",
-          borderBottomLeftRadius: "[0]",
+          borderTopLeftRadius: "none",
+          borderBottomLeftRadius: "none",
         },
         "& [data-variant]:not([data-row-end])": {
-          borderTopRightRadius: "[0]",
-          borderBottomRightRadius: "[0]",
+          borderTopRightRadius: "none",
+          borderBottomRightRadius: "none",
         },
         "& > *:not([data-row-end]):not(:has([data-row-end]))": {
           marginRight: "[-1px]",

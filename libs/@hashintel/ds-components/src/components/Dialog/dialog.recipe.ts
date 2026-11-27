@@ -125,7 +125,7 @@ export const styles = sva({
           width: "[100dvw]",
           height: "[100dvh]",
           maxHeight: "[100dvh]",
-          borderRadius: "[0]",
+          borderRadius: "none",
           "--panel-card-radius": "var(--radii-xl)",
         },
       },

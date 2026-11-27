@@ -112,8 +112,8 @@ export const styles = sva({
           maxWidth: "[var(--panel-width)]",
           borderTopLeftRadius: "2xl",
           borderBottomLeftRadius: "2xl",
-          borderTopRightRadius: "[0]",
-          borderBottomRightRadius: "[0]",
+          borderTopRightRadius: "none",
+          borderBottomRightRadius: "none",
           boxShadow:
             "[-1px 0 0 0 rgba(0, 0, 0, 0.03), -1px 0 2px -1px rgba(0, 0, 0, 0.06), -8px 0 16px -6px rgba(0, 0, 0, 0.09), -18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {
@@ -141,8 +141,8 @@ export const styles = sva({
           maxWidth: "[var(--panel-width)]",
           borderTopRightRadius: "2xl",
           borderBottomRightRadius: "2xl",
-          borderTopLeftRadius: "[0]",
-          borderBottomLeftRadius: "[0]",
+          borderTopLeftRadius: "none",
+          borderBottomLeftRadius: "none",
           boxShadow:
             "[1px 0 0 0 rgba(0, 0, 0, 0.03), 1px 0 2px -1px rgba(0, 0, 0, 0.06), 8px 0 16px -6px rgba(0, 0, 0, 0.09), 18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {
@@ -171,8 +171,8 @@ export const styles = sva({
           maxHeight: "[var(--panel-height)]",
           borderBottomLeftRadius: "2xl",
           borderBottomRightRadius: "2xl",
-          borderTopLeftRadius: "[0]",
-          borderTopRightRadius: "[0]",
+          borderTopLeftRadius: "none",
+          borderTopRightRadius: "none",
           boxShadow:
             "[0 1px 0 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 8px 16px -6px rgba(0, 0, 0, 0.09), 0 18px 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {
@@ -201,8 +201,8 @@ export const styles = sva({
           maxHeight: "[var(--panel-height)]",
           borderTopLeftRadius: "2xl",
           borderTopRightRadius: "2xl",
-          borderBottomLeftRadius: "[0]",
-          borderBottomRightRadius: "[0]",
+          borderBottomLeftRadius: "none",
+          borderBottomRightRadius: "none",
           boxShadow:
             "[0 -1px 0 0 rgba(0, 0, 0, 0.03), 0 -1px 2px -1px rgba(0, 0, 0, 0.06), 0 -8px 16px -6px rgba(0, 0, 0, 0.09), 0 -18px 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {

@@ -13,7 +13,7 @@ export const overlayDemoRecipe = sva({
       width: "[100%]",
       minHeight: "[320px]",
       overflow: "hidden",
-      borderRadius: "[8px]",
+      borderRadius: "lg",
       // Containing block for the overlays' `position: fixed`, so backdrops
       // and panels stay inside the demo frame.
       transform: "[translateZ(0)]",

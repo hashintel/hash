@@ -70,11 +70,11 @@ export const overlayPartsStyles = sva({
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "[var(--panel-top-padding)]",
       paddingBottom: "3.5",
-      '[data-drawer-position="right"] &': { borderTopRightRadius: "[0]" },
-      '[data-drawer-position="left"] &': { borderTopLeftRadius: "[0]" },
+      '[data-drawer-position="right"] &': { borderTopRightRadius: "none" },
+      '[data-drawer-position="left"] &': { borderTopLeftRadius: "none" },
       '[data-drawer-position="top"] &': {
-        borderTopLeftRadius: "[0]",
-        borderTopRightRadius: "[0]",
+        borderTopLeftRadius: "none",
+        borderTopRightRadius: "none",
       },
     },
     hasCustomHeader: {
@@ -138,12 +138,12 @@ export const overlayPartsStyles = sva({
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "4",
       paddingBottom: "5",
-      '[data-drawer-position="right"] &': { borderBottomRightRadius: "[0]" },
-      '[data-drawer-position="left"] &': { borderBottomLeftRadius: "[0]" },
+      '[data-drawer-position="right"] &': { borderBottomRightRadius: "none" },
+      '[data-drawer-position="left"] &': { borderBottomLeftRadius: "none" },
       '[data-drawer-position="bottom"] &': {
         "&:last-child": {
-          borderBottomLeftRadius: "[0]",
-          borderBottomRightRadius: "[0]",
+          borderBottomLeftRadius: "none",
+          borderBottomRightRadius: "none",
         },
       },
       // While loading, lock the body's scroll so the absolutely-positioned
@@ -165,11 +165,11 @@ export const overlayPartsStyles = sva({
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "3.5",
       paddingBottom: "3",
-      '[data-drawer-position="right"] &': { borderBottomRightRadius: "[0]" },
-      '[data-drawer-position="left"] &': { borderBottomLeftRadius: "[0]" },
+      '[data-drawer-position="right"] &': { borderBottomRightRadius: "none" },
+      '[data-drawer-position="left"] &': { borderBottomLeftRadius: "none" },
       '[data-drawer-position="bottom"] &': {
-        borderBottomLeftRadius: "[0]",
-        borderBottomRightRadius: "[0]",
+        borderBottomLeftRadius: "none",
+        borderBottomRightRadius: "none",
       },
     },
     footerActions: {

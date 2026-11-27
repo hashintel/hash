@@ -195,7 +195,7 @@ export const Default: Story = {
               style={{
                 font: "inherit",
                 padding: "4px 10px",
-                borderRadius: 999,
+                borderRadius: "var(--radii-full)",
                 border: "1px dashed #99a",
                 background: "none",
                 cursor: "pointer",
