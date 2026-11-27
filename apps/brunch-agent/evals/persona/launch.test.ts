@@ -22,8 +22,8 @@ import {
   responds,
   settlePersonaLauncherStop,
 } from "./launch.ts";
-import { resolvePersonaAgentSettings } from "./launch/agent.ts";
 import { appendAdmittedUtterance } from "./launch/bridge-log.ts";
+import { resolvePersonaDriver } from "./launch/driver.ts";
 import { readPersonaResume } from "./launch/resume.ts";
 import {
   resolvePersonaRoleSettings,
@@ -136,13 +136,13 @@ test.each([false, true])(
         source: "opening",
         message: "Hello.",
         submissionId: "sub_TEST_opening",
-        personaAgent: { agent: "pi" },
+        personaDriver: { kind: "agent", agent: "pi" },
       });
       await appendAdmittedUtterance(run, {
         source: "persona",
         message: "Please continue.",
         submissionId: "sub_TEST",
-        personaAgent: { agent: "pi" },
+        personaDriver: { kind: "agent", agent: "pi" },
       });
       await Promise.all([
         writeFile(join(run, "run.json"), JSON.stringify(config)),
@@ -367,11 +367,11 @@ test("retains Brunch role settings from run metadata and ignores Pi-era persona 
   });
 });
 
-test("fresh run metadata retains effective role and agent settings", () => {
+test("fresh run metadata retains effective role and driver settings", () => {
   expect(
     personaSettingsRecord(
       resolvePersonaRoleSettings(),
-      resolvePersonaAgentSettings({
+      resolvePersonaDriver({
         agent: "pi",
         personaModel: "anthropic/claude-sonnet-4-6",
         personaThinking: "medium",
@@ -380,27 +380,43 @@ test("fresh run metadata retains effective role and agent settings", () => {
   ).toEqual({
     brunchModel: DEFAULT_CHAT_MODEL,
     brunchThinking: DEFAULT_CHAT_THINKING,
-    personaAgent: {
+    personaDriver: {
+      kind: "agent",
       agent: "pi",
       personaModel: "anthropic/claude-sonnet-4-6",
       personaThinking: "medium",
     },
   });
+  expect(
+    personaSettingsRecord(resolvePersonaRoleSettings(), {
+      kind: "scripted",
+      scriptPath: "/tmp/demo/smoke.json",
+      scriptSha256: "abcdef0123456789",
+    }),
+  ).toEqual({
+    brunchModel: DEFAULT_CHAT_MODEL,
+    brunchThinking: DEFAULT_CHAT_THINKING,
+    personaDriver: {
+      kind: "scripted",
+      scriptPath: "/tmp/demo/smoke.json",
+      scriptSha256: "abcdef0123456789",
+    },
+  });
 });
 
-test("recording-ready summary reports the persona agent", () => {
+test("recording-ready summary reports the persona driver", () => {
   const summary = recordingReadySummary({
     title: "TEST window",
     url: "http://127.0.0.1:4915/",
     browserProfile: "/tmp/TEST-profile",
     roles: resolvePersonaRoleSettings(),
-    agent: resolvePersonaAgentSettings({ agent: "claude" }),
+    driver: resolvePersonaDriver({ agent: "claude" }),
     resume: true,
   });
-  expect(summary).toContain("Persona agent: claude");
+  expect(summary).toContain("Persona driver: claude");
 });
 
-test("help documents the objective and agent options", async () => {
+test("help documents the objective, agent, and script options", async () => {
   const { stdout } = await promisify(execFile)(
     process.execPath,
     [
@@ -414,6 +430,7 @@ test("help documents the objective and agent options", async () => {
     "--objective is fresh-run-only and is neither retained nor reapplied",
   );
   expect(stdout).toContain("--agent claude|codex|cursor-agent|pi");
+  expect(stdout).toContain("--script <file>");
   expect(stdout).toContain("--interview-length quick|standard|thorough|deep");
   expect(stdout).toContain("{prompt}");
   expect(stdout).not.toContain("--guidance");
@@ -439,3 +456,131 @@ test("resume rejects a fresh-run option before reading the retained run", async 
     ) as unknown,
   });
 });
+
+test("CLI rejects incompatible --script combinations before launching services", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "TEST-persona-script-cli-"));
+  const launchFile = fileURLToPath(new URL("./launch.ts", import.meta.url));
+  const openScript = join(directory, "open.json");
+  const sayScript = join(directory, "say.json");
+  const badScript = join(directory, "bad.json");
+  await Promise.all([
+    writeFile(openScript, JSON.stringify({ steps: [{ type: "open" }] })),
+    writeFile(
+      sayScript,
+      JSON.stringify({ steps: [{ type: "say", message: "Hi." }] }),
+    ),
+    writeFile(badScript, JSON.stringify({ steps: [] })),
+  ]);
+  const runCli = (args: string[]) =>
+    promisify(execFile)(
+      process.execPath,
+      ["--experimental-strip-types", launchFile, ...args],
+      { env: process.env },
+    );
+
+  try {
+    await expect(runCli(["--script", openScript])).rejects.toMatchObject({
+      stderr: expect.stringContaining(
+        "Persona script contains an `open` step, which requires --case",
+      ) as unknown,
+    });
+    await expect(
+      runCli(["--script", sayScript, "--objective", "Private goal"]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining(
+        "--script cannot be combined with --objective",
+      ) as unknown,
+    });
+    await expect(
+      runCli(["--script", sayScript, "--agent", "claude"]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining(
+        "Use at most one of --agent, --agent-command, or --script",
+      ) as unknown,
+    });
+    await expect(runCli(["--script", badScript])).rejects.toMatchObject({
+      stderr: expect.stringContaining("Invalid persona script") as unknown,
+    });
+    await expect(
+      runCli(["--resume", "/path/that/does/not/exist", "--script", openScript]),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining(
+        "A --script passed with --resume cannot contain an `open` step",
+      ) as unknown,
+    });
+  } finally {
+    await rm(directory, { recursive: true });
+  }
+}, 20_000);
+
+test("resume parses a case-less scripted run and refuses replaying it without a replacement driver", async () => {
+  const run = await mkdtemp(join(tmpdir(), "TEST-persona-script-resume-"));
+  const identity = {
+    actorKey: "TEST-owner",
+    conversationId: "TEST-conversation",
+  };
+  const panelOrigin = "http://127.0.0.1:4926";
+  const scriptedDriver = {
+    kind: "scripted" as const,
+    scriptPath: "/tmp/demo/steps.json",
+    scriptSha256: "abcdef0123456789",
+  };
+  try {
+    await mkdir(join(run, "chrome"));
+    await appendAdmittedUtterance(run, {
+      source: "persona",
+      message: "First scripted message.",
+      submissionId: "sub_TEST",
+      personaDriver: scriptedDriver,
+    });
+    await Promise.all([
+      writeFile(
+        join(run, "run.json"),
+        JSON.stringify({
+          host: "website",
+          brunchModel: "openai/gpt-6.1-sol",
+          brunchThinking: "medium",
+          personaDriver: scriptedDriver,
+          databasePath: join(run, "conversation.db"),
+          browserProfile: join(run, "chrome"),
+          panelOrigin,
+          route: "/",
+        }),
+      ),
+      writeFile(join(run, "conversation.db"), "TEST store presence"),
+      writeFile(
+        join(run, "session.json"),
+        JSON.stringify({
+          ownerKey: identity.actorKey,
+          conversationId: identity.conversationId,
+          uid: "TEST-uid",
+          url: `${panelOrigin}/agents/petrinaut/${flueConversationId(identity)}`,
+          initialData: {
+            binding: {
+              conversationId: identity.conversationId,
+              documentId: "TEST-document",
+            },
+          },
+        }),
+      ),
+    ]);
+    const resumed = await readPersonaResume(run);
+    expect(resumed.config.caseDirectory).toBeUndefined();
+    expect(resumed.lastUtterance).toBe("First scripted message.");
+
+    const launchFile = fileURLToPath(new URL("./launch.ts", import.meta.url));
+    await expect(
+      promisify(execFile)(
+        process.execPath,
+        ["--experimental-strip-types", launchFile, "--resume", run],
+        { env: process.env },
+      ),
+    ).rejects.toMatchObject({
+      stderr: expect.stringContaining(
+        "Cannot automatically resume a scripted run without a driver option",
+      ) as unknown,
+    });
+  } finally {
+    await rm(run, { recursive: true });
+  }
+}, 15_000);

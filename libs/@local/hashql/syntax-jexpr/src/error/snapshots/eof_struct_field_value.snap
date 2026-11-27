@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#struct\": {\"a\":"
+---
+error[jexpr::lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ {"#struct": {"a":
+  │              ┬── ━ unexpected end of input, expected string, `{`, or `[`
+  │              │
+  │              after this key
+  │
+  ╰ help: add a value for this field

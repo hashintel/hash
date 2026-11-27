@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[, \"a\"]"
+---
+error[jexpr::parser::array::leading-comma]: Unexpected leading comma in array
+  ╭▸ 
+1 │ [, "a"]
+  │  ━ leading comma is not allowed in arrays
+  │
+  ╰ note: J-Expr follows JSON syntax, which does not allow leading commas
+help: remove the leading comma
+  ╭╴
+1 - [, "a"]
+1 + [ "a"]
+  ╰╴

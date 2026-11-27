@@ -1,9 +1,0 @@
----
-source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
-description: Underscore path
-expression: _
-info:
-  kind: Ok
----
-Expr#4294967040@1
-  ExprKind (Underscore)

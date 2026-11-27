@@ -40,7 +40,7 @@ use hashql_core::{
         Predecessors as _,
         algorithms::{IteratedDominanceFrontier, dominance_frontiers, iterated_dominance_frontier},
     },
-    heap::{BumpAllocator, Heap, Scratch},
+    heap::{Heap, Scratch},
     intern::Interned,
 };
 
@@ -136,7 +136,7 @@ impl<A: Allocator> Visitor<'_> for DefSites<A> {
 /// - Rewiring all uses to reference the correct reaching definition
 ///
 /// The pass is idempotent: running it on already-valid SSA form is a no-op.
-pub struct SsaRepair<A: BumpAllocator = Scratch> {
+pub struct SsaRepair<A: Allocator = Scratch> {
     alloc: A,
 }
 
@@ -149,7 +149,7 @@ impl SsaRepair {
     }
 }
 
-impl<A: BumpAllocator> SsaRepair<A> {
+impl<A: Allocator> SsaRepair<A> {
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
@@ -162,7 +162,7 @@ impl Default for SsaRepair {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for SsaRepair<A> {
+impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for SsaRepair<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut sites = DefSites::new_in(body, &self.alloc);
         sites.visit_body(body);

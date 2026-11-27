@@ -4,7 +4,7 @@ use alloc::alloc::Global;
 use core::alloc::Allocator;
 
 use hashql_core::{
-    heap::{BumpAllocator, Heap},
+    heap::Heap,
     id::{IdArray, bit_vec::FiniteBitSet},
     symbol::sym,
     r#type::environment::Environment,
@@ -179,7 +179,7 @@ pub(crate) fn run_solver<'heap>(
 }
 
 pub(crate) fn find_region_of(
-    solver: &PlacementSolver<'_, '_, impl Allocator, impl BumpAllocator>,
+    solver: &PlacementSolver<'_, '_, impl Allocator, impl Allocator>,
     block: BasicBlockId,
 ) -> PlacementRegionId {
     for region_id in solver.condensation.reverse_topological_order() {
@@ -200,7 +200,7 @@ pub(crate) fn find_region_of(
 }
 
 pub(crate) fn fix_block(
-    csp: &mut ConstraintSatisfaction<'_, '_, '_, impl Allocator, impl BumpAllocator>,
+    csp: &mut ConstraintSatisfaction<'_, '_, '_, impl Allocator, impl Allocator>,
     block: BasicBlockId,
     target: TargetId,
 ) {

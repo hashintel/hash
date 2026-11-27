@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "\"foo\\u0024bar\""
+---
+error[jexpr::parser::string::invalid-expression]: Invalid string expression
+  ╭▸ 
+1 │ "foo\u0024bar"
+  │     ━━━━━━ unexpected `$` in expression
+  │
+  ╰ note: string expressions support paths (`a::b`), field accesses (`a.b`), index accesses (`a[0]`), and `_`

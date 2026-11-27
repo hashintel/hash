@@ -114,10 +114,11 @@ export const useFlowSchedules = ({
       request: {
         filter: {
           all: [
+            /* Schedules created before the current version of `Flow Schedule` keep theirs until next updated. */
             {
               equal: [
-                { path: ["type", "versionedUrl"] },
-                { parameter: systemEntityTypes.flowSchedule.entityTypeId },
+                { path: ["type", "baseUrl"] },
+                { parameter: systemEntityTypes.flowSchedule.entityTypeBaseUrl },
               ],
             },
             {

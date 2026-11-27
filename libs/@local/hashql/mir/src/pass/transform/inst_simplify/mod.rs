@@ -92,7 +92,7 @@ mod tests;
 use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
-    heap::{BumpAllocator, Scratch, TransferInto as _},
+    heap::{PhaseAllocator, TransferInto as _},
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
@@ -143,28 +143,11 @@ impl OperandKind<'_> {
 /// Instruction simplification pass.
 ///
 /// Performs constant folding and algebraic simplification on MIR instructions.
-pub struct InstSimplify<A: BumpAllocator = Scratch> {
+pub struct InstSimplify<A> {
     alloc: A,
 }
 
-impl InstSimplify {
-    /// Creates a new [`InstSimplify`].
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            alloc: Scratch::new(),
-        }
-    }
-}
-
-impl Default for InstSimplify {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<A: BumpAllocator> InstSimplify<A> {
+impl<A> InstSimplify<A> {
     /// Creates a new [`InstSimplify`] using the provided allocator.
     #[must_use]
     pub const fn new_in(alloc: A) -> Self {
@@ -172,23 +155,26 @@ impl<A: BumpAllocator> InstSimplify<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<A> {
+impl<'env, 'heap, 'alloc, A> TransformPass<'env, 'heap> for InstSimplify<A>
+where
+    A: PhaseAllocator<'alloc>,
+{
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut visitor = InstSimplifyVisitor {
             env: context.env,
             interner: context.interner,
             trampoline: None,
             decl: &body.local_decls,
-            evaluated: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
+            evaluated: IdVec::with_capacity_in(body.local_decls.len(), self.alloc),
             changed: false,
         };
 
         let reverse_postorder = body
             .basic_blocks
             .reverse_postorder()
-            .transfer_into(&self.alloc);
+            .transfer_into(self.alloc);
 
-        let mut args = Vec::new_in(&self.alloc);
+        let mut args = Vec::new_in(self.alloc);
 
         for &mut id in reverse_postorder {
             for (local, int) in propagate_block_params(&mut args, body, id, |operand| {

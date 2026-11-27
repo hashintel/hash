@@ -401,19 +401,19 @@ fn cfg_simplify(criterion: &mut Criterion) {
 
     group.bench_function("linear", |bencher| {
         run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
-            CfgSimplify::new_in(scratch).run(context, body)
+            CfgSimplify::new_in(scratch.as_mut_scope()).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
         run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
-            CfgSimplify::new_in(scratch).run(context, body)
+            CfgSimplify::new_in(scratch.as_mut_scope()).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
         run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
-            CfgSimplify::new_in(scratch).run(context, body)
+            CfgSimplify::new_in(scratch.as_mut_scope()).run(context, body)
         });
     });
 }
@@ -447,25 +447,27 @@ fn dse(criterion: &mut Criterion) {
         run_bencher(
             bencher,
             create_dead_store_cfg,
-            |context, [body], scratch| DeadStoreElimination::new_in(scratch).run(context, body),
+            |context, [body], scratch| {
+                DeadStoreElimination::new_in(scratch.as_mut_scope()).run(context, body)
+            },
         );
     });
 
     group.bench_function("linear", |bencher| {
         run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
-            DeadStoreElimination::new_in(scratch).run(context, body)
+            DeadStoreElimination::new_in(scratch.as_mut_scope()).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
         run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
-            DeadStoreElimination::new_in(scratch).run(context, body)
+            DeadStoreElimination::new_in(scratch.as_mut_scope()).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
         run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
-            DeadStoreElimination::new_in(scratch).run(context, body)
+            DeadStoreElimination::new_in(scratch.as_mut_scope()).run(context, body)
         });
     });
 }
@@ -477,24 +479,24 @@ fn inst_simplify(criterion: &mut Criterion) {
         run_bencher(
             bencher,
             create_inst_simplify_cfg,
-            |context, [body], scratch| InstSimplify::new_in(scratch).run(context, body),
+            |context, [body], scratch| InstSimplify::new_in(&*scratch).run(context, body),
         );
     });
     group.bench_function("linear", |bencher| {
         run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
-            InstSimplify::new_in(scratch).run(context, body)
+            InstSimplify::new_in(&*scratch).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
         run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
-            InstSimplify::new_in(scratch).run(context, body)
+            InstSimplify::new_in(&*scratch).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
         run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
-            InstSimplify::new_in(scratch).run(context, body)
+            InstSimplify::new_in(&*scratch).run(context, body)
         });
     });
 }
@@ -507,12 +509,13 @@ fn pipeline(criterion: &mut Criterion) {
             let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            let mut changed =
+                PreInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
-                .run(context, &mut state, bodies);
+            changed |=
+                Inline::new_in(InlineConfig::default(), &*scratch).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });
@@ -522,12 +525,13 @@ fn pipeline(criterion: &mut Criterion) {
             let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            let mut changed =
+                PreInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
-                .run(context, &mut state, bodies);
+            changed |=
+                Inline::new_in(InlineConfig::default(), &*scratch).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });
@@ -537,12 +541,13 @@ fn pipeline(criterion: &mut Criterion) {
             let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            let mut changed =
+                PreInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
-                .run(context, &mut state, bodies);
+            changed |=
+                Inline::new_in(InlineConfig::default(), &*scratch).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });
@@ -552,12 +557,13 @@ fn pipeline(criterion: &mut Criterion) {
             let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            let mut changed =
+                PreInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
-                .run(context, &mut state, bodies);
+            changed |=
+                Inline::new_in(InlineConfig::default(), &*scratch).run(context, &mut state, bodies);
             scratch.reset();
-            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(scratch.as_mut_scope()).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });

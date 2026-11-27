@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"literal\": 42}"
+---
+error[jexpr::parser::object::unknown-key]: Unknown object key
+  ╭▸ 
+1 │ {"literal": 42}
+  │  ━━━━━━━━━ unknown object key `literal`
+  │
+  ╰ note: valid keys in this position are `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`
+help: a similar J-Expr key exists
+  ╭╴
+1 │ {"#literal": 42}
+  ╰╴  +

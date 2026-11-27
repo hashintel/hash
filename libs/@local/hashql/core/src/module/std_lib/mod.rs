@@ -6,7 +6,7 @@ use ::core::{alloc::Allocator, iter, mem, mem::MaybeUninit, num::NonZero};
 
 use super::{Module, ModuleId, PartialModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
-    heap::BumpAllocator as _,
+    heap::PhaseAllocator as _,
     id::{Id as _, bit_vec::FiniteBitSet},
     module::item::{ConstructorItem, Item, ItemKind},
     symbol::Symbol,
@@ -255,7 +255,7 @@ impl<'heap, S: Allocator> ModuleCache<'heap, S> {
         let def = self.request::<T>(context);
 
         let heap = context.registry.heap;
-        let output = heap.allocate_slice_uninit(def.emitted_len + T::Children::LENGTH);
+        let output = heap.alloc_slice_uninit(def.emitted_len + T::Children::LENGTH);
 
         let mut cursor = 0;
         for &ModuleEntry { name, def } in &def.entries {

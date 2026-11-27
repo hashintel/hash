@@ -27,7 +27,7 @@ const rows = [
 const defaults = {
   rows,
   expandedRows: new Set<string>(),
-  collapsedSearchRows: new Set<string>(),
+  toggledSearchRows: new Set<string>(),
 };
 const buildDataTypeTree = (
   options: Parameters<typeof buildTree<(typeof rows)[number]>>[0],
@@ -148,21 +148,112 @@ describe("data type hierarchy", () => {
 
   it("lets search branches collapse without changing the saved browsing expansion", () => {
     const expandedRows = new Set([path("number")]);
-    const collapsedSearchRows = new Set([path("number", "length")]);
+    const toggledSearchRows = new Set([path("number", "length")]);
     expect(
       buildDataTypeTree({
         ...defaults,
         expandedRows,
-        collapsedSearchRows,
+        toggledSearchRows,
         matchingIds: new Set([id("meters")]),
       }).map(({ title }) => title),
     ).toEqual(["number", "length"]);
     expect(
-      buildDataTypeTree({ ...defaults, expandedRows, collapsedSearchRows }).map(
+      buildDataTypeTree({ ...defaults, expandedRows, toggledSearchRows }).map(
         ({ title }) => title,
       ),
     ).toEqual(["number", "length", "text"]);
     expect([...expandedRows]).toEqual([path("number")]);
+  });
+
+  it("keeps the descendants of a match, collapsed until the user expands them", () => {
+    const search = { ...defaults, matchingIds: new Set([id("length")]) };
+    const tree = buildDataTypeTree(search);
+    expect(
+      tree.map(({ title, hierarchy }) => [
+        title,
+        hierarchy.hasChildren,
+        hierarchy.expanded,
+      ]),
+    ).toEqual([
+      ["number", true, true],
+      ["length", true, false],
+    ]);
+
+    const expanded = buildDataTypeTree({
+      ...search,
+      toggledSearchRows: new Set([
+        path("number", "length"),
+        path("number", "length", "metric"),
+      ]),
+    });
+    expect(
+      expanded.map(({ title, hierarchy }) => [
+        title,
+        hierarchy.expanded,
+        hierarchy.matchesSearch,
+      ]),
+    ).toEqual([
+      ["number", true, false],
+      ["length", true, true],
+      ["metric", true, false],
+      ["meters", false, false],
+      ["imperial", false, false],
+    ]);
+  });
+
+  it("expands only the rows that lead to a match", () => {
+    const tree = buildDataTypeTree({
+      ...defaults,
+      matchingIds: new Set([id("length"), id("feet")]),
+    });
+    expect(
+      tree.map(({ title, hierarchy }) => [
+        title,
+        hierarchy.hasChildren,
+        hierarchy.expanded,
+        hierarchy.matchesSearch,
+      ]),
+    ).toEqual([
+      ["number", true, true, false],
+      ["length", true, true, true],
+      ["metric", true, false, false],
+      ["imperial", true, true, false],
+      ["feet", false, false, true],
+    ]);
+  });
+
+  it("does not duplicate a descendant that is also a match", () => {
+    const tree = buildDataTypeTree({
+      ...defaults,
+      matchingIds: new Set([id("length"), id("metric"), id("meters")]),
+      toggledSearchRows: new Set([path("number", "length", "imperial")]),
+    });
+    expect(tree.map(({ title }) => title)).toEqual([
+      "number",
+      "length",
+      "metric",
+      "meters",
+      "imperial",
+      "feet",
+    ]);
+    expect(new Set(tree.map(({ rowId }) => rowId)).size).toBe(tree.length);
+  });
+
+  it("does not loop when collecting the descendants of a match in a cycle", () => {
+    const tree = buildDataTypeTree({
+      ...defaults,
+      rows: [
+        row("number", ["length"]),
+        row("length", ["number"]),
+        row("meters", ["length"]),
+      ],
+      matchingIds: new Set([id("number")]),
+    });
+    expect(tree.map(({ title }) => title)).toEqual([
+      "number",
+      "length",
+      "meters",
+    ]);
   });
 
   it("returns no rows for an unmatched search", () => {

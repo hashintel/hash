@@ -15,7 +15,7 @@
 
 use core::{alloc::Allocator, mem};
 
-use hashql_core::{graph::DirectedGraph as _, heap::BumpAllocator, id, span::SpanId};
+use hashql_core::{graph::DirectedGraph as _, heap::PhaseAllocator, id, span::SpanId};
 
 use self::{
     condensation::{Condensation, PlacementRegionKind, TrivialPlacementRegion},
@@ -98,20 +98,20 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
     pub(crate) fn build_in<'alloc, S>(
         self,
         body: &Body<'_>,
-        alloc: &'alloc S,
+        alloc: S,
     ) -> PlacementSolver<'ctx, 'alloc, A, S>
     where
-        S: BumpAllocator,
+        S: PhaseAllocator<'alloc>,
     {
         // Separate working slices so rewind can restore previous assignments without
         // mutating the input.
         let targets = {
-            let uninit = alloc.allocate_slice_uninit(body.basic_blocks.len());
+            let uninit = alloc.alloc_slice_uninit(body.basic_blocks.len());
             BasicBlockSlice::from_raw_mut(uninit.write_filled(None))
         };
 
         let options = {
-            let uninit = alloc.allocate_slice_uninit(body.basic_blocks.len());
+            let uninit = alloc.alloc_slice_uninit(body.basic_blocks.len());
             BasicBlockSlice::from_raw_mut(uninit.write_filled(TargetHeap::new()))
         };
 
@@ -133,9 +133,7 @@ impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {
 /// The forward pass assigns targets in topological order. Adjustment passes then alternate
 /// direction until convergence, refining assignments with progressively fuller boundary context.
 /// Rewind-based backtracking recovers from assignment failures in the forward pass.
-// We need two allocators here, because the `BumpAllocator` trait does not carry a lifetime, but we
-// move `Copy` data into the bump allocator.
-pub(crate) struct PlacementSolver<'ctx, 'alloc, S1: Allocator, S2: BumpAllocator> {
+pub(crate) struct PlacementSolver<'ctx, 'alloc, S1: Allocator, S2: Allocator> {
     data: PlacementSolverContext<'ctx, S1>,
 
     condensation: Condensation<'alloc, S2>,
@@ -143,10 +141,13 @@ pub(crate) struct PlacementSolver<'ctx, 'alloc, S1: Allocator, S2: BumpAllocator
     options: &'alloc mut BasicBlockSlice<TargetHeap>,
     targets: &'alloc mut BasicBlockSlice<Option<HeapElement>>,
 
-    scratch: &'alloc S2,
+    scratch: S2,
 }
 
-impl<'alloc, S1: Allocator, S: BumpAllocator> PlacementSolver<'_, 'alloc, S1, S> {
+impl<'alloc, S1: Allocator, S> PlacementSolver<'_, 'alloc, S1, S>
+where
+    S: PhaseAllocator<'alloc>,
+{
     /// Runs the forward pass and iterates adjustment passes until convergence, returning the
     /// chosen [`TargetId`] for each basic block.
     pub(crate) fn run_in<'heap, A: Allocator>(

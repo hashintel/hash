@@ -589,7 +589,9 @@ Useful when you want to serve the literal `dist/` artifact you just built and av
 
    ```js
    import { createServer } from "node:http";
+
    import { createServerAdapter } from "@whatwg-node/server";
+
    import handler from "../api/chat.ts";
 
    createServer(createServerAdapter(handler)).listen(3001, () => {

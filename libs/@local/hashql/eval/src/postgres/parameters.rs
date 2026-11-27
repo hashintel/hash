@@ -305,7 +305,7 @@ mod tests {
     use alloc::alloc::Global;
 
     use hashql_core::{
-        heap::Heap,
+        heap::{Heap, SymbolAllocator as _},
         id::Id as _,
         value::{Primitive, String},
     };
@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn input_dedup() {
         let heap = Heap::new();
-        let sym = heap.intern_symbol("x");
+        let sym = heap.alloc_symbol("x");
 
         let mut params = Parameters::new_in(Global);
         let a = params.input(sym);
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn category_isolation() {
         let heap = Heap::new();
-        let sym = heap.intern_symbol("x");
+        let sym = heap.alloc_symbol("x");
 
         let mut params = Parameters::new_in(Global);
         let input_idx = params.input(sym);
@@ -365,7 +365,7 @@ mod tests {
     #[test]
     fn primitive_dedup() {
         let heap = Heap::new();
-        let string = String::new(heap.intern_symbol("hello"));
+        let string = String::new(heap.alloc_symbol("hello"));
 
         let mut params = Parameters::new_in(Global);
         let a = params.primitive(Primitive::String(string));

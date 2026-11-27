@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#list\": {}}"
+---
+error[jexpr::parser::object::list-expected-array]: Expected array for `#list`
+  ╭▸ 
+1 │ {"#list": {}}
+  │  ┬──────  ━━ expected an array, found an object
+  │  │
+  │  required by `#list`
+  │
+  ╰ help: use an array of elements, for example `{"#list": [elem1, elem2]}`

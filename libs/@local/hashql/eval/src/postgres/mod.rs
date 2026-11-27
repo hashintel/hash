@@ -35,7 +35,7 @@ use hash_graph_postgres_store::store::postgres::query::{
 };
 use hashql_core::{
     debug_panic,
-    heap::BumpAllocator,
+    heap::ScopeAllocator,
     id::Id as _,
     r#type::{TypeBuilder, TypeId, environment::LatticeEnvironment},
 };
@@ -203,15 +203,16 @@ impl Display for ColumnDescriptor {
 /// multiple errors can be reported from a single compilation pass.
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
-pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S: Allocator> {
+pub struct PostgresCompiler<'eval, 'ctx, 'heap, A: Allocator, S> {
     context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>,
 
     alloc: A,
     scratch: S,
 }
 
-impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
-    PostgresCompiler<'eval, 'ctx, 'heap, A, S>
+impl<'eval, 'ctx, 'heap, 'alloc, A: Allocator, S> PostgresCompiler<'eval, 'ctx, 'heap, A, S>
+where
+    S: ScopeAllocator<'alloc>,
 {
     pub fn new_in(context: &'eval mut CodeGenerationContext<'ctx, 'heap, A>, scratch: S) -> Self
     where
@@ -275,7 +276,7 @@ impl<'eval, 'ctx, 'heap, A: Allocator, S: BumpAllocator>
         }
 
         // TODO: we might want a longer lived graph read filter compiler here
-        let expression = self.scratch.scoped_mut(|alloc| {
+        let expression = self.scratch.scoped(|alloc| {
             let mut compiler = GraphReadFilterCompiler::new(self.context, body, env, &alloc);
 
             let expression = compiler.compile_body(db, island);

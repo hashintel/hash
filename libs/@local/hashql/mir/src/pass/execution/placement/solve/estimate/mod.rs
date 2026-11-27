@@ -20,10 +20,7 @@
 
 use core::{alloc::Allocator, cmp};
 
-use hashql_core::{
-    graph::{Predecessors as _, Successors as _},
-    heap::BumpAllocator,
-};
+use hashql_core::graph::{Predecessors as _, Successors as _};
 
 use super::{PlacementRegionId, PlacementSolver, condensation::BoundaryEdge};
 use crate::{
@@ -160,7 +157,7 @@ impl CostEstimationConfig {
 ///
 /// The `determine_target` closure resolves neighbor assignments, allowing the estimator to work
 /// with both committed state and speculative CSP assignments.
-pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, F, A: Allocator, S: BumpAllocator> {
+pub(crate) struct CostEstimation<'ctx, 'parent, 'alloc, F, A: Allocator, S: Allocator> {
     pub config: CostEstimationConfig,
     pub solver: &'ctx PlacementSolver<'parent, 'alloc, A, S>,
     pub determine_target: F,
@@ -170,7 +167,7 @@ impl<F, A, S> CostEstimation<'_, '_, '_, F, A, S>
 where
     F: Fn(BasicBlockId) -> Option<HeapElement>,
     A: Allocator,
-    S: BumpAllocator,
+    S: Allocator,
 {
     /// Computes the transition cost across a single [`BoundaryEdge`].
     ///

@@ -29,7 +29,7 @@ pub(crate) fn hir_lower_alias_replacement<'heap>(
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
 ) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
-    let (mut node, types) = hir_reify(heap, expr, environment, context, options.diagnostics)?;
+    let (mut node, types) = hir_reify(expr, environment, context, options.diagnostics)?;
 
     let formatter = Formatter::new(heap);
     let mut formatter = NodeFormatter::with_defaults(&formatter, environment, context);

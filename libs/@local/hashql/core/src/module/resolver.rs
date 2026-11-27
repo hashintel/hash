@@ -530,7 +530,7 @@ mod test {
 
     use super::{Reference, ResolutionError};
     use crate::{
-        heap::Heap,
+        heap::{Heap, SymbolAllocator as _},
         module::{
             ModuleRegistry, Universe,
             item::Item,
@@ -566,9 +566,9 @@ mod test {
 
         let result = resolver
             .resolve_absolute([
-                heap.intern_symbol("kernel"),
-                heap.intern_symbol("type"),
-                heap.intern_symbol("Dict"),
+                heap.alloc_symbol("kernel"),
+                heap.alloc_symbol("type"),
+                heap.alloc_symbol("Dict"),
             ])
             .expect("Resolution should succeed");
 
@@ -596,9 +596,9 @@ mod test {
 
         let result = resolver
             .resolve_absolute([
-                heap.intern_symbol("core"),
-                heap.intern_symbol("url"),
-                heap.intern_symbol("Url"),
+                heap.alloc_symbol("core"),
+                heap.alloc_symbol("url"),
+                heap.alloc_symbol("Url"),
             ])
             .expect("Resolution should succeed");
 
@@ -626,9 +626,9 @@ mod test {
 
         let error = resolver
             .resolve_absolute([
-                heap.intern_symbol("kernel"),
-                heap.intern_symbol("type"),
-                heap.intern_symbol("NonExistentType"),
+                heap.alloc_symbol("kernel"),
+                heap.alloc_symbol("type"),
+                heap.alloc_symbol("NonExistentType"),
             ])
             .expect_err("Resolution should fail for non-existent item");
 
@@ -651,9 +651,9 @@ mod test {
 
         let result = resolver
             .resolve_absolute([
-                heap.intern_symbol("core"),
-                heap.intern_symbol("url"),
-                heap.intern_symbol("Url"),
+                heap.alloc_symbol("core"),
+                heap.alloc_symbol("url"),
+                heap.alloc_symbol("Url"),
             ])
             .expect("Resolution should succeed");
 
@@ -690,9 +690,9 @@ mod test {
 
         let result = resolver
             .resolve_absolute([
-                heap.intern_symbol("core"),
-                heap.intern_symbol("math"),
-                heap.intern_symbol("add"),
+                heap.alloc_symbol("core"),
+                heap.alloc_symbol("math"),
+                heap.alloc_symbol("add"),
             ])
             .expect("Resolution should succeed");
 
@@ -718,7 +718,7 @@ mod test {
         };
 
         let result = resolver
-            .resolve_absolute([heap.intern_symbol("kernel"), heap.intern_symbol("type")])
+            .resolve_absolute([heap.alloc_symbol("kernel"), heap.alloc_symbol("type")])
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
@@ -745,7 +745,7 @@ mod test {
         };
 
         let result = resolver
-            .resolve_absolute([heap.intern_symbol("kernel")])
+            .resolve_absolute([heap.alloc_symbol("kernel")])
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
@@ -776,8 +776,8 @@ mod test {
 
         let error = resolver
             .resolve_absolute([
-                heap.intern_symbol("kernel"),
-                heap.intern_symbol("nonexistent_module"),
+                heap.alloc_symbol("kernel"),
+                heap.alloc_symbol("nonexistent_module"),
             ])
             .expect_err("Resolution should fail for non-existent module");
 
@@ -805,7 +805,7 @@ mod test {
         assert_matches!(error, ResolutionError::InvalidQueryLength { expected: 2 });
 
         let error = resolver
-            .resolve_absolute([heap.intern_symbol("kernel")])
+            .resolve_absolute([heap.alloc_symbol("kernel")])
             .expect_err("Resolution should fail for empty query");
 
         assert_matches!(error, ResolutionError::InvalidQueryLength { expected: 2 });
@@ -847,7 +847,7 @@ mod test {
         };
 
         let error = resolver
-            .resolve_absolute([heap.intern_symbol("nonexistent_package")])
+            .resolve_absolute([heap.alloc_symbol("nonexistent_package")])
             .expect_err("Resolution should fail for non-existent package");
 
         assert_matches!(error, ResolutionError::PackageNotFound { depth: 0, name: _, suggestions } if suggestions.is_empty());
@@ -869,10 +869,10 @@ mod test {
 
         let error = resolver
             .resolve_absolute([
-                heap.intern_symbol("core"),
-                heap.intern_symbol("math"),
-                heap.intern_symbol("add"), // This is a value, not a module
-                heap.intern_symbol("anything"),
+                heap.alloc_symbol("core"),
+                heap.alloc_symbol("math"),
+                heap.alloc_symbol("add"), // This is a value, not a module
+                heap.alloc_symbol("anything"),
             ])
             .expect_err("Resolution should fail for non-module item");
 
@@ -891,7 +891,7 @@ mod test {
         let env = Environment::new(&heap);
 
         let mut builder = ModuleRegistry::builder(&env);
-        builder.insert_root_module(heap.intern_symbol("empty_module"), |_| &[]);
+        builder.insert_root_module(heap.alloc_symbol("empty_module"), |_| &[]);
         let registry = builder.finish();
 
         let resolver = Resolver {
@@ -903,7 +903,7 @@ mod test {
         };
 
         let error = resolver
-            .resolve_absolute([heap.intern_symbol("empty_module")])
+            .resolve_absolute([heap.alloc_symbol("empty_module")])
             .expect_err("Resolution should fail for empty module");
 
         assert_matches!(error, ResolutionError::ModuleEmpty { depth: 0 });
@@ -925,9 +925,9 @@ mod test {
 
         let error = resolver
             .resolve_absolute([
-                heap.intern_symbol("kernel"),
-                heap.intern_symbol("nonexistent_module"), // This module doesn't exist
-                heap.intern_symbol("anything"),
+                heap.alloc_symbol("kernel"),
+                heap.alloc_symbol("nonexistent_module"), // This module doesn't exist
+                heap.alloc_symbol("anything"),
             ])
             .expect_err("Resolution should fail for non-existent module");
 
@@ -946,8 +946,8 @@ mod test {
         // import type under a new alias
         namespace
             .import(
-                heap.intern_symbol("foo"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.alloc_symbol("foo"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("type")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -966,7 +966,7 @@ mod test {
 
         let result = resolver
             .resolve_relative(
-                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                [heap.alloc_symbol("foo"), heap.alloc_symbol("Dict")],
                 namespace.imports_as_slice(),
             )
             .expect("Resolution should succeed");
@@ -989,8 +989,8 @@ mod test {
         // import type under a new alias
         namespace
             .import(
-                heap.intern_symbol("foo"),
-                [heap.intern_symbol("core"), heap.intern_symbol("url")],
+                heap.alloc_symbol("foo"),
+                [heap.alloc_symbol("core"), heap.alloc_symbol("url")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -1009,7 +1009,7 @@ mod test {
 
         let result = resolver
             .resolve_relative(
-                [heap.intern_symbol("foo"), heap.intern_symbol("Url")],
+                [heap.alloc_symbol("foo"), heap.alloc_symbol("Url")],
                 namespace.imports_as_slice(),
             )
             .expect("Resolution should succeed");
@@ -1030,7 +1030,7 @@ mod test {
         );
 
         let result = resolver
-            .resolve_relative([heap.intern_symbol("Url")], namespace.imports_as_slice())
+            .resolve_relative([heap.alloc_symbol("Url")], namespace.imports_as_slice())
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
@@ -1060,8 +1060,8 @@ mod test {
 
         namespace
             .import(
-                heap.intern_symbol("type"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.alloc_symbol("type"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("type")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -1081,9 +1081,9 @@ mod test {
         let error = resolver
             .resolve_relative(
                 [
-                    heap.intern_symbol("type"),
-                    heap.intern_symbol("nonexistent_module"), // This module doesn't exist
-                    heap.intern_symbol("anything"),
+                    heap.alloc_symbol("type"),
+                    heap.alloc_symbol("nonexistent_module"), // This module doesn't exist
+                    heap.alloc_symbol("anything"),
                 ],
                 namespace.imports_as_slice(),
             )
@@ -1103,8 +1103,8 @@ mod test {
 
         namespace
             .import(
-                heap.intern_symbol("type"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.alloc_symbol("type"),
+                [heap.alloc_symbol("kernel"), heap.alloc_symbol("type")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -1122,7 +1122,7 @@ mod test {
         };
 
         let result = resolver
-            .resolve_relative([heap.intern_symbol("type")], namespace.imports_as_slice())
+            .resolve_relative([heap.alloc_symbol("type")], namespace.imports_as_slice())
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();

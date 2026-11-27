@@ -37,13 +37,15 @@
 //! [`sym::SYMBOLS`]: super::sym::SYMBOLS
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, hash::BuildHasher as _};
+use core::{
+    alloc::{AllocError, Allocator},
+    hash::BuildHasher as _,
+};
 
 use foldhash::fast::RandomState;
 use hashbrown::{HashTable, hash_table::Entry};
 
 use super::repr::{Repr, RuntimeRepr};
-use crate::heap::BumpAllocator;
 
 /// A string interning table mapping `&str` to canonical [`Repr`] values.
 ///
@@ -60,10 +62,11 @@ use crate::heap::BumpAllocator;
 ///    attempts to hash or compare entries with dangling pointers.
 ///
 /// 2. **Allocator consistency**: The same bump allocator instance must be used for all
-///    [`intern`](Self::intern) calls on this table.
+///    [`try_intern`](Self::try_intern) calls on this table.
 ///
-/// 3. **Allocator lifetime**: The bump allocator passed to [`intern`](Self::intern) must remain
-///    live for as long as the table is in use (i.e., until [`reset`](Self::reset) is called).
+/// 3. **Allocator lifetime**: The bump allocator passed to [`try_intern`](Self::try_intern) must
+///    remain live for as long as the table is in use (i.e., until [`reset`](Self::reset) is
+///    called).
 ///
 /// 4. **Priming precondition**: [`prime`](Self::prime) must only be called on an empty table
 ///    (typically after [`clear`](Self::clear)).
@@ -72,7 +75,7 @@ use crate::heap::BumpAllocator;
 ///
 /// Dropping the `SymbolTable` after the bump allocator has been reset is **safe**.
 /// [`Repr`] has no [`Drop`] implementation, so dropping the table does not dereference
-/// any runtime symbol pointers. Only *using* the table (e.g., calling [`intern`](Self::intern))
+/// any runtime symbol pointers. Only *using* the table (e.g., calling [`try_intern`](Self::try_intern))
 /// after the allocator reset causes undefined behavior.
 ///
 /// Note: This assumes the [`HashTable`]'s own allocator `A` (used for bucket storage) is
@@ -106,18 +109,6 @@ impl<A: Allocator> SymbolTable<A> {
             hasher: RandomState::default(),
         }
     }
-
-    /// Returns the number of symbols currently in the table.
-    #[cfg(test)]
-    pub(crate) fn len(&self) -> usize {
-        self.inner.len()
-    }
-
-    /// Returns `true` if the table contains no symbols.
-    #[inline]
-    pub(crate) fn is_empty(&self) -> bool {
-        self.inner.is_empty()
-    }
 }
 
 #[expect(unsafe_code)]
@@ -128,7 +119,7 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// # Safety
     ///
-    /// The caller must call [`prime`](Self::prime) before any subsequent [`intern`](Self::intern)
+    /// The caller must call [`prime`](Self::prime) before any subsequent [`try_intern`](Self::try_intern)
     /// calls. Without priming, interning a predefined symbol (e.g., `"and"`) would allocate
     /// a new runtime symbol instead of returning the canonical constant [`Repr`] that matches
     /// the static symbols in [`sym`](super::sym). This would break the invariant that
@@ -184,7 +175,7 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// Violating this ordering causes undefined behavior: the bump allocator reset
     /// invalidates runtime symbol pointers, and subsequent table operations (including
-    /// this method's `clear()` + `prime()` sequence, or future `intern()` calls) may
+    /// this method's `clear()` + `prime()` sequence, or future `try_intern()` calls) may
     /// attempt to dereference those dangling pointers.
     ///
     /// # Invariants Restored
@@ -215,6 +206,11 @@ impl<A: Allocator> SymbolTable<A> {
     /// The canonical [`Repr`] for `value`. Interning the same string multiple times
     /// is idempotent—subsequent calls return the same [`Repr`].
     ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if `alloc` cannot provide the memory for a new runtime symbol. A
+    /// failed call adds no entry to the table.
+    ///
     /// # Safety
     ///
     /// The caller must ensure:
@@ -223,9 +219,10 @@ impl<A: Allocator> SymbolTable<A> {
     ///    This means [`reset`](Self::reset) must have been called before any preceding bump
     ///    allocator reset.
     ///
-    /// 2. **Allocator consistency**: The same allocator instance must be used for all `intern()`
-    ///    calls on this table. Using different allocators would result in runtime symbols from
-    ///    multiple allocators, and resetting one would leave dangling pointers from the other.
+    /// 2. **Allocator consistency**: The same allocator instance must be used for all
+    ///    `try_intern()` calls on this table. Using different allocators would result in runtime
+    ///    symbols from multiple allocators, and resetting one would leave dangling pointers from
+    ///    the other.
     ///
     /// 3. **Allocator lifetime**: The allocator must remain live for the lifetime of this symbol
     ///    table, or until [`reset`](Self::reset) is called. All runtime [`Repr`] values in the
@@ -240,24 +237,24 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// Both operations dereference runtime [`Repr`] pointers, which is why the caller
     /// must ensure no dangling pointers exist in the table.
-    pub(crate) unsafe fn intern<B: BumpAllocator>(&mut self, alloc: &B, value: &str) -> Repr {
+    pub(crate) unsafe fn try_intern<B: Allocator>(
+        &mut self,
+        alloc: &B,
+        value: &str,
+    ) -> Result<Repr, AllocError> {
         let hash = self.hasher.hash_one(value);
 
-        // We hash against the string, therefore we must pull out the string representation,
-        // instead of hashing against the Repr directly, as that would lead to incorrect results.
-        // We're mapping string -> repr. But the string representation is already stored in the
-        // Repr.
         match self.inner.entry(
             hash,
-            // SAFETY: Caller guarantees no dangling runtime pointers in the table.
+            // SAFETY: The caller guarantees that the table holds no dangling runtime pointers.
             |repr| unsafe { repr.as_str() } == value,
-            // SAFETY: Same as above; this is called during rehashing.
+            // SAFETY: The caller guarantees that the table holds no dangling runtime pointers.
             |repr| self.hasher.hash_one(unsafe { repr.as_str() }),
         ) {
-            Entry::Occupied(entry) => *entry.get(),
+            Entry::Occupied(entry) => Ok(*entry.get()),
             Entry::Vacant(entry) => {
-                let repr = Repr::runtime(RuntimeRepr::alloc(alloc, value));
-                *entry.insert(repr).get()
+                let repr = Repr::runtime(RuntimeRepr::try_alloc(alloc, value)?);
+                Ok(*entry.insert(repr).get())
             }
         }
     }
@@ -267,14 +264,24 @@ impl<A: Allocator> SymbolTable<A> {
 mod tests {
     #![expect(unsafe_code, clippy::non_ascii_literal)]
 
-    use super::{super::sym, SymbolTable};
+    use super::{super::sym, Repr, SymbolTable};
     use crate::heap::Scratch;
+
+    /// Interns `value`, as [`SymbolTable::try_intern`] does.
+    ///
+    /// # Safety
+    ///
+    /// The caller must uphold the requirements of [`SymbolTable::try_intern`].
+    unsafe fn intern(table: &mut SymbolTable, alloc: &Scratch, value: &str) -> Repr {
+        // SAFETY: The caller upholds the requirements.
+        unsafe { table.try_intern(alloc, value) }.expect("should allocate the symbol")
+    }
 
     #[test]
     fn new_table_is_empty() {
         let table = SymbolTable::new();
-        assert!(table.is_empty());
-        assert_eq!(table.len(), 0);
+        assert!(table.inner.is_empty());
+        assert_eq!(table.inner.len(), 0);
     }
 
     #[test]
@@ -285,8 +292,8 @@ mod tests {
             table.prime();
         }
 
-        assert_eq!(table.len(), sym::LOOKUP.len());
-        assert!(!table.is_empty());
+        assert_eq!(table.inner.len(), sym::LOOKUP.len());
+        assert!(!table.inner.is_empty());
     }
 
     #[test]
@@ -296,14 +303,14 @@ mod tests {
         unsafe {
             table.prime();
         }
-        assert!(!table.is_empty());
+        assert!(!table.inner.is_empty());
 
-        // SAFETY: We will not call intern() after this without priming first.
+        // SAFETY: We will not call `try_intern` after this without priming first.
         unsafe {
             table.clear();
         }
-        assert!(table.is_empty());
-        assert_eq!(table.len(), 0);
+        assert!(table.inner.is_empty());
+        assert_eq!(table.inner.len(), 0);
     }
 
     #[test]
@@ -315,19 +322,19 @@ mod tests {
         unsafe {
             table.prime();
         }
-        let initial_len = table.len();
+        let initial_len = table.inner.len();
 
         // SAFETY: Table is primed, scratch is live.
         unsafe {
-            table.intern(&scratch, "user_defined_symbol");
+            intern(&mut table, &scratch, "user_defined_symbol");
         };
-        assert_eq!(table.len(), initial_len + 1);
+        assert_eq!(table.inner.len(), initial_len + 1);
 
         // SAFETY: Scratch has not been reset, so runtime pointers are valid.
         unsafe {
             table.reset();
         };
-        assert_eq!(table.len(), initial_len);
+        assert_eq!(table.inner.len(), initial_len);
     }
 
     #[test]
@@ -344,7 +351,7 @@ mod tests {
         // The returned Repr should match the one in LOOKUP.
         for &(name, expected_repr) in sym::LOOKUP {
             // SAFETY: Table is primed, scratch is live.
-            let repr = unsafe { table.intern(&scratch, name) };
+            let repr = unsafe { intern(&mut table, &scratch, name) };
             assert_eq!(
                 repr, expected_repr,
                 "predefined symbol '{name}' should return constant Repr"
@@ -363,9 +370,9 @@ mod tests {
         };
 
         // SAFETY: Table is primed, scratch is live.
-        let repr1 = unsafe { table.intern(&scratch, "my_custom_symbol") };
+        let repr1 = unsafe { intern(&mut table, &scratch, "my_custom_symbol") };
         // SAFETY: Table is primed, scratch is live.
-        let repr2 = unsafe { table.intern(&scratch, "my_custom_symbol") };
+        let repr2 = unsafe { intern(&mut table, &scratch, "my_custom_symbol") };
 
         assert_eq!(repr1, repr2);
         // SAFETY: scratch is live.
@@ -383,9 +390,9 @@ mod tests {
         }
 
         // SAFETY: Table is primed, scratch is live.
-        let repr_foo = unsafe { table.intern(&scratch, "foo_unique") };
+        let repr_foo = unsafe { intern(&mut table, &scratch, "foo_unique") };
         // SAFETY: Table is primed, scratch is live.
-        let repr_bar = unsafe { table.intern(&scratch, "bar_unique") };
+        let repr_bar = unsafe { intern(&mut table, &scratch, "bar_unique") };
 
         assert_ne!(repr_foo, repr_bar);
     }
@@ -401,7 +408,7 @@ mod tests {
         }
 
         // SAFETY: Table is primed, scratch is live.
-        let repr = unsafe { table.intern(&scratch, "") };
+        let repr = unsafe { intern(&mut table, &scratch, "") };
 
         // SAFETY: scratch is live.
         assert_eq!(unsafe { repr.as_str() }, "");
@@ -418,7 +425,7 @@ mod tests {
         }
 
         // SAFETY: Table is primed, scratch is live.
-        let repr = unsafe { table.intern(&scratch, "日本語 🎉 émojis") };
+        let repr = unsafe { intern(&mut table, &scratch, "日本語 🎉 émojis") };
 
         // SAFETY: scratch is live.
         assert_eq!(unsafe { repr.as_str() }, "日本語 🎉 émojis");
@@ -437,7 +444,7 @@ mod tests {
         let long_string = "a".repeat(10_000);
 
         // SAFETY: Table is primed, scratch is live.
-        let repr = unsafe { table.intern(&scratch, &long_string) };
+        let repr = unsafe { intern(&mut table, &scratch, &long_string) };
 
         // SAFETY: scratch is live.
         assert_eq!(unsafe { repr.as_str() }, long_string);
@@ -456,7 +463,7 @@ mod tests {
         // Get a constant Repr by interning a predefined symbol.
         let (name, expected_repr) = sym::LOOKUP[0];
         // SAFETY: Table is primed, scratch is live.
-        let repr_before = unsafe { table.intern(&scratch, name) };
+        let repr_before = unsafe { intern(&mut table, &scratch, name) };
         assert_eq!(repr_before, expected_repr);
 
         // SAFETY: Scratch has not been reset.
@@ -465,7 +472,7 @@ mod tests {
         };
 
         // SAFETY: Table is primed, scratch is live.
-        let repr_after = unsafe { table.intern(&scratch, name) };
+        let repr_after = unsafe { intern(&mut table, &scratch, name) };
 
         // Constants should be identical across resets.
         assert_eq!(repr_before, repr_after);
@@ -480,16 +487,16 @@ mod tests {
         unsafe {
             table.prime();
         };
-        let primed_len = table.len();
+        let primed_len = table.inner.len();
 
         // Intern some runtime symbols.
         // SAFETY: Table is primed, scratch is live.
         unsafe {
-            table.intern(&scratch, "runtime_1");
-            table.intern(&scratch, "runtime_2");
-            table.intern(&scratch, "runtime_3");
+            intern(&mut table, &scratch, "runtime_1");
+            intern(&mut table, &scratch, "runtime_2");
+            intern(&mut table, &scratch, "runtime_3");
         }
-        assert_eq!(table.len(), primed_len + 3);
+        assert_eq!(table.inner.len(), primed_len + 3);
 
         // SAFETY: Scratch has not been reset.
         unsafe {
@@ -497,7 +504,7 @@ mod tests {
         };
 
         // Runtime symbols should be gone, only constants remain.
-        assert_eq!(table.len(), primed_len);
+        assert_eq!(table.inner.len(), primed_len);
     }
 
     #[test]
@@ -509,16 +516,16 @@ mod tests {
         unsafe {
             table.prime();
         };
-        let initial_len = table.len();
+        let initial_len = table.inner.len();
 
         // SAFETY: Table is primed, scratch is live.
         unsafe {
             for i in 0..100 {
-                table.intern(&scratch, &format!("symbol_{i}"));
+                intern(&mut table, &scratch, &format!("symbol_{i}"));
             }
         }
 
-        assert_eq!(table.len(), initial_len + 100);
+        assert_eq!(table.inner.len(), initial_len + 100);
     }
 
     /// Test that dropping a `SymbolTable` after the backing allocator has been reset
@@ -540,9 +547,9 @@ mod tests {
         // Intern several runtime symbols to ensure we have dangling pointers after reset.
         // SAFETY: Table is primed, scratch is live.
         unsafe {
-            table.intern(&scratch, "runtime_symbol_1");
-            table.intern(&scratch, "runtime_symbol_2");
-            table.intern(&scratch, "another_runtime_symbol");
+            intern(&mut table, &scratch, "runtime_symbol_1");
+            intern(&mut table, &scratch, "runtime_symbol_2");
+            intern(&mut table, &scratch, "another_runtime_symbol");
         }
 
         // Drop the allocator FIRST - this invalidates all runtime symbol pointers.

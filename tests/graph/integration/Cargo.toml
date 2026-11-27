@@ -25,6 +25,7 @@ type-system                    = { workspace = true }
 
 # Private third-party dependencies
 pretty_assertions  = { workspace = true }
+rstest             = { workspace = true }
 serde              = { workspace = true }
 serde_json         = { workspace = true }
 time               = { workspace = true }

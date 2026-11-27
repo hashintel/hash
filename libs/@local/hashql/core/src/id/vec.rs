@@ -21,7 +21,7 @@ use rayon::iter::{
 };
 
 use super::{Id, slice::IdSlice};
-use crate::heap::{FromIteratorIn, TryCloneIn};
+use crate::heap::{CloneIn, FromIteratorIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -900,7 +900,7 @@ where
     }
 }
 
-impl<I, T, A, B> TryCloneIn<B> for IdVec<I, T, A>
+impl<I, T, A, B> CloneIn<B> for IdVec<I, T, A>
 where
     I: Id,
     T: Clone,
@@ -910,13 +910,13 @@ where
     type Cloned = IdVec<I, T, B>;
 
     #[inline]
-    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
-        self.raw.try_clone_in(allocator).map(IdVec::from_raw)
+    fn try_clone_in(&self, alloc: B) -> Result<Self::Cloned, AllocError> {
+        self.raw.try_clone_in(alloc).map(IdVec::from_raw)
     }
 
     #[inline]
-    fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
-        self.raw.try_clone_into(&mut into.raw, allocator)
+    fn try_clone_into(&self, target: &mut Self::Cloned, alloc: B) -> Result<(), AllocError> {
+        self.raw.try_clone_into(&mut target.raw, alloc)
     }
 }
 

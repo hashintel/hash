@@ -4,11 +4,10 @@ import type { SiUnitDefinition } from "../si-unit-groups";
 
 export const fluidPermeabilityUnits: SiUnitDefinition[] = [
   {
-    dataTypeBaseUrl: systemDataTypes.darcies.dataTypeBaseUrl,
     title: "Darcy",
     titlePlural: "Darcies",
     description:
-      "A non-SI unit of intrinsic permeability equal to 1/1.01325 square micrometres.",
+      "A non-SI unit of intrinsic permeability equal to 1/1.01325 square micrometers.",
     symbol: "d",
     conversions: {
       [systemDataTypes.squareMetres.dataTypeBaseUrl]: {
@@ -30,7 +29,6 @@ export const fluidPermeabilityUnits: SiUnitDefinition[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.millidarcies.dataTypeBaseUrl,
     title: "Millidarcy",
     titlePlural: "Millidarcies",
     description:
@@ -56,7 +54,6 @@ export const fluidPermeabilityUnits: SiUnitDefinition[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.microdarcies.dataTypeBaseUrl,
     title: "Microdarcy",
     titlePlural: "Microdarcies",
     description:
@@ -82,7 +79,6 @@ export const fluidPermeabilityUnits: SiUnitDefinition[] = [
     },
   },
   {
-    dataTypeBaseUrl: systemDataTypes.nanodarcies.dataTypeBaseUrl,
     title: "Nanodarcy",
     titlePlural: "Nanodarcies",
     description:

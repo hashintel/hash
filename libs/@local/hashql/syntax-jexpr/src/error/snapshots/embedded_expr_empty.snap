@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "\"\""
+---
+error[jexpr::parser::string::invalid-expression]: Invalid string expression
+  ╭▸ 
+1 │ ""
+  │ ━━ expression string cannot be empty
+  │
+  ├ help: provide a path or expression such as `"x"`, `"a.b"`, or `"_"`
+  ╰ note: string expressions support paths (`a::b`), field accesses (`a.b`), index accesses (`a[0]`), and `_`

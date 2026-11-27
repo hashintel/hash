@@ -131,12 +131,11 @@ This crate uses a macro-based test harness for testing parser fragments, with in
 ### Structure
 
 ```text
-src/parser/
-  string/
-    test.rs           # Test harness macros
-    type.rs           # Parser with tests
-    snapshots/        # insta snapshots
-      *.snap
+src/embedded/
+  test.rs           # Test harness macros
+  type.rs           # Parser with tests
+  snapshots/        # insta snapshots
+    *.snap
 ```
 
 ### Example

@@ -2,7 +2,7 @@ use std::io::{self, Write as _};
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -191,12 +191,13 @@ pub(crate) fn mir_pass_transform_pre_inline<'heap>(
     };
     let mut scratch = Scratch::new();
 
-    let mut pass = PreInline::new_in(&mut scratch);
+    let mut pass = PreInline::new_in(scratch.as_mut_scope());
     let _: Changed = pass.run(
         &mut context,
         &mut GlobalTransformState::new_in(&bodies, heap),
         &mut bodies,
     );
+    scratch.reset();
 
     process_issues(diagnostics, context.diagnostics)?;
 

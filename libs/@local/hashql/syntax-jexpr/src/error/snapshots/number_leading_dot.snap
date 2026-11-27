@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": .5}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": .5}
+  │              ━ leading decimal point requires a leading `0`
+  │
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`
+help: add a leading `0`
+  ╭╴
+1 │ {"#literal": 0.5}
+  ╰╴             +

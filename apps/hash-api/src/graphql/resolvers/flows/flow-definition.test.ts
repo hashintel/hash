@@ -161,6 +161,46 @@ describe("createFlowDefinitionResolver", () => {
     });
   });
 
+  it("saves a for-each step just added, with no list and nothing collected, with both as problems on it", async () => {
+    mocks.createFlowDefinition.mockResolvedValue(savedEntity("edition-1"));
+
+    const definition = {
+      ...validDefinition,
+      steps: [
+        answerStep,
+        { kind: "for-each", stepId: "each", description: "", steps: [] },
+      ],
+    };
+
+    const result = await createFlowDefinitionResolver(
+      {},
+      { webId, definition } as never,
+      graphQLContext as never,
+      {} as never,
+    );
+
+    expect(mocks.createFlowDefinition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      { webId, flowDefinition: definition },
+    );
+    expect(result).toMatchObject({
+      isRunnable: false,
+      diagnostics: [
+        {
+          code: "missingOver",
+          path: ["steps", 1, "over"],
+          stepId: "each",
+        },
+        {
+          code: "missingCollect",
+          path: ["steps", 1, "collect"],
+          stepId: "each",
+        },
+      ],
+    });
+  });
+
   it("refuses a definition without the shape of one", async () => {
     await expect(
       createFlowDefinitionResolver(
