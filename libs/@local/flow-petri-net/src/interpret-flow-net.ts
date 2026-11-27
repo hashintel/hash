@@ -3,6 +3,7 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 
 import {
   generateAccumulatorPlaceKey,
+  generateDonePortName,
   generateIteratorPlaceKey,
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
@@ -54,7 +55,7 @@ import type {
  *
  * An action step's attempts go round its instance of its action's subnet:
  *
- *   startStep ─▶ input ports ─▶ startAttempt ─▶ InProgress ─┬─▶ succeedAttempt ─▶ output ports
+ *   startStep ─▶ input ports ─▶ startAttempt ─▶ InProgress ─┬─▶ succeedAttempt ─▶ output ports, Done port
  *                                                  ▲        └─▶ failAttempt ─▶ Failed ─┬─▶ giveUp ─▶ GaveUp port
  *                                                  └──────────── retryAttempt ◀────────┘
  *
@@ -116,7 +117,7 @@ export type FlowNetToken = {
   | { kind: "value"; present: true; ref: FlowNetValueRef }
   /** A value that's missing, such as an optional input nothing is connected to. */
   | { kind: "value"; present: false }
-  /** Starts an action with no inputs, or records that an action with no outputs succeeded. */
+  /** Starts an action with no inputs, or records that an action succeeded. */
   | { kind: "signal" }
   | { kind: "attempt"; attempts: number }
   | { kind: "stepFailure"; stepId: string }
@@ -780,18 +781,17 @@ export const startFlowNetRun = (
       ),
     );
 
-  /** A `forEach` step can't start while its array is missing; what it reads for `runAfter` isn't its array. */
+  /** A `forEach` step can't start while its array is missing. A path's output it runs after can be absent too. */
   const hasMissingArray = (
     metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
     bindings: Binding[],
   ) =>
+    "array" in metadata &&
     bindings.some(
       ({ path, token }) =>
+        isSameFlowNetPath(path, rootPath(metadata.array)) &&
         token.kind === "value" &&
-        !token.present &&
-        !(metadata.runAfter ?? []).some((endpoint) =>
-          isSameFlowNetPath(path, rootPath(endpoint)),
-        ),
+        !token.present,
     );
 
   /** Whether a held start can fire with `bindings`, which the executor decides the same way. */
@@ -807,11 +807,14 @@ export const startFlowNetRun = (
       ? !hasMissingArray(metadata, bindings)
       : !hasMissingSkipInput(metadata, bindings));
 
-  const constantItemCount = (constant: JsonValue | undefined) => {
-    if (constant === undefined) {
+  const constantItemCount = (
+    metadata: Extract<TransitionMetadata, { role: "startForEach" }>,
+  ) => {
+    if (!("constant" in metadata)) {
       return null;
     }
 
+    const { constant } = metadata;
     const value =
       typeof constant === "object" && constant !== null && "value" in constant
         ? (constant as { value: JsonValue }).value
@@ -869,7 +872,7 @@ export const startFlowNetRun = (
       }
       case "startForEach": {
         const itemCount =
-          constantItemCount(metadata.constant) ??
+          constantItemCount(metadata) ??
           (fired?.role === "startForEach" ? fired.itemCount : null);
 
         if (itemCount === null) {
@@ -1263,7 +1266,7 @@ export const startFlowNetRun = (
       case "succeedAttempt": {
         const { scope, path, token } = attemptToEnd(stepRun);
         const { itemPath } = token;
-        const { outputs } = scope.actionDefinition;
+        const donePortName = generateDonePortName(scope.actionDefinition);
         const { outputNames } = held;
 
         return fireAttemptTransition({
@@ -1271,11 +1274,11 @@ export const startFlowNetRun = (
           role: "succeedAttempt",
           from: { path, token },
           produce: (outputPath): FlowNetToken => {
-            if (outputs.length === 0) {
+            const outputName = instancePlaceName(scope, outputPath);
+
+            if (outputName === donePortName) {
               return { kind: "signal", itemPath };
             }
-
-            const outputName = instancePlaceName(scope, outputPath);
 
             if (!outputName) {
               throw new FlowNetInterpreterError(
@@ -1338,7 +1341,7 @@ export const startFlowNetRun = (
     if (
       !(
         (transitionMetadata.role === "startForEach" &&
-          constantItemCount(transitionMetadata.constant) === null) ||
+          constantItemCount(transitionMetadata) === null) ||
         (transitionMetadata.role === "startStep" && waitForStepStarts)
       )
     ) {

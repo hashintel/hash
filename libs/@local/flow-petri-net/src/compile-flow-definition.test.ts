@@ -19,8 +19,10 @@ import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step
 import { compileFlowDefinition } from "./compile-flow-definition.js";
 import {
   failedStepRunsPlaceKey,
+  generateActionSubnetName,
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
+  generateDonePortKey,
   generateInputConsumerKey,
   generateInputPortKey,
   generateInputValueKey,
@@ -38,7 +40,8 @@ import {
   ifPathsFlowDefinition,
 } from "./testing/flow-definitions.js";
 
-import type { ArcEndpoint, SDCPN } from "@hashintel/petrinaut-core";
+import type { TransitionMetadata } from "./flow-net-metadata.js";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import type {
   ActionStepDefinition,
   FlowDefinition,
@@ -513,7 +516,7 @@ describe("compileFlowDefinition", () => {
     });
   });
 
-  it("waits for a step on a path on that path's output, and for a step after the if on its first", async () => {
+  it("waits for a step on a path on that path's output, and for a step after the if on its Done port", async () => {
     const sdcpn = await compileFlowDefinition({
       ...ifPathsFlowDefinition,
       steps: [
@@ -552,37 +555,127 @@ describe("compileFlowDefinition", () => {
       startOf(stepId)
         ?.inputArcs.filter(({ type }) => type === "read")
         .map((arc) => holderOf(getArcEndpoint(arc)));
-    const metadataOf = (stepId: string) => {
-      const metadata = startOf(stepId)?.metadata as
-        | { runAfter?: ArcEndpoint[]; paths?: ArcEndpoint[] }
-        | undefined;
-
-      return {
-        runAfter: metadata?.runAfter?.map(holderOf),
-        paths: metadata?.paths?.map(holderOf),
-      };
-    };
+    const pathsOf = (stepId: string) =>
+      (
+        startOf(stepId)?.metadata as
+          | Extract<TransitionMetadata, { role: "startStep" }>
+          | undefined
+      )?.paths?.map(holderOf);
     const url = generateInputValueKey("url");
 
     /* No reads its path's output, and lists it as a path. */
     expect(readsOf("no")).toEqual([url, "check.false"]);
-    expect(metadataOf("no")).toEqual({
-      runAfter: ["check.false"],
-      paths: ["check.false"],
-    });
+    expect(pathsOf("no")).toEqual(["check.false"]);
 
     /* Yes also takes its value from its path's output, through the same arc, which is still a path. */
     expect(readsOf("yes")).toEqual(["check.true"]);
-    expect(metadataOf("yes")).toEqual({
-      runAfter: undefined,
-      paths: ["check.true"],
+    expect(pathsOf("yes")).toEqual(["check.true"]);
+
+    /* A step after the if, on neither path, reads its Done port, whichever path it took. */
+    expect(readsOf("afterCheck")).toEqual([url, "check.Done"]);
+    expect(pathsOf("afterCheck")).toBeUndefined();
+  });
+
+  it("waits for an action on its Done port, without a place for an output another step consumes", async () => {
+    const [check] = ifPathsFlowDefinition.steps;
+
+    const sdcpn = await compileFlowDefinition({
+      ...ifPathsFlowDefinition,
+      steps: [
+        check!,
+        {
+          kind: "action",
+          stepId: "take",
+          actionDefinitionId: "getFileFromUrl",
+          description: "",
+          inputs: {
+            url: {
+              kind: "step-output",
+              stepId: "check",
+              outputName: "true",
+              access: "consume",
+              whenMissing: "skip",
+            },
+          },
+        },
+        {
+          kind: "action",
+          stepId: "follow",
+          actionDefinitionId: "getFileFromUrl",
+          description: "",
+          inputs: { url: { kind: "flow-input", inputName: "url" } },
+          runAfter: [{ stepId: "check" }],
+        },
+      ],
     });
 
-    /* A step after the if, on neither path, reads its first output, where an absent token still means it finished. */
-    expect(readsOf("afterCheck")).toEqual([url, "check.true"]);
-    expect(metadataOf("afterCheck")).toEqual({
-      runAfter: ["check.true"],
-      paths: undefined,
+    expect(
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("startStep", "follow")),
+      )?.inputArcs,
+    ).toContainEqual({
+      endpoint: portEndpointOf(
+        "check",
+        generateDonePortKey(generateActionSubnetName("if", { value: "Text" })),
+      ),
+      weight: 1,
+      type: "read",
+    });
+    expect(
+      sdcpn.transitions.find(
+        byKey(generateCopyOutputTransitionKey("check", "true")),
+      ),
+    ).toBeUndefined();
+    expect(
+      sdcpn.places.find(
+        byKey(generateValuePlaceKey(generateOutputValueKey("check", "true"))),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("keeps a path's output where a step that runs after the path reads it, when another step consumes it", async () => {
+    const [check] = ifPathsFlowDefinition.steps;
+
+    const sdcpn = await compileFlowDefinition({
+      ...ifPathsFlowDefinition,
+      steps: [
+        check!,
+        {
+          kind: "action",
+          stepId: "take",
+          actionDefinitionId: "getFileFromUrl",
+          description: "",
+          inputs: {
+            url: {
+              kind: "step-output",
+              stepId: "check",
+              outputName: "true",
+              access: "consume",
+              whenMissing: "skip",
+            },
+          },
+        },
+        {
+          kind: "action",
+          stepId: "follow",
+          actionDefinitionId: "getFileFromUrl",
+          description: "",
+          inputs: { url: { kind: "flow-input", inputName: "url" } },
+          runAfter: [{ stepId: "check", outputName: "true" }],
+        },
+      ],
+    });
+
+    expect(
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("startStep", "follow")),
+      )?.inputArcs,
+    ).toContainEqual({
+      endpoint: placeEndpointOf(
+        generateValuePlaceKey(generateOutputValueKey("check", "true")),
+      ),
+      weight: 1,
+      type: "read",
     });
   });
 
@@ -719,6 +812,18 @@ describe("compileFlowDefinition", () => {
         "finishCollecting",
       ],
     ]);
+
+    /* It iterates over step 2's output, read from its port. */
+    expect(
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("startForEach", "3")),
+      )?.metadata?.array,
+    ).toEqual(
+      portEndpointOf(
+        "2",
+        generateOutputPortKey("persistEntities", "persistedEntities"),
+      ),
+    );
 
     const startItem = sdcpn.transitions.find(
       byKey(generateStepTransitionKey("startItem", "3")),

@@ -57,7 +57,7 @@ type Value = {
     | { kind: "placed" };
   consumers: Consumer[];
   isFlowOutput: boolean;
-  /** Read by a step that runs after the value's step, to tell that it has finished. */
+  /** Read by a step that runs after the path or for-each step it comes from, to tell that it has finished. */
   isWaitedOn: boolean;
 };
 
@@ -245,11 +245,8 @@ export const placeValues = ({
     }
   }
 
-  /*
-   * A step waits for a step it runs after by reading one of its outputs, which a step produces all at once: its path's
-   * output, or else the first. An action with no outputs has none, so `runAfterArcs` reads its `Done` port instead.
-   */
-  const completionValueKey = ({
+  /* What a step reads to tell that a step it runs after has finished, unless it's an action's `Done` port. */
+  const waitedOnValueKey = ({
     stepId,
     outputName,
   }: {
@@ -262,20 +259,14 @@ export const placeValues = ({
 
     const { step } = steps.getStep(stepId);
 
-    if (step.kind === "for-each") {
-      return generateOutputValueKey(stepId, step.collect.as);
-    }
-
-    const [firstOutput] = getActionDefinition(step).outputs;
-
-    return firstOutput
-      ? generateOutputValueKey(stepId, firstOutput.name)
+    return step.kind === "for-each"
+      ? generateOutputValueKey(stepId, step.collect.as)
       : null;
   };
 
   for (const { step } of steps.entries) {
     for (const entry of getRunAfterEntries(step)) {
-      const valueKey = completionValueKey(entry);
+      const valueKey = waitedOnValueKey(entry);
 
       if (valueKey) {
         getValue(valueKey).isWaitedOn = true;
@@ -446,9 +437,8 @@ export const placeValues = ({
     },
 
     /**
-     * The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`, with
-     * the endpoints for its metadata: `runAfter` for those arcs, and `paths` for every path's output (see
-     * `PathEndpoints`).
+     * The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`, and
+     * the endpoints of every path's output for its `paths` metadata (see `PathEndpoints`).
      */
     runAfterArcs: (
       step: StepDefinition,
@@ -460,7 +450,7 @@ export const placeValues = ({
 
       for (const entry of entries) {
         const { step: before } = steps.getStep(entry.stepId);
-        const valueKey = completionValueKey(entry);
+        const valueKey = waitedOnValueKey(entry);
 
         const waitedOn = valueKey
           ? getValueLocation(valueKey).shared
@@ -492,7 +482,6 @@ export const placeValues = ({
 
       return {
         arcs,
-        runAfter: arcs.map(({ endpoint }) => endpoint),
         /* A plain line is followed whenever the step can start, so its paths can't keep it from starting. */
         paths: entries.some(({ outputName }) => outputName === undefined)
           ? []
