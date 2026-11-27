@@ -20,7 +20,7 @@ use rayon::iter::{
     ParallelIterator as _,
 };
 
-use super::{Id, slice::IdSlice};
+use super::{Id, check_indices, slice::IdSlice};
 use crate::heap::{CloneIn, FromIteratorIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
@@ -343,14 +343,18 @@ where
     /// ```
     ///
     /// [`from_fn`]: IdVec::from_fn
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn from_fn_in(size: usize, mut func: impl FnMut(I) -> T, alloc: A) -> Self {
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(size.saturating_sub(1));
+        check_indices::<I>(size);
 
         let mut vec = Vec::with_capacity_in(size, alloc);
 
         for index in 0..size {
-            vec.push(func(I::from_usize(index)));
+            // SAFETY: `check_indices` returned for `size`, and `index` is below it.
+            vec.push(func(unsafe { I::from_usize_unchecked(index) }));
         }
 
         Self::from_raw(vec)
@@ -531,16 +535,20 @@ where
     /// let last = vec.into_iter_enumerated().next_back().unwrap();
     /// assert_eq!(last, (NodeId::new(1), "b"));
     /// ```
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn into_iter_enumerated(
         self,
     ) -> impl DoubleEndedIterator<Item = (I, T)> + ExactSizeIterator {
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len().saturating_sub(1));
+        check_indices::<I>(self.len());
 
-        self.raw
-            .into_iter()
-            .enumerate()
-            .map(|(index, value)| (I::from_usize(index), value))
+        self.raw.into_iter().enumerate().map(|(index, value)| {
+            // SAFETY: `check_indices` returned for the length of `raw`, and `enumerate` yields
+            // indices below it.
+            (unsafe { I::from_usize_unchecked(index) }, value)
+        })
     }
 
     /// Copies elements from the `src` range to a position starting at `dst` within the vector.

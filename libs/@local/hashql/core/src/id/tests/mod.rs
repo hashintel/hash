@@ -4,7 +4,7 @@ mod generic;
 
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
-use super::{Id, IdError, newtype};
+use super::{Id, IdError, IdSlice, IdVec, newtype};
 
 newtype!(
     #[id(crate = crate)]
@@ -260,6 +260,40 @@ fn ranged_bounds() {
 #[should_panic(expected = "id value must be between 10<20")]
 fn ranged_above() {
     let _id = ExclusiveId::new(20);
+}
+
+#[test]
+fn enumerated_full_range() {
+    let raw = [0_u8; 10];
+    let slice = IdSlice::<CompoundEndId, _>::from_raw(&raw);
+
+    let ids: Vec<u8> = slice.ids().map(CompoundEndId::get).collect();
+    assert_eq!(ids, (0..10).collect::<Vec<u8>>());
+    assert_eq!(
+        slice.iter_enumerated().map(|(id, _)| id).next_back(),
+        Some(CompoundEndId::MAX)
+    );
+
+    let squares = IdVec::<CompoundEndId, u8>::from_fn(10, |id| id.get() * id.get());
+    assert_eq!(squares[CompoundEndId::MAX], 81);
+    assert_eq!(
+        squares.into_iter_enumerated().next_back(),
+        Some((CompoundEndId::MAX, 81))
+    );
+}
+
+#[test]
+#[should_panic(expected = "id value must be between 0<2 | 8")]
+fn enumerated_above() {
+    let raw = [0_u8; 11];
+    let _ids = IdSlice::<CompoundEndId, _>::from_raw(&raw).ids();
+}
+
+#[test]
+#[should_panic(expected = "id value must be between 10<20")]
+fn enumerated_below() {
+    let raw = [0_u8; 15];
+    let _iter = IdSlice::<ExclusiveId, _>::from_raw(&raw).iter_enumerated();
 }
 
 #[test]

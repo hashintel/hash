@@ -195,11 +195,11 @@ impl Definition {
         let usize_assertion = self.assertion(IntegerScalar::U64);
 
         quote! {
-            // SAFETY: `Id` requires every operation on an id to be a pure function of the number it
-            // stands for, and equality to be equality of that number. The stored scalar is that
-            // number. This expansion generates every operation: conversion, comparison, hashing
-            // and formatting each read the stored scalar and no other state. Therefore each
-            // depends on the number alone.
+            // SAFETY: `Id` requires every operation on an id other than formatting to be a pure
+            // function of the number it stands for, and equality to be equality of that number.
+            // The stored scalar is that number. This expansion generates each of those operations:
+            // conversion, comparison and hashing read the stored scalar and no other state.
+            // Therefore each depends on the number alone.
             #[automatically_derived]
             #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
             #konst unsafe impl #parameters #krate::id::Id for #name #generics {
@@ -221,6 +221,11 @@ impl Definition {
                 #[inline]
                 fn from_usize(value: usize) -> Self {
                     #usize_assertion
+                    #stored_cast
+                }
+
+                #[inline]
+                unsafe fn from_usize_unchecked(value: usize) -> Self {
                     #stored_cast
                 }
 

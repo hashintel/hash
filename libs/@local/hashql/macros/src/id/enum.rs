@@ -175,12 +175,12 @@ pub(super) fn expand_enum(
     );
 
     output.extend(quote! {
-        // SAFETY: `Id` requires every operation on an id to be a pure function of the number it
-        // stands for, and equality to be equality of that number. The discriminant is that number,
-        // and a unit enum holds no other state. The conversions generated here read the
-        // discriminant alone. `PartialEq` is derived, which the match above checks. Ordering,
-        // hashing and `Debug` are the enum's own impls, which this derive requires to be derived
-        // as well. A derived impl on a unit enum reads the discriminant alone.
+        // SAFETY: `Id` requires every operation on an id other than formatting to be a pure
+        // function of the number it stands for, and equality to be equality of that number. The
+        // discriminant is that number, and a unit enum holds no other state. The conversions
+        // generated here read the discriminant alone. `PartialEq` is derived, which the match above
+        // checks. Ordering and hashing are the enum's own impls, which this derive requires to be
+        // derived as well. A derived impl on a unit enum reads the discriminant alone.
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
         #konst unsafe impl #krate::id::Id for #name {
@@ -206,6 +206,13 @@ pub(super) fn expand_enum(
                 #check
 
                 Self::from_discriminant(index as #backing)
+            }
+
+            #[inline]
+            unsafe fn from_usize_unchecked(index: usize) -> Self {
+                // SAFETY: The caller guarantees that `index` is at most `MAX`, the discriminant of
+                // the last variant.
+                unsafe { Self::from_discriminant_unchecked(index as #backing) }
             }
 
             #[inline]

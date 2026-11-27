@@ -27,6 +27,17 @@ pub use self::{
     slice::IdSlice, snapshot_vec::IdSnapshotVec, union_find::IdUnionFind, vec::IdVec,
 };
 
+/// Panics unless every index in `0..length` is in `I`'s range, and zero as well.
+///
+/// Once it returns, [`Id::from_usize_unchecked`] is sound for each of those indices.
+#[inline]
+fn check_indices<I: Id>(length: usize) {
+    // The numbers in `I`'s range are an interval. The first and the last index therefore decide for
+    // every index between them.
+    let _: I = I::from_usize(0);
+    let _: I = I::from_usize(length.saturating_sub(1));
+}
+
 /// Represents errors that can occur when converting values to an [`Id`].
 ///
 /// This error is returned by the `TryFrom` implementations for `Id` types when
@@ -77,9 +88,11 @@ impl Display for IdError {
 /// # Safety
 ///
 /// An ID stands for one number, fixed when the ID is created. Every operation this trait and its
-/// supertraits provide must be pure: its result depends only on that number and on the operation's
-/// other arguments, and it has no other effect. Two IDs must be equal exactly when they stand for
-/// the same number.
+/// supertraits provide, other than formatting through [`Debug`] and [`Display`], must be pure: its
+/// result depends only on that number and on the operation's other arguments, and it has no other
+/// effect. Two IDs must be equal exactly when they stand for the same number. The numbers a type's
+/// IDs stand for must be exactly those from [`Self::MIN`] to [`Self::MAX`], and a conversion from a
+/// number must accept exactly those.
 ///
 /// Unsafe code relies on this for any of these operations without checking it. It may repeat an
 /// operation and expect the result it got before.
@@ -153,6 +166,14 @@ pub const unsafe trait Id:
             Err(_) => panic!("Cannot create ID: value outside valid range"),
         }
     }
+
+    /// Creates an ID from a [`usize`] value without checking that it is in range.
+    ///
+    /// # Safety
+    ///
+    /// `index` must be a number from [`Self::MIN`] to [`Self::MAX`].
+    #[must_use]
+    unsafe fn from_usize_unchecked(index: usize) -> Self;
 
     /// Converts this ID to a [`u32`] value.
     fn as_u32(self) -> u32;
