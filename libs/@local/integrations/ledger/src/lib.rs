@@ -28,6 +28,9 @@ mod testing;
 
 pub use self::{
     run::{RunId, RunState, RunStatus, Stage, StartError, StartInput, StatusError, start, status},
-    stage::{GraphClient, GraphError, StageError, capture, prepare_incremental, send},
+    stage::{
+        FollowError, Follower, GraphClient, GraphError, StageError, Step, capture, capture_changes,
+        prepare_incremental, send,
+    },
     storage::{IntegrationNamespace, S3Bucket, Storage, StorageError},
 };

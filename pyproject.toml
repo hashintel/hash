@@ -41,15 +41,18 @@ constraint-dependencies = [
 
 [tool.uv.workspace]
 members = [
+    "libs/@local/integrations/collect",
     "libs/@local/petrinaut-optimizer-core/python",
 ]
 
 [tool.pytest.ini_options]
 addopts    = "-q --import-mode=importlib"
 testpaths  = [
+    "libs/@local/integrations/collect/tests",
     "libs/@local/petrinaut-optimizer-core/python/tests",
 ]
 pythonpath = [
+    "libs/@local/integrations/collect/src",
     "libs/@local/petrinaut-optimizer-core/python/src",
 ]
 
@@ -58,6 +61,7 @@ line-length    = 100
 preview        = true
 target-version = "py314"
 src            = [
+    "libs/@local/integrations/collect/src",
     "libs/@local/petrinaut-optimizer-core/python/src",
 ]
 

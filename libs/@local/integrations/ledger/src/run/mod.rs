@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 pub(crate) use self::record::{
     BatchLimits, CapturePart, CapturedFile, FailedEntity, Failure, Input, PreparePart, RunRecord,
-    SendPart,
+    SendPart, Watermark,
 };
 pub use self::{
     record::Stage,

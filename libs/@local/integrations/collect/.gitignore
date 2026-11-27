@@ -1,0 +1,3 @@
+# dlt's secrets, which are never committed.
+.dlt/secrets.toml
+**/.dlt/secrets.toml

@@ -53,6 +53,7 @@ async fn capture_stores_files() {
                         key: key("aircraft").into(),
                         size: size(&aircraft),
                         rows: 3,
+                        watermark: None,
                     },
                 ),
                 (
@@ -61,6 +62,7 @@ async fn capture_stores_files() {
                         key: key("flights").into(),
                         size: size(&flights),
                         rows: 2,
+                        watermark: None,
                     },
                 ),
             ]),

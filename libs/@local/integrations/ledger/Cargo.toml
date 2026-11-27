@@ -24,25 +24,30 @@ hash-codec      = { workspace = true, features = ["numeric"] }
 hash-middleware = { workspace = true }
 
 # Private third-party dependencies
-bytes          = { workspace = true }
-deltalake-core = { workspace = true, features = ["rustls"] }
-derive_more    = { workspace = true, features = ["display", "error", "from", "into"] }
-duckdb         = { workspace = true, features = ["bundled", "json", "parquet"] }
-futures-util   = { workspace = true }
-hex            = { workspace = true, features = ["alloc"] }
-object_store   = { workspace = true, features = ["aws"] }
-parquet        = { workspace = true, features = ["arrow"] }
-reqwest        = { workspace = true }
-serde          = { workspace = true, features = ["alloc", "derive"] }
-serde_arrow    = { workspace = true, features = ["arrow-60"] }
-serde_json     = { workspace = true, features = ["float_roundtrip", "raw_value"] }
-simple-mermaid = { workspace = true }
-tempfile       = { workspace = true }
-tokio          = { workspace = true, features = ["fs", "io-util", "rt"] }
-tracing        = { workspace = true, features = ["attributes"] }
+buoyant_kernel        = { workspace = true }
+buoyant_kernel_engine = { workspace = true, features = ["arrow-60", "rustls"] }
+bytes                 = { workspace = true }
+deltalake-core        = { workspace = true, features = ["rustls"] }
+derive_more           = { workspace = true, features = ["display", "error", "from", "into"] }
+duckdb                = { workspace = true, features = ["bundled", "json", "parquet"] }
+futures-util          = { workspace = true }
+hex                   = { workspace = true, features = ["alloc"] }
+object_store          = { workspace = true, features = ["aws"] }
+parquet               = { workspace = true, features = ["arrow"] }
+reqwest               = { workspace = true }
+serde                 = { workspace = true, features = ["alloc", "derive"] }
+serde_arrow           = { workspace = true, features = ["arrow-60"] }
+serde_json            = { workspace = true, features = ["float_roundtrip", "raw_value"] }
+simple-mermaid        = { workspace = true }
+tempfile              = { workspace = true }
+tokio                 = { workspace = true, features = ["fs", "io-util", "macros", "rt-multi-thread", "time"] }
+tracing               = { workspace = true, features = ["attributes"] }
 
 [dev-dependencies]
 hash-graph-store = { workspace = true }
+
+# Writes Delta tables with their change data feed on in tests; the ledger itself only reads them.
+deltalake-core = { workspace = true, features = ["datafusion", "rustls"] }
 
 arrow-array            = { workspace = true }
 axum                   = { workspace = true, features = ["http1", "tokio"] }

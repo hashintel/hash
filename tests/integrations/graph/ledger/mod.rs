@@ -2,10 +2,12 @@
 
 extern crate alloc;
 
+mod collected;
 #[path = "../aviation/database.rs"]
 mod database;
 #[path = "../aviation/fixtures.rs"]
 mod fixtures;
+mod github;
 #[path = "../../../../libs/@local/integrations/ledger/src/testing/minio.rs"]
 mod minio;
 

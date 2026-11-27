@@ -1,0 +1,125 @@
+{
+  "dataTypes": [],
+  "propertyTypes": [
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/github-number/v/1",
+      "title": "GitHub Number",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+        }
+      ],
+      "description": "The number of an issue or pull request in its repository."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/title/v/1",
+      "title": "Title",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "description": "The title of an issue or pull request."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/github-state/v/1",
+      "title": "GitHub State",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "description": "Whether an issue or pull request is open or closed."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/github-url/v/1",
+      "title": "GitHub URL",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "description": "The address of an issue or pull request on GitHub."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "kind": "propertyType",
+      "$id": "https://example.com/@demo/types/property-type/github-author/v/1",
+      "title": "GitHub Author",
+      "oneOf": [
+        {
+          "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+      ],
+      "description": "The login of the account that opened an issue or pull request."
+    }
+  ],
+  "entityTypes": [
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "$id": "https://example.com/@demo/types/entity-type/github-issue/v/1",
+      "title": "GitHub Issue",
+      "type": "object",
+      "properties": {
+        "https://example.com/@demo/types/property-type/github-number/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-number/v/1"
+        },
+        "https://example.com/@demo/types/property-type/title/": {
+          "$ref": "https://example.com/@demo/types/property-type/title/v/1"
+        },
+        "https://example.com/@demo/types/property-type/github-state/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-state/v/1"
+        },
+        "https://example.com/@demo/types/property-type/github-url/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-url/v/1"
+        },
+        "https://example.com/@demo/types/property-type/github-author/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-author/v/1"
+        }
+      },
+      "required": [
+        "https://example.com/@demo/types/property-type/github-number/",
+        "https://example.com/@demo/types/property-type/title/"
+      ],
+      "description": "An issue of a GitHub repository."
+    },
+    {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+      "kind": "entityType",
+      "$id": "https://example.com/@demo/types/entity-type/github-pull-request/v/1",
+      "title": "GitHub Pull Request",
+      "type": "object",
+      "properties": {
+        "https://example.com/@demo/types/property-type/github-number/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-number/v/1"
+        },
+        "https://example.com/@demo/types/property-type/title/": {
+          "$ref": "https://example.com/@demo/types/property-type/title/v/1"
+        },
+        "https://example.com/@demo/types/property-type/github-state/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-state/v/1"
+        },
+        "https://example.com/@demo/types/property-type/github-url/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-url/v/1"
+        },
+        "https://example.com/@demo/types/property-type/github-author/": {
+          "$ref": "https://example.com/@demo/types/property-type/github-author/v/1"
+        }
+      },
+      "required": [
+        "https://example.com/@demo/types/property-type/github-number/",
+        "https://example.com/@demo/types/property-type/title/"
+      ],
+      "description": "A pull request of a GitHub repository."
+    }
+  ]
+}

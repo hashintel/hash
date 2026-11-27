@@ -1,5 +1,5 @@
 [registry]
-global-min-publish-age = "7 days"
+global-min-publish-age = "2 days"
 
 [resolver]
 incompatible-rust-versions = "allow"
