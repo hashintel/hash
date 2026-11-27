@@ -28,6 +28,7 @@ export const useReadOnlyFeedback = () => {
       message,
       tone: "neutral",
       durationMs: 4500,
+      layout: "singleLine",
       action: reason.kind === "host-readonly" ? readOnlyAction : undefined,
     });
   };

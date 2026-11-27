@@ -17,5 +17,6 @@ export const useHostRulesFeedback = () => {
       message: refusal,
       tone: "neutral",
       durationMs: 4500,
+      layout: "singleLine",
     });
 };

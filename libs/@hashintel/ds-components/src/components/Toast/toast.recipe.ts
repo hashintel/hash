@@ -12,11 +12,16 @@ export const toastVariants = ["solid", "soft", "outline"] as const;
 
 export type ToastVariant = (typeof toastVariants)[number];
 
+export const toastLayouts = ["auto", "singleLine"] as const;
+
+export type ToastLayout = (typeof toastLayouts)[number];
+
 export const styles = sva({
   slots: [
     "shell",
     "group",
     "root",
+    "iconColumn",
     "content",
     "titleRow",
     "icon",
@@ -54,10 +59,12 @@ export const styles = sva({
       display: "flex",
       alignItems: "flex-start",
       gap: "[8px]",
-      width: "[var(--toast-width, var(--toast-width-default, 356px))]",
-      maxWidth: "[calc(100vw - 32px)]",
+      // Fits short content up to `--toast-max-width`.
+      width: "[max-content]",
+      maxWidth:
+        "[min(var(--toast-max-width, var(--toast-max-width-default, 410px)), calc(100vw - 32px))]",
       "&:is([data-placement=top], [data-placement=bottom])": {
-        "--toast-width-default": "[450px]",
+        "--toast-max-width-default": "[450px]",
       },
       borderRadius: "xl",
       borderWidth: "1px",
@@ -107,16 +114,14 @@ export const styles = sva({
       alignSelf: "center",
       minWidth: "0",
       "& > * + *": { marginTop: "[1px]" },
-      "&:not(:has([data-part=description]))": {
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        columnGap: "[16px]",
-        rowGap: "[4px]",
-        "& > :first-child": { flexGrow: "1" },
-        "& > * + *": { marginTop: "0" },
-        "& > [data-toast-actions]": { paddingTop: "0" },
-      },
+    },
+    iconColumn: {
+      display: "flex",
+      flexShrink: "0",
+      // Matches the title row's 6px icon gap within the root's 8px gap.
+      marginRight: "[-2px]",
+      "&:empty": { display: "none" },
+      marginTop: "[var(--toast-title-offset, 0px)]",
     },
     titleRow: {
       display: "flex",
@@ -156,6 +161,11 @@ export const styles = sva({
       height: "[24px]",
       marginTop: "[-4px]",
       marginRight: "[-4px]",
+      marginLeft: "[12px]",
+      "&[data-actions-in-row]": { marginLeft: "0" },
+      "&[data-actions-first-line]": {
+        marginTop: "[2px]",
+      },
       "&[data-single-line]": {
         alignSelf: "center",
         marginTop: "0",
@@ -177,6 +187,52 @@ export const styles = sva({
     },
   },
   variants: {
+    layout: {
+      auto: {
+        content: {
+          "&:not(:has([data-part=description]))": {
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            columnGap: "[24px]",
+            rowGap: "[8px]",
+            "& > :first-child": { flexGrow: "1" },
+            "& > * + *": { marginTop: "0" },
+            "& > [data-toast-actions]": { paddingTop: "0" },
+          },
+          "&:has([data-part=description]):not(:has([data-part=title])) > [data-toast-actions]":
+            { paddingTop: "[8px]" },
+        },
+      },
+      singleLine: {
+        root: {
+          "@media (min-width: 450px)": { maxWidth: "[calc(100vw - 32px)]" },
+        },
+        content: {
+          "@media (min-width: 450px)": {
+            display: "grid",
+            gridTemplateColumns: "[minmax(0, 1fr) auto]",
+            alignItems: "start",
+            "& > *": { gridColumn: "[1]" },
+            "& > :is([data-part=title], :has([data-part=title]), [data-part=description]:first-child)":
+              { alignSelf: "center" },
+            "&:has([data-part=title]) > [data-part=description]": {
+              gridColumn: "[1 / -1]",
+              contain: "inline-size",
+            },
+            "& > [data-toast-actions]": {
+              gridColumn: "[2]",
+              gridRow: "[1]",
+              // A margin rather than a column gap, so a toast without actions has none.
+              marginLeft: "[22px]",
+              flexWrap: "nowrap",
+              marginTop: "0",
+              paddingTop: "0",
+            },
+          },
+        },
+      },
+    },
     tone: {
       neutral: {
         root: { colorPalette: "neutral" },
@@ -245,8 +301,6 @@ export const styles = sva({
           "--toast-icon-color":
             "var(--toast-tone-icon-color, var(--colors-color-palette-fg-link))",
           "--toast-dismiss-hover-bg": "var(--colors-neutral-a30)",
-          // Default (subtle) `Toast.Action`s blend into the tinted surface, so
-          // lift them onto a white background.
           "& [data-toast-actions] .toast-action-button": {
             backgroundColor: "white",
             color: "fg.body",
@@ -324,6 +378,7 @@ export const styles = sva({
     },
   ],
   defaultVariants: {
+    layout: "auto",
     tone: "neutral",
     variant: "soft",
     withPadding: true,

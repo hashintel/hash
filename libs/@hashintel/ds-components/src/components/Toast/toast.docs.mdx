@@ -1,5 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -14,7 +14,6 @@ import {
   ToastTitle,
 } from "./toast";
 import { Toaster, ToastOptionsDoc } from "./toaster";
-import { toaster } from "./toaster-api";
 
 <Meta title="Docs/Toast" />
 
@@ -200,7 +199,7 @@ export const PublishButton = () => {
   items={[
     "Don't put information the user must act on in a toast — it disappears. Use Dialog to force a decision.",
     "Don't toast validation errors next to a form — show them at the field.",
-    "Avoid firing a toast for success states — the default expecation should usually be that an action will succeed.",
+    "Avoid firing a toast for success states — the default expectation should usually be that an action will succeed.",
   ]}
 />
 
@@ -226,7 +225,13 @@ toaster.create(
   </Toast>,
 );
 
-toaster.update(id, { body: "The file exceeds the 20 MB limit." });
+toaster.update(id, {
+  tone: "error",
+  variant: "soft",
+  position: "bottom-end",
+  title: "Import failed",
+  body: "The file exceeds the 20 MB limit.",
+});
 
 toaster.close(id);
 ```
@@ -587,6 +592,7 @@ Toasts follow the
   defaults={{
     tone: '"neutral"',
     variant: '"soft"',
+    layout: '"auto"',
     position: '"bottom-end"',
     withPadding: "true",
     shouldCloseOn: '"closeButton"',
@@ -640,7 +646,9 @@ mounted `Toaster` and its toasts clean up after themselves.
   promise. The props form's `loading` defaults to `true` there, showing a
   spinner in the title's icon slot; a `Toast` element passed as `loading` must
   add its own with `<Toast.Title loading />`.
-- `toaster.update(id, props)` — merges new props into a showing toast.
+- `toaster.update(id, toast)` — replaces a showing toast with a new one, in
+  either form. Nothing is merged: props the new toast omits fall back to their
+  defaults.
 - `toaster.close(id)` — dismisses a showing toast, including declaratively
   rendered ones, by id.
 
@@ -652,6 +660,7 @@ The props form accepts:
     icon: "true",
     tone: '"neutral"',
     variant: '"soft"',
+    layout: '"auto"',
     position: '"bottom-end"',
     shouldCloseOn: '"closeButton"',
   }}

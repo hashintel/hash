@@ -80,29 +80,9 @@ export const buildToastElement = (
   );
 };
 
-export const mergeToastPatch = (
-  input: ToasterToastInput,
-  patch: Partial<ToastOptions>,
-): ToasterToastInput => {
-  if (!isToastElement(input)) {
-    return { ...input, ...patch };
-  }
-  const { title, icon, loading, body, actions, ...rootPatch } = patch;
-  const hasContent =
-    title !== undefined || body !== undefined || actions !== undefined;
-  if (!hasContent) {
-    return cloneElement(input, rootPatch);
-  }
-  return cloneElement(
-    input,
-    rootPatch,
-    buildToastContent({ title, icon, loading, body, actions }),
-  );
-};
-
 export type ToasterHandle = {
   create: (input: ToasterToastInput) => string;
-  update: (id: string | number, patch: Partial<ToastOptions>) => void;
+  update: (id: string | number, input: ToasterToastInput) => void;
   close: (id: string | number) => void;
 };
 
@@ -134,14 +114,31 @@ const requireHandle = (): ToasterHandle => {
   return handle;
 };
 
+/** The settle phase inherits the loading toast's placement, variant, and layout. */
 const settlePhaseInput = (
   input: ToasterToastInput,
-  tone: ToastProps["tone"],
+  defaults: Pick<ToastProps, "tone" | "position" | "variant" | "layout">,
   id: string,
 ): ToasterToastInput =>
   isToastElement(input)
-    ? cloneElement(input, { id, tone: input.props.tone ?? tone })
-    : { tone, ...input, id };
+    ? cloneElement(input, {
+        id,
+        tone: input.props.tone ?? defaults.tone,
+        position: input.props.position ?? defaults.position,
+        variant: input.props.variant ?? defaults.variant,
+        layout: input.props.layout ?? defaults.layout,
+      })
+    : { ...defaults, ...input, id };
+
+/** A toast lives in one Toaster; id-targeted calls go to every mounted one. */
+const forEachHandle = (callback: (handle: ToasterHandle) => void) => {
+  if (registeredHandles.length === 0) {
+    throw new Error("The toaster functions require a mounted Toaster");
+  }
+  for (const handle of [...registeredHandles]) {
+    callback(handle);
+  }
+};
 
 /**
  * Shows toasts imperatively, from anywhere below (or outside) the mounted
@@ -178,9 +175,17 @@ export const toaster = {
           ...options.loading,
         } satisfies ToastOptions);
     const id = handle.create(loadingInput);
+    const { position, variant, layout } = isToastElement(loadingInput)
+      ? loadingInput.props
+      : loadingInput;
     const settle = (input: ToasterToastInput, tone: ToastProps["tone"]) => {
-      // The Toaster may have unmounted while the promise was pending.
-      activeHandle()?.create(settlePhaseInput(input, tone, id));
+      // Settle in the creating Toaster, unless it unmounted meanwhile.
+      const target = registeredHandles.includes(handle)
+        ? handle
+        : activeHandle();
+      target?.create(
+        settlePhaseInput(input, { tone, position, variant, layout }, id),
+      );
     };
     let pending: Promise<Value>;
     try {
@@ -201,12 +206,12 @@ export const toaster = {
     );
     return pending;
   },
-  /** Merges new props into a toast, identified by its id. */
-  update: (id: string | number, patch: Partial<ToastOptions>): void => {
-    requireHandle().update(id, patch);
+  /** Replaces a showing toast with a new one; nothing carries over. */
+  update: (id: string | number, input: ToasterToastInput): void => {
+    forEachHandle((handle) => handle.update(id, input));
   },
   /** Dismisses a toast by its id. */
   close: (id: string | number): void => {
-    requireHandle().close(id);
+    forEachHandle((handle) => handle.close(id));
   },
 };

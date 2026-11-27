@@ -11,6 +11,8 @@ export type AddNotificationInput = {
   message: string;
   tone?: NotificationTone;
   durationMs?: number;
+  /** Where the action sits: `singleLine` keeps it beside the message instead of wrapping it below. */
+  layout?: "auto" | "singleLine";
 };
 
 export type NotificationsContextValue = {

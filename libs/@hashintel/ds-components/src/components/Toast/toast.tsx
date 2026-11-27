@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -14,8 +15,9 @@ import { defaultToneIcon } from "../../util/default-tone-icon";
 import { Button, type ButtonProps } from "../Button/button";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
-import { styles, type ToastVariant } from "./toast.recipe";
+import { styles, type ToastLayout, type ToastVariant } from "./toast.recipe";
 import {
+  ToastIconSlotContext,
   ToastInstanceContext,
   ToastToneContext,
   useToasterContext,
@@ -104,6 +106,7 @@ const renderIcon = (
 export const ToastTitle = (props: ToastTitleProps) => {
   const { title, icon = true, loading, className, children } = props;
   const tone = useContext(ToastToneContext);
+  const iconSlot = useContext(ToastIconSlotContext);
   const classes = styles({ tone });
 
   if (children !== undefined) {
@@ -120,13 +123,17 @@ export const ToastTitle = (props: ToastTitleProps) => {
     renderIcon(icon, tone, classes)
   );
 
+  const iconElement = iconNode ? (
+    <span className={classes.icon} aria-hidden="true">
+      {iconNode}
+    </span>
+  ) : null;
+
   return (
     <div className={cx(classes.titleRow, className)}>
-      {iconNode && (
-        <span className={classes.icon} aria-hidden="true">
-          {iconNode}
-        </span>
-      )}
+      {iconSlot === undefined
+        ? iconElement
+        : iconSlot && iconElement && createPortal(iconElement, iconSlot)}
       <ArkToast.Title className={classes.title}>{title}</ArkToast.Title>
     </div>
   );
@@ -162,16 +169,16 @@ const isThenable = (value: unknown): value is PromiseLike<unknown> =>
 
 const ToastActionButton = ({
   variant,
+  size,
   className,
   ...props
 }: ToastActionButtonProps) => (
   <Button
-    size="sm"
-    // The spread loses the union's discrimination; each arm still holds.
     {...(props as ButtonProps)}
+    size={size ?? "sm"}
     variant={variant ?? "subtle"}
     className={cx(
-      (variant ?? "subtle") === "subtle" ? "toast-action-button" : undefined,
+      variant === undefined ? "toast-action-button" : undefined,
       className,
     )}
   />
@@ -293,6 +300,12 @@ export type ToastProps = {
    */
   variant?: ToastVariant;
   /**
+   * Set to `singleLine` to force the toast to try and fit all of the title and actions onto a single line
+   * even if it requires widening the toast message. singleLine will still break onto multiple lines
+   * on small screens. `auto` will also render on a single line if the content is short enough.
+   */
+  layout?: ToastLayout;
+  /**
    * The viewport edge or corner the toast stacks at. `left`/`right` positions
    * map onto the nearest corner: `-start` the top one, `-end` the bottom one.
    */
@@ -332,6 +345,7 @@ export const ToastRoot = ({
   withPadding = true,
   tone = "neutral",
   variant = "soft",
+  layout = "auto",
   position = "bottom-end",
   children,
   shouldCloseOn = "closeButton",
@@ -362,6 +376,7 @@ export const ToastRoot = ({
       className,
       tone,
       variant,
+      layout,
       withPadding,
       renderCloseButton: shouldCloseOn === "closeButton",
       closeOnEscape: shouldCloseOn !== "none",
@@ -447,8 +462,7 @@ export const ToastRoot = ({
   return null;
 };
 
-// Stable names for the docs Stage code serializer under minification; the
-// dotted part names intentionally serialize transparently.
+// Stable names for the docs code serializer under minification.
 ToastRoot.displayName = "Toast";
 ToastTitle.displayName = "Toast.Title";
 ToastBody.displayName = "Toast.Body";

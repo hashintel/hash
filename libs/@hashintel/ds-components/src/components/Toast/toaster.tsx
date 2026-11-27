@@ -8,6 +8,7 @@ import {
 } from "@ark-ui/react/toast";
 import {
   cloneElement,
+  type CSSProperties,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -24,11 +25,11 @@ import { styles } from "./toast.recipe";
 import {
   buildToastElement,
   isToastElement,
-  mergeToastPatch,
   registerToasterHandle,
 } from "./toaster-api";
 import {
   ToasterContext,
+  ToastIconSlotContext,
   ToastInstanceContext,
   ToastToneContext,
   useToasterContext,
@@ -99,6 +100,9 @@ const ToastContent = ({
   );
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [singleLine, setSingleLine] = useState(false);
+  const [actionsOnFirstLine, setActionsOnFirstLine] = useState(false);
+  const [iconSlot, setIconSlot] = useState<HTMLDivElement | null>(null);
+  const [titleOffset, setTitleOffset] = useState(0);
   const hasEntry = entry !== undefined;
   const instance = useMemo<ToastInstance>(
     () => ({ id, store, holdOpen: () => holdOpen(store, id) }),
@@ -112,6 +116,18 @@ const ToastContent = ({
     }
     const observer = new ResizeObserver(() => {
       setSingleLine(content.offsetHeight <= singleLineMaxHeight);
+      const contentRect = content.getBoundingClientRect();
+      // Undoes the root's `--scale`, which animates without a resize.
+      const scale =
+        contentRect.height > 0 && content.offsetHeight > 0
+          ? contentRect.height / content.offsetHeight
+          : 1;
+      const offsetFromTop = (element: Element) =>
+        (element.getBoundingClientRect().top - contentRect.top) / scale;
+      const actions = content.querySelector(":scope > [data-toast-actions]");
+      setActionsOnFirstLine(actions !== null && offsetFromTop(actions) < 1);
+      const title = content.querySelector("[data-part=title]");
+      setTitleOffset(title ? Math.max(0, offsetFromTop(title)) : 0);
     });
     observer.observe(content);
     return () => {
@@ -126,6 +142,7 @@ const ToastContent = ({
   const classes = styles({
     tone: entry.tone,
     variant: entry.variant,
+    layout: entry.layout,
     withPadding: entry.withPadding,
   });
 
@@ -135,10 +152,19 @@ const ToastContent = ({
       data-deck-hidden={stackIndex >= collapsedStackSize ? "" : undefined}
       onKeyDownCapture={entry.closeOnEscape ? undefined : blockEscapeDismiss}
     >
+      {/* Lines the icon up with the title, wherever the content places it. */}
+      <div
+        ref={setIconSlot}
+        className={classes.iconColumn}
+        style={{ "--toast-title-offset": `${titleOffset}px` } as CSSProperties}
+        aria-hidden="true"
+      />
       <div ref={contentRef} className={classes.content}>
         <ToastInstanceContext.Provider value={instance}>
           <ToastToneContext.Provider value={entry.tone}>
-            {entry.content}
+            <ToastIconSlotContext.Provider value={iconSlot}>
+              {entry.content}
+            </ToastIconSlotContext.Provider>
           </ToastToneContext.Provider>
         </ToastInstanceContext.Provider>
       </div>
@@ -146,6 +172,10 @@ const ToastContent = ({
         <ArkToast.CloseTrigger
           className={classes.closeTrigger}
           data-single-line={singleLine ? "" : undefined}
+          data-actions-first-line={
+            actionsOnFirstLine && !singleLine ? "" : undefined
+          }
+          data-actions-in-row={actionsOnFirstLine ? "" : undefined}
           aria-label="Dismiss notification"
         >
           <Icon name="close" size="sm" />
@@ -229,7 +259,7 @@ const ToasterRegion = ({
     };
   }, []);
 
-  const side = placement.split("-")[0];
+  const [side = placement] = placement.split("-");
 
   return (
     <div
@@ -319,13 +349,11 @@ export const Toaster = ({ children, label }: ToasterProps) => {
         });
         return id;
       },
-      update: (idInput, patch) => {
+      update: (idInput, input) => {
         const id = String(idInput);
         setFunctionalToasts((previous) =>
           previous.map((toast) =>
-            toast.id === id
-              ? { ...toast, input: mergeToastPatch(toast.input, patch) }
-              : toast,
+            toast.id === id ? { ...toast, input } : toast,
           ),
         );
       },

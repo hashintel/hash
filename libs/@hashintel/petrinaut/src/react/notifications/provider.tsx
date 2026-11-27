@@ -3,74 +3,136 @@
  * @role Shows a short notice from any provider or component, once per id
  */
 
-import { useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+
+import { Toast, Toaster } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   NotificationsContext,
   type AddNotificationInput,
   type NotificationsContextValue,
 } from "./context";
-import { notificationsToaster } from "./notifications-toaster";
-import { NotificationsToaster } from "./toaster";
+import { CopyDetailsButton } from "./copy-details-button";
 
 const DEFAULT_NOTIFICATION_DURATION_MS = 3000;
 
+const titleRowStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "1",
+});
+
+const titleStyle = css({
+  flex: "1",
+  minWidth: "0",
+});
+
+// Room for a typical two-line detail without rewrapping it.
+const detailToastStyle = css({
+  "--toast-max-width": "[520px]",
+});
+
+const detailStyle = css({
+  maxHeight: "[240px]",
+  overflow: "auto",
+  whiteSpace: "pre-wrap",
+});
+
 let nextNotificationId = 0;
+
+type ShownNotification = AddNotificationInput & { id: string };
 
 export const NotificationsProvider = ({
   children,
 }: {
   children: ReactNode;
 }) => {
-  const addNotification = ({
-    action,
-    id: suppliedId,
-    detail,
-    durationMs,
-    message,
-    tone = "success",
-  }: AddNotificationInput) => {
-    const id = suppliedId ?? `notification-${nextNotificationId}`;
-    nextNotificationId += 1;
-    const effectiveDurationMs =
-      tone === "error"
-        ? Infinity
-        : (durationMs ?? DEFAULT_NOTIFICATION_DURATION_MS);
+  const [notifications, setNotifications] = useState<ShownNotification[]>([]);
 
-    queueMicrotask(() => {
-      if (notificationsToaster.isVisible(id)) return;
-      notificationsToaster.create({
-        action,
-        description: detail,
-        duration: effectiveDurationMs,
-        id,
-        title: message,
-        // zag's toast store throws on a type outside its own; a neutral notice
-        // is its `info`.
-        type: tone === "neutral" ? "info" : tone,
-      });
-    });
-
-    return id;
+  const removeNotification = (id: string) => {
+    setNotifications((previous) =>
+      previous.filter((notification) => notification.id !== id),
+    );
   };
 
-  useEffect(() => {
-    return () => {
-      // Removed rather than dismissed: a dismissal animates out through each
-      // toast's own machine, which unmounts with this editor, so the shared
-      // store would hand the toast to the next editor on the page.
-      notificationsToaster.remove();
-    };
-  }, []);
+  const addNotification = (input: AddNotificationInput) => {
+    const id = input.id ?? `notification-${nextNotificationId}`;
+    nextNotificationId += 1;
+    setNotifications((previous) =>
+      previous.some((notification) => notification.id === id)
+        ? previous
+        : [...previous, { ...input, id }],
+    );
+    return id;
+  };
 
   const value: NotificationsContextValue = {
     addNotification,
   };
 
   return (
-    <NotificationsContext value={value}>
-      {children}
-      <NotificationsToaster />
-    </NotificationsContext>
+    <Toaster label="Notifications">
+      <NotificationsContext value={value}>
+        {children}
+        {notifications.map(
+          ({
+            id,
+            action,
+            detail,
+            durationMs,
+            layout,
+            message,
+            tone = "success",
+          }) => {
+            // An error stays until dismissed, and detail is there to be read,
+            // so both offer a way out; a plain message clears itself.
+            const dismissible = detail !== undefined || tone === "error";
+            return (
+              <Toast
+                key={id}
+                id={id}
+                tone={tone}
+                variant="solid"
+                layout={layout}
+                className={detail ? detailToastStyle : undefined}
+                duration={
+                  tone === "error"
+                    ? Infinity
+                    : (durationMs ?? DEFAULT_NOTIFICATION_DURATION_MS)
+                }
+                shouldCloseOn={dismissible ? "closeButton" : "none"}
+                onStatusChange={({ status }) => {
+                  if (status === "exit") {
+                    removeNotification(id);
+                  }
+                }}
+              >
+                <div className={titleRowStyle}>
+                  <Toast.Title
+                    className={titleStyle}
+                    title={message}
+                    icon={tone !== "neutral"}
+                  />
+                  {detail && <CopyDetailsButton detail={detail} />}
+                </div>
+                {detail && (
+                  <Toast.Body className={detailStyle}>{detail}</Toast.Body>
+                )}
+                {action && (
+                  <Toast.Actions
+                    actions={
+                      <Toast.Action closeToast onClick={action.onClick}>
+                        {action.label}
+                      </Toast.Action>
+                    }
+                  />
+                )}
+              </Toast>
+            );
+          },
+        )}
+      </NotificationsContext>
+    </Toaster>
   );
 };

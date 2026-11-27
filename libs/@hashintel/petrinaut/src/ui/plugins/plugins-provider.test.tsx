@@ -36,6 +36,15 @@ import {
   useRunningPlugins,
 } from "./running-plugins";
 
+vi.stubGlobal(
+  "ResizeObserver",
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+);
+
 let mounts = 0;
 const nextMount = () => {
   mounts += 1;
