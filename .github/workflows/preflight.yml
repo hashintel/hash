@@ -17,11 +17,11 @@ jobs:
     name: Lint
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-lint.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
+    uses: hashintel/actions/.github/workflows/preflight-lint.yml@13a244f21ce0aed2840fbd16b8cbe934521d3c43 # main
 
   dependencies:
     name: Dependencies
     permissions:
       contents: read
       pull-requests: write # Dependency review comments its summary on the PR
-    uses: hashintel/actions/.github/workflows/preflight-dependencies.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
+    uses: hashintel/actions/.github/workflows/preflight-dependencies.yml@13a244f21ce0aed2840fbd16b8cbe934521d3c43 # main

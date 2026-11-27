@@ -23,7 +23,7 @@ jobs:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-todo-comments.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
+    uses: hashintel/actions/.github/workflows/preflight-todo-comments.yml@13a244f21ce0aed2840fbd16b8cbe934521d3c43 # main
 
   labeler:
     name: Labeler
@@ -44,4 +44,4 @@ jobs:
     name: PR title
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-pr-title.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
+    uses: hashintel/actions/.github/workflows/preflight-pr-title.yml@13a244f21ce0aed2840fbd16b8cbe934521d3c43 # main
