@@ -131,9 +131,9 @@ type StepsSectionProps = {
   collapsedGroupIds: Set<string>;
   onToggleGroup: (stepId: string) => void;
   onCollapseAll: (stepIds: string[]) => void;
-  /** Whether Start is selected, and selects it. Omitted where it can't be selected, as in a run. */
-  start?: { selected: boolean; onClick: () => void };
 };
+
+type StartSelection = { selected: boolean; onClick: () => void };
 
 /** The flow's steps, after Start. In a run, each shows its state, and a group counts its items rather than its steps. */
 const StepsSection = ({
@@ -145,7 +145,11 @@ const StepsSection = ({
   onCollapseAll,
   run,
   start,
-}: StepsSectionProps & { run: StepsRun | null }) => {
+}: StepsSectionProps & {
+  run: StepsRun | null;
+  /** `null` where Start can't be selected, as in a run. */
+  start: StartSelection | null;
+}) => {
   const { steps } = flowDefinition;
   const getItemName = useItemNames(flowDefinition);
   const tree = getStepsTree(steps);
@@ -197,6 +201,7 @@ export const LeftPanel = ({
   onAddStep,
   ...stepsSectionProps
 }: StepsSectionProps & {
+  start: StartSelection;
   /** Adds a step that runs the action, in view. */
   onAddStep: (actionDefinitionId: string) => void;
 }) => {
@@ -236,6 +241,10 @@ export const RunLeftPanel = ({
   live: boolean;
 }) => (
   <div className={panel}>
-    <StepsSection {...stepsSectionProps} run={{ marks: runMarks, live }} />
+    <StepsSection
+      {...stepsSectionProps}
+      run={{ marks: runMarks, live }}
+      start={null}
+    />
   </div>
 );

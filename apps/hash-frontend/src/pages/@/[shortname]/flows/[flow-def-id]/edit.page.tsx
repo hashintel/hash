@@ -225,7 +225,8 @@ const FlowEditor = ({
     editor: typeof editor;
     key: number;
     selection: CanvasSelection;
-    focusRequest: { stepId: string } | null;
+    /** A `null` step is Start. */
+    focusRequest: { stepId: string | null } | null;
   }>({ editor, key: 0, selection: noSelection, focusRequest: null });
 
   if (session.editor !== editor) {
@@ -296,6 +297,14 @@ const FlowEditor = ({
       focusRequest: { stepId },
     }));
   };
+
+  /* Selects Start and brings it into view on the canvas, as picking a step does. */
+  const selectAndFocusStart = () =>
+    setSession((current) => ({
+      ...current,
+      selection: { ...noSelection, start: true },
+      focusRequest: { stepId: null },
+    }));
 
   /* The web the flow is in, which the editor's path names. */
   const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
@@ -495,10 +504,7 @@ const FlowEditor = ({
             flowDefinition={flowDefinition}
             selectedStepIds={selection.stepIds}
             onStepClick={selectAndFocusStep}
-            start={{
-              selected: selection.start,
-              onClick: () => setSelection({ ...noSelection, start: true }),
-            }}
+            start={{ selected: selection.start, onClick: selectAndFocusStart }}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
             onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
@@ -531,9 +537,7 @@ const FlowEditor = ({
                 flowDefinitionEntityId={flowDefinitionEntityId}
                 subject={panelSubject}
                 schedules={schedules}
-                onSelectStart={() =>
-                  setSelection({ ...noSelection, start: true })
-                }
+                onSelectStart={selectAndFocusStart}
                 onSelectStep={selectAndFocusStep}
               />
             )}

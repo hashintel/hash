@@ -198,8 +198,12 @@ export const NewTriggerForm = ({
     values.inputValues,
   );
   const nextRuns = getPreviewedRuns(values);
+  /* Nothing filled in would get round it, so the form says so as soon as the flow is chosen. */
+  const aiFlagBlocker = flow
+    ? getAiFlagBlocker(flow.flowDefinition, { canUseAi: ai })
+    : null;
   const blocker =
-    (flow && getAiFlagBlocker(flow.flowDefinition, { canUseAi: ai })) ??
+    aiFlagBlocker ??
     getNewTriggerBlocker({ ...values, inputValues }, inputs, nextRuns);
 
   const add = async () => {
@@ -235,6 +239,13 @@ export const NewTriggerForm = ({
     <div className={formFrame}>
       {error !== null && (
         <ErrorBanner title="The trigger wasn't added" message={error} />
+      )}
+      {aiFlagBlocker !== null && (
+        <div className={banner}>
+          <Banner tone="warning" role="status">
+            <Banner.Description>{aiFlagBlocker}</Banner.Description>
+          </Banner>
+        </div>
       )}
       <Form.Section className={fields}>
         <Form.Field layout="inline" label="Web">
