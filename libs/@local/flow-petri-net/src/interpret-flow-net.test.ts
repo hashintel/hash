@@ -523,6 +523,35 @@ describe("startFlowNetRun", () => {
     expectActualModeReplays(run);
   });
 
+  it("records each item of a forEach step that gives up", async () => {
+    const net = await compileFlowDefinition(forEachFlowDefinition);
+    const run = startFlowNetRun(net, { flowInputNames: ["urls"] });
+
+    run.fire({
+      role: "startForEach",
+      stepRun: { stepId: "each", itemPath: [] },
+      itemCount: 2,
+    });
+
+    for (const index of [1, 0]) {
+      const stepRun = { stepId: "get", itemPath: [index] };
+
+      run.fire({ role: "failAttempt", stepRun });
+
+      expect(
+        run.fire({ role: "giveUp", stepRun }).map(({ role }) => role),
+      ).toEqual(["giveUp"]);
+    }
+
+    expect(run.held()).toEqual([]);
+    expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([
+      { kind: "stepFailure", stepId: "get", itemPath: [1] },
+      { kind: "stepFailure", stepId: "get", itemPath: [0] },
+    ]);
+    expectFiringsFollowArcs(net, run);
+    expectActualModeReplays(run);
+  });
+
   it("refuses to fire a held transition that isn't enabled", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });

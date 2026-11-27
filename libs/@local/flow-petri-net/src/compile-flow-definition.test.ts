@@ -23,6 +23,7 @@ import {
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
   generateDonePlaceKey,
+  generateGaveUpPortKey,
   generateInputConsumerKey,
   generateInputPortKey,
   generateInputValueKey,
@@ -239,6 +240,34 @@ describe("compileFlowDefinition", () => {
       ).toEqual([]);
     },
   );
+
+  it("fuses every action step's GaveUp port with FailedStepRuns, including a forEach step's", async () => {
+    const sdcpn = await compileFlowDefinition(sharedOutputFlowDefinition, {
+      layout: false,
+    });
+
+    expect(
+      sdcpn.fusions?.find(({ members }) =>
+        members.some(
+          (member) =>
+            member.kind === "place" &&
+            member.placeId === toPetrinautId(failedStepRunsPlaceKey),
+        ),
+      )?.members,
+    ).toEqual([
+      placeEndpointOf(failedStepRunsPlaceKey),
+      ...(
+        [
+          ["research", "researchEntities"],
+          ["persist", "persistEntities"],
+          ["review", "persistEntities"],
+          ["get", "getFileFromUrl"],
+        ] as const
+      ).map(([stepId, actionDefinitionId]) =>
+        portEndpointOf(stepId, generateGaveUpPortKey(actionDefinitionId)),
+      ),
+    ]);
+  });
 
   it("gives every place, transition and instance a distinct id, whatever the step ids", async () => {
     /* A step id can be any string without the step run id separator, including the key of a place. */
