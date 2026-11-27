@@ -95,7 +95,7 @@
     "motion": "14.12.0",
     "react-resizable-panels": "4.22.0",
     "uplot": "1.6.32",
-    "use-sync-external-store": "1.6.0",
+    "use-sync-external-store": "1.7.0",
     "uuid": "14.0.0"
   },
   "devDependencies": {

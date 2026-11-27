@@ -98,7 +98,7 @@
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.2",
     "@hashintel/ds-helpers": "workspace:^",
-    "@loaders.gl/core": "4.4.3",
+    "@loaders.gl/core": "4.4.4",
     "@luma.gl/core": "9.3.6",
     "@luma.gl/engine": "9.3.6",
     "@luma.gl/shadertools": "9.3.6",

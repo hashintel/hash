@@ -94,7 +94,7 @@
     "keyv": "5.6.0",
     "long": "5.3.2",
     "mime-types": "2.1.35",
-    "nanoid": "3.3.18",
+    "nanoid": "3.3.20",
     "nodemailer": "10.1.7",
     "oembed-providers": "1.0.20250926",
     "openai": "6.6.0",

@@ -9,7 +9,6 @@ import {
   selectClasses,
   styled,
 } from "@mui/material";
-import { lowlight } from "lowlight";
 import { forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
@@ -21,7 +20,43 @@ import { CodePenIcon, CopyIcon } from "../icons/icons";
 import type { SxProps, Theme } from "@mui/material";
 import type { FormEvent, FunctionComponent } from "react";
 
-const supportedLanguages = lowlight.listLanguages();
+const supportedLanguages = [
+  "arduino",
+  "bash",
+  "c",
+  "cpp",
+  "csharp",
+  "css",
+  "diff",
+  "go",
+  "ini",
+  "java",
+  "javascript",
+  "json",
+  "kotlin",
+  "less",
+  "lua",
+  "makefile",
+  "markdown",
+  "objectivec",
+  "perl",
+  "php",
+  "php-template",
+  "plaintext",
+  "python",
+  "python-repl",
+  "r",
+  "ruby",
+  "rust",
+  "scss",
+  "shell",
+  "sql",
+  "swift",
+  "typescript",
+  "vbnet",
+  "xml",
+  "yaml",
+];
 
 const codeLanguageRegex = /^\s*([\w-]+)/;
 
