@@ -1,27 +1,15 @@
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import {
+  featureFlaggedSectionNames,
+  featureFlaggedSections,
+  isSectionEnabled,
+} from "../shared/feature-flagged-sections";
 
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 
-const featureFlagHiddenPathnames: Record<FeatureFlag, string[]> = {
-  pages: [],
-  documents: [],
-  canvases: [],
-  notes: ["/notes"],
-  favorites: [],
-  workers: [
-    "/processes",
-    "/goals",
-    "/flows",
-    "/workers",
-    "/agents",
-    "/environments",
-    "/environments/[uuid]",
-  ],
-  ai: ["/goals"],
-  supplyChain: [],
-  dashboards: ["/dashboards", "/dashboard/[dashboard-id]"],
-};
-
+/**
+ * Whether `pathname` (a Next.js pathname, e.g. `/environments/[uuid]`) is a
+ * page of a section the user lacks the feature flags for.
+ */
 export const isFeatureFlaggedPageHidden = ({
   pathname,
   enabledFeatureFlags,
@@ -29,8 +17,10 @@ export const isFeatureFlaggedPageHidden = ({
   pathname: string;
   enabledFeatureFlags: readonly FeatureFlag[];
 }): boolean =>
-  featureFlags.some(
-    (featureFlag) =>
-      !enabledFeatureFlags.includes(featureFlag) &&
-      featureFlagHiddenPathnames[featureFlag].includes(pathname),
+  featureFlaggedSectionNames.some(
+    (section) =>
+      featureFlaggedSections[section].pathnames.includes(pathname) &&
+      !isSectionEnabled(section, (featureFlag) =>
+        enabledFeatureFlags.includes(featureFlag),
+      ),
   );

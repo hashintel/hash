@@ -50,10 +50,10 @@ vi.mock("./sidebar/workspace-switcher", () => ({
   WorkspaceSwitcher: () => null,
 }));
 vi.mock("./sidebar/account-entities-list", () => ({
-  AccountEntitiesList: () => null,
+  AccountEntitiesList: () => "Entity shortcuts",
 }));
 vi.mock("./sidebar/account-entity-type-list", () => ({
-  AccountEntityTypeList: () => null,
+  AccountEntityTypeList: () => "Type shortcuts",
 }));
 vi.mock("./sidebar/favorites-list", () => ({
   FavoritesList: () => "Favorites",
@@ -87,6 +87,7 @@ afterEach(cleanup);
 beforeEach(() => {
   state.path = "/";
   state.flags = { workers: true } as Record<FeatureFlag, boolean>;
+  state.variant = "list";
 });
 
 test("keeps core links in order even when entity and type lists are preferred", () => {
@@ -142,6 +143,55 @@ test.each([
   expect(
     screen.getByRole("link", { name: label }).getAttribute("aria-current"),
   ).toBe("page");
+});
+
+test.each([
+  ["/entities", ["Entity shortcuts"]],
+  ["/@alice/entities/example", ["Entity shortcuts"]],
+  ["/types", ["Type shortcuts"]],
+  ["/", []],
+])("shows shortcuts only under their own active link on %s", (path, shown) => {
+  state.path = path;
+  renderSidebar();
+  for (const shortcuts of ["Entity shortcuts", "Type shortcuts"]) {
+    expect(screen.queryByText(shortcuts) !== null).toBe(
+      shown.includes(shortcuts),
+    );
+  }
+});
+
+test("shows no shortcuts when the user prefers links only", () => {
+  state.path = "/entities";
+  state.variant = "link";
+  renderSidebar();
+  expect(screen.queryByText("Entity shortcuts")).toBeNull();
+});
+
+test.each([
+  ["/supply-chain", "page"],
+  ["/supply-chain/site/example?tab=overview", "page"],
+  ["/supply-chains", null],
+  ["/", null],
+])("highlights Supply Chain on its own pages: %s", (path, current) => {
+  state.flags.supplyChain = true;
+  state.path = path;
+  renderSidebar();
+  expect(
+    screen
+      .getByRole("link", { name: "Supply Chain" })
+      .getAttribute("aria-current"),
+  ).toBe(current);
+});
+
+test("shows Goals only with both the workers and AI flags", () => {
+  state.path = "/processes";
+  renderSidebar();
+  expect(screen.queryByRole("link", { name: "Goals" })).toBeNull();
+  cleanup();
+
+  state.flags.ai = true;
+  renderSidebar();
+  expect(screen.getByRole("link", { name: "Goals" })).toBeTruthy();
 });
 
 test("keeps Processes and Environments behind the workers flag", () => {

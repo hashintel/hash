@@ -2,6 +2,7 @@ import { Box, Typography } from "@mui/material";
 
 import { useHashInstance } from "../../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
+import { useEnabledSections } from "../../../../pages/shared/use-enabled-sections";
 import { useRoutePageInfo } from "../../../routing";
 import { AccountPageList } from "./account-page-list";
 import { DashboardList } from "./pages-section/dashboard-list";
@@ -11,13 +12,14 @@ import type { WebId } from "@blockprotocol/type-system";
 
 export const PagesSection = ({ webId }: { webId: WebId }) => {
   const enabledFeatureFlags = useEnabledFeatureFlags();
+  const enabledSections = useEnabledSections();
   const { hashInstance } = useHashInstance();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
   const showBlockPages =
     enabledFeatureFlags.pages && hashInstance?.properties.pagesAreEnabled;
 
-  if (!enabledFeatureFlags.dashboards && !showBlockPages) {
+  if (!enabledSections.dashboards && !showBlockPages) {
     return null;
   }
 
@@ -30,7 +32,7 @@ export const PagesSection = ({ webId }: { webId: WebId }) => {
       >
         Pages
       </Typography>
-      {enabledFeatureFlags.dashboards && <DashboardList webId={webId} />}
+      {enabledSections.dashboards && <DashboardList webId={webId} />}
       {showBlockPages && (
         <AccountPageList
           currentPageEntityUuid={routePageEntityUuid}

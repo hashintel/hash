@@ -45,6 +45,7 @@ import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { largePageMaxWidthCss } from "./shared/page-width";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
+import { useEnabledSections } from "./shared/use-enabled-sections";
 import { useActiveWorkspace } from "./shared/workspace-context";
 
 import type { NextPageWithLayout } from "../shared/layout";
@@ -177,6 +178,7 @@ export const CreateButtons: FunctionComponent<{
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
   const enabledFeatureFlags = useEnabledFeatureFlags();
+  const enabledSections = useEnabledSections();
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
@@ -193,7 +195,7 @@ const EntitiesPage: NextPageWithLayout = () => {
               enabledFeatureFlags.pages &&
               hashInstance?.properties.pagesAreEnabled) ||
             (baseUrl === systemEntityTypes.dashboard.entityTypeBaseUrl &&
-              enabledFeatureFlags.dashboards);
+              enabledSections.dashboards);
 
           return isEnabledPageType ? [schema.$id] : [];
         }) ?? [],
@@ -201,7 +203,7 @@ const EntitiesPage: NextPageWithLayout = () => {
     [
       entityTypes,
       enabledFeatureFlags.pages,
-      enabledFeatureFlags.dashboards,
+      enabledSections.dashboards,
       hashInstance?.properties.pagesAreEnabled,
     ],
   );
@@ -376,7 +378,7 @@ const EntitiesPage: NextPageWithLayout = () => {
                 </Box>
               </Fade>
               {isViewAllPagesPage &&
-                enabledFeatureFlags.dashboards &&
+                enabledSections.dashboards &&
                 activeWorkspaceWebId && (
                   <CreateDashboard
                     key={activeWorkspaceWebId}
