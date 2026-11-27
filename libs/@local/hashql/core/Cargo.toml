@@ -14,7 +14,7 @@ hashql-macros      = { workspace = true, public = true }
 
 # Public third-party dependencies
 anstyle   = { workspace = true, public = true }
-foldhash  = { workspace = true, public = true }
+foldhash  = { workspace = true, public = true, features = ["nightly", "std"] }
 hashbrown = { workspace = true, public = true }
 pretty    = { workspace = true, public = true }
 rayon     = { workspace = true, optional = true, public = true }
