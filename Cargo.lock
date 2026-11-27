@@ -7507,6 +7507,7 @@ dependencies = [
  "testcontainers-modules",
  "tokio",
  "tokio-postgres",
+ "tracing",
  "type-system",
  "url",
  "uuid",
