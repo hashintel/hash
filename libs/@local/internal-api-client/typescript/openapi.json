@@ -1,0 +1,186 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "HASH Internal API"
+  },
+  "paths": {
+    "/waitlist-position": {
+      "get": {
+        "summary": "Get position of a user in the HASH waitlist",
+        "operationId": "getWaitlistPosition",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "description": "The email of the user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "waitlistPosition": {
+                      "oneOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["waitlistPosition"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/web-search-results": {
+      "get": {
+        "summary": "Get web search results based on a text query",
+        "operationId": "getWebSearchResults",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "The query for the web search",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webSearchResults": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "position": {
+                            "type": "number"
+                          }
+                        },
+                        "required": ["title", "url", "position"]
+                      }
+                    }
+                  },
+                  "required": ["webSearchResults"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StatusCode": {
+        "type": "string",
+        "enum": [
+          "OK",
+          "CANCELLED",
+          "UNKNOWN",
+          "INVALID_ARGUMENT",
+          "DEADLINE_EXCEEDED",
+          "NOT_FOUND",
+          "ALREADY_EXISTS",
+          "PERMISSION_DENIED",
+          "UNAUTHENTICATED",
+          "RESOURCE_EXHAUSTED",
+          "FAILED_PRECONDITION",
+          "ABORTED",
+          "OUT_OF_RANGE",
+          "UNIMPLEMENTED",
+          "INTERNAL",
+          "UNAVAILABLE",
+          "DATA_LOSS"
+        ]
+      },
+      "ErrorInfo": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["reason", "domain", "metadata"]
+      },
+      "ResourceInfo": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceName": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["resourceName", "resourceType", "description"]
+      },
+      "Status": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/StatusCode"
+          },
+          "message": {
+            "type": "string"
+          },
+          "contents": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorInfo"
+                },
+                {
+                  "$ref": "#/components/schemas/ResourceInfo"
+                }
+              ]
+            }
+          }
+        },
+        "required": ["code", "contents"]
+      }
+    }
+  }
+}

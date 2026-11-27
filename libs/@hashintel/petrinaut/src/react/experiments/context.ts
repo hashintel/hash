@@ -62,9 +62,7 @@ export type ExperimentComputeBackend = "cpu" | "webgpu";
  * Which of the two compute paths the backend that ran is: the graphics
  * card, or worker threads.
  */
-export const computeBackendOf = (
-  backendId: string,
-): ExperimentComputeBackend =>
+export const computeBackendOf = (backendId: string): ExperimentComputeBackend =>
   backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID ? "webgpu" : "cpu";
 
 export type CreateExperimentInput = {

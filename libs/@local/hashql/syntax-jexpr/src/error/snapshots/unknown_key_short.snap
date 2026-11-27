@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"x\": 2}"
+---
+error[jexpr::parser::object::unknown-key]: Unknown object key
+  ╭▸ 
+1 │ {"x": 2}
+  │  ━━━ unknown object key `x`
+  │
+  ├ help: wrap named fields in `{"#struct": {...}}` or `{"#dict": {...}}`, or use a constructor key
+  ╰ note: valid keys in this position are `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`

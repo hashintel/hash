@@ -1,5 +1,5 @@
 use hash_graph_authorization::policies::action::ActionName;
-use hashql_ast::error::AstDiagnosticCategory;
+use hashql_ast::{error::AstDiagnosticCategory, node::expr::Expr};
 use hashql_core::{
     heap::{self, Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
@@ -7,7 +7,7 @@ use hashql_core::{
     symbol::sym,
     r#type::environment::Environment,
 };
-use hashql_diagnostics::{DiagnosticIssues, IntoStatus as _, Status, StatusExt as _, Success};
+use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _, Success};
 use hashql_eval::{
     context::{CodeExecutionContext, CodeGenerationContext},
     postgres::{PostgresCompiler, PreparedQueries},
@@ -22,9 +22,18 @@ use hashql_mir::{
         execution::{ExecutionAnalysisResidual, VertexType},
     },
 };
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{
+    JsonPointers, ParserOptions, error::JExprDiagnosticCategory, span::Span,
+};
 
 use super::error::HashQlDiagnosticCategory;
+
+/// Free stack below which a query is compiled on a stack of its own.
+const COMPILE_STACK_RED_ZONE: usize = 4 * 1024 * 1024;
+
+/// Size of the stack a query is compiled on when the thread has less than
+/// [`COMPILE_STACK_RED_ZONE`] free.
+const COMPILE_STACK_SIZE: usize = 8 * 1024 * 1024;
 
 pub(crate) struct CodeCompilationArtifact<'heap> {
     pub assignment: DefIdVec<Option<ExecutionAnalysisResidual<&'heap Heap>>, &'heap Heap>,
@@ -51,22 +60,35 @@ pub(crate) struct Compilation<'heap> {
 }
 
 impl<'heap> Compilation<'heap> {
-    #[expect(clippy::too_many_lines, reason = "orchestration of sequential tasks")]
     pub(crate) fn compile(
         heap: &'heap Heap,
         scratch: &mut Scratch,
         spans: &mut SpanTable<Span>,
-        query: &[u8],
+        source: &str,
+    ) -> (Status<Self, HashQlDiagnosticCategory, SpanId>, JsonPointers) {
+        // The passes after the parser recurse once per level of nesting. A query nested to the
+        // default limit of the parser needs more stack than a worker thread of the query pool
+        // has, which is the 2 MiB default of a spawned thread.
+        stacker::maybe_grow(COMPILE_STACK_RED_ZONE, COMPILE_STACK_SIZE, || {
+            let mut parser =
+                hashql_syntax_jexpr::Parser::new(heap, spans, ParserOptions::default());
+            let (parsed, pointers) = parser.parse_expr_with_pointers_in(source, &*scratch);
+            scratch.reset();
+            let status = Self::compile_parsed(heap, scratch, parsed);
+            (status, pointers)
+        })
+    }
+
+    #[expect(clippy::too_many_lines, reason = "orchestration of sequential tasks")]
+    fn compile_parsed(
+        heap: &'heap Heap,
+        scratch: &mut Scratch,
+        parsed: Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
     ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
-        // Parse the query
-        let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
         let Success {
             value: mut ast,
             advisories,
-        } = parser
-            .parse_expr(query)
-            .into_status()
-            .map_category(HashQlDiagnosticCategory::JExpr)?;
+        } = parsed.map_category(HashQlDiagnosticCategory::JExpr)?;
 
         let root_span = ast.span;
 
@@ -77,11 +99,18 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: types,
             advisories,
-        } = hashql_ast::lower::lower(sym::path::main, &mut ast, &env, &modules, &mut *scratch)
-            .map_category(|category| {
-                HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
-            })
-            .with_diagnostics(advisories)?;
+        } = hashql_ast::lower::lower(
+            sym::path::main,
+            &mut ast,
+            &env,
+            &modules,
+            scratch.as_mut_scope(),
+        )
+        .map_category(|category| {
+            HashQlDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
+        })
+        .with_diagnostics(advisories)?;
+        scratch.reset();
 
         let interner = hashql_hir::intern::Interner::new(heap);
         let mut hir_context = hashql_hir::context::HirContext::new(&interner, &modules);
@@ -90,11 +119,12 @@ impl<'heap> Compilation<'heap> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::NodeData::from_ast(ast, &mut hir_context, &types)
+        } = hashql_hir::node::NodeData::from_ast_in(ast, &mut hir_context, &types, &*scratch)
             .map_category(|category| {
                 HashQlDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })
             .with_diagnostics(advisories)?;
+        scratch.reset();
 
         // Lower the HIR
         let Success {
@@ -130,6 +160,7 @@ impl<'heap> Compilation<'heap> {
                 HashQlDiagnosticCategory::Mir(MirDiagnosticCategory::Reify(category))
             })
             .with_diagnostics(advisories)?;
+        scratch.reset();
 
         // Lower the MIR
         let Success {
@@ -160,10 +191,10 @@ impl<'heap> Compilation<'heap> {
             &bodies,
             &execution,
             heap,
-            &mut *scratch,
+            scratch.as_mut_scope(),
         );
 
-        let mut postgres = PostgresCompiler::new_in(&mut context, &mut *scratch);
+        let mut postgres = PostgresCompiler::new_in(&mut context, scratch.as_mut_scope());
         let queries = postgres.compile();
         scratch.reset();
 

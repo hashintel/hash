@@ -1,4 +1,7 @@
-use alloc::{alloc::Global, vec};
+use alloc::{
+    alloc::{AllocatorNightly, Global},
+    vec,
+};
 use core::{
     alloc::{AllocError, Allocator},
     borrow::{Borrow, BorrowMut},
@@ -18,7 +21,7 @@ use rayon::iter::{
 };
 
 use super::{Id, slice::IdSlice};
-use crate::heap::{FromIteratorIn, TryCloneIn};
+use crate::heap::{CloneIn, FromIteratorIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -221,7 +224,7 @@ where
     where
         T: Clone,
     {
-        Self::from_raw(alloc::vec::from_elem_in(elem, size, alloc))
+        Self::from_raw(Vec::repeat_in(elem, size, alloc))
     }
 
     /// Creates an `IdVec` with the same length as `domain`, with each element initialized to
@@ -286,7 +289,7 @@ where
     where
         T: Clone,
     {
-        Self::from_raw(alloc::vec::from_elem_in(elem, domain.len(), alloc))
+        Self::from_raw(Vec::repeat_in(elem, domain.len(), alloc))
     }
 
     /// Creates an `IdVec` with the same length as `domain`, deriving each element from the
@@ -560,7 +563,10 @@ where
     ///
     /// An iterator over the drained elements.
     #[inline]
-    pub fn drain(&mut self, range: impl RangeBounds<I>) -> alloc::vec::Drain<'_, T, A> {
+    pub fn drain(&mut self, range: impl RangeBounds<I>) -> alloc::vec::Drain<'_, T, A>
+    where
+        A: AllocatorNightly,
+    {
         let start = range.start_bound().copied().map(Id::as_usize);
         let end = range.end_bound().copied().map(Id::as_usize);
 
@@ -894,7 +900,7 @@ where
     }
 }
 
-impl<I, T, A, B> TryCloneIn<B> for IdVec<I, T, A>
+impl<I, T, A, B> CloneIn<B> for IdVec<I, T, A>
 where
     I: Id,
     T: Clone,
@@ -904,13 +910,13 @@ where
     type Cloned = IdVec<I, T, B>;
 
     #[inline]
-    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
-        self.raw.try_clone_in(allocator).map(IdVec::from_raw)
+    fn try_clone_in(&self, alloc: B) -> Result<Self::Cloned, AllocError> {
+        self.raw.try_clone_in(alloc).map(IdVec::from_raw)
     }
 
     #[inline]
-    fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
-        self.raw.try_clone_into(&mut into.raw, allocator)
+    fn try_clone_into(&self, target: &mut Self::Cloned, alloc: B) -> Result<(), AllocError> {
+        self.raw.try_clone_into(&mut target.raw, alloc)
     }
 }
 

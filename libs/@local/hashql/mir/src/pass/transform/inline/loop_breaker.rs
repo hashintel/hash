@@ -68,7 +68,7 @@ use hashql_core::{
             tarjan::{Members, SccId},
         },
     },
-    heap::BumpAllocator,
+    heap::PhaseAllocator,
     id::bit_vec::DenseBitSet,
 };
 
@@ -221,11 +221,14 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
     /// - The member slice is reordered: non-breaker callees before their callers, breakers last.
     ///
     /// Returns a bitset of all selected breakers across every SCC.
-    pub(crate) fn run_in<S: BumpAllocator>(
+    pub(crate) fn run_in<'alloc, S>(
         &mut self,
         members: &mut Members<DefId, SccId, A>,
-        scratch: &S,
-    ) -> DenseBitSet<DefId> {
+        scratch: S,
+    ) -> DenseBitSet<DefId>
+    where
+        S: PhaseAllocator<'alloc>,
+    {
         let mut breakers = DenseBitSet::new_empty(self.properties.len());
 
         for (_, members) in members {
@@ -257,15 +260,17 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
     /// Greedily select breakers for a single non-trivial SCC.
     ///
     /// Postcondition: the non-breaker remainder of `members` is acyclic.
-    fn select_in<B: BumpAllocator>(
+    fn select_in<'alloc, B>(
         &mut self,
         members: &[DefId],
         breakers: &mut DenseBitSet<DefId>,
-        scratch: &B,
-    ) {
+        scratch: B,
+    ) where
+        B: PhaseAllocator<'alloc>,
+    {
         // Sort descending: highest breaker score (least valuable to inline) first.
         let scored = scratch
-            .allocate_slice_uninit(members.len())
+            .alloc_slice_uninit(members.len())
             .write_with(|index| (members[index], self.score(members[index])));
         scored.sort_by(|(_, lhs_score), (_, rhs_score)| lhs_score.total_cmp(rhs_score).reverse());
 
@@ -368,12 +373,15 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
     /// Returns non-breaker members ordered so that callees appear before their
     /// callers, followed by breaker members.
     #[expect(unsafe_code)]
-    fn order<'alloc, S: BumpAllocator>(
+    fn order<'alloc, S>(
         &self,
         members: &[DefId],
         breakers: &DenseBitSet<DefId>,
-        alloc: &'alloc S,
-    ) -> &'alloc [DefId] {
+        alloc: S,
+    ) -> &'alloc [DefId]
+    where
+        S: PhaseAllocator<'alloc>,
+    {
         let subgraph = CallSubgraph {
             inner: self.graph,
             members,
@@ -381,7 +389,7 @@ impl<A: Allocator> LoopBreaker<'_, '_, A> {
         };
 
         let mut index = 0;
-        let order = alloc.allocate_slice_uninit(members.len());
+        let order = alloc.alloc_slice_uninit(members.len());
 
         // The forest traversal covers the full DefId domain (since node_count
         // must match the DefId index space for bitset sizing). Non-member nodes

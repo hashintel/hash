@@ -22,8 +22,7 @@
 // shape (1M rows and 256 anchors) before choosing this change or vectorizing comparisons.
 
 use alloc::{borrow::Cow, collections::BinaryHeap};
-use core::{cmp::Ordering, num::NonZero};
-use std::alloc::Allocator;
+use core::{alloc::Allocator, cmp::Ordering, num::NonZero};
 
 use hashql_core::{
     heap::{ResetAllocator as _, Scratch},

@@ -13,17 +13,16 @@ hashql-core        = { workspace = true, public = true }
 hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
-jsonptr   = { workspace = true, public = true }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-circular-buffer       = { workspace = true }
-hifijson              = { workspace = true, features = ["alloc"] }
 logos                 = { workspace = true, features = ["export_derive"] }
 memchr                = { workspace = true }
+rowan                 = { workspace = true }
 simple-mermaid        = { workspace = true }
+stacker               = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
 unicode-properties    = { workspace = true, features = ["general-category"] }
@@ -31,14 +30,24 @@ url                   = { workspace = true }
 winnow                = { workspace = true, features = ["std", "parser", "ascii"] }
 
 [dev-dependencies]
-hashql-diagnostics = { workspace = true, features = ["render"] }
-insta              = { workspace = true }
-rstest             = { workspace = true }
-serde              = { workspace = true }
-serde_json         = { workspace = true }
+codspeed-criterion-compat = { workspace = true }
+hashql-diagnostics        = { workspace = true, features = ["render"] }
+insta                     = { workspace = true }
+proptest                  = { workspace = true, features = ["attr-macro"] }
+rstest                    = { workspace = true }
+serde                     = { workspace = true }
+serde_json                = { workspace = true, features = ["raw_value"] }
+
+[features]
+bench = []
 
 [lints]
 workspace = true
+
+[[bench]]
+name              = "jexpr"
+harness           = false
+required-features = ["bench"]
 
 [[bin]]
 name              = "parse"

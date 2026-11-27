@@ -80,6 +80,9 @@ const updated = {
   },
 } as unknown as DataTypeWithMetadata;
 const loadExternalDataType = vi.fn();
+const systemActorHeaders = {
+  "X-Authenticated-User-Actor-Id": "system-actor",
+};
 const context = {
   graphApi: { loadExternalDataType },
   provenance: { actorType: "machine", origin: { type: "migration" } },
@@ -107,7 +110,7 @@ beforeEach(() => {
   vi.mocked(createSystemDataTypeIfNotExists).mockResolvedValue(existing);
   vi.mocked(getDataTypeById).mockRejectedValue(new NotFoundError("Not found"));
   vi.mocked(updateDataType).mockResolvedValue(updated);
-  loadExternalDataType.mockResolvedValue({ data: updated.metadata });
+  loadExternalDataType.mockResolvedValue(updated.metadata);
 });
 
 describe("unit definition upgrades", () => {
@@ -152,8 +155,8 @@ describe("unit definition upgrades", () => {
       });
       if (selfHosted) {
         expect(loadExternalDataType).toHaveBeenCalledWith(
-          "system-actor",
           expected,
+          systemActorHeaders,
         );
       } else {
         expect(createDataType).toHaveBeenCalledWith(
@@ -187,10 +190,10 @@ describe("unit definition upgrades", () => {
       });
       if (selfHosted) {
         expect(loadExternalDataType).toHaveBeenCalledWith(
-          "system-actor",
           expected,
+          systemActorHeaders,
         );
-        expect(loadExternalDataType.mock.calls[0]?.[1].schema.$id).toBe(
+        expect(loadExternalDataType.mock.calls[0]?.[0].schema.$id).toBe(
           `${baseUrl}v/2`,
         );
       } else {
@@ -374,7 +377,6 @@ describe("unit definition upgrades", () => {
     const result = await ensureUnitDataType(context, authentication, params);
     expect(result.schema.$id).toBe(updated.schema.$id);
     expect(loadExternalDataType).toHaveBeenCalledWith(
-      "system-actor",
       expect.objectContaining({
         schema: expect.objectContaining({
           $id: updated.schema.$id,
@@ -382,6 +384,7 @@ describe("unit definition upgrades", () => {
         }),
         conversions: params.conversions,
       }),
+      systemActorHeaders,
     );
     expect(updateDataType).not.toHaveBeenCalled();
     expect(params.migrationState.dataTypeVersions[baseUrl]).toBe(

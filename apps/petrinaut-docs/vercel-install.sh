@@ -15,7 +15,7 @@ eval "$(mise activate bash --shims)"
 # The build graph is `astro build` <- `sync:bundle` <- `doc:architecture`, Node
 # throughout, and `.yarnrc.yml` sets `enableScripts: false`, so nothing compiles
 # during install. That leaves out the Rust toolchain, wasm target, wasm-pack,
-# binaryen, java, protoc and redocly that the other Vercel apps here install.
+# binaryen and protoc that the other Vercel apps here install.
 # The token encoding playground imports the built `@hashintel/petrinaut-core`,
 # so that package's build and the build of its dependency
 # `@local/petrinaut-optimizer-core` run first. Both are Vite and Node scripts,

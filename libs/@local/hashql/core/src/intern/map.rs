@@ -8,7 +8,7 @@ use hashbrown::hash_map::RawEntryMut;
 use super::Interned;
 use crate::{
     collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
-    heap::Heap,
+    heap::{Heap, PhaseAllocator as _},
     id::{HasId, Id, IdProducer},
     sync::lock::LocalLock,
 };

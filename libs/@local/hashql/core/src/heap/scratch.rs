@@ -1,51 +1,84 @@
-//! Scratch allocator for temporary allocations.
-
-use core::{alloc, mem, ptr};
-
 use super::{
-    AllocatorScope, BumpAllocator,
-    allocator::{Allocator, Checkpoint},
-    bump::ResetAllocator,
+    bump::{Bump, BumpScope},
+    macros::{delegate_allocator, delegate_phase_allocator, delegate_reset_allocator},
 };
 
-/// A resettable scratch allocator for temporary allocations.
+/// An arena for the temporary data of a computation.
 ///
-/// Unlike [`Heap`](super::Heap), `Scratch` does not provide string interning.
-/// Use for short-lived temporary allocations that can be freed in bulk.
+/// `&Scratch` is a [`PhaseAllocator`]. To open scopes, borrow the arena through [`as_mut_scope`] or
+/// [`as_scope`]. Call [`reset`] between the runs of a computation to reuse the memory of one
+/// `Scratch` for all of them.
+///
+/// To intern [`Symbol`]s, use a [`Heap`].
+///
+/// # Example
 ///
 /// ```
-/// # use hashql_core::heap::{Scratch, ResetAllocator};
+/// use hashql_core::heap::{PhaseAllocator as _, ResetAllocator as _, Scratch};
+///
 /// let mut scratch = Scratch::new();
-/// let mut vec: Vec<u32, &Scratch> = Vec::new_in(&scratch);
-/// vec.push(42);
-/// # drop(vec);
-/// scratch.reset();
+/// let mut total = 0;
+///
+/// for run in [[1_u32, 2], [3, 4]] {
+///     let values = scratch.alloc_slice_copy(&run);
+///     total += values.iter().sum::<u32>();
+///
+///     // The next run reuses the memory of this one.
+///     scratch.reset();
+/// }
+///
+/// assert_eq!(total, 10);
 /// ```
-#[derive(Debug)]
-#[expect(
-    clippy::field_scoped_visibility_modifiers,
-    reason = "TransferInto impl"
-)]
-pub struct Scratch {
-    pub(super) inner: Allocator,
-}
+///
+/// [`PhaseAllocator`]: super::PhaseAllocator
+/// [`as_mut_scope`]: Self::as_mut_scope
+/// [`as_scope`]: Self::as_scope
+/// [`reset`]: super::ResetAllocator::reset
+/// [`Symbol`]: crate::symbol::Symbol
+/// [`Heap`]: super::Heap
+pub struct Scratch(Bump);
 
 impl Scratch {
-    /// Creates a new scratch allocator.
+    /// Creates an empty arena.
     #[inline]
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            inner: Allocator::new(),
-        }
+        Self(Bump::new())
     }
 
+    /// Creates an empty arena that requests about `capacity` bytes of memory up front.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `capacity` rounded up to the size that the arena requests overflows [`usize`].
     #[inline]
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            inner: Allocator::with_capacity(capacity),
-        }
+        Self(Bump::with_capacity(capacity))
+    }
+
+    /// Borrows the arena for code that shares it.
+    ///
+    /// The returned arena opens scopes through [`scoped_ref`] alone.
+    ///
+    /// [`scoped_ref`]: super::ScopeAllocator::scoped_ref
+    #[inline]
+    #[must_use]
+    pub fn as_scope(&self) -> &BumpScope<'_> {
+        self.0.as_scope()
+    }
+
+    /// Borrows the arena with exclusive access.
+    ///
+    /// The returned arena opens scopes through [`scoped`], which has none of the restrictions of
+    /// [`scoped_ref`].
+    ///
+    /// [`scoped`]: super::ScopeAllocator::scoped
+    /// [`scoped_ref`]: super::ScopeAllocator::scoped_ref
+    #[inline]
+    #[must_use]
+    pub fn as_mut_scope(&mut self) -> &mut BumpScope<'_> {
+        self.0.as_mut_scope()
     }
 }
 
@@ -56,104 +89,73 @@ impl Default for Scratch {
     }
 }
 
-impl BumpAllocator for Scratch {
-    type Checkpoint = Checkpoint;
-    type Scoped<'scope> = AllocatorScope<'scope>;
+delegate_allocator!(Scratch, 0);
+delegate_phase_allocator!('alloc, &'alloc Scratch, 0);
+delegate_reset_allocator!(Scratch, 0);
 
-    #[inline]
-    fn scoped_mut<T>(&mut self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
-        self.inner.scoped_mut(func)
+#[cfg(test)]
+mod tests {
+    use alloc::vec::Vec;
+    use core::ptr;
+
+    use super::Scratch;
+    use crate::heap::{PhaseAllocator as _, ResetAllocator as _, ScopeAllocator};
+
+    fn sum_scoped<'alloc, S>(alloc: &mut S, values: &[u32]) -> u32
+    where
+        S: ScopeAllocator<'alloc>,
+    {
+        alloc.scoped(|scope| scope.alloc_slice_copy(values).iter().sum())
     }
 
-    #[inline]
-    fn scoped_ref<T>(&self, func: impl FnOnce(&mut Self::Scoped<'_>) -> T) -> T {
-        self.inner.scoped_ref(func)
+    #[test]
+    fn alloc_on_owned_scratch() {
+        let scratch = Scratch::new();
+
+        let first = scratch.alloc(1_u32);
+        let second = scratch.alloc_slice_copy(&[*first, 2]);
+
+        assert_eq!((*first, &*second), (1, &[1, 2][..]));
     }
 
-    #[inline]
-    fn checkpoint(&self) -> Self::Checkpoint {
-        self.inner.checkpoint()
+    #[test]
+    fn collection_in_scratch() {
+        let scratch = Scratch::with_capacity(64);
+
+        let mut values = Vec::new_in(&scratch);
+        values.extend(0..1024_u32);
+
+        assert_eq!(values.iter().sum::<u32>(), 523_776);
     }
 
-    #[inline]
-    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
-        // SAFETY: Same safety guarantees as `Allocator::rollback`.
-        unsafe { self.inner.rollback(checkpoint) }
+    #[test]
+    #[should_panic(expected = "capacity overflow")]
+    fn with_capacity_overflow() {
+        let _scratch = Scratch::with_capacity(usize::MAX);
     }
 
-    #[inline]
-    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
-        self.inner.try_allocate_slice_copy(slice)
+    #[test]
+    fn reset_reuses_memory() {
+        let mut scratch = Scratch::new();
+
+        let first = ptr::from_mut(scratch.alloc(1_u64));
+        scratch.reset();
+        let second = ptr::from_mut(scratch.alloc(2_u64));
+
+        assert_eq!(first, second);
     }
 
-    #[inline]
-    fn try_allocate_slice_uninit<T>(
-        &self,
-        len: usize,
-    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
-        self.inner.try_allocate_slice_uninit(len)
-    }
-}
+    #[test]
+    fn scopes_on_owned_scratch() {
+        let mut scratch = Scratch::new();
 
-impl ResetAllocator for Scratch {
-    #[inline]
-    fn reset(&mut self) {
-        self.inner.reset();
-    }
-}
+        assert_eq!(sum_scoped(scratch.as_mut_scope(), &[1, 2, 3]), 6);
 
-// SAFETY: Delegates to bumpalo::Bump via the internal Allocator.
-#[expect(unsafe_code, reason = "proxy to internal allocator")]
-unsafe impl alloc::Allocator for Scratch {
-    #[inline]
-    fn allocate(&self, layout: alloc::Layout) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        self.inner.allocate(layout)
-    }
+        let kept = scratch.alloc(4_u32);
+        let sum = scratch
+            .as_scope()
+            .scoped_ref(|scope| *scope.alloc(*kept + 1));
 
-    #[inline]
-    fn allocate_zeroed(
-        &self,
-        layout: alloc::Layout,
-    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        self.inner.allocate_zeroed(layout)
-    }
-
-    #[inline]
-    unsafe fn grow(
-        &self,
-        ptr: ptr::NonNull<u8>,
-        old_layout: alloc::Layout,
-        new_layout: alloc::Layout,
-    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        // SAFETY: Caller upholds Allocator contract.
-        unsafe { self.inner.grow(ptr, old_layout, new_layout) }
-    }
-
-    #[inline]
-    unsafe fn grow_zeroed(
-        &self,
-        ptr: ptr::NonNull<u8>,
-        old_layout: alloc::Layout,
-        new_layout: alloc::Layout,
-    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        // SAFETY: Caller upholds Allocator contract.
-        unsafe { self.inner.grow_zeroed(ptr, old_layout, new_layout) }
-    }
-
-    #[inline]
-    unsafe fn shrink(
-        &self,
-        ptr: ptr::NonNull<u8>,
-        old_layout: alloc::Layout,
-        new_layout: alloc::Layout,
-    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        // SAFETY: Caller upholds Allocator contract.
-        unsafe { self.inner.shrink(ptr, old_layout, new_layout) }
-    }
-
-    #[inline]
-    unsafe fn deallocate(&self, ptr: ptr::NonNull<u8>, layout: alloc::Layout) {
-        // SAFETY: Caller upholds Allocator contract.
-        unsafe { self.inner.deallocate(ptr, layout) }
+        assert_eq!((*kept, sum), (4, 5));
     }
 }

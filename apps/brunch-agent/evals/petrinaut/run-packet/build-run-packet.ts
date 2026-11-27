@@ -29,7 +29,7 @@ export interface RunMetadata {
   readonly caseName: string | null;
   readonly brunchModel: string | null;
   readonly brunchThinking: string | null;
-  readonly personaAgent: string | null;
+  readonly personaDriver: string | null;
   readonly guidanceSha256: string | null;
   readonly createdAt: string | null;
 }

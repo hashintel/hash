@@ -1,4 +1,5 @@
 #![expect(clippy::min_ident_chars, clippy::significant_drop_tightening)]
+#![feature(allocator_ext)]
 
 extern crate alloc;
 
@@ -68,15 +69,15 @@ fn create_fibonacci_body<'heap>(
     };
     let mut state = OwnedGlobalTransformState::new_in(bodies_mut, Global);
 
-    let mut pre = PreInline::new_in(&mut scratch);
+    let mut pre = PreInline::new_in(scratch.as_mut_scope());
     let _: Changed = pre.run(&mut context, &mut state.as_mut(), bodies_mut);
     scratch.reset();
 
-    let mut inline = Inline::new_in(InlineConfig::default(), &mut scratch);
+    let mut inline = Inline::new_in(InlineConfig::default(), &scratch);
     let _: Changed = inline.run(&mut context, &mut state.as_mut(), bodies_mut);
     scratch.reset();
 
-    let mut post = PostInline::new_in(&mut scratch);
+    let mut post = PostInline::new_in(scratch.as_mut_scope());
     let _: Changed = post.run(&mut context, &mut state.as_mut(), bodies_mut);
     scratch.reset();
 

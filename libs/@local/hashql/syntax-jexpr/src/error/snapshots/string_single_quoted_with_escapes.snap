@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 'it\\'s \"ok\"'}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": 'it\'s "ok"'}
+  │              ━━━━━━━━━━━━ single-quoted strings are not allowed in JSON
+  ╰╴
+help: use double quotes instead
+  ╭╴
+1 - {"#literal": 'it\'s "ok"'}
+1 + {"#literal": "it's \"ok\""}
+  ╰╴

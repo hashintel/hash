@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#dict\": [[{\"#literal\": \"k\"}]]}"
+---
+error[jexpr::parser::object::dict-entry-too-few-items]: Too few items in dictionary entry
+  ╭▸ 
+1 │ {"#dict": [[{"#literal": "k"}]]}
+  │  ┬──────   ━━━━━━━━━━━━━━━━━━━ dictionary entry is missing a value; expected `[key, value]`
+  │  │
+  │  in this `#dict`
+  │
+  ├ help: add a value expression after the key: `[key, value]`
+  ╰ note: in array-of-pairs format, each `#dict` entry must be a two-element array `[key, value]`

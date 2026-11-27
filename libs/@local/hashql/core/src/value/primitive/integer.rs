@@ -48,10 +48,13 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
-    /// let integer = Integer::new_unchecked(heap.intern_symbol("42"));
+    /// let integer = Integer::new_unchecked(heap.alloc_symbol("42"));
     ///
     /// assert_eq!(integer.as_i32(), Some(42));
     /// ```
@@ -67,11 +70,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("42").as_u8(), Some(42));
@@ -94,11 +100,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("1000").as_u16(), Some(1000));
@@ -121,11 +130,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("100000").as_u32(), Some(100000));
@@ -148,11 +160,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("1234567890").as_u64(), Some(1234567890));
@@ -175,11 +190,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(
@@ -208,11 +226,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("12345").as_usize(), Some(12345));
@@ -235,11 +256,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("100").as_i8(), Some(100));
@@ -262,11 +286,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("5000").as_i16(), Some(5000));
@@ -289,11 +316,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("42").as_i32(), Some(42));
@@ -316,11 +346,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("9876543210").as_i64(), Some(9876543210));
@@ -343,11 +376,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(
@@ -379,11 +415,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("54321").as_isize(), Some(54321));
@@ -407,11 +446,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("42").as_f32(), 42.0);
@@ -441,11 +483,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("123").as_f64(), 123.0);
@@ -474,11 +519,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// let real = integer("9999").as_real();
@@ -508,11 +556,14 @@ impl<'heap> Integer<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, value::Integer};
+    /// use hashql_core::{
+    ///     heap::{Heap, SymbolAllocator as _},
+    ///     value::Integer,
+    /// };
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.alloc_symbol(value));
     ///
     /// // Positive value
     /// let symbol = integer("9999").as_symbol();
@@ -540,14 +591,17 @@ impl Display for Integer<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{heap::Heap, value::primitive::Integer};
+    use crate::{
+        heap::{Heap, SymbolAllocator as _},
+        value::primitive::Integer,
+    };
 
     #[test]
     fn invalid_formats() {
         let heap = Heap::new();
 
         let invalid = Integer {
-            value: heap.intern_symbol("not_a_number"),
+            value: heap.alloc_symbol("not_a_number"),
         };
 
         assert_eq!(invalid.as_u32(), None);

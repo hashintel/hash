@@ -68,17 +68,6 @@ use core::{
 };
 use std::sync::{Mutex, MutexGuard};
 
-use self::sealed::Sealed;
-
-mod sealed {
-    use super::{Local, Shared};
-
-    pub trait Sealed {}
-
-    impl Sealed for Local {}
-    impl Sealed for Shared {}
-}
-
 /// Trait for types that can parameterize [`Lock`] to be either thread-local or thread-safe.
 ///
 /// This trait is sealed and cannot be implemented outside this module. The only implementations
@@ -88,7 +77,7 @@ mod sealed {
 ///
 /// Uses associated types with never types (`!`) to make invalid lock type combinations
 /// unrepresentable at compile time. This ensures type safety without runtime overhead.
-pub trait LockType: Sealed {
+pub impl(self) trait LockType {
     /// Marker type used for [`Local`] locks.
     ///
     /// For [`Local`], this is `()`. For [`Shared`], this is the never type `!`.

@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1.2.3}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": 1.2.3}
+  │               ┬ ━ duplicate decimal point in number literal
+  │               │
+  │               decimal point already here
+  │
+  ├ help: remove the extra decimal point
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`

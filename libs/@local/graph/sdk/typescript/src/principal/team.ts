@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import type { AuthenticationContext } from "../authentication-context.js";
 import type {
   Team,
@@ -17,13 +19,15 @@ export const getTeamByName = (
   authentication: AuthenticationContext,
   name: "instance-admins",
 ): Promise<Team | null> =>
-  graphAPI.getTeamByName(authentication.actorId, name).then(({ data }) => {
-    const team = data as Team | null;
-    if (!team) {
-      return null;
-    }
-    return team;
-  });
+  graphAPI
+    .getTeamByName(name, actorHeaders(authentication.actorId))
+    .then((data) => {
+      const team = data as Team | null;
+      if (!team) {
+        return null;
+      }
+      return team;
+    });
 
 /**
  * Returns all roles assigned to the given team.
@@ -34,5 +38,5 @@ export const getTeamRoles = (
   teamId: TeamId,
 ): Promise<Record<TeamRoleId, TeamRole>> =>
   graphAPI
-    .getTeamRoles(authentication.actorId, teamId)
-    .then(({ data: roles }) => roles as Record<TeamRoleId, TeamRole>);
+    .getTeamRoles(teamId, actorHeaders(authentication.actorId))
+    .then((roles) => roles as Record<TeamRoleId, TeamRole>);

@@ -1153,7 +1153,6 @@ fn equal() {
 }
 
 #[test]
-#[expect(clippy::cognitive_complexity)]
 fn contains_point() {
     assert!(included_included(5, 10).contains_point(&5));
     assert!(included_included(5, 10).contains_point(&10));

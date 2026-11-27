@@ -1,0 +1,14 @@
+# Applied migrations are immutable: the migration runner stores a digest of each migration
+# directory and rejects one whose files change. A rule added by a newer SQLFluff release can't be
+# fixed in them, so these are frozen at the rules they were written against.
+/libs/@local/graph/migrations/graph-migrations/v001__extensions/
+/libs/@local/graph/migrations/graph-migrations/v002__principals/
+/libs/@local/graph/migrations/graph-migrations/v003__policies/
+/libs/@local/graph/migrations/graph-migrations/v004__webs/
+/libs/@local/graph/migrations/graph-migrations/v005__common_ontology/
+/libs/@local/graph/migrations/graph-migrations/v006__data_types/
+/libs/@local/graph/migrations/graph-migrations/v007__property_types/
+/libs/@local/graph/migrations/graph-migrations/v008__entity_types/
+/libs/@local/graph/migrations/graph-migrations/v009__entities/
+/libs/@local/graph/migrations/graph-migrations/v010__query/
+/libs/@local/graph/migrations/graph-migrations/v011__api_tokens/

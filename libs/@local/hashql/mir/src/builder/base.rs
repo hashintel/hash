@@ -1,4 +1,7 @@
-use hashql_core::value::{Float, Primitive};
+use hashql_core::{
+    heap::SymbolAllocator as _,
+    value::{Float, Primitive},
+};
 
 use super::{
     operand::OperandBuilder,
@@ -46,7 +49,7 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
     #[must_use]
     pub fn const_float(self, value: f64) -> Operand<'heap> {
         Operand::Constant(Constant::Primitive(Primitive::Float(Float::new_unchecked(
-            self.interner.heap.intern_symbol(&value.to_string()),
+            self.interner.heap.alloc_symbol(&value.to_string()),
         ))))
     }
 

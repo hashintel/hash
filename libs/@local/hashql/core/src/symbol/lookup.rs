@@ -45,10 +45,10 @@ enum SymbolLookupInner<'heap, I> {
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
+/// # use hashql_core::{heap::{Heap, SymbolAllocator as _}, symbol::SymbolLookup, id::{Id as _, newtype}};
 /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
 /// # let mut heap = Heap::new();
-/// # let symbol = heap.intern_symbol("example");
+/// # let symbol = heap.alloc_symbol("example");
 /// // Dense storage for sequential IDs
 /// let mut dense_table = SymbolLookup::<MyId>::dense();
 /// dense_table.insert(MyId::from_u32(0), symbol);
@@ -155,10 +155,10 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
+    /// # use hashql_core::{heap::{Heap, SymbolAllocator as _}, symbol::SymbolLookup, id::{Id as _, newtype}};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
-    /// # let symbol = heap.intern_symbol("example");
+    /// # let symbol = heap.alloc_symbol("example");
     /// let mut table = SymbolLookup::<MyId>::dense();
     /// table.insert(MyId::from_u32(0), symbol); // First insertion
     /// table.insert(MyId::from_u32(1), symbol); // Sequential insertion
@@ -167,10 +167,10 @@ where
     /// Non-sequential insertions will panic in dense tables:
     ///
     /// ```should_panic
-    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
+    /// # use hashql_core::{heap::{Heap, SymbolAllocator as _}, symbol::SymbolLookup, id::{Id as _, newtype}};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
-    /// # let symbol = heap.intern_symbol("example");
+    /// # let symbol = heap.alloc_symbol("example");
     /// let mut table = SymbolLookup::<MyId>::dense();
     /// table.insert(MyId::from_u32(0), symbol); // First insertion
     /// table.insert(MyId::from_u32(2), symbol); // Non-sequential insertion
@@ -203,10 +203,10 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, id::{Id as _, newtype}};
+    /// # use hashql_core::{heap::{Heap, SymbolAllocator as _}, symbol::SymbolLookup, id::{Id as _, newtype}};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
-    /// # let symbol = heap.intern_symbol("example");
+    /// # let symbol = heap.alloc_symbol("example");
     /// let mut table = SymbolLookup::<MyId>::sparse();
     /// table.insert(MyId::from_u32(42), symbol);
     ///

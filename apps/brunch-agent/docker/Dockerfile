@@ -61,16 +61,12 @@ FROM rust AS builder
 
 WORKDIR /repo
 
-# The shared backend utilities pull the type-system (wasm-pack) and graph
-# client (openapi-generator) builds into the graph, so the builder carries the
-# same toolchain as the API and worker images. Installed before the dependency
-# manifests so the layer survives dependency bumps.
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall cargo:cargo-insta github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen protoc && \
+    mise install --locked node npm:turbo cargo-binstall cargo:cargo-insta github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen protoc && \
     corepack enable
 
 COPY --from=base /repo/out/json/ ./

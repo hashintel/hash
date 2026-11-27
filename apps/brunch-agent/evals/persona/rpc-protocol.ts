@@ -7,14 +7,18 @@ import { StringDecoder } from "node:string_decoder";
 import * as v from "valibot";
 
 const commandId = v.optional(v.string());
-const nonblank = v.pipe(
+export const nonblankTextSchema = v.pipe(
   v.string(),
   v.check((value) => value.trim().length > 0, "Expected nonblank text"),
 );
 
 export const personaCommandSchema = v.variant("type", [
   v.object({ id: commandId, type: v.literal("open") }),
-  v.object({ id: commandId, type: v.literal("prompt"), message: nonblank }),
+  v.object({
+    id: commandId,
+    type: v.literal("prompt"),
+    message: nonblankTextSchema,
+  }),
   // One answer per docked question, in order; a blank one skips its question.
   v.object({
     id: commandId,

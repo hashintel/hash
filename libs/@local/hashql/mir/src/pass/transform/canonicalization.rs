@@ -3,9 +3,10 @@
 //! This module contains the [`Canonicalization`] pass, which runs a fixpoint loop of local and
 //! global transformations to simplify MIR bodies into a canonical form.
 
-use core::alloc::Allocator;
-
-use hashql_core::{heap::BumpAllocator, id::bit_vec::DenseBitSet};
+use hashql_core::{
+    heap::{PhaseAllocator as _, ScopeAllocator},
+    id::bit_vec::DenseBitSet,
+};
 
 use super::{
     AdministrativeReduction, CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify,
@@ -47,31 +48,37 @@ impl Default for CanonicalizationConfig {
 /// 3. **Value propagation** (FS/CP alternating) - Propagates values through the code
 /// 4. **Dead store elimination** - Removes stores made dead by propagation
 /// 5. **CFG simplification** - Cleans up control flow after local changes
-pub struct Canonicalization<A: Allocator> {
-    alloc: A,
+pub struct Canonicalization<S> {
+    alloc: S,
     config: CanonicalizationConfig,
 }
 
-impl<A: BumpAllocator> Canonicalization<A> {
+impl<S> Canonicalization<S> {
     /// Creates a new canonicalization pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
     /// between pass invocations.
-    pub const fn new_in(config: CanonicalizationConfig, alloc: A) -> Self {
+    pub const fn new_in(config: CanonicalizationConfig, alloc: S) -> Self {
         Self { alloc, config }
     }
 
     /// Returns a reference to the allocator used for temporary data structures.
-    pub const fn allocator(&self) -> &A {
+    #[must_use]
+    pub const fn allocator(&self) -> &S {
         &self.alloc
     }
 
     /// Returns a mutable reference to the allocator, allowing callers to run additional
     /// passes within the same allocator scope.
-    pub const fn allocator_mut(&mut self) -> &mut A {
+    pub const fn allocator_mut(&mut self) -> &mut S {
         &mut self.alloc
     }
+}
 
+impl<'alloc, S> Canonicalization<S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     /// Runs a local transform pass on all unstable bodies.
     ///
     /// Only bodies in the `unstable` set are processed. The `state` slice is updated to track
@@ -120,8 +127,8 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped_mut(|alloc| {
-            let pass = CopyPropagation::new_in(alloc);
+        self.alloc.scoped(|alloc| {
+            let pass = CopyPropagation::new_in(&alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
     }
@@ -133,8 +140,8 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped_mut(|alloc| {
-            let pass = CfgSimplify::new_in(alloc);
+        self.alloc.scoped(|mut alloc| {
+            let pass = CfgSimplify::new_in(&mut alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
     }
@@ -146,8 +153,8 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped_mut(|alloc| {
-            let pass = InstSimplify::new_in(alloc);
+        self.alloc.scoped(|alloc| {
+            let pass = InstSimplify::new_in(&alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
     }
@@ -159,8 +166,8 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped_mut(|alloc| {
-            let pass = ForwardSubstitution::new_in(alloc);
+        self.alloc.scoped(|alloc| {
+            let pass = ForwardSubstitution::new_in(&alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
     }
@@ -172,8 +179,8 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &mut DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let changed: Changed = self.alloc.scoped_mut(|alloc| {
-            let pass = AdministrativeReduction::new_in(alloc);
+        let changed: Changed = self.alloc.scoped(|alloc| {
+            let pass = AdministrativeReduction::new_in(&alloc);
             Self::run_global_pass(context, bodies, pass, state)
         });
 
@@ -197,14 +204,17 @@ impl<A: BumpAllocator> Canonicalization<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped_mut(|alloc| {
-            let pass = DeadStoreElimination::new_in(alloc);
+        self.alloc.scoped(|mut alloc| {
+            let pass = DeadStoreElimination::new_in(&mut alloc);
             Self::run_local_pass(context, bodies, pass, unstable, state)
         })
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Canonicalization<A> {
+impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for Canonicalization<S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     #[expect(clippy::integer_division_remainder_used)]
     fn run(
         &mut self,
@@ -214,12 +224,8 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Canonic
     ) -> Changed {
         let global = state;
 
-        // We allocate state on the heap rather than scratch because bump scopes require
-        // `&mut` access across iterations, and our generic allocator can't express the
-        // necessary lifetime bounds cleanly (limitation of the underlying bump-scope crate).
-        // Acceptable since this meta-pass runs once and the data is a single byte per body.
         let state = {
-            let uninit = context.heap.allocate_slice_uninit(bodies.len());
+            let uninit = self.alloc.alloc_slice_uninit(bodies.len());
             let init = uninit.write_filled(Changed::No);
 
             DefIdSlice::from_raw_mut(init)

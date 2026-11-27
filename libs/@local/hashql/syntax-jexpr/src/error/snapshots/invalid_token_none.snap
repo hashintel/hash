@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": None}"
+---
+error[jexpr::lexer::invalid-token]: Invalid token
+  ╭▸ 
+1 │ {"#literal": None}
+  │              ━━━━ unexpected bare identifier `None`
+  ╰╴
+help: use `null` for null values in JSON
+  ╭╴
+1 - {"#literal": None}
+1 + {"#literal": null}
+  ╰╴

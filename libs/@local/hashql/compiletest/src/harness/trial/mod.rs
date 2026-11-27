@@ -19,7 +19,7 @@ use hashql_diagnostics::{
     diagnostic::render::{ColorDepth, Format, RenderOptions},
     source::{DiagnosticSpan, SourceId},
 };
-use hashql_syntax_jexpr::Parser;
+use hashql_syntax_jexpr::{Parser, ParserOptions};
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
 use nextest_metadata::TestCaseName;
@@ -91,11 +91,14 @@ fn parse_source<'heap>(
     heap: &'heap Heap,
 ) -> Result<(Expr<'heap>, SpanTable<hashql_syntax_jexpr::span::Span>), Report<TrialError>> {
     let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
-    let mut parser = Parser::new(heap, &mut spans);
+    let mut parser = Parser::new(heap, &mut spans, ParserOptions::default());
 
-    let expr = parser
-        .parse_expr(source.as_bytes())
-        .change_context(TrialError::SourceParsing)?;
+    let expr = match parser.parse_expr_in(source, alloc::alloc::Global) {
+        Ok(success) => success.value,
+        Err(failure) => {
+            return Err(Report::new(*failure.primary).change_context(TrialError::SourceParsing));
+        }
+    };
 
     Ok((expr, spans))
 }

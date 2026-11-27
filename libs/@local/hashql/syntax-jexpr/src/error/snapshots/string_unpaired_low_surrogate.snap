@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"\\uDC00\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "\uDC00"}
+  │               ━━━━━━ unpaired low surrogate `\uDC00`
+  │
+  ├ help: precede the low surrogate with a high surrogate (`\uD800`..`\uDBFF`), or replace it with a valid Unicode scalar
+  ╰ note: UTF-16 low surrogates cannot appear without a leading high surrogate

@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import type { AuthenticationContext } from "../authentication-context.js";
 import type {
   Web,
@@ -17,13 +19,15 @@ export const getWebById = (
   authentication: AuthenticationContext,
   webId: WebId,
 ): Promise<Web | null> =>
-  graphAPI.getWebById(authentication.actorId, webId).then(({ data }) => {
-    const web = data as Web | null;
-    if (!web) {
-      return null;
-    }
-    return web;
-  });
+  graphAPI
+    .getWebById(webId, actorHeaders(authentication.actorId))
+    .then((data) => {
+      const web = data as Web | null;
+      if (!web) {
+        return null;
+      }
+      return web;
+    });
 
 /**
  * Retrieves a web by its shortname.
@@ -36,8 +40,8 @@ export const getWebByShortname = (
   shortname: string,
 ): Promise<Web | null> =>
   graphAPI
-    .getWebByShortname(authentication.actorId, shortname)
-    .then(({ data }) => {
+    .getWebByShortname(shortname, actorHeaders(authentication.actorId))
+    .then((data) => {
       const web = data as Web | null;
       if (!web) {
         return null;
@@ -54,5 +58,5 @@ export const getWebRoles = (
   webId: WebId,
 ): Promise<Record<WebRoleId, WebRole>> =>
   graphAPI
-    .getWebRoles(authentication.actorId, webId)
-    .then(({ data: roles }) => roles as Record<WebRoleId, WebRole>);
+    .getWebRoles(webId, actorHeaders(authentication.actorId))
+    .then((roles) => roles as Record<WebRoleId, WebRole>);

@@ -48,7 +48,7 @@ pub(crate) fn mir_pass_transform_inst_simplify<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut pass = InstSimplify::new_in(&mut scratch);
+    let mut pass = InstSimplify::new_in(&scratch);
     for body in bodies.as_mut_slice() {
         let _: Changed = pass.run(&mut context, body);
     }

@@ -12,6 +12,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { actorHeaders } from "@local/hash-graph-client";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
@@ -60,7 +61,6 @@ import type {
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { ActionName } from "@local/hash-graph-authorization/types";
 import type {
-  AllFilter,
   DiffEntityResult,
   Filter,
   HasPermissionForEntitiesParams,
@@ -209,7 +209,7 @@ export const getLatestEntityById = async <
 
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
-  const allFilter: AllFilter["all"] = [
+  const allFilter: Filter[] = [
     {
       equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
     },
@@ -300,7 +300,7 @@ export const canUserReadEntity: ImpureGraphFunction<
 
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
-  const allFilter: AllFilter["all"] = [
+  const allFilter: Filter[] = [
     {
       equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
     },
@@ -561,9 +561,9 @@ export const updateEntities: ImpureGraphFunction<
     }),
   );
 
-  const { data } = await context.graphApi.patchEntities(
-    authentication.actorId,
+  const data = await context.graphApi.patchEntities(
     patches,
+    actorHeaders(authentication.actorId),
   );
   if (data.length !== updates.length) {
     throw new Error("Bulk update returned an unexpected number of entities");
@@ -842,9 +842,9 @@ export const hasPermissionForEntities: ImpureGraphFunction<
   Promise<Record<EntityId, [EntityEditionId, ...EntityEditionId[]]>>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .hasPermissionForEntities(actorId, params)
+    .hasPermissionForEntities(params, actorHeaders(actorId))
     .then(
-      ({ data }) =>
+      (data) =>
         data as Record<EntityId, [EntityEditionId, ...EntityEditionId[]]>,
     );
 
@@ -952,4 +952,4 @@ export const calculateEntityDiff: ImpureGraphFunction<
   DiffEntityInput,
   Promise<DiffEntityResult>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi.diffEntity(actorId, params).then(({ data }) => data);
+  graphApi.diffEntity(params, actorHeaders(actorId));

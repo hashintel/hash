@@ -3,7 +3,7 @@ use core::{alloc::Allocator, mem::DropGuard};
 
 use hashql_core::{
     algorithms::co_sort,
-    heap::{CollectIn as _, FromIn as _},
+    heap::{CollectIn as _, FromIn as _, SymbolAllocator as _},
     r#type::{
         TypeId,
         environment::Environment,
@@ -145,7 +145,7 @@ impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
                 );
 
                 for (key, value) in map {
-                    let key = self.env.heap.intern_symbol(key);
+                    let key = self.env.heap.alloc_symbol(key);
                     let value = self.decode_unknown(value.into())?;
 
                     fields.push(key);

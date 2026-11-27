@@ -6,6 +6,8 @@ import { glob } from "tinyglobby";
 import { getWorkspaceInfoLookup, monorepoRootDirPath } from "./shared/monorepo";
 
 const ignoredDirGlobs = [
+  // `mise lock` writes a manifest per locked tool here; these are not packages
+  ".config/mise/locks/**",
   "**/dist/**",
   "**/node_modules/**",
   "**/runner_venv/**",

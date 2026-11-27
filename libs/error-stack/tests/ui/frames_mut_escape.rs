@@ -22,7 +22,7 @@ fn main() {
 
     let mut escaped: Vec<&mut Frame> = Vec::new();
     let _ = report.frames_mut(|frame| {
-        escaped.push(frame);
+        escaped.push(frame); //~ E0521
         ControlFlow::Continue(())
     });
 }

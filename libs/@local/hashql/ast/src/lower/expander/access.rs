@@ -1,7 +1,7 @@
 use core::mem;
 
 use hashql_core::{
-    heap::BumpAllocator,
+    heap::ScopeAllocator,
     span::SpanId,
     symbol::{Ident, IdentKind, sym},
     value::Primitive,
@@ -68,7 +68,7 @@ fn argument_to_field<'heap, S>(
     None
 }
 
-fn lower_access_impl<'heap, S>(
+fn lower_access_impl<'heap, 'alloc, S>(
     span: SpanId,
     expander: &mut Expander<'_, 'heap, S>,
 
@@ -76,7 +76,7 @@ fn lower_access_impl<'heap, S>(
     field: &Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     // `argument_to_field` will add a diagnostic directly, therefore unlike the other expanders we
     // just create the synthetic dummy
@@ -107,7 +107,7 @@ where
 /// or a non-negative integer literal (for positional tuple access).
 ///
 /// [`FieldExpr`]: crate::node::expr::FieldExpr
-pub(super) fn lower_access<'heap, S>(
+pub(super) fn lower_access<'heap, 'alloc, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
@@ -118,7 +118,7 @@ pub(super) fn lower_access<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         expander

@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#dict\": [{\"not\": \"array\"}]}"
+---
+error[jexpr::parser::object::dict-entry-expected-array]: Expected array for dictionary entry
+  ╭▸ 
+1 │ {"#dict": [{"not": "array"}]}
+  │  ┬──────   ━━━━━━━━━━━━━━━━ expected a `[key, value]` array, found an object
+  │  │
+  │  in this `#dict` array
+  │
+  ├ help: write each entry as a two-element array `[key, value]`
+  ╰ note: in array-of-pairs format, each `#dict` entry must be a two-element array `[key, value]`

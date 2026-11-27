@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import {
   deserializeGraphVertices,
   mapGraphApiSubgraphToSubgraph,
@@ -62,8 +64,8 @@ export const hasPermissionForEntityTypes = (
   >,
 ): Promise<VersionedUrl[]> =>
   graphAPI
-    .hasPermissionForEntityTypes(authentication.actorId, params)
-    .then(({ data: permitted }) => permitted as VersionedUrl[]);
+    .hasPermissionForEntityTypes(params, actorHeaders(authentication.actorId))
+    .then((permitted) => permitted as VersionedUrl[]);
 
 export type QueryEntityTypesParams = Omit<
   QueryEntityTypesParamsGraphApi,
@@ -103,8 +105,8 @@ export const queryEntityTypes = (
   params: QueryEntityTypesParams,
 ): Promise<QueryEntityTypesResponse> =>
   graphApi
-    .queryEntityTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryEntityTypes(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       closedEntityTypes: response.closedEntityTypes
         ? mapGraphApiClosedEntityTypesToClosedEntityTypes(
@@ -141,8 +143,8 @@ export const searchEntityTypes = async (
   params: SearchEntityTypesRequest,
 ): Promise<SearchEntityTypesResponse> =>
   context.graphApi
-    .searchEntityTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .searchEntityTypes(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       entityTypes: mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
     }));
@@ -179,8 +181,8 @@ export const queryEntityTypeSubgraph = (
   params: QueryEntityTypeSubgraphParams,
 ): Promise<QueryEntityTypeSubgraphResponse> =>
   graphApi
-    .queryEntityTypeSubgraph(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryEntityTypeSubgraph(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
       cursor: response.cursor as VersionedUrl | undefined,
@@ -296,8 +298,8 @@ export const getClosedMultiEntityTypes = (
   params: GetClosedMultiEntityTypesParams,
 ): Promise<GetClosedMultiEntityTypesResponse> =>
   graphApi
-    .getClosedMultiEntityTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .getClosedMultiEntityTypes(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       entityTypes:
         mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
           response.entityTypes,

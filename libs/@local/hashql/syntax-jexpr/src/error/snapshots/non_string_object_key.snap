@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{42: 1}"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ {42: 1}
+  │  ━━ expected a string key in object, found number
+  │
+  ╰ help: use a double-quoted string for object keys

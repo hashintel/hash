@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"\\x1b\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "\x1b"}
+  │               ━━ unknown escape sequence `\x`
+  │
+  ├ help: use a `\uXXXX` Unicode escape instead of `\x`
+  ╰ note: valid JSON escapes are `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, and `\uXXXX`

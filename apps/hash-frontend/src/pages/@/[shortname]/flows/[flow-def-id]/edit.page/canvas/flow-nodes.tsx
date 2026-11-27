@@ -1,6 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 
-import { Icon, Tooltip } from "@hashintel/ds-components";
+import { Button, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { CollapseButton } from "../shared/collapse-button";
@@ -386,12 +386,11 @@ const PathRows = ({
 );
 
 export const StepNode = ({
-  data: { step, paths, lineFromStep, problems, inner, run },
+  data: { step, paths, lineFromStep, problems, run },
   selected,
 }: NodeProps<ActionStepNode>) => {
   const { editing } = useCanvasActions();
-  const connectable = !inner && editing !== null;
-  const showAdd = selected && !inner;
+  const connectable = editing !== null;
 
   return (
     <Card
@@ -417,7 +416,7 @@ export const StepNode = ({
               stepId={step.stepId}
               paths={paths}
               connectable={connectable}
-              showAdd={showAdd}
+              showAdd={selected}
             />
           </>
         )
@@ -436,7 +435,7 @@ export const StepNode = ({
           position={Position.Right}
           isConnectable={connectable}
         >
-          {showAdd && <PortAdd stepId={step.stepId} />}
+          {selected && <PortAdd stepId={step.stepId} />}
         </Handle>
       )}
     </Card>
@@ -464,6 +463,15 @@ const forEachTitle = css({
   fontSize: "[13px]",
   fontWeight: "medium",
   color: "fg.body",
+});
+const emptyForEach = css({
+  position: "absolute",
+  left: "0",
+  right: "0",
+  bottom: "0",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
 });
 
 /** Collapsed, the box is a one-line card; its chevron and the Steps tab's group collapse together. */
@@ -493,6 +501,21 @@ export const ForEachNode = ({
         </span>
         <TitleMarks problems={problems} run={run} />
       </div>
+      {editing && !collapsed && step.steps.length === 0 && (
+        <div className={emptyForEach} style={{ top: forEachBoxPadding.header }}>
+          <Button
+            variant="subtle"
+            shape="round"
+            iconName="plus"
+            tooltip={`Add a ${stepNoun.singular} inside`}
+            className="nodrag nopan"
+            onClick={(event) => {
+              event.stopPropagation();
+              editing.openAddMenuInside(step.stepId);
+            }}
+          />
+        </div>
+      )}
       <Handle
         type="target"
         position={Position.Left}

@@ -43,7 +43,7 @@ impl<'heap> CompilationFixture<'heap> {
         );
 
         let interner = Interner::new(heap);
-        let mut scratch = Scratch::new();
+        let scratch = Scratch::new();
 
         let mut bodies = DefIdVec::new_in(heap);
         bodies.push(body);
@@ -61,7 +61,7 @@ impl<'heap> CompilationFixture<'heap> {
 
         let analysis = ExecutionAnalysis {
             footprints: &footprints,
-            scratch: &mut scratch,
+            scratch: &scratch,
         };
         let execution = analysis.run_all_in(&mut mir_context, &mut bodies, heap);
 

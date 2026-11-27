@@ -8,10 +8,10 @@ The catalogue has 64 quantity parents and 108 system subgroups. For example:
 
 ```text
 Length
-  Length (Metric) → Meter, Centimeter, …
-  Length (Imperial) → Inch, Foot, Yard, Mile, …
+  Length (Metric) → Meters, Centimeters, Decimeter, …
+  Length (Imperial) → Inches, Feet, Yards, Miles, …
 Volume
-  Volume (Metric) → Litre, Cubic Metre, …
+  Volume (Metric) → Litres, Cubic Metres, …
   Volume (Imperial) → Imperial Gallon, Imperial Pint, …
   Volume (US Customary) → US Liquid Gallon, US Liquid Pint, …
 ```
@@ -24,9 +24,9 @@ Existing unit base URLs remain stable. The 38 units already seeded by production
 
 ## Permeability
 
-`Magnetic Permeability` groups henries per metre and per foot. `Fluid Permeability` is a separate quantity for intrinsic permeability: the ability of a porous material to transmit fluids independently of the fluid's properties. The [USGS definition](https://pubs.usgs.gov/pp/0708/report.pdf) distinguishes it from hydraulic conductivity, which also depends on fluid density and viscosity.
+`Magnetic Permeability` groups henries per meter and per foot. `Fluid Permeability` is a separate quantity for intrinsic permeability: the ability of a porous material to transmit fluids independently of the fluid's properties. The [USGS definition](https://pubs.usgs.gov/pp/0708/report.pdf) distinguishes it from hydraulic conductivity, which also depends on fluid density and viscosity.
 
-Fluid permeability reuses square metres, square centimetres, square millimetres, square micrometres, square feet, and square inches. Each shared unit has both its area and fluid-permeability system parents and is seeded once. Darcies, millidarcies, microdarcies, and nanodarcies belong only to fluid permeability: [NIST explicitly distinguishes darcies from area units](https://www.nist.gov/pml/special-publication-811/nist-guide-si-footnotes).
+Fluid permeability reuses square metres, square centimetres, square millimeters, square micrometers, square feet, and square inches. Each shared unit has both its area and fluid-permeability system parents and is seeded once. Darcies, millidarcies, microdarcies, and nanodarcies belong only to fluid permeability: [NIST explicitly distinguishes darcies from area units](https://www.nist.gov/pml/special-publication-811/nist-guide-si-footnotes).
 
 Darcy conversions use 1 d = 10⁻¹² / 1.01325 m², consistent with the [NIST conversion table](https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors/nist-guide-si-appendix-b8). The expressions divide before applying the small scale factor. The shared square-length units retain their existing formulas and evaluator precision. There is no conversion to magnetic permeability or hydraulic conductivity.
 
@@ -36,9 +36,9 @@ Each system subgroup inherits from its abstract quantity parent. Concrete units 
 
 The catalogue stores the existing `Record<BaseUrl, Conversions>` schema directly, with `to` and `from` expressions. Targets use the existing system data type base URLs. Small typed helpers return that schema for scaling and affine conversions; the migration passes it through without translating a separate formula format.
 
-Integer ratios preserve conversions such as kilometres per hour to metres per second without rounding their factors to decimal constants. Radians use a floating-point approximation of π to convert to the existing `Degree` type. Prefix expansion scales the coefficient in multiplicative conversions while retaining the shared target, ratio denominator, and evaluator operation order.
+Integer ratios preserve conversions such as kilometers per hour to meters per second without rounding their factors to decimal constants. Radians use a floating-point approximation of π to convert to the existing `Degree` type. Prefix expansion scales the coefficient in multiplicative conversions while retaining the shared target, ratio denominator, and evaluator operation order.
 
-Prefixes on square and cubic metres scale the whole prefixed length: 1 cm² is 10⁻⁴ m², and 1 cm³ is 10⁻⁶ m³. Ampere-hours and watt-hours convert through coulombs and joules respectively. Existing base URLs, including those for `Microsecond`, `Kilohm`, and `Square Centimetre`, are reused.
+Prefixes on square and cubic metres scale the whole prefixed length: 1 cm² is 10⁻⁴ m², and 1 cm³ is 10⁻⁶ m³. Ampere-hours and watt-hours convert through coulombs and joules respectively. Existing base URLs, including those for `Microsecond`, `Kilohm`, and `Square Centimetres`, are reused.
 
 The JavaScript conversion evaluator rounds division results to 20 decimal places. Very small intermediate values can lose precision or become zero, including some conversions involving the extreme prefixes. This catalogue defines their scale factors; changing evaluator precision is outside its scope.
 
@@ -46,7 +46,7 @@ Temperature readings use `Temperature` and convert through `Kelvin`. For example
 
 ## Value constraints
 
-Concrete units accept numbers, including fractions. Reusable units generally have no lower or upper bound: metres can express signed positions, seconds signed offsets, and pascals gauge pressure. Angles are not limited to one turn. More restrictive domains can use constrained data type descendants referenced by the relevant property type.
+Concrete units accept numbers, including fractions. Reusable units generally have no lower or upper bound: meters can express signed positions, seconds signed offsets, and pascals gauge pressure. Angles are not limited to one turn. More restrictive domains can use constrained data type descendants referenced by the relevant property type.
 
 The temperature reading types have unit-specific absolute-zero bounds: 0 K, −273.15 °C, −459.67 °F, and 0 °R. Every prefixed kelvin type has a minimum of zero. Temperature's abstract parents remain unbounded because inherited constraints intersect without converting their numbers between units. A minimum of zero on the common parent would incorrectly reject valid negative Celsius and Fahrenheit readings. Abstract quantity and system groups cannot type values directly; values use their concrete descendants.
 
@@ -54,9 +54,9 @@ The temperature reading types have unit-specific absolute-zero bounds: 0 K, −2
 
 The SI permits unlimited derived combinations. This catalogue covers the named units and the brochure's compound-unit examples; it does not generate arbitrary products, quotients, or every combination of prefixes within compound units. Temperature prefixes apply to kelvins. Celsius and Fahrenheit retain their existing reading conversions.
 
-Conversions operate on one numeric value. Calculating energy from force and distance, for example, requires multiple measurements and is outside this conversion model. Quantities with matching dimensions retain separate parents and conversion groups: hertz and becquerels, joules and newton metres of torque, grays and sieverts, and radians and steradians.
+Conversions operate on one numeric value. Calculating energy from force and distance, for example, requires multiple measurements and is outside this conversion model. Quantities with matching dimensions retain separate parents and conversion groups: hertz and becquerels, joules and newton meters of torque, grays and sieverts, and radians and steradians.
 
-Every quantity, system group, and concrete unit has a singular `title` and a complementary `titlePlural`. Names such as `Foot`/`Feet` and `Henry`/`Henries` preserve irregular plurals; invariant names such as `Hertz` and `Siemens` use the same form for both. Prefixed families retain their existing spelling. Base URLs are explicit and independent of display titles, so changing a name does not change conversion targets or create a replacement type.
+Every quantity, system group, and concrete unit has a `titlePlural`. A type's title matches its base URL. Types new in this migration have singular titles in US spelling, and their base URLs are derived from those titles, as for any other system type: `Cubic Centimeter` is `cubic-centimeter` and `Kiloliter` is `kiloliter`. Names such as `Henry`/`Henries` preserve irregular plurals; invariant names such as `Hertz` and `Siemens` use the same form for both. Types seeded by earlier migrations keep their titles, such as `Meters`, `Feet` and `Litres`, so they still match their existing base URLs. Their new versions add a `titlePlural` and new parents. The SI prefix generator names the variants of these units in the singular and in US spelling (`Kilogram`, `Square Kilometer`, `Kiloliter`) and skips the variants that already exist (`Kilograms`, `Millilitres`, `Square Centimetres`).
 
 The tests check catalogue coverage, parent and conversion dependencies, registry identifiers, temperature boundaries, and numerical results in both directions at magnitudes supported by the application's conversion evaluator. The migration creates missing types and versions existing types whose schemas or conversions change. Upgrade tests cover hosted and self-hosted instances, constraint and conversion changes, serialization rounding, restart safety, stale intermediate versions, and read errors.
 
@@ -66,7 +66,7 @@ Conversions use the international yard (0.9144 m), avoirdupois pound (0.45359237
 
 Rankine denominators in heat-capacity and conductivity units express intervals of 5/9 kelvin. These multiplicative compound conversions need no temperature offset. Standalone Rankine and Fahrenheit still represent temperature readings.
 
-Existing fixed month and year conversions are retained for compatibility and described as mean or fixed durations. No additional calendar-dependent conversion factors are introduced. The other duration conversions use fixed elapsed time: a day is exactly 24 hours and a week is exactly seven such days. These conversions do not perform calendar arithmetic or account for daylight-saving transitions. The older `hours/` and `days/` identifiers now share the second reference used by `hour/` and `day/`, so conversions can compose across the duration catalogue. Both pairs use singular display titles while retaining their distinct base URLs.
+Existing fixed month and year conversions are retained for compatibility and described as mean or fixed durations. No additional calendar-dependent conversion factors are introduced. The other duration conversions use fixed elapsed time: a day is exactly 24 hours and a week is exactly seven such days. These conversions do not perform calendar arithmetic or account for daylight-saving transitions. The older `hours/` and `days/` identifiers now share the second reference used by `hour/` and `day/`, so conversions can compose across the duration catalogue. Each keeps its own title: `Hour` and `Day` for the singular identifiers, `Hours` and `Days` for the plural ones.
 
 ## Catalogue display
 

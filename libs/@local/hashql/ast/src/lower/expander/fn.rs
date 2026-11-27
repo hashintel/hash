@@ -2,7 +2,7 @@ use core::mem;
 
 use hashql_core::{
     collections::fast_hash_map_with_capacity_in,
-    heap::{self, BumpAllocator},
+    heap::{self, ScopeAllocator},
     module::Universe,
     span::SpanId,
 };
@@ -57,12 +57,12 @@ fn lower_generics_tuple<'heap, S>(
     }
 }
 
-fn lower_generics_struct<'heap, S>(
+fn lower_generics_struct<'heap, 'alloc, S>(
     expander: &mut Expander<'_, 'heap, S>,
     r#struct: &mut crate::node::expr::StructExpr<'heap>,
 ) -> Generics<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if let Some(annotation) = r#struct.r#type.as_ref() {
         expander
@@ -105,13 +105,13 @@ where
     }
 }
 
-fn lower_generics<'heap, S>(
+fn lower_generics<'heap, 'alloc, S>(
     expander: &mut Expander<'_, 'heap, S>,
 
     generics: &mut Argument<'heap>,
 ) -> Generics<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let mut generics = match &mut generics.value.kind {
         ExprKind::Tuple(tuple) => lower_generics_tuple(expander, tuple),
@@ -146,8 +146,8 @@ where
 
     {
         let diagnostics = &mut expander.diagnostics;
-        expander.scratch.scoped_mut(|scratch| {
-            let mut seen = fast_hash_map_with_capacity_in(generics.params.len(), scratch);
+        expander.scratch.scoped(|scratch| {
+            let mut seen = fast_hash_map_with_capacity_in(generics.params.len(), &scratch);
 
             generics.params.retain(|param| {
                 if let Err(error) = seen.try_insert(param.name.value, param.span) {
@@ -167,13 +167,13 @@ where
     generics
 }
 
-fn lower_params<'heap, S>(
+fn lower_params<'heap, 'alloc, S>(
     expander: &mut Expander<'_, 'heap, S>,
 
     params: &mut Argument<'heap>,
 ) -> heap::Vec<'heap, ClosureParam<'heap>>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let ExprKind::Struct(r#struct) = &mut params.value.kind else {
         expander
@@ -207,8 +207,8 @@ where
 
     {
         let diagnostics = &mut expander.diagnostics;
-        expander.scratch.scoped_mut(|scratch| {
-            let mut seen = fast_hash_map_with_capacity_in(params.len(), scratch);
+        expander.scratch.scoped(|scratch| {
+            let mut seen = fast_hash_map_with_capacity_in(params.len(), &scratch);
 
             params.retain(|param| {
                 if let Err(error) = seen.try_insert(param.name.value, param.span) {
@@ -228,7 +228,7 @@ where
     params
 }
 
-fn lower_fn_impl<'heap, S>(
+fn lower_fn_impl<'heap, 'alloc, S>(
     span: SpanId,
     expander: &mut Expander<'_, 'heap, S>,
 
@@ -238,7 +238,7 @@ fn lower_fn_impl<'heap, S>(
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let generics = lower_generics(expander, generics);
 
@@ -311,7 +311,7 @@ where
 /// and body.
 ///
 /// [`ClosureExpr`]: crate::node::expr::ClosureExpr
-pub(super) fn lower_fn<'heap, S>(
+pub(super) fn lower_fn<'heap, 'alloc, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
@@ -322,7 +322,7 @@ pub(super) fn lower_fn<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         expander

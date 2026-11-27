@@ -330,6 +330,23 @@ impl<S> Labels<S> {
         self.labels.iter()
     }
 
+    /// Returns the primary label, the one a diagnostic is constructed with.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Label, diagnostic::Labels};
+    ///
+    /// let mut labels = Labels::new(Label::new(10..15, "main error"));
+    /// labels.push(Label::new(20..25, "related issue"));
+    ///
+    /// assert_eq!(labels.primary().message(), "main error");
+    /// ```
+    #[must_use]
+    pub const fn primary(&self) -> &Label<S> {
+        &self.labels.as_slice()[0]
+    }
+
     #[cfg(feature = "render")]
     pub(crate) const fn as_slice(&self) -> &[Label<S>] {
         &self.labels

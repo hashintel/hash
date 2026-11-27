@@ -57,8 +57,8 @@ Components in `@hashintel/ds-components` import utilities from this package:
 
 ```tsx
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { token } from "@hashintel/ds-helpers/tokens";
 import { Box, Flex } from "@hashintel/ds-helpers/jsx";
+import { token } from "@hashintel/ds-helpers/tokens";
 ```
 
 ## Regeneration

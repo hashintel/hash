@@ -6,14 +6,18 @@ import { css } from "@hashintel/ds-helpers/css";
 import { CollapseButton } from "../shared/collapse-button";
 import { useRecentActions } from "../shared/recent-actions";
 import {
-  addableActionGroups,
   getActionTone,
-  searchAddableActions,
+  getAddId,
+  getListedActionGroups,
+  isAddableAction,
+  isUpcomingAction,
+  searchListedActions,
   stepNoun,
+  upcomingNote,
 } from "../shared/step-display";
 import { TreeRow } from "./shared/tree-row";
 
-import type { AddableAction } from "../shared/step-display";
+import type { ListedAction } from "../shared/step-display";
 
 const section = css({
   display: "flex",
@@ -29,11 +33,12 @@ const noMatches = css({
   py: "2",
 });
 
-/** The actions that can be added, in collapsible groups, or the ones whose name matches the search. */
+/** The listed actions, in collapsible groups, or the ones whose name matches the search. */
 export const AddTab = ({
   onAddStep,
 }: {
-  onAddStep: (actionDefinitionId: string) => void;
+  /** Called with what was picked: an action definition id, or `forEachAddId`. */
+  onAddStep: (addId: string) => void;
 }) => {
   const [query, setQuery] = useState("");
   const { recordAddedAction } = useRecentActions();
@@ -52,21 +57,33 @@ export const AddTab = ({
       return next;
     });
 
-  const actionRow = (action: AddableAction, depth: number) => (
-    <TreeRow
-      key={action.actionDefinitionId}
-      depth={depth}
-      icon={action.icon}
-      tone={getActionTone(action)}
-      label={action.label}
-      onClick={() => {
-        recordAddedAction(action.actionDefinitionId);
-        onAddStep(action.actionDefinitionId);
-      }}
-    />
-  );
+  const actionRow = (action: ListedAction, depth: number) => {
+    const addId = isUpcomingAction(action) ? undefined : getAddId(action);
 
-  const matches = query.trim() === "" ? null : searchAddableActions(query);
+    return (
+      <TreeRow
+        key={isUpcomingAction(action) ? action.upcomingId : addId}
+        depth={depth}
+        icon={action.icon}
+        tone={getActionTone(action)}
+        label={action.label}
+        disabledTooltip={addId === undefined ? upcomingNote : undefined}
+        onClick={
+          addId === undefined
+            ? undefined
+            : () => {
+                /* Recent lists actions only. */
+                if (isAddableAction(action)) {
+                  recordAddedAction(action.actionDefinitionId);
+                }
+                onAddStep(addId);
+              }
+        }
+      />
+    );
+  };
+
+  const matches = query.trim() === "" ? null : searchListedActions(query);
 
   return (
     <div className={section}>
@@ -81,7 +98,7 @@ export const AddTab = ({
       />
       <div>
         {matches === null ? (
-          addableActionGroups.map(({ groupId, label, actions }) => {
+          getListedActionGroups().map(({ groupId, label, actions }) => {
             const expanded = expandedGroupIds.has(groupId);
 
             return (

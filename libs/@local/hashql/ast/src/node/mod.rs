@@ -13,6 +13,7 @@
 //! - [`id`]: Node identifier types and utilities
 //! - [`path`]: Path expressions for variable references and qualified names
 //! - [`type`]: Type system representations including struct, tuple, and other types
+//! - [`value`]: Value-only expressions restricted to literals and compound data constructors
 //!
 //! ## Memory Management
 //!
@@ -40,3 +41,4 @@ pub mod generic;
 pub mod id;
 pub mod path;
 pub mod r#type;
+pub mod value;

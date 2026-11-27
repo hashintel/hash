@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"fn\", \":\"]"
+---
+error[jexpr::parser::array::labeled-argument-invalid-identifier]: Invalid identifier in labeled argument
+  ╭▸ 
+1 │ ["fn", ":"]
+  │        ━━━ missing identifier after `:` in labeled argument
+  │
+  ├ help: add a valid identifier name after `:`, for example `":name"`
+  ╰ note: labeled argument names must be valid HashQL identifiers

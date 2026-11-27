@@ -21,7 +21,6 @@ const joinWords: Record<Join, string> = { all: "and", any: "or" };
 /* Each box around a chip can shrink, so a long chip truncates inside the panel. */
 const chipGroup = css({ flex: "1", minWidth: "0" });
 const chipLine = css({ width: "full", minWidth: "0" });
-const joinText = css({ textStyle: "sm", color: "fg.subtle" });
 const note = css({ textStyle: "sm", color: "fg.subtle" });
 const unreadable = css({
   display: "flex",
@@ -38,7 +37,6 @@ const unreadable = css({
 export const ConditionRows = ({
   rows,
   join,
-  readOnly,
   add,
   errors,
   onJoinChange,
@@ -46,15 +44,12 @@ export const ConditionRows = ({
   /** Each chip, by a key kept for its row. */
   rows: { key: string | number; chip: ReactNode }[];
   join: Join;
-  readOnly: boolean;
   /** The add button, or `null` when no row can be added. */
   add: ReactNode;
   errors: string[];
   onJoinChange: (join: Join) => void;
 }) => {
-  const joinLabel = readOnly ? (
-    <span className={joinText}>{joinWords[join]}</span>
-  ) : (
+  const joinLabel = (
     <Select<Join>
       size="sm"
       width="fullWidth"
@@ -170,7 +165,6 @@ export const UnreadableCondition = ({
   note: noteText,
   resetLabel,
   errors,
-  readOnly,
   onReset,
 }: {
   label: string;
@@ -178,7 +172,6 @@ export const UnreadableCondition = ({
   note: string;
   resetLabel: string;
   errors: string[];
-  readOnly: boolean;
   onReset: () => void;
 }) => (
   <Form.Field
@@ -194,11 +187,9 @@ export const UnreadableCondition = ({
         aria-label={label}
         onChange={() => {}}
       />
-      {!readOnly && (
-        <Button size="sm" variant="subtle" onClick={onReset}>
-          {resetLabel}
-        </Button>
-      )}
+      <Button size="sm" variant="subtle" onClick={onReset}>
+        {resetLabel}
+      </Button>
     </div>
   </Form.Field>
 );

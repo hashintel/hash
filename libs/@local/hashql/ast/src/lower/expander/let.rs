@@ -1,7 +1,7 @@
 use core::mem;
 
 use hashql_core::{
-    heap::BumpAllocator,
+    heap::ScopeAllocator,
     module::item::Item,
     span::SpanId,
     symbol::{Ident, sym},
@@ -30,7 +30,7 @@ pub(super) fn argument_to_ident<'heap>(argument: &Argument<'heap>) -> Option<Ide
     expr_to_ident(&argument.value)
 }
 
-fn lower_let_impl<'heap, S>(
+fn lower_let_impl<'heap, 'alloc, S>(
     span: SpanId,
     expander: &mut Expander<'_, 'heap, S>,
 
@@ -40,7 +40,7 @@ fn lower_let_impl<'heap, S>(
     body: &mut Argument<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let name = if let Some(name) = argument_to_ident(name) {
         name
@@ -127,7 +127,7 @@ where
 /// The `name` is bound in scope for `body` only.
 ///
 /// [`LetExpr`]: crate::node::expr::LetExpr
-pub(super) fn lower_let<'heap, S>(
+pub(super) fn lower_let<'heap, 'alloc, S>(
     expander: &mut Expander<'_, 'heap, S>,
     CallExpr {
         id: _,
@@ -138,7 +138,7 @@ pub(super) fn lower_let<'heap, S>(
     }: &mut CallExpr<'heap>,
 ) -> Expr<'heap>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     if !labeled_arguments.is_empty() {
         // We continue, to try to recover, if that means that the user has a labeled argument

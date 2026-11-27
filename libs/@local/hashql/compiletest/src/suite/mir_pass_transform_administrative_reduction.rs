@@ -45,7 +45,7 @@ pub(crate) fn mir_pass_transform_administrative_reduction<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut pass = AdministrativeReduction::new_in(&mut scratch);
+    let mut pass = AdministrativeReduction::new_in(&scratch);
     let mut changed = IdVec::from_domain(Changed::No, &bodies);
     let _: Changed = pass.run(
         &mut context,

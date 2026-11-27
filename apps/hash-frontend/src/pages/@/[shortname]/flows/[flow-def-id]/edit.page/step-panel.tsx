@@ -22,8 +22,12 @@ import { indexValueUses } from "./shared/value-uses";
 import { AggregationField } from "./step-panel/aggregation-field";
 import { ConditionField } from "./step-panel/condition-field";
 import { EntityTypeField } from "./step-panel/entity-type-field";
-import { getFieldProblems } from "./step-panel/field-problems";
+import {
+  getFieldProblems,
+  getForEachFieldProblems,
+} from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
+import { CollectField, ListField } from "./step-panel/for-each-fields";
 import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
 import { OutputField } from "./step-panel/output-field";
@@ -278,7 +282,6 @@ const SelectedStepPanel = ({
   problemsByStepId,
   usesOf,
   step,
-  inner,
   onSelectStart,
   onSelectStep,
 }: {
@@ -287,8 +290,6 @@ const SelectedStepPanel = ({
   problemsByStepId: FlowEditorState["problemsByStepId"];
   usesOf: UsesOf;
   step: StepDefinition<string>;
-  /** Inside a for-each step, so read-only (FE-1915). */
-  inner: boolean;
   onSelectStart: () => void;
   onSelectStep: (stepId: string) => void;
 }) => {
@@ -305,7 +306,9 @@ const SelectedStepPanel = ({
   const { outputNames, availableToFlow } = useMemo(() => {
     const names =
       step.kind === "for-each"
-        ? [step.collect.as]
+        ? step.collect
+          ? [step.collect.as]
+          : []
         : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
 
     return {
@@ -318,10 +321,13 @@ const SelectedStepPanel = ({
     };
   }, [actionDefinition, flowDefinition, step]);
 
-  const { byInputName, stepProblems } = getFieldProblems(
-    problemsByStepId.get(step.stepId) ?? [],
+  const problems = problemsByStepId.get(step.stepId) ?? [];
+  const { byInputName, stepProblems: otherProblems } = getFieldProblems(
+    problems,
     actionDefinition?.inputs.map(({ name }) => name) ?? [],
   );
+  const { listProblems, collectProblems, stepProblems } =
+    getForEachFieldProblems(otherProblems);
 
   /* A step that branches on its condition, as If does, sets it on the path it's for, not with its inputs. */
   const pathConditionInput = paths.some(({ showsCondition }) => showsCondition)
@@ -347,7 +353,6 @@ const SelectedStepPanel = ({
         actionDefinition={actionDefinition}
         source={step.kind === "action" ? step.inputs[input.name] : undefined}
         problems={byInputName.get(input.name) ?? []}
-        readOnly={inner}
         onSelectStart={onSelectStart}
       />
     );
@@ -368,7 +373,6 @@ const SelectedStepPanel = ({
           }
           className={step.kind === "for-each" ? derivedDescription : undefined}
           aria-label="Description"
-          readonly={inner}
           onChange={(description) =>
             editor.setStepDescription(step.stepId, description)
           }
@@ -397,13 +401,32 @@ const SelectedStepPanel = ({
             step={step}
             paths={paths}
             condition={pathConditionInput && renderField(pathConditionInput)}
-            readOnly={inner}
           />
         </PanelSection>
       )}
-      {/* TODO(FE-1915): edit a for-each step's list and what it collects */}
-      {outputNames.length > 0 && (
+      {step.kind === "for-each" && (
+        <PanelSection title="Inputs">
+          <Form.Section>
+            <ListField
+              editor={editor}
+              flowDefinition={flowDefinition}
+              step={step}
+              problems={listProblems}
+            />
+          </Form.Section>
+        </PanelSection>
+      )}
+      {(outputNames.length > 0 || step.kind === "for-each") && (
         <PanelSection title="Outputs">
+          {step.kind === "for-each" && (
+            <Form.Section>
+              <CollectField
+                editor={editor}
+                step={step}
+                problems={collectProblems}
+              />
+            </Form.Section>
+          )}
           <Form.Section>
             {outputNames.map((outputName) => {
               const marked = flowDefinition.outputs.some(
@@ -504,7 +527,6 @@ export const StepPanel = ({
       problemsByStepId={problemsByStepId}
       usesOf={usesOf}
       step={found.step}
-      inner={found.inner}
       onSelectStart={onSelectStart}
       onSelectStep={onSelectStep}
     />

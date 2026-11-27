@@ -41,6 +41,5 @@
       "type": "boolean"
     }
   },
-  "required": ["$id", "title", "description", "allOf", "abstract"],
-  "additionalProperties": true
+  "required": ["$id", "title", "description", "allOf", "abstract"]
 }

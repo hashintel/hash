@@ -3,6 +3,7 @@ import dedent from "dedent";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { actorHeaders } from "@local/hash-graph-client";
 import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 import { StatusCode } from "@local/status";
 
@@ -435,7 +436,6 @@ export const proposeEntities = async (params: {
                       );
 
                       await graphApiClient.validateEntity(
-                        userAuthentication.actorId,
                         {
                           entityTypes: [entityTypeId],
                           components: {
@@ -445,6 +445,7 @@ export const proposeEntities = async (params: {
                           },
                           properties,
                         },
+                        actorHeaders(userAuthentication.actorId),
                       );
 
                       return [];

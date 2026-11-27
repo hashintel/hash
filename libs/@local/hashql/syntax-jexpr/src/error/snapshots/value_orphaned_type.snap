@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#type\": \"Int\"}"
+---
+error[jexpr::parser::object::unknown-key]: Unknown object key
+  ╭▸ 
+1 │ {"#type": "Int"}
+  │  ━━━━━━━ `#type` annotations are not allowed in values
+  │
+  ├ help: remove the `#type` field
+  ╰ note: values use constructor objects (`#literal`, `#struct`, `#tuple`, `#list`, or `#dict`) without `#type` annotations

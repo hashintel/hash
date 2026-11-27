@@ -6,7 +6,7 @@ use hashbrown::hash_map::RawEntryMut;
 use super::Interned;
 use crate::{
     collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
-    heap::{Heap, TransferInto as _},
+    heap::{Heap, PhaseAllocator as _, TransferInto as _},
     sync::lock::LocalLock,
 };
 

@@ -19,7 +19,8 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-24.04
+    name: Setup
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -81,7 +82,8 @@ jobs:
           echo "publish-rust=$PUBLISH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
-    runs-on: ubuntu-24.04
+    name: Sccache credentials
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write
@@ -107,7 +109,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
       fail-fast: false
     if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
@@ -120,7 +122,9 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -214,7 +218,7 @@ jobs:
       needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
       && (github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
@@ -227,7 +231,9 @@ jobs:
         uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Install tools
         uses: $/.github/actions/install-tools
@@ -356,13 +362,15 @@ jobs:
     name: Publish dry run (Rust)
     needs: [setup]
     if: needs.setup.outputs.publish-rust != '[]' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6.0.2
 
       - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
+        uses: hashintel/actions/.github/actions/clean-up-disk@main
+        with:
+          required-free-gib: 20
 
       - name: Build package flags
         id: flags
@@ -380,7 +388,7 @@ jobs:
     needs:
       [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check setup script
         run: |

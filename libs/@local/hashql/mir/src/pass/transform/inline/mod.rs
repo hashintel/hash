@@ -50,14 +50,17 @@
 
 #![expect(clippy::float_arithmetic)]
 use alloc::collections::BinaryHeap;
-use core::{alloc::Allocator, cmp, mem};
+use core::{
+    alloc::{Allocator, AllocatorNightly},
+    cmp, mem,
+};
 
 use hashql_core::{
     graph::algorithms::{
         Tarjan, TriColorDepthFirstSearch,
         tarjan::{Members, SccId, StronglyConnectedComponents},
     },
-    heap::{BumpAllocator, Heap},
+    heap::{Heap, PhaseAllocator},
     id::{Id as _, IdSlice, bit_vec::DenseBitSet},
     span::SpanId,
 };
@@ -219,7 +222,7 @@ struct InlineState<'ctx, 'state, 'env, 'heap, A: Allocator> {
     global: &'ctx mut GlobalTransformState<'state>,
 }
 
-impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
+impl<'heap, A: Allocator + AllocatorNightly> InlineState<'_, '_, '_, 'heap, A> {
     /// Collect all callsites for aggressive inlining.
     ///
     /// Used for filter functions which bypass normal heuristics.
@@ -510,26 +513,31 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
 /// The main inline pass.
 ///
 /// Inlines function calls to reduce overhead and enable optimizations.
-pub struct Inline<A: BumpAllocator> {
+pub struct Inline<A> {
     alloc: A,
 
     config: InlineConfig,
 }
 
-impl<A: BumpAllocator> Inline<A> {
+impl<A> Inline<A> {
     pub const fn new_in(config: InlineConfig, alloc: A) -> Self {
         Self { alloc, config }
     }
+}
 
+impl<'alloc, A> Inline<A>
+where
+    A: PhaseAllocator<'alloc>,
+{
     /// Build initial state by analyzing all bodies.
     fn state<'ctx, 'state, 'env, 'heap>(
         &self,
         state: &'ctx mut GlobalTransformState<'state>,
         interner: &'env Interner<'heap>,
         bodies: &DefIdSlice<Body<'heap>>,
-    ) -> InlineState<'ctx, 'state, 'env, 'heap, &A> {
-        let graph = CallGraph::analyze_in(bodies, &self.alloc);
-        let mut analysis = BodyAnalysis::new(&graph, bodies, self.config.cost, &self.alloc);
+    ) -> InlineState<'ctx, 'state, 'env, 'heap, A> {
+        let graph = CallGraph::analyze_in(bodies, self.alloc);
+        let mut analysis = BodyAnalysis::new(&graph, bodies, self.config.cost, self.alloc);
 
         for body in bodies {
             analysis.run(body);
@@ -544,17 +552,17 @@ impl<A: BumpAllocator> Inline<A> {
 
         let costs = analysis.finish();
 
-        let tarjan = Tarjan::new_in(&graph, &self.alloc);
+        let tarjan = Tarjan::new_in(&graph, self.alloc);
         let components = tarjan.run();
-        let mut component_members = components.members_in(&self.alloc);
+        let mut component_members = components.members_in(self.alloc);
 
         let mut loop_breaker = LoopBreaker {
             config: self.config.loop_breaker,
             graph: &graph,
             properties: &costs.properties,
-            search: TriColorDepthFirstSearch::new_in(&graph, &self.alloc),
+            search: TriColorDepthFirstSearch::new_in(&graph, self.alloc),
         };
-        let loop_breakers = loop_breaker.run_in(&mut component_members, &self.alloc);
+        let loop_breakers = loop_breaker.run_in(&mut component_members, self.alloc);
 
         InlineState {
             config: self.config,
@@ -575,10 +583,10 @@ impl<A: BumpAllocator> Inline<A> {
     /// cost updates propagate correctly. Within non-trivial SCCs, non-breaker
     /// members are processed in postorder (callees before callers in the
     /// breaker-removed DAG), followed by breaker members.
-    fn normal<'heap, 'alloc>(
-        state: &mut InlineState<'_, '_, '_, 'heap, &'alloc A>,
+    fn normal<'heap>(
+        state: &mut InlineState<'_, '_, '_, 'heap, A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
-        mem: &mut InlineStateMemory<&'alloc A>,
+        mem: &mut InlineStateMemory<A>,
     ) -> Changed {
         let mut any_changed = Changed::No;
         let component_members = state
@@ -600,12 +608,12 @@ impl<A: BumpAllocator> Inline<A> {
     ///
     /// For each filter, iteratively inlines all eligible callsites until
     /// no more are found or the cutoff is reached.
-    fn aggressive<'heap, 'alloc>(
+    fn aggressive<'heap>(
         &self,
         context: &mut MirContext<'_, 'heap>,
-        state: &mut InlineState<'_, '_, '_, 'heap, &'alloc A>,
+        state: &mut InlineState<'_, '_, '_, 'heap, A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
-        mem: &mut InlineStateMemory<&'alloc A>,
+        mem: &mut InlineStateMemory<A>,
     ) -> Changed {
         let mut any_changed = Changed::No;
 
@@ -647,7 +655,10 @@ impl<A: BumpAllocator> Inline<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Inline<A> {
+impl<'env, 'heap, 'alloc, A> GlobalTransformPass<'env, 'heap> for Inline<A>
+where
+    A: PhaseAllocator<'alloc>,
+{
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,
@@ -655,7 +666,7 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Inline<
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
         let mut state = self.state(state, context.interner, bodies);
-        let mut mem = InlineStateMemory::new(&self.alloc);
+        let mut mem = InlineStateMemory::new(self.alloc);
 
         let mut changed = Changed::No;
         changed |= Self::normal(&mut state, bodies, &mut mem);

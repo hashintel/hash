@@ -2,7 +2,7 @@ import { Box, Popover, Stack, Typography } from "@mui/material";
 
 import { Link } from "../../shared/ui/link";
 
-import type { SourceProvenance } from "@local/hash-graph-client/api";
+import type { SourceProvenance } from "@local/hash-graph-client";
 import type { RefObject } from "react";
 
 export const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {

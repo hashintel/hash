@@ -1,6 +1,7 @@
 pub const ACQUAINTANCE_OF_V1: &str = include_str!("acquaintance_of.json");
 pub const CONTAINS_V1: &str = include_str!("contains.json");
 pub const FRIEND_OF_V1: &str = include_str!("friend_of.json");
+pub const HAS_AGENT_CONVERSATION_FOCUS_V1: &str = include_str!("has_agent_conversation_focus.json");
 pub const LOCATED_AT_V1: &str = include_str!("located_at.json");
 pub const OWNS_V1: &str = include_str!("owns_v1.json");
 pub const OWNS_V2: &str = include_str!("owns_v2.json");

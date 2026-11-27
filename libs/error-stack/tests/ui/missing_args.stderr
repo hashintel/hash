@@ -1,35 +1,29 @@
 error: unexpected end of macro invocation
   --> tests/ui/missing_args.rs:17:5
    |
-17 |     bail!()
+LL |     bail!()
    |     ^^^^^^^ missing tokens in macro arguments
    |
 note: while trying to match meta-variable `$err:expr`
-  --> src/macros.rs
-   |
-   |     ($err:expr $(,)?) => {{
-   |      ^^^^^^^^^
+  --> libs/error-stack/src/macros.rs:139:5
 
 error: unexpected end of macro invocation
   --> tests/ui/missing_args.rs:21:13
    |
-21 |     let _ = ensure!();
+LL |     let _ = ensure!();
    |             ^^^^^^^^^ missing tokens in macro arguments
    |
 note: while trying to match meta-variable `$cond:expr`
-  --> src/macros.rs
-   |
-   |     ($cond:expr, $err:expr $(,)?) => {{
-   |      ^^^^^^^^^^
+  --> libs/error-stack/src/macros.rs:207:5
 
 error: unexpected end of macro invocation
   --> tests/ui/missing_args.rs:27:25
    |
-27 |     let _ = ensure!(true);
+LL |     let _ = ensure!(true);
    |                         ^ missing tokens in macro arguments
    |
 note: while trying to match `,`
-  --> src/macros.rs
-   |
-   |     ($cond:expr, $err:expr $(,)?) => {{
-   |                ^
+  --> libs/error-stack/src/macros.rs:207:15
+
+error: aborting due to 3 previous errors
+
