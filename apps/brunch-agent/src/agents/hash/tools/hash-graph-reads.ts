@@ -1064,10 +1064,15 @@ const renderHashEntityRead = (
   const budget = renderBudgetWith({ stopAt: hashReadMaxMaxTokens });
   const stoppedAt = (stop: RenderStop, rendering: number): RenderStop => ({
     stopped: true,
-    tokens: Math.max(
-      stop.tokens,
-      Math.ceil((stop.tokens * entities.length) / (rendering + 1)),
-    ),
+    // Extrapolate across the page only once at least one entity rendered, so
+    // a single oversized value on entity 0 isn't multiplied across the page.
+    tokens:
+      rendering === 0
+        ? stop.tokens
+        : Math.max(
+            stop.tokens,
+            Math.ceil((stop.tokens * entities.length) / (rendering + 1)),
+          ),
   });
   const rendered: { block: string; summarised: boolean }[] = [];
   for (const [index, entity] of entities.entries()) {

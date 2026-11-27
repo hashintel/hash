@@ -1021,6 +1021,39 @@ describe("the paged read", () => {
     expect(graph.page).not.toHaveBeenCalled();
   });
 
+  test("under includeDrafts: true, does not use the zero-links shortcut so ofType reports deduplicated entities", async () => {
+    const graph = fakeGraph(
+      new Map([
+        [
+          "Sales Order",
+          [
+            record("w~o1", "Order 1"),
+            record("w~o1~d1", "Order 1 draft"),
+            record("w~o2", "Order 2"),
+          ],
+        ],
+        ["Has Customer", []],
+      ]),
+      { pageSize: 1000 },
+    );
+    const result = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        includeDrafts: true,
+        where: { path: [hasCustomer], exists: true },
+      },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 2,
+      count: 0,
+      examples: [],
+    });
+  });
+
   test("skips paging link types whose size is already 0 under exists:false", async () => {
     const graph = fakeGraph(
       new Map([

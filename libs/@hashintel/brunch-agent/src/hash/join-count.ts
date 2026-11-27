@@ -516,8 +516,8 @@ export const hashEntityCountJoinConcurrency = 4;
 
 /**
  * `run` over each of `items`, at most `limit` at a time, results in order.
- * Workers share one iterator, so each item runs exactly once; a rejection
- * rejects the whole once the workers in flight settle their current item.
+ * Workers share one iterator, so each item runs exactly once; on the first
+ * rejection, other workers stop pulling further items and `Promise.all` rejects.
  */
 const mapWithConcurrency = async <Item, Result>(
   items: readonly Item[],
@@ -526,11 +526,20 @@ const mapWithConcurrency = async <Item, Result>(
 ): Promise<Result[]> => {
   const results: Result[] = [];
   const entries = items.entries();
+  let failed = false;
   const worker = async () => {
     for (const [index, item] of entries) {
-      // Sequential within a worker by design: `limit` workers run in parallel.
-      // eslint-disable-next-line no-await-in-loop
-      results[index] = await run(item);
+      if (failed) {
+        return;
+      }
+      try {
+        // Sequential within a worker by design: `limit` workers run in parallel.
+        // eslint-disable-next-line no-await-in-loop
+        results[index] = await run(item);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
     }
   };
   await Promise.all(
@@ -757,14 +766,18 @@ export const runHashEntityJoinCount = async <Cursor>(
   );
 
   // Every `where` condition is ANDed: if any `exists: true` step has 0 links
-  // at the pinned snapshot, no counted entity can qualify.
-  const impossibleExists = hashEntityCountWhereConditions(input.where).some(
-    (condition) =>
-      condition.exists &&
-      condition.path.some(
-        (step) => (linkSizeByType.get(step.linkType) ?? 0) === 0,
-      ),
-  );
+  // at the pinned snapshot, no counted entity can qualify. Skip this shortcut
+  // under `includeDrafts: true` so `ofType` still reports deduplicated entities
+  // rather than raw edition rows from `graph.size`.
+  const impossibleExists =
+    input.includeDrafts !== true &&
+    hashEntityCountWhereConditions(input.where).some(
+      (condition) =>
+        condition.exists &&
+        condition.path.some(
+          (step) => (linkSizeByType.get(step.linkType) ?? 0) === 0,
+        ),
+    );
   if (impossibleExists) {
     return {
       outcome: "counted",

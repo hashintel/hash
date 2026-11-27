@@ -305,6 +305,9 @@ const createHashEntityReadCursorStore = ({
     },
     resolve: (token: string): HashEntityReadCursor | undefined =>
       entries.get(token),
+    revoke: (token: string): void => {
+      entries.delete(token);
+    },
   };
 };
 
@@ -673,6 +676,9 @@ export const createHashEntityReadTool = (
           );
           const payloadBytes = serializedPayloadBytes(result);
           if (payloadBytes > hashEntityReadMaxPayloadBytes) {
+            if (result.cursor !== undefined) {
+              cursors.revoke(result.cursor);
+            }
             const matched = result.entities.filter(
               (entity) => entity.matched,
             ).length;
