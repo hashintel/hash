@@ -1107,8 +1107,10 @@ export type SummarizeEntities = (
  * subgraph probe and reuses that exact pinned snapshot across every
  * `summarizeEntities` (`size`) and `queryEntitySubgraph` (`page`) call of the
  * join, so concurrent edits between requests cannot fabricate phantom paths
- * or drift `size` against `page`. Non-id reads stay in `webScope`; grouped id
- * reads span any web and mark entities outside the user's webs `external`.
+ * or drift `size` against `page`. Non-id reads stay in `webScope` and omit
+ * entity-type resolution and labelling; post-join id reads span any web,
+ * resolve types to compute clipped labels for displayed entities only, and
+ * mark entities outside the user's webs `external`.
  */
 const hashJoinGraph = (
   summarizeEntities: SummarizeEntities,
@@ -1163,29 +1165,37 @@ const hashJoinGraph = (
     },
     page: async (selector, limit, cursor, signal) => {
       const temporalAxes = await resolveSnapshot(signal);
-      // For grouped entity ID lookups, `linkData` already carries the exact
-      // target `entityId` (live or draft), so always match that exact edition
-      // rather than fetching unrelated draft editions of live entities.
-      const filter: Filter =
-        "entityIds" in selector
-          ? {
-              all: [
-                ...anyOf(
-                  selector.entityIds.map((id) =>
-                    generateEntityEditionFilter(id as EntityId),
-                  ),
-                ),
-                ...(includeArchived ? [] : notArchivedFilters),
-              ],
-            }
-          : entityCountFilter(selector, webScope.webIds, includeArchived);
+      const isLabelLookup = "entityIds" in selector;
+      // Label lookups use base entity IDs. When `includeDrafts` is true,
+      // match any edition of each base ID (`generateEntityIdFilter`, matching
+      // `hashEntityReadRequest`) so draft-only and draft-edited displayed
+      // entities return their draft edition for labelling; otherwise match the
+      // live edition only.
+      const entityIdFilter = (id: string): Filter =>
+        includeDrafts
+          ? generateEntityIdFilter({
+              entityId: id as EntityId,
+              includeArchived: true,
+            })
+          : generateEntityEditionFilter(id as EntityId);
+      const filter: Filter = isLabelLookup
+        ? {
+            all: [
+              ...anyOf(selector.entityIds.map(entityIdFilter)),
+              ...(includeArchived ? [] : notArchivedFilters),
+            ],
+          }
+        : entityCountFilter(selector, webScope.webIds, includeArchived);
+      // Bulk counted/link pages only need entity IDs and link endpoints:
+      // omit `includeEntityTypes` and skip label generation until the final
+      // by-ID lookup for displayed groups and examples (`<= maxGroups + maxExamples`).
       const request: QueryEntitySubgraphRequest = {
         filter,
         temporalAxes,
         traversalPaths: [],
         includeDrafts,
         includePermissions: false,
-        includeEntityTypes: "resolved",
+        ...(isLabelLookup ? { includeEntityTypes: "resolved" as const } : {}),
         limit,
         ...(cursor === undefined ? {} : { cursor }),
       };
@@ -1207,23 +1217,26 @@ const hashJoinGraph = (
         .map((entity) => {
           const { entityId } = entity.metadata.recordId;
           const webId = extractWebIdFromEntityId(entityId);
-          const closedType = closedTypeIn(
-            closedMultiEntityTypes,
-            entity.metadata.entityTypeIds,
-          );
-          const rawLabel =
-            closedType === undefined
-              ? undefined
-              : generateEntityLabel(closedType, entity);
-          // Join counts always clip display labels at `hashReadLabelPreviewLength`
-          // server-side; keeping one extra character preserves `isLongLabel`
-          // detection while keeping up to 500 grouped labels well under 12 MiB.
-          const label =
-            rawLabel === undefined
-              ? undefined
-              : rawLabel.length > hashReadLabelPreviewLength + 1
-                ? rawLabel.slice(0, hashReadLabelPreviewLength + 1)
-                : rawLabel;
+          let label: string | undefined;
+          if (isLabelLookup) {
+            const closedType = closedTypeIn(
+              closedMultiEntityTypes,
+              entity.metadata.entityTypeIds,
+            );
+            const rawLabel =
+              closedType === undefined
+                ? undefined
+                : generateEntityLabel(closedType, entity);
+            // Join counts always clip display labels at `hashReadLabelPreviewLength`
+            // server-side; keeping one extra character preserves `isLongLabel`
+            // detection while keeping displayed labels well under 12 MiB.
+            label =
+              rawLabel === undefined
+                ? undefined
+                : rawLabel.length > hashReadLabelPreviewLength + 1
+                  ? rawLabel.slice(0, hashReadLabelPreviewLength + 1)
+                  : rawLabel;
+          }
           const { linkData } = entity;
           return {
             entityId,

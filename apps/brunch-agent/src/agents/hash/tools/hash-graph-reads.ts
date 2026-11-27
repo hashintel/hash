@@ -1329,7 +1329,7 @@ export const hashEntityCountDescription = [
   `Web scope: without webIds it counts only in the user's own web and their organizations' webs, as ${brunchTools.hashQueryWebs} lists them; name webIds to count in others. propertyEquals counts only the entities whose properties equal the primitive values given.`,
   `Returns compact text: the total, which webs and draft/archived filters were applied; the property values counted, if any; each direct entity type the counted entities carry, by its count, title and entityTypeId (an entity of several types is counted under each); and each web counted, by its count, kind, name and webId. Output exceeding maxTokens (default ${formattedDefaultMaxTokens}, range ${formattedMinMaxTokens}–${formattedMaxMaxTokens}) is refused with narrowing advice. A count that failed returns { error }.`,
   `To count across links, which plain filters can't (such as "has no such link"), give where, groupBy or both (optionally scoped by entityTypes and propertyEquals). where takes one { path, exists } condition or a list of conditions (all must hold), where path is one or more { linkType, direction } steps. groupBy groups qualifying entities by the entity reached along one step or a multi-step { path: [...] }: an entity reaching several is counted under each, one reaching none under (none). For example, sales orders with nothing delivered, by customer: entityTypes ["Sales Order"], where { path: [{ linkType: "Has Line Item", direction: "outgoing" }, { linkType: "Fulfills", direction: "incoming" }], exists: false }, groupBy { linkType: "Has Customer", direction: "outgoing" }. A link reaches its other end even when that entity can't be read.`,
-  `A count across links reads the counted entities (propertyEquals narrows them) and the links of each type followed in the same webs, up to maxJoinEntities counted + link entities (default ${formattedDefaultJoinEntities}, max ${formattedMaxJoinEntities}); over that it is refused before reading, so narrow it or raise maxJoinEntities. Labels are fetched only for the top maxGroups displayed groups (default ${hashEntityCountDefaultGroups}, max ${hashEntityCountMaxGroups}; the rest are summed), and up to maxExamples qualifying entities (default ${hashEntityCountDefaultExamples}, range 0–${hashEntityCountMaxExamples}) are listed to cite or read. If a read fails or HASH grows past the limit part-way, it returns Incomplete with no count: that is not an answer, so report no count, group or example from it; repeat the count, narrow it, or tell the user it couldn't be completed.`,
+  `A count across links reads the counted entities (propertyEquals narrows them) and the links of each type followed only within the counted webs (so links stored in other webs are not seen when evaluating where or groupBy, and exists: false only means no matching link exists in those webs), up to maxJoinEntities counted + link entities (default ${formattedDefaultJoinEntities}, max ${formattedMaxJoinEntities}); over that it is refused before reading, so narrow it or raise maxJoinEntities. Labels are fetched only for the displayed top maxGroups groups (default ${hashEntityCountDefaultGroups}, max ${hashEntityCountMaxGroups}; the rest are summed) and up to maxExamples qualifying entities (default ${hashEntityCountDefaultExamples}, range 0–${hashEntityCountMaxExamples}) listed to cite or read. If a read fails or HASH grows past the limit part-way, it returns Incomplete with no count: that is not an answer, so report no count, group or example from it; repeat the count, narrow it, or tell the user it couldn't be completed.`,
 ].join("\n\n");
 
 const countFiltersLine = ({
@@ -1439,7 +1439,9 @@ const renderJoinReads = (reads: HashEntityCountJoinResult["reads"]) =>
         ? `${amount} ${types}`
         : role === "link"
           ? `${amount} ${types} ${entities === 1 ? "link" : "links"}`
-          : `${amount} grouped ${entities === 1 ? "entity" : "entities"}`;
+          : role === "labelled"
+            ? `${amount} labelled ${entities === 1 ? "entity" : "entities"}`
+            : `${amount} grouped ${entities === 1 ? "entity" : "entities"}`;
     })
     .join(", ");
 
@@ -1538,8 +1540,8 @@ export const hashEntityCountJoinForModel = (
 
   const scope =
     result.webScope === "default"
-      ? "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)"
-      : "webs counted: the webIds named";
+      ? "webs counted: the user's own web and their organizations' webs (the default; links are read in these webs only, so links in other webs are not seen — name webIds to include others)"
+      : "webs counted: the webIds named (links are read in these webs only, so links in other webs are not seen)";
   const filtersLine = countFiltersLine({ includeDrafts, includeArchived });
   const anyExternal =
     result.examples.some(({ external }) => external === true) ||

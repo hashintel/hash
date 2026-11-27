@@ -553,7 +553,9 @@ const readName = ({ role, entityTypes }: Omit<JoinRead, "entities">) =>
       : `the ${entityTypes.join(", ")} entities`
     : role === "link"
       ? `the ${entityTypes.join(", ")} links`
-      : "the grouped entities";
+      : role === "labelled"
+        ? "the labelled entities"
+        : "the grouped entities";
 
 const ensureSentence = (text: string) =>
   /[.!?]$/u.test(text) ? text : `${text}.`;
@@ -874,11 +876,23 @@ export const runHashEntityJoinCount = async <Cursor>(
     return incomplete(joined.reason);
   }
 
-  let groups: CountedResult["groups"];
+  // Labels come from entities already read where they already have one, else
+  // one combined by-id lookup for the <= maxGroups (<= 500) displayed groups
+  // and <= maxExamples (<= 100) displayed examples that still lack a label.
+  // Lookups use base ids so drafts and live editions resolve consistently.
+  const knownByBase = (entities: readonly HashJoinEntity[]) =>
+    dedupeByBaseEntityId(entities).map(
+      (entity) => [baseEntityId(entity.entityId), entity] as const,
+    );
+  const known = new Map(
+    knownByBase([counted, ...links].flatMap(({ read }) => read)),
+  );
+
+  let topGroups: readonly (readonly [string | null, number])[] | undefined;
   let otherGroups: CountedResult["otherGroups"];
   if (joined.groups !== undefined) {
     const sorted = [...joined.groups.entries()].sort(rawGroupOrder);
-    const top = sorted.slice(0, maxGroups);
+    topGroups = sorted.slice(0, maxGroups);
     const rest = sorted.slice(maxGroups);
     if (rest.length > 0) {
       otherGroups = {
@@ -886,44 +900,69 @@ export const runHashEntityJoinCount = async <Cursor>(
         count: rest.reduce((sum, [, count]) => sum + count, 0),
       };
     }
+  }
 
-    // Labels come from entities already read where they can, else one id lookup
-    // for the <= maxGroups (<= 500) unlabelled displayed groups only.
-    // Group ids are base ids; a label comes from the entity's draft if read.
-    const knownByBase = (entities: readonly HashJoinEntity[]) =>
-      dedupeByBaseEntityId(entities).map(
-        (entity) => [baseEntityId(entity.entityId), entity] as const,
-      );
-    const known = new Map(
-      knownByBase([counted, ...links].flatMap(({ read }) => read)),
-    );
-    const unlabelled = top.flatMap(([id]) =>
-      id !== null && !known.has(id) ? [id] : [],
-    );
-    if (unlabelled.length > 0) {
-      const groupedName = { role: "grouped" as const, entityTypes: [] };
-      const grouped = await readAll({ entityIds: unlabelled }, groupedName);
-      reads.push({ ...groupedName, entities: grouped.read.length });
-      const groupedStop = stopped();
-      if (groupedStop !== undefined) {
-        return incomplete(groupedStop.reason);
-      }
-      for (const [id, entity] of knownByBase(grouped.read)) {
-        known.set(id, entity);
+  const unlabelledIds: string[] = [];
+  const seenUnlabelled = new Set<string>();
+  const addUnlabelled = (id: string) => {
+    if (!seenUnlabelled.has(id)) {
+      seenUnlabelled.add(id);
+      unlabelledIds.push(id);
+    }
+  };
+  let needsExampleLabels = false;
+  if (topGroups !== undefined) {
+    for (const [id] of topGroups) {
+      if (id !== null && known.get(id)?.label === undefined) {
+        addUnlabelled(id);
       }
     }
-    groups = top
-      .map(([id, count]): CountedGroup => {
-        if (id === null) {
-          return { count };
-        }
-        const entity = known.get(id);
-        return entity === undefined
-          ? { entity: { entityId: id }, unread: true as const, count }
-          : { entity: entityRef(entity), count };
-      })
-      .sort(groupOrder);
   }
+  for (const example of joined.examples) {
+    if (example.label === undefined) {
+      const base = baseEntityId(example.entityId);
+      if (known.get(base)?.label === undefined) {
+        needsExampleLabels = true;
+        addUnlabelled(base);
+      }
+    }
+  }
+
+  if (unlabelledIds.length > 0) {
+    const labelName = {
+      role: needsExampleLabels ? ("labelled" as const) : ("grouped" as const),
+      entityTypes: [] as string[],
+    };
+    const labelled = await readAll({ entityIds: unlabelledIds }, labelName);
+    reads.push({ ...labelName, entities: labelled.read.length });
+    const labelStop = stopped();
+    if (labelStop !== undefined) {
+      return incomplete(labelStop.reason);
+    }
+    for (const [id, entity] of knownByBase(labelled.read)) {
+      known.set(id, entity);
+    }
+  }
+
+  const groups: CountedResult["groups"] =
+    topGroups === undefined
+      ? undefined
+      : topGroups
+          .map(([id, count]): CountedGroup => {
+            if (id === null) {
+              return { count };
+            }
+            const entity = known.get(id);
+            return entity === undefined
+              ? { entity: { entityId: id }, unread: true as const, count }
+              : { entity: entityRef(entity), count };
+          })
+          .sort(groupOrder);
+
+  const examples = joined.examples.map((example) => {
+    const hydrated = known.get(baseEntityId(example.entityId));
+    return entityRef(hydrated ?? example);
+  });
 
   return {
     outcome: "counted",
@@ -932,7 +971,7 @@ export const runHashEntityJoinCount = async <Cursor>(
     count: joined.count,
     ...(groups === undefined ? {} : { groups }),
     ...(otherGroups === undefined ? {} : { otherGroups }),
-    examples: joined.examples.map(entityRef),
+    examples,
     reads,
     requests,
   };

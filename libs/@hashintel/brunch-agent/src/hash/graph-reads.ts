@@ -852,12 +852,13 @@ export type HashEntityCountResult = v.InferOutput<
 
 /**
  * How many entities a count by links reads, or would read, of one kind: the
- * counted entities (`counted`), the links of one type it follows (`link`), or
- * the displayed grouped entities it labels (`grouped`).
+ * counted entities (`counted`), the links of one type it follows (`link`), the
+ * displayed grouped entities it labels (`grouped`), or displayed entities
+ * (examples, or examples and groups) it labels (`labelled`).
  */
 const hashEntityCountJoinReadSchema = v.object({
-  role: v.picklist(["counted", "link", "grouped"]),
-  /** The entity types read: the input's selectors (empty for untyped counted reads or grouped id reads). */
+  role: v.picklist(["counted", "link", "grouped", "labelled"]),
+  /** The entity types read: the input's selectors (empty for untyped counted reads or id label lookups). */
   entityTypes: v.array(v.string()),
   entities: countSchema,
 });

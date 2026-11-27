@@ -16,6 +16,7 @@ import {
 import {
   createHashEntityReadTool,
   createHashGraphReadTools,
+  hashEntityCountDescription,
   hashEntityCountForModel,
   hashEntityCountJoinForModel,
   hashEntityReadEmptyNote,
@@ -1380,7 +1381,9 @@ test("a count in an unknown shape fails the read rather than reaching the model"
 });
 
 const defaultScopeLine =
-  "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)";
+  "webs counted: the user's own web and their organizations' webs (the default; links are read in these webs only, so links in other webs are not seen — name webIds to include others)";
+const namedScopeLine =
+  "webs counted: the webIds named (links are read in these webs only, so links in other webs are not seen)";
 const undeliveredByCustomer = {
   entityTypes: ["Sales Order"],
   where: {
@@ -1482,12 +1485,73 @@ test("a count by links with where alone, in named webs, shows no groups, and one
     ).split("\n"),
   ).toEqual([
     'entities: 0 (of 0 "Sales Order" read)',
-    "webs counted: the webIds named",
+    namedScopeLine,
     "filters: drafts excluded (pass includeDrafts: true), archived excluded (pass includeArchived: true)",
     'where: following "Has Customer" (outgoing) reaches some entity',
     "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived (pass includeArchived: true), a draft (pass includeDrafts: true), or filed under another type title or web.",
     'read: 0 "Sales Order", 1 "Has Customer" link, in 4 graph requests',
   ]);
+});
+
+test("a count by links renders labelled read role and web-scoped link visibility note in both default and named scopes", () => {
+  const defaultOut = hashEntityCountJoinForModel(
+    {
+      outcome: "counted",
+      webScope: "default",
+      ofType: 5,
+      count: 2,
+      examples: [{ entityId: "acme-web~o1", label: "SO-1" }],
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 5 },
+        { role: "link", entityTypes: ["Has Customer"], entities: 5 },
+        { role: "labelled", entityTypes: [], entities: 1 },
+      ],
+      requests: 5,
+    },
+    {
+      entityTypes: ["Sales Order"],
+      where: {
+        path: [{ linkType: "Has Customer", direction: "outgoing" }],
+        exists: false,
+      },
+    },
+  );
+  expect(defaultOut).toContain(defaultScopeLine);
+  expect(defaultOut).toContain("1 labelled entity");
+  expect(hashEntityCountDescription).toContain(
+    "links stored in other webs are not seen",
+  );
+  expect(hashEntityCountDescription).toContain(
+    "exists: false only means no matching link exists in those webs",
+  );
+
+  const namedOut = hashEntityCountJoinForModel(
+    {
+      outcome: "counted",
+      webScope: "named",
+      ofType: 5,
+      count: 2,
+      examples: [
+        { entityId: "acme-web~o1", label: "SO-1" },
+        { entityId: "acme-web~o2", label: "SO-2" },
+      ],
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 5 },
+        { role: "link", entityTypes: ["Has Customer"], entities: 5 },
+        { role: "labelled", entityTypes: [], entities: 2 },
+      ],
+      requests: 5,
+    },
+    {
+      entityTypes: ["Sales Order"],
+      where: {
+        path: [{ linkType: "Has Customer", direction: "outgoing" }],
+        exists: false,
+      },
+    },
+  );
+  expect(namedOut).toContain(namedScopeLine);
+  expect(namedOut).toContain("2 labelled entities");
 });
 
 test("a count by links over the budget renders a refusal naming active limit, maxJoinEntities ceiling, and bottleneck", () => {

@@ -2176,6 +2176,9 @@ const joinData: Record<string, Record<string, unknown>[]> = {
   ids: [
     joinVertex("acme-web~c1", "Acme"),
     joinVertex("partner-web~c2", "Globex"),
+    joinVertex("acme-web~o1", "SO-1"),
+    joinVertex("acme-web~o2", "SO-2"),
+    joinVertex("acme-web~o3", "SO-3"),
   ],
 };
 
@@ -2267,9 +2270,9 @@ test("a count by links reads every page of the counted type and of each link typ
       { role: "link", entityTypes: ["Has Line Item"], entities: 4 },
       { role: "link", entityTypes: ["Fulfills"], entities: 2 },
       { role: "link", entityTypes: ["Has Customer"], entities: 3 },
-      { role: "grouped", entityTypes: [], entities: 1 },
+      { role: "labelled", entityTypes: [], entities: 2 },
     ],
-    // 4 sizes, then 2 + 2 + 1 + 2 pages and 1 page of the grouped customer.
+    // 4 sizes, then 2 + 2 + 1 + 2 pages and 1 combined label lookup for the displayed group and example.
     requests: 12,
   });
 
@@ -2290,26 +2293,31 @@ test("a count by links reads every page of the counted type and of each link typ
       temporalAxes: resolvedTemporalAxes,
       limit: 1000,
     });
-    // The grouped entities are read by id, in whichever web each id names.
+    // Bulk counted/link pages omit `includeEntityTypes`; only the post-join by-id
+    // label lookup resolves entity types (in whichever web each id names).
     const byId = JSON.stringify(request.filter).includes('"uuid"');
+    expect(request.includeEntityTypes).toBe(byId ? "resolved" : undefined);
     expect(request.filter).toMatchObject({
       all: byId
         ? expect.not.arrayContaining([scoped])
         : expect.arrayContaining([scoped, ...notArchived]),
     });
   }
-  // propertyEquals narrows the counted entities, not the links, at the pinned snapshot.
+  // propertyEquals narrows the counted entities, not the links, at the pinned snapshot,
+  // and bulk pages omit `includeEntityTypes`.
+  const { includeEntityTypes: _omitted, ...countedPageBase } =
+    hashEntityReadRequest(
+      {
+        entityTypes: ["Sales Order"],
+        propertyEquals: openOrder,
+        traversalDepth: 0,
+        limit: 1000,
+      },
+      ["alice-web", "acme-web"],
+    );
   expect(query).toHaveBeenCalledWith(
     {
-      ...hashEntityReadRequest(
-        {
-          entityTypes: ["Sales Order"],
-          propertyEquals: openOrder,
-          traversalDepth: 0,
-          limit: 1000,
-        },
-        ["alice-web", "acme-web"],
-      ),
+      ...countedPageBase,
       temporalAxes: resolvedTemporalAxes,
     },
     expect.any(AbortSignal),
@@ -2399,9 +2407,14 @@ test("a count by links supports untyped joins and forwards includeDrafts and inc
     outcome: "counted",
     ofType: 3,
     count: 2,
+    examples: [
+      { entityId: "acme-web~o1", label: "SO-1" },
+      { entityId: "acme-web~o2", label: "SO-2" },
+    ],
     reads: [
       { role: "counted", entityTypes: [], entities: 3 },
       { role: "link", entityTypes: ["Has Customer"], entities: 3 },
+      { role: "labelled", entityTypes: [], entities: 2 },
     ],
   });
   for (const [request] of sizes.mock.calls) {
@@ -2417,7 +2430,80 @@ test("a count by links supports untyped joins and forwards includeDrafts and inc
     expect(request.includeDrafts).toBe(true);
     expect(request.temporalAxes).toEqual(resolvedTemporalAxes);
     expect(JSON.stringify(request.filter)).not.toContain('"archived"');
+    const byId = JSON.stringify(request.filter).includes('"uuid"');
+    expect(request.includeEntityTypes).toBe(byId ? "resolved" : undefined);
+    // With includeDrafts: true, the by-ID label lookup uses generateEntityIdFilter
+    // (no `not: { exists: draftId }` clause) so draft-only and draft-edited entities get labelled.
+    if (byId) {
+      expect(JSON.stringify(request.filter)).not.toContain('"draftId"');
+    }
   }
+});
+
+test("a count with includeDrafts: true labels draft-only displayed entities via generateEntityIdFilter", async () => {
+  const sizes = vi.fn<SummarizeEntities>(() =>
+    Promise.resolve(summary({ count: 1 })),
+  );
+  const draftOrder = joinVertex("acme-web~o-draft~d1", "Draft Order 1");
+  const draftCustomer = joinVertex("acme-web~c-draft~d2", "Draft Customer");
+  const draftLink = joinVertex("acme-web~hc-draft~d3", undefined, {
+    leftEntityId: "acme-web~o-draft",
+    rightEntityId: "acme-web~c-draft",
+  });
+  const query = vi.fn<QueryEntitySubgraph>((request) => {
+    if (request.limit === 0) {
+      return Promise.resolve(joinPage([]));
+    }
+    const filter = JSON.stringify(request.filter);
+    if (filter.includes('"uuid"')) {
+      // Simulate graph behavior: reject if the query excluded drafts via `not exists draftId`.
+      if (filter.includes('"draftId"')) {
+        return Promise.resolve(joinPage([]));
+      }
+      return Promise.resolve(joinPage([draftCustomer, draftOrder]));
+    }
+    if (filter.includes('"Has Customer"')) {
+      return Promise.resolve(joinPage([draftLink]));
+    }
+    return Promise.resolve(joinPage([draftOrder]));
+  });
+
+  const output = await count(
+    sizes,
+    {
+      entityTypes: ["Sales Order"],
+      includeDrafts: true,
+      groupBy: { linkType: "Has Customer", direction: "outgoing" },
+    },
+    { query },
+  );
+  expect(output).toMatchObject({
+    outcome: "counted",
+    ofType: 1,
+    count: 1,
+    groups: [
+      {
+        entity: { entityId: "acme-web~c-draft~d2", label: "Draft Customer" },
+        count: 1,
+      },
+    ],
+    examples: [{ entityId: "acme-web~o-draft~d1", label: "Draft Order 1" }],
+  });
+  expect(query).toHaveBeenCalledWith(
+    {
+      ...hashEntityReadRequest(
+        {
+          entityIds: ["acme-web~c-draft", "acme-web~o-draft"],
+          includeDrafts: true,
+          traversalDepth: 0,
+          limit: 1000,
+        },
+        undefined,
+      ),
+      temporalAxes: resolvedTemporalAxes,
+    },
+    expect.any(AbortSignal),
+  );
 });
 
 test("a count grouped by links reads the grouped entities by id in any web, so one in another web is labelled and marked external", async () => {
@@ -2441,12 +2527,23 @@ test("a count grouped by links reads the grouped entities by id in any web, so o
       },
       { count: 1 },
     ],
+    examples: [
+      { entityId: "acme-web~o1", label: "SO-1" },
+      { entityId: "acme-web~o2", label: "SO-2" },
+      { entityId: "acme-web~o3", label: "SO-3" },
+    ],
   });
   expect(query).toHaveBeenCalledWith(
     {
       ...hashEntityReadRequest(
         {
-          entityIds: ["acme-web~c1", "partner-web~c2"],
+          entityIds: [
+            "acme-web~c1",
+            "partner-web~c2",
+            "acme-web~o1",
+            "acme-web~o2",
+            "acme-web~o3",
+          ],
           traversalDepth: 0,
           limit: 1000,
         },
@@ -2649,7 +2746,12 @@ test("entity type reads exceeding 12 MiB settle a structured oversized refusal, 
     if (filter.includes('"Sales Order"')) {
       return Promise.resolve(joinPage([joinVertex("acme-web~o1", hugeLabel)]));
     }
-    return Promise.resolve(joinPage([joinVertex("acme-web~c1", hugeLabel)]));
+    return Promise.resolve(
+      joinPage([
+        joinVertex("acme-web~c1", hugeLabel),
+        joinVertex("acme-web~o1", hugeLabel),
+      ]),
+    );
   });
   const joinLabelOutput = (await count(
     () => Promise.resolve(summary({ count: 1 })),

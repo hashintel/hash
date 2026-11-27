@@ -804,7 +804,7 @@ test("an entity count across links is issued to the page as asked, and the model
   expect(claim.input).toEqual(salesOrdersUndeliveredByCustomer);
   expect(seen?.split("\n")).toEqual([
     'entities: 1 (of 3 "Sales Order" read)',
-    "webs counted: the user's own web and their organizations' webs (the default; name webIds to count in others)",
+    "webs counted: the user's own web and their organizations' webs (the default; links are read in these webs only, so links in other webs are not seen — name webIds to include others)",
     "filters: drafts excluded (pass includeDrafts: true), archived excluded (pass includeArchived: true)",
     'where: following "Has Line Item" (outgoing), then Fulfills (incoming) reaches no entity',
     'groups, by the entity one "Has Customer" (outgoing) link away (an entity linked to several is counted under each, so these may sum to more than the total):',

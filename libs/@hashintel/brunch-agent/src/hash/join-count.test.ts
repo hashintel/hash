@@ -615,7 +615,7 @@ describe("the paged read", () => {
     );
   });
 
-  test("slices top maxGroups deterministically by entityId BEFORE fetching labels, issuing at most 1 lookup of <= maxGroups IDs", async () => {
+  test("slices top maxGroups deterministically by entityId BEFORE fetching labels, issuing at most 1 lookup of <= maxGroups + maxExamples IDs", async () => {
     // 50 distinct groups: c00 has 3 orders, c01..c49 have 1 order each.
     const manyOrders = [
       record("o-a"),
@@ -665,7 +665,8 @@ describe("the paged read", () => {
     });
     expect(result.otherGroups).toEqual({ groups: 25, count: 25 });
 
-    // Exactly ONE label lookup, containing only the top 25 IDs (c00..c24), never c25..c49.
+    // Exactly ONE label lookup, containing only the top 25 group IDs (c00..c24)
+    // plus the 3 unlabelled example IDs (o-a, o-b, o-c), never c25..c49 or non-displayed orders.
     const idLookups = graph.page.mock.calls.filter(
       ([selector]) => "entityIds" in selector,
     );
@@ -675,9 +676,10 @@ describe("the paged read", () => {
       firstLookup !== undefined && "entityIds" in firstLookup
         ? firstLookup.entityIds
         : [];
-    expect(requestedIds).toHaveLength(25);
+    expect(requestedIds).toHaveLength(28);
     expect(requestedIds[0]).toBe("c00");
     expect(requestedIds[24]).toBe("c24");
+    expect(requestedIds.slice(25)).toEqual(["o-a", "o-b", "o-c"]);
   });
 
   test("honors custom maxGroups, custom maxExamples, custom maxJoinEntities, and untyped joins", async () => {
@@ -795,12 +797,13 @@ describe("the paged read", () => {
         { role: "counted", entityTypes: ["Sales Order"], entities: 9000 },
         { role: "link", entityTypes: ["Has Line Item"], entities: 9500 },
         { role: "link", entityTypes: ["Fulfills"], entities: 1200 },
+        { role: "labelled", entityTypes: [], entities: 3 },
       ],
-      requests: 25,
+      requests: 26,
     });
   });
 
-  test("labelling only the top 25 groups keeps a near-20,000-entity count with 9,500 groups to 1 label lookup", async () => {
+  test("labelling only the top 25 groups and 3 examples keeps a near-20,000-entity count with 9,500 groups to 1 label lookup", async () => {
     const many = (count: number, make: (index: number) => HashJoinEntity) =>
       Array.from({ length: count }, (_, index) => make(index));
     const graph = fakeGraph(
@@ -835,7 +838,7 @@ describe("the paged read", () => {
       firstLookup !== undefined && "entityIds" in firstLookup
         ? firstLookup.entityIds
         : [],
-    ).toHaveLength(25);
+    ).toHaveLength(28);
   });
 
   test("reads that grow past effective maxJoinEntities part-way stop within a page each, incomplete, with no count", async () => {
@@ -1041,14 +1044,145 @@ describe("the paged read", () => {
         { role: "counted", entityTypes: ["Sales Order"], entities: 2 },
         { role: "link", entityTypes: ["Has Line Item"], entities: 1 },
         { role: "link", entityTypes: ["Fulfills"], entities: 0 },
+        { role: "labelled", entityTypes: [], entities: 2 },
       ],
-      // 3 sizes + 2 page reads (Fulfills size 0 is not paged).
-      requests: 5,
+      // 3 sizes + 2 page reads (Fulfills size 0 is not paged) + 1 label lookup for displayed examples.
+      requests: 6,
     });
     expect(
       graph.page.mock.calls.some(
         ([selector]) =>
           "entityTypes" in selector && selector.entityTypes?.[0] === "Fulfills",
+      ),
+    ).toBe(false);
+  });
+
+  test("defers labelling to displayed examples and top groups in one combined lookup, even without groupBy, never fetching non-displayed entities", async () => {
+    const labels = new Map<string, string>([
+      ["o1", "Order 1"],
+      ["o2", "Order 2"],
+      ["o3", "Order 3"],
+      ["o4", "Order 4"],
+      ["o5", "Order 5"],
+      ["c1", "Acme"],
+      ["c2", "Globex"],
+    ]);
+    const bulkOrders = ["o1", "o2", "o3", "o4", "o5"].map((id) => record(id));
+    const bulkCustomers = [
+      link("hc1", "o1", "c1"),
+      link("hc2", "o2", "c1"),
+      link("hc3", "o3", "c1"),
+      link("hc4", "o4", "c2"),
+      link("hc5", "o5", "c2"),
+    ];
+    const makeDeferredGraph = (): HashJoinGraph<string> => {
+      const size = vi.fn<HashJoinGraph<string>["size"]>((selector) =>
+        Promise.resolve(
+          selector.entityTypes?.[0] === "Sales Order"
+            ? bulkOrders.length
+            : bulkCustomers.length,
+        ),
+      );
+      const page = vi.fn<HashJoinGraph<string>["page"]>((selector) => {
+        if ("entityIds" in selector) {
+          return Promise.resolve({
+            entities: selector.entityIds.map((id) =>
+              record(id, labels.get(id)),
+            ),
+          });
+        }
+        return Promise.resolve({
+          entities:
+            selector.entityTypes?.[0] === "Sales Order"
+              ? bulkOrders
+              : bulkCustomers,
+        });
+      });
+      return { size, page };
+    };
+
+    // Without groupBy: fetches labels only for the <= maxExamples displayed examples.
+    const whereOnlyGraph = makeDeferredGraph();
+    const whereOnly = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        where: { path: [hasCustomer], exists: true },
+        maxExamples: 2,
+      },
+      "default",
+      whereOnlyGraph,
+      signal,
+    );
+    expect(whereOnly).toMatchObject({
+      outcome: "counted",
+      ofType: 5,
+      count: 5,
+      examples: [
+        { entityId: "o1", label: "Order 1" },
+        { entityId: "o2", label: "Order 2" },
+      ],
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 5 },
+        { role: "link", entityTypes: ["Has Customer"], entities: 5 },
+        { role: "labelled", entityTypes: [], entities: 2 },
+      ],
+    });
+    const whereOnlyLookups = (
+      whereOnlyGraph.page as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(([selector]) => "entityIds" in selector);
+    expect(whereOnlyLookups).toHaveLength(1);
+    expect(whereOnlyLookups[0]?.[0]).toEqual({ entityIds: ["o1", "o2"] });
+
+    // With groupBy and maxGroups=1, maxExamples=2: one combined lookup for top group + displayed examples only.
+    const combinedGraph = makeDeferredGraph();
+    const combined = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        groupBy: hasCustomer,
+        maxGroups: 1,
+        maxExamples: 2,
+      },
+      "default",
+      combinedGraph,
+      signal,
+    );
+    expect(combined).toMatchObject({
+      outcome: "counted",
+      ofType: 5,
+      count: 5,
+      groups: [{ entity: { entityId: "c1", label: "Acme" }, count: 3 }],
+      otherGroups: { groups: 1, count: 2 },
+      examples: [
+        { entityId: "o1", label: "Order 1" },
+        { entityId: "o2", label: "Order 2" },
+      ],
+      reads: [
+        { role: "counted", entityTypes: ["Sales Order"], entities: 5 },
+        { role: "link", entityTypes: ["Has Customer"], entities: 5 },
+        { role: "labelled", entityTypes: [], entities: 3 },
+      ],
+    });
+    const combinedLookups = (
+      combinedGraph.page as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(([selector]) => "entityIds" in selector);
+    expect(combinedLookups).toHaveLength(1);
+    expect(combinedLookups[0]?.[0]).toEqual({ entityIds: ["c1", "o1", "o2"] });
+
+    // With maxExamples: 0 and no groupBy: no by-ID lookup is issued at all.
+    const noExamplesGraph = makeDeferredGraph();
+    await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        where: { path: [hasCustomer], exists: true },
+        maxExamples: 0,
+      },
+      "default",
+      noExamplesGraph,
+      signal,
+    );
+    expect(
+      (noExamplesGraph.page as ReturnType<typeof vi.fn>).mock.calls.some(
+        ([selector]) => "entityIds" in selector,
       ),
     ).toBe(false);
   });
