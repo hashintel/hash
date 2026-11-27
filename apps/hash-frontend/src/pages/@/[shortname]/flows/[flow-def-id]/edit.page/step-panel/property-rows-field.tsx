@@ -3,18 +3,22 @@ import { useMemo, useState } from "react";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { Button, Form, LoadingSpinner, Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { isBuiltSource } from "@local/hash-isomorphic-utils/flows/built-sources";
 
 import { findStep } from "../shared/find-step";
-import { getSourceEntityTypes } from "../shared/item-name";
+import { getSourceEntityTypes, useItemNames } from "../shared/item-name";
 import { getKindIcon } from "../shared/value-display";
+import { getPathInSource } from "./field-problems";
 import { InputField } from "./input-field";
+import { brokenSourceCodes } from "./input-sources";
 import {
+  getProblemRowIndex,
   readPatchesForm,
   readPropertiesForm,
-  toPropertiesWithMetadata,
-  toPropertyPatches,
+  toPatchesSource,
+  toPropertiesSource,
 } from "./property-rows-field/property-form";
-import { PropertyValueInput } from "./property-rows-field/property-value-input";
+import { PropertyValuePicker } from "./property-rows-field/property-value-picker";
 import { getEntityProperties } from "./shared/condition-properties";
 import { AddFilterMenu, UnreadableCondition } from "./shared/condition-rows";
 import { readEntityTypeIds, useEntityTypeItems } from "./shared/entity-types";
@@ -23,6 +27,7 @@ import { useRowKeys } from "./shared/use-row-keys";
 
 import type {
   PropertyRow,
+  RowSource,
   RowValue,
   SetRow,
 } from "./property-rows-field/property-form";
@@ -41,15 +46,16 @@ const opItems: { value: RowOp; text: string }[] = [
   { value: "remove", text: "Remove" },
 ];
 
+/* The value goes under what's done with the property: beside it, there's no room to read where a value comes from. */
 const rowControl = css({
   display: "flex",
-  alignItems: "center",
+  flexDirection: "column",
+  alignItems: "flex-start",
   gap: "2",
   width: "full",
   minWidth: "0",
 });
-const opSelect = css({ flexShrink: "0" });
-const valueBox = css({ flex: "1", minWidth: "0" });
+const valueBox = css({ width: "full", minWidth: "0" });
 const addButton = css({ alignSelf: "flex-start" });
 
 const getIcon = ({ valueKind }: EntityProperty): IconName =>
@@ -63,16 +69,24 @@ type ShownRow =
   | { saved: undefined; property: SettableProperty };
 
 /**
- * Create entity's properties and Update entity's changes, one row per property: a value, or on Update entity, a
- * removal. Saved values the rows can't show are read-only. Lists and properties of several data types aren't offered.
+ * Create entity's properties and Update entity's changes, one row per property: a value, typed or taken from a flow
+ * input or an earlier step, or on Update entity, a removal. Saved values the rows can't show are read-only. Lists and
+ * properties of several data types aren't offered.
  */
 export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
-  const { editor, flowDefinition, stepId, input, source, problems } = props;
+  const {
+    editor,
+    flowDefinition,
+    stepId,
+    input,
+    source,
+    problems,
+    onSelectStart,
+  } = props;
 
   const patches =
     "oneOfPayloadKinds" in input &&
     input.oneOfPayloadKinds.includes("PropertyPatch");
-  const payloadKind = patches ? "PropertyPatch" : "PropertyObjectWithMetadata";
 
   /* Picked under Add property, until its row has a value. */
   const [newProperty, setNewProperty] = useState<SettableProperty>();
@@ -81,6 +95,7 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
 
   const ontology = useConditionOntology();
   const { latestEntityTypes } = useEntityTypeItems();
+  const getItemName = useItemNames(flowDefinition);
 
   const getSettable = useMemo(
     () =>
@@ -139,14 +154,14 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
     [offeredKey, getSettable, latestEntityTypes],
   );
 
-  if (source && source.kind !== "constant") {
+  /* The whole input connected to one value shows as any connected input does. */
+  if (source && source.kind !== "constant" && !isBuiltSource(source)) {
     return <InputField {...props} />;
   }
 
   const label = patches ? "Changes" : "Properties";
-  const fieldErrors = problems.map(({ code, message }) =>
-    code === "missingInput" ? "Required" : message,
-  );
+  const getError = ({ code, message }: (typeof problems)[number]) =>
+    code === "missingInput" ? "Required" : message;
 
   if (!allProperties) {
     return (
@@ -158,41 +173,45 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
 
   const getValueKind = (baseUrl: BaseUrl) =>
     allProperties.get(baseUrl)?.valueKind;
-  const saved = source?.payload.value;
   const form: PropertyRow[] | null = !source
     ? []
-    : source.payload.kind !== payloadKind
-      ? null
-      : patches
-        ? readPatchesForm(saved, getValueKind)
-        : readPropertiesForm(saved, getValueKind);
+    : patches
+      ? readPatchesForm(source, getValueKind)
+      : readPropertiesForm(source, getValueKind);
 
   if (!form) {
     return (
       <UnreadableCondition
         label={label}
-        value={saved}
+        value={source?.kind === "constant" ? source.payload.value : source}
         note={`${patches ? "These changes weren't" : "These properties weren't"} made here, so they can't be changed here. The step uses them as they are.`}
         resetLabel={patches ? "Make new changes" : "Set new properties"}
-        errors={fieldErrors}
+        errors={problems.map(getError)}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
   }
 
+  /* A problem with one row's value shows on its row, the rest on the field. */
+  const problemRows = problems.map((problem) => ({
+    problem,
+    rowIndex: getProblemRowIndex(getPathInSource(problem), form),
+  }));
+  const fieldErrors = problemRows
+    .filter(({ rowIndex }) => rowIndex === undefined)
+    .map(({ problem }) => getError(problem));
+
   const save = (rows: PropertyRow[]) =>
-    editor.setInputSource(stepId, input.name, {
-      kind: "constant",
-      payload: patches
-        ? { kind: "PropertyPatch", value: toPropertyPatches(rows) }
-        : {
-            kind: "PropertyObjectWithMetadata",
-            /* Create entity only sets properties. */
-            value: toPropertiesWithMetadata(
-              rows.filter((row): row is SetRow => row.op === "set"),
-            ),
-          },
-    });
+    editor.setInputSource(
+      stepId,
+      input.name,
+      patches
+        ? toPatchesSource(rows)
+        : /* Create entity only sets properties. */
+          toPropertiesSource(
+            rows.filter((row): row is SetRow => row.op === "set"),
+          ),
+    );
 
   const rows: ShownRow[] = [
     ...form.map((row) => ({
@@ -230,14 +249,19 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
     }
   };
 
-  const removeRow = (index: number) => {
+  /** Drops the row at `index`, or with `keepProperty`, only its value: its property is then the one being added. */
+  const removeRow = (index: number, keepProperty?: SettableProperty) => {
     setRowError(index, undefined);
     forgetRowKey(index, rows.length);
 
-    if (index === form.length) {
-      setNewProperty(undefined);
-    } else {
+    if (index < form.length) {
       save(form.toSpliced(index, 1));
+    }
+
+    if (keepProperty || index === form.length) {
+      /* A property being added gives way to the kept one, with whatever was wrong with what was typed for it. */
+      setRowError(form.length, undefined);
+      setNewProperty(keepProperty);
     }
   };
 
@@ -276,9 +300,18 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
           op === "set" &&
           offeredByBaseUrl !== null &&
           !offeredByBaseUrl.has(property.baseUrl);
+        const rowProblems = problemRows.flatMap(({ problem, rowIndex }) =>
+          rowIndex === index ? [problem] : [],
+        );
+        const brokenProblem = rowProblems.find(({ code }) =>
+          brokenSourceCodes.has(code),
+        );
         const errors = [
           ...(rowErrors.has(key) ? [rowErrors.get(key)!] : []),
           ...(notOnTypes ? ["Not on the entity's types"] : []),
+          ...rowProblems
+            .filter((problem) => problem !== brokenProblem)
+            .map(getError),
         ];
 
         const shownErrors = [
@@ -286,26 +319,34 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
           ...(index === firstShownIndex && !showsAdd ? fieldErrors : []),
         ];
 
-        const value = row?.op === "set" ? row.value : undefined;
-        const setValue = (next: RowValue) =>
+        const setRow = row?.op === "set" ? row : undefined;
+        const setValue = (next: { value: RowValue } | { from: RowSource }) =>
           commitRow(index, {
             propertyBaseUrl: property.baseUrl,
             op: "set",
-            value: next,
             /* A value read back keeps its own data type. */
-            dataTypeId:
-              row?.op === "set" ? row.dataTypeId : property.dataTypeId,
+            dataTypeId: setRow?.dataTypeId ?? property.dataTypeId,
+            ...next,
           });
 
         const valueInput = (
-          <PropertyValueInput
-            valueKind={property.valueKind}
-            value={value}
-            label={property.title}
-            autoFocus={row === undefined}
+          <PropertyValuePicker
+            /* A row that takes the place of the one being added doesn't take over what was being typed for it. */
+            key={property.baseUrl}
+            editor={editor}
+            flowDefinition={flowDefinition}
+            stepId={stepId}
+            property={property}
+            value={setRow?.value}
+            from={setRow?.from}
+            brokenProblem={brokenProblem}
             invalid={errors.length > 0}
-            onCommit={setValue}
+            getItemName={getItemName}
+            onPick={(from) => setValue({ from })}
+            onType={(value) => setValue({ value })}
+            onClear={() => removeRow(index, property)}
             onError={(error) => setRowError(index, error)}
+            onSelectStart={onSelectStart}
           />
         );
 
@@ -335,7 +376,6 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
                   items={opItems}
                   value={op}
                   aria-label={`What to do with ${property.title}`}
-                  className={opSelect}
                   onChange={(nextOp) => {
                     if (nextOp === "remove") {
                       setRowError(index, undefined);
@@ -344,9 +384,8 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
                         op: "remove",
                       });
                     } else {
-                      /* The removal is dropped, so a run before a value is typed doesn't remove the property. */
-                      removeRow(index);
-                      setNewProperty(property);
+                      /* The removal is dropped, so a run before a value is given doesn't remove the property. */
+                      removeRow(index, property);
                     }
                   }}
                 />

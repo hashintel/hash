@@ -1,20 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  validatePropertiesWithMetadata,
-  validatePropertyPatches,
-} from "@local/hash-isomorphic-utils/flows/property-values";
+import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
+import { actionStep, flowWith } from "../../shared/step-fixtures";
+import { getPathInSource } from "../field-problems";
 import {
+  getProblemRowIndex,
   readPatchesForm,
   readPropertiesForm,
-  toPropertiesWithMetadata,
-  toPropertyPatches,
+  toPatchesSource,
+  toPropertiesSource,
 } from "./property-form";
 
 import type { PropertyValueKind } from "../shared/condition-properties";
 import type { PropertyRow, SetRow } from "./property-form";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  FlowDefinition,
+  PayloadKind,
+  StepInputSource,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const nameUrl =
   "https://example.com/@acme/types/property-type/name/" as BaseUrl;
@@ -51,23 +56,115 @@ const setRows: SetRow[] = [
   { propertyBaseUrl: employeesUrl, op: "set", value: 0, dataTypeId: integerId },
 ];
 
-describe("toPropertiesWithMetadata", () => {
-  it("gives each value with its data type ID, as the graph takes them, and reads back as it was set", () => {
-    const properties = toPropertiesWithMetadata(setRows);
+const headcount = { kind: "flow-input", inputName: "headcount" } as const;
+const foundName = {
+  kind: "step-output",
+  stepId: "findName",
+  outputName: "explanation",
+} as const;
 
-    expect(properties).toEqual({
-      value: {
-        [nameUrl]: { value: "Acme", metadata: { dataTypeId: textId } },
-        [statusUrl]: { value: "Contacted", metadata: { dataTypeId: statusId } },
-        [employeesUrl]: { value: 0, metadata: { dataTypeId: integerId } },
+/** Rows that type the status, and take the number of employees from a flow input and the name from an earlier step. */
+const sourcedRows: SetRow[] = [
+  {
+    propertyBaseUrl: statusUrl,
+    op: "set",
+    value: "Contacted",
+    dataTypeId: statusId,
+  },
+  {
+    propertyBaseUrl: employeesUrl,
+    op: "set",
+    from: headcount,
+    dataTypeId: integerId,
+  },
+  { propertyBaseUrl: nameUrl, op: "set", from: foundName, dataTypeId: textId },
+];
+
+const fixed = (kind: PayloadKind, value: unknown): StepInputSource => ({
+  kind: "constant",
+  payload: { kind, value },
+});
+
+const companyTypeId =
+  "https://example.com/@acme/types/entity-type/company/v/1" as VersionedUrl;
+
+/** A flow with a number and an entity as inputs and a step that gives a text, then `steps`, which can take all three. */
+const flowTaking = (
+  steps: FlowDefinition<string>["steps"],
+): FlowDefinition<string> => ({
+  ...flowWith([
+    actionStep("findName", {
+      actionDefinitionId: "answerQuestion",
+      inputs: { question: fixed("Text", "What is the company called?") },
+    }),
+    ...steps,
+  ]),
+  inputs: [
+    { name: "headcount", payloadKind: "Number", array: false, required: true },
+    { name: "company", payloadKind: "EntityId", array: false, required: true },
+  ],
+});
+
+const errorsOf = (flowDefinition: FlowDefinition<string>) =>
+  validateFlowDefinition(flowDefinition).diagnostics.filter(
+    ({ severity }) => severity === "error",
+  );
+
+const createStep = (properties: StepInputSource) =>
+  actionStep("create", {
+    actionDefinitionId: "createEntity",
+    inputs: {
+      entityTypeIds: fixed("VersionedUrl", [companyTypeId]),
+      properties,
+    },
+  });
+
+const updateStep = (propertyPatches: StepInputSource) =>
+  actionStep("update", {
+    actionDefinitionId: "updateEntity",
+    inputs: {
+      entityId: { kind: "flow-input", inputName: "company" },
+      propertyPatches,
+    },
+  });
+
+describe("toPropertiesSource", () => {
+  it("gives typed values as one fixed value, each with its data type ID, as the graph takes them, and reads back as it was set", () => {
+    const source = toPropertiesSource(setRows);
+
+    expect(source).toEqual(
+      fixed("PropertyObjectWithMetadata", {
+        value: {
+          [nameUrl]: { value: "Acme", metadata: { dataTypeId: textId } },
+          [statusUrl]: {
+            value: "Contacted",
+            metadata: { dataTypeId: statusId },
+          },
+          [employeesUrl]: { value: 0, metadata: { dataTypeId: integerId } },
+        },
+      }),
+    );
+    expect(errorsOf(flowTaking([createStep(source)]))).toEqual([]);
+    expect(readPropertiesForm(source, getValueKind)).toEqual(setRows);
+  });
+
+  it("gives each value a source of its own once one comes from a flow input or an earlier step, and reads back as it was set", () => {
+    const source = toPropertiesSource(sourcedRows);
+
+    expect(source).toEqual({
+      kind: "properties",
+      values: {
+        [statusUrl]: { dataTypeId: statusId, from: fixed("Text", "Contacted") },
+        [employeesUrl]: { dataTypeId: integerId, from: headcount },
+        [nameUrl]: { dataTypeId: textId, from: foundName },
       },
     });
-    expect(validatePropertiesWithMetadata(properties)).toBeUndefined();
-    expect(readPropertiesForm(properties, getValueKind)).toEqual(setRows);
+    expect(errorsOf(flowTaking([createStep(source)]))).toEqual([]);
+    expect(readPropertiesForm(source, getValueKind)).toEqual(sourcedRows);
   });
 });
 
-describe("toPropertyPatches", () => {
+describe("toPatchesSource", () => {
   it("adds a set property, so it doesn't matter whether the entity has it, removes a removed one, and reads back as it was set", () => {
     const rows: PropertyRow[] = [
       {
@@ -78,18 +175,50 @@ describe("toPropertyPatches", () => {
       },
       { propertyBaseUrl: foundedUrl, op: "remove" },
     ];
-    const patches = toPropertyPatches(rows);
+    const source = toPatchesSource(rows);
 
-    expect(patches).toEqual([
-      {
-        op: "add",
-        path: [statusUrl],
-        property: { value: "Contacted", metadata: { dataTypeId: statusId } },
-      },
-      { op: "remove", path: [foundedUrl] },
-    ]);
-    expect(validatePropertyPatches(patches)).toBeUndefined();
-    expect(readPatchesForm(patches, getValueKind)).toEqual(rows);
+    expect(source).toEqual(
+      fixed("PropertyPatch", [
+        {
+          op: "add",
+          path: [statusUrl],
+          property: { value: "Contacted", metadata: { dataTypeId: statusId } },
+        },
+        { op: "remove", path: [foundedUrl] },
+      ]),
+    );
+    expect(errorsOf(flowTaking([updateStep(source)]))).toEqual([]);
+    expect(readPatchesForm(source, getValueKind)).toEqual(rows);
+  });
+
+  it("gives each value a source of its own once one comes from a flow input or an earlier step, and reads back as it was set", () => {
+    const rows: PropertyRow[] = [
+      ...sourcedRows,
+      { propertyBaseUrl: foundedUrl, op: "remove" },
+    ];
+    const source = toPatchesSource(rows);
+
+    expect(source).toEqual({
+      kind: "property-patches",
+      patches: [
+        {
+          op: "add",
+          path: [statusUrl],
+          dataTypeId: statusId,
+          from: fixed("Text", "Contacted"),
+        },
+        {
+          op: "add",
+          path: [employeesUrl],
+          dataTypeId: integerId,
+          from: headcount,
+        },
+        { op: "add", path: [nameUrl], dataTypeId: textId, from: foundName },
+        { op: "remove", path: [foundedUrl] },
+      ],
+    });
+    expect(errorsOf(flowTaking([updateStep(source)]))).toEqual([]);
+    expect(readPatchesForm(source, getValueKind)).toEqual(rows);
   });
 });
 
@@ -128,7 +257,42 @@ describe("readPropertiesForm", () => {
     ];
 
     for (const properties of unreadable) {
-      expect(readPropertiesForm(properties, getValueKind)).toBeNull();
+      expect(
+        readPropertiesForm(
+          fixed("PropertyObjectWithMetadata", properties),
+          getValueKind,
+        ),
+      ).toBeNull();
+    }
+
+    /* Changes aren't properties. */
+    expect(
+      readPropertiesForm(fixed("PropertyPatch", []), getValueKind),
+    ).toBeNull();
+  });
+
+  it("can't show values with sources that the rows never give", () => {
+    const unreadable = [
+      /* A value wrapped into a list. */
+      { [nameUrl]: { dataTypeId: textId, from: { ...foundName, wrap: true } } },
+      /* A fixed number given as text. */
+      { [employeesUrl]: { dataTypeId: integerId, from: fixed("Text", "12") } },
+      { [nameUrl]: { dataTypeId: "text", from: foundName } },
+      {
+        "https://example.com/@acme/types/property-type/unknown/": {
+          dataTypeId: textId,
+          from: foundName,
+        },
+      },
+    ];
+
+    for (const values of unreadable) {
+      expect(
+        readPropertiesForm(
+          { kind: "properties", values } as StepInputSource,
+          getValueKind,
+        ),
+      ).toBeNull();
     }
   });
 });
@@ -156,7 +320,66 @@ describe("readPatchesForm", () => {
     ];
 
     for (const patches of unreadable) {
-      expect(readPatchesForm(patches, getValueKind)).toBeNull();
+      expect(
+        readPatchesForm(fixed("PropertyPatch", patches), getValueKind),
+      ).toBeNull();
     }
+  });
+
+  it("can't show patches with sources that the rows never give", () => {
+    const name = { path: [nameUrl], dataTypeId: textId, from: foundName };
+    const unreadable = [
+      [{ op: "replace", ...name }],
+      [{ op: "add", ...name, path: [nameUrl, "0"] }],
+      [
+        { op: "add", ...name },
+        { op: "remove", path: [nameUrl] },
+      ],
+      [{ op: "add", ...name, from: { ...foundName, wrap: true } }],
+    ];
+
+    for (const patches of unreadable) {
+      expect(
+        readPatchesForm(
+          { kind: "property-patches", patches } as StepInputSource,
+          getValueKind,
+        ),
+      ).toBeNull();
+    }
+  });
+});
+
+describe("getProblemRowIndex", () => {
+  const rows: PropertyRow[] = [
+    ...sourcedRows,
+    { propertyBaseUrl: foundedUrl, op: "remove" },
+  ];
+
+  it("finds the row a problem with one value is about, where the validator reports it", () => {
+    /* The earlier step is gone, so the value of the third property, or of the third patch, has no source. */
+    for (const step of [
+      createStep(toPropertiesSource(sourcedRows)),
+      updateStep(toPatchesSource(rows)),
+    ]) {
+      const [problem, ...others] = errorsOf({
+        ...flowTaking([]),
+        steps: [step],
+      });
+
+      expect(others).toEqual([]);
+      expect(problem?.code).toBe("unknownStep");
+      expect(getProblemRowIndex(getPathInSource(problem!), rows)).toBe(2);
+    }
+  });
+
+  it("gives no row for a problem with the input as a whole", () => {
+    expect(getProblemRowIndex([], rows)).toBeUndefined();
+    expect(getProblemRowIndex(["payload", "value"], rows)).toBeUndefined();
+    expect(
+      getProblemRowIndex(
+        ["values", "https://example.com/other/", "from"],
+        rows,
+      ),
+    ).toBeUndefined();
   });
 });
