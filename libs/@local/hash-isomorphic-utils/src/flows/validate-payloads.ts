@@ -3,6 +3,7 @@ import {
   describePayloadValueProblem,
   validatePayloadValue,
 } from "./payload-schemas.js";
+import { getDeclaredKind } from "./types.js";
 
 import type {
   FlowActionDefinitionId,
@@ -115,8 +116,8 @@ export const validateFlowInputs = ({
 
 /**
  * Checks the outputs an action returned against its output definitions: each is one the action defines, has the
- * kind it declares (or, for a derived kind, the kind given to its kind source), and holds a valid value of it, and
- * every required output is returned.
+ * kind it declares (or, for a derived kind, the kind given to its kind source or declared by its declaring input),
+ * and holds a valid value of it, and every required output is returned.
  *
  * A value of a stored kind may be a stored reference, which is checked without fetching the value it refers to.
  *
@@ -150,6 +151,17 @@ export const validateActionOutputs = ({
 
       if (payload.kind !== inputKind) {
         return `Action ${actionDefinitionId} returned output "${outputName}" of kind ${payload.kind}, but it must have the kind of input "${outputDefinition.kindFrom}" (${inputKind ?? "not given"})`;
+      }
+    } else if ("kindDeclaredBy" in outputDefinition) {
+      const declaredKind = getDeclaredKind(
+        outputDefinition,
+        inputs.find(
+          ({ inputName }) => inputName === outputDefinition.kindDeclaredBy,
+        )?.payload.value,
+      );
+
+      if (payload.kind !== declaredKind) {
+        return `Action ${actionDefinitionId} returned output "${outputName}" of kind ${payload.kind}, but it must have the kind input "${outputDefinition.kindDeclaredBy}" declares (${declaredKind ?? "not given"})`;
       }
     } else if (payload.kind !== outputDefinition.payloadKind) {
       return `Action ${actionDefinitionId} returned output "${outputName}" of kind ${payload.kind}, but it must be of kind ${outputDefinition.payloadKind}`;

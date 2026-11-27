@@ -37,6 +37,11 @@ type ActionDefinitionShape = {
     | { readonly payloadKind: PayloadKind }
     /** A derived kind (see `KindFrom`). */
     | { readonly kindFrom: string }
+    /** A declared kind (see `KindDeclaredBy`). */
+    | {
+        readonly kindDeclaredBy: string;
+        readonly oneOfPayloadKinds: readonly PayloadKind[];
+      }
   ))[];
 };
 
@@ -59,17 +64,22 @@ declare const refShape: unique symbol;
  * for the rule they mirror).
  *
  * `IsRequired` means the value is always present once its producer has run.
+ *
+ * `DeclaredKind` is the kind a constant declares for an output (see `KindDeclaredBy`): any kind, unless it's a constant
+ * whose value has a `payloadKind`.
  */
 export type Ref<
   Kind extends PayloadKind,
   IsArray extends boolean,
   IsRequired extends boolean,
+  DeclaredKind extends PayloadKind = PayloadKind,
 > = {
   /** Type-level only: carries the value's shape for assignability checks. */
   readonly [refShape]?: {
     payloadKind: Kind;
     array: IsArray;
     required: IsRequired;
+    declaredKind: DeclaredKind;
   };
   readonly source: StepInputSource;
   /*
@@ -77,16 +87,16 @@ export type Ref<
    * parameters. `wrap`'s `this` parameter still stops it being called on an array ref.
    */
   /** Leave the value available to other consumers. */
-  read(): Ref<Kind, IsArray, IsRequired>;
+  read(): Ref<Kind, IsArray, IsRequired, DeclaredKind>;
   /** Take the value, so no other consumer can. */
-  consume(): Ref<Kind, IsArray, IsRequired>;
+  consume(): Ref<Kind, IsArray, IsRequired, DeclaredKind>;
   /** Wrap a singular value into a one-item array, to feed an array input. */
   wrap(this: Ref<Kind, false, IsRequired>): Ref<Kind, true, IsRequired>;
   /**
    * Allow a value that may be missing to feed a required input, by skipping the consuming step (and
    * everything that depends on it) when the value is missing.
    */
-  orSkip(): Ref<Kind, IsArray, true>;
+  orSkip(): Ref<Kind, IsArray, true, DeclaredKind>;
 };
 
 type AnyRef = Ref<PayloadKind, boolean, boolean>;
@@ -164,6 +174,12 @@ export type StepInputs<Action extends ActionDefinitionShape> = {
 type RefKind<MaybeRef> =
   MaybeRef extends Ref<infer Kind, boolean, boolean> ? Kind : never;
 
+/** The kind a ref declares (see `Ref`), or `never` if there's no ref. */
+type RefDeclaredKind<MaybeRef> =
+  MaybeRef extends Ref<PayloadKind, boolean, boolean, infer DeclaredKind>
+    ? DeclaredKind
+    : never;
+
 /**
  * Narrows each input with a derived kind to accept only the kind of the ref given to its kind source.
  */
@@ -197,7 +213,8 @@ type NoUnknownInputs<Action extends ActionDefinitionShape, InputRefs> = {
 /**
  * The refs `step()` returns for a step's outputs.
  *
- * An output with a derived kind gets the kind of the ref given to its kind source.
+ * An output with a derived kind gets the kind of the ref given to its kind source, and one with a declared kind the
+ * kind the constant given to its declaring input declares, out of the output's kinds.
  */
 export type StepOutputs<
   Action extends ActionDefinitionShape,
@@ -215,7 +232,19 @@ export type StepOutputs<
           Output["array"],
           Output["required"]
         >
-      : never;
+      : Output extends {
+            readonly kindDeclaredBy: infer DeclaringInputName;
+            readonly oneOfPayloadKinds: readonly (infer Kind extends
+              PayloadKind)[];
+          }
+        ? Ref<
+            DeclaringInputName extends keyof InputRefs
+              ? RefDeclaredKind<InputRefs[DeclaringInputName]> & Kind
+              : never,
+            Output["array"],
+            Output["required"]
+          >
+        : never;
 };
 
 /**
@@ -378,6 +407,11 @@ type Constant = {
     payloadKind: Kind,
     value: readonly PayloadKindValues[Kind][],
   ): Ref<Kind, true, true>;
+  /** A value that declares a kind for an output (see `KindDeclaredBy`). */
+  <Kind extends PayloadKind, DeclaredKind extends PayloadKind>(
+    payloadKind: Kind,
+    value: PayloadKindValues[Kind] & { payloadKind: DeclaredKind },
+  ): Ref<Kind, false, true, DeclaredKind>;
   <Kind extends PayloadKind>(
     payloadKind: Kind,
     value: PayloadKindValues[Kind],
@@ -385,7 +419,8 @@ type Constant = {
 };
 
 /**
- * A fixed value for an input, the same in every run.
+ * A fixed value for an input, the same in every run. A singular value that declares a kind for an output (see
+ * `KindDeclaredBy`) keeps that kind in its type.
  */
 export const constant = ((payloadKind: PayloadKind, value: unknown) =>
   createRef({

@@ -15,7 +15,11 @@ import type {
   StoredItemRef,
   StoredObjectRef,
 } from "./types.js";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const entityId =
   "d4e16033-c281-4cde-aa35-9085bf2e7579~0f5f3bd1-3a28-4b9f-9e3a-5b4a6b1c2d3e" as EntityId;
@@ -49,6 +53,11 @@ const validValues: { [Kind in PayloadKind]: PayloadKindValues[Kind] } = {
     filter: { all: [] },
     includeDrafts: false,
     limit: 10,
+  },
+  EntityProperty: {
+    kind: "entityProperty",
+    propertyTypeBaseUrl: nameProperty as BaseUrl,
+    payloadKind: "Text",
   },
   FailedEntityProposal: {
     proposedEntity,

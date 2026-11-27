@@ -23,6 +23,7 @@ import { persistEntityAction } from "./flow-activities/persist-entity-action.js"
 import { planDashboardRefinementAction } from "./flow-activities/plan-dashboard-refinement-action.js";
 import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action.js";
 import { queryEntitiesAction } from "./flow-activities/query-entities-action.js";
+import { readEntityAction } from "./flow-activities/read-entity-action.js";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action.js";
 import { takeFirstAction } from "./flow-activities/take-first-action.js";
 import { updateEntityAction } from "./flow-activities/update-entity-action.js";
@@ -59,6 +60,7 @@ export const createFlowActionActivities: CreateFlowActivities<
     persistEntityAction,
     processAutomaticBrowsingSettingsAction,
     queryEntitiesAction,
+    readEntityAction,
     researchEntitiesAction,
     takeFirstAction,
     updateEntityAction,

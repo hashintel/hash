@@ -42,7 +42,8 @@ export type ConditionResult =
   | { status: "success"; matches: boolean }
   | ConditionError;
 
-const isEmptyValue = (value: unknown): boolean =>
+/** Whether a value counts as missing: Filter treats it as empty, and Read entity gives no output for it. */
+export const isEmptyValue = (value: unknown): boolean =>
   value === undefined || value === null || value === "";
 
 const ownProperty = (value: unknown, key: string): unknown =>

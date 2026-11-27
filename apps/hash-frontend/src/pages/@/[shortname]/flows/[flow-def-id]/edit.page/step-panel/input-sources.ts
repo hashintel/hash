@@ -290,6 +290,7 @@ const canBeTyped = {
   DateTime: false,
   Duration: false,
   EntityId: false,
+  EntityProperty: false,
   EntityQuery: false,
   FailedEntityProposal: false,
   FilterCondition: false,

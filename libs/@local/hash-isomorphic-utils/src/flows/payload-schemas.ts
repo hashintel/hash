@@ -12,6 +12,7 @@ import {
 } from "./types.js";
 
 import type { ConditionNode } from "./filter-condition.js";
+import type { EntityProperty } from "./read-entity.js";
 import type {
   EntityQuery,
   PayloadKind,
@@ -209,6 +210,8 @@ export const payloadKindSchemas = {
     unit: z.enum(["seconds", "minutes", "hours", "days", "weeks"]),
   }),
   EntityId: entityIdSchema,
+  /* Which kinds a property can be read as is checked by Read entity's own check, as for a condition's subject. */
+  EntityProperty: typed<EntityProperty>(valueSubjectSchemas[2]),
   EntityQuery: z.object({
     filter: graphObject<EntityQuery["filter"]>(),
     includeDrafts: z.boolean().optional(),

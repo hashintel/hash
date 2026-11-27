@@ -74,6 +74,7 @@ const payloadKindDisplayColors: Record<PayloadKind, string> = {
   FilterCondition: "#DB2777",
   SortKey: "#BE185D",
   Aggregation: "#9D174D",
+  EntityProperty: "#EC4899",
   GoogleAccountId: "#65A30D",
   GoogleSheet: "#4D7C0F",
 };
