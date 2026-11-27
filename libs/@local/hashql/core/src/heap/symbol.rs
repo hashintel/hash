@@ -43,13 +43,15 @@ pub const unsafe trait SymbolAllocator<'alloc>: AllocatorPointer {
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] if the arena cannot provide the memory.
+    /// Returns [`AllocError`] if `name.len()` exceeds [`u32::MAX`], the symbol layout overflows, or
+    /// the arena cannot provide the memory.
     fn try_alloc_symbol(self, name: &str) -> Result<Symbol<'alloc>, AllocError>;
 
     /// Interns `name` and returns its [`Symbol`].
     ///
-    /// If the arena cannot provide the memory, this calls [`handle_alloc_error`]. Use
-    /// [`try_alloc_symbol`] to handle that failure yourself.
+    /// If `name.len()` exceeds [`u32::MAX`], the symbol layout overflows, or the arena cannot
+    /// provide the memory, this calls [`handle_alloc_error`]. Use [`try_alloc_symbol`] to handle
+    /// that failure yourself.
     ///
     /// [`try_alloc_symbol`]: Self::try_alloc_symbol
     #[expect(clippy::single_match_else, reason = "clarity")]

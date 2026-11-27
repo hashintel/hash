@@ -2,7 +2,13 @@ pub mod core;
 pub mod graph;
 mod kernel;
 
-use ::core::{alloc::Allocator, iter, mem, mem::MaybeUninit, num::NonZero};
+use ::core::{
+    alloc::Allocator,
+    iter,
+    marker::Destruct,
+    mem::{self, MaybeUninit},
+    num::NonZero,
+};
 
 use super::{Module, ModuleId, PartialModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
@@ -81,14 +87,20 @@ struct ModuleDef<'heap, S: Allocator> {
 }
 
 impl<'heap, S: Allocator> ModuleDef<'heap, S> {
-    fn new_in(alloc: S) -> Self {
+    const fn new_in(alloc: S) -> Self
+    where
+        S: [const] Allocator + [const] Destruct,
+    {
         Self {
             entries: Vec::with_capacity_in(16, alloc),
             emitted_len: 0,
         }
     }
 
-    fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize {
+    const fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize
+    where
+        S: [const] Allocator + [const] Destruct,
+    {
         let index = self.entries.len();
         self.emitted_len += def.emitted_len();
         self.entries.push(ModuleEntry::new(name, def));
@@ -110,7 +122,10 @@ impl<'heap, S: Allocator> ModuleDef<'heap, S> {
         }
     }
 
-    fn alias(&mut self, index: usize, alias: Symbol<'heap>) -> usize {
+    const fn alias(&mut self, index: usize, alias: Symbol<'heap>) -> usize
+    where
+        S: [const] Allocator + [const] Destruct,
+    {
         let item = self.entries[index].alias(alias);
         self.emitted_len += item.def.emitted_len();
 

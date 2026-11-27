@@ -30,11 +30,6 @@
 //! }
 //! ```
 
-mod lookup;
-mod repr;
-pub mod sym;
-mod table;
-
 use core::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter},
@@ -42,10 +37,17 @@ use core::{
     marker::PhantomData,
 };
 
-pub use self::lookup::SymbolLookup;
 use self::repr::{ConstantRepr, Repr};
-pub(crate) use self::table::SymbolTable;
 use crate::span::{SpanId, Spanned};
+
+mod constant;
+mod lookup;
+mod repr;
+pub mod sym;
+mod table;
+
+pub use self::lookup::SymbolLookup;
+pub(crate) use self::table::SymbolTable;
 
 /// A predefined symbol that can be used in pattern matching.
 ///
@@ -106,6 +108,7 @@ impl ConstantSymbol {
 // We can rely on the derives for PartialEq, Eq, and Hash, as `_marker` is ignored, and the
 // internal representation makes a pointer comparison.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct Symbol<'heap> {
     repr: Repr,
     _marker: PhantomData<&'heap ()>,
@@ -139,6 +142,7 @@ impl<'heap> Symbol<'heap> {
         }
     }
 
+    #[cfg(test)] // `sym::LOOKUP` compares predefined symbols by raw `Repr` in static lookup tests.
     #[inline]
     const fn into_repr(self) -> Repr {
         self.repr

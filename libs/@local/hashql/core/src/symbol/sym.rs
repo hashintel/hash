@@ -410,7 +410,7 @@ mod tests {
         let mut set = HashSet::with_capacity(SYMBOLS.len());
 
         for symbol in SYMBOLS {
-            set.insert(*symbol);
+            set.insert(symbol);
         }
 
         assert_eq!(set.len(), SYMBOLS.len(), "duplicate symbol value found");

@@ -4,61 +4,8 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned};
 use unsynn::{ToTokenIter as _, ToTokens as _};
 
+use self::grammar::{SymbolEntry, SymbolModule};
 use crate::emit_error;
-
-mod grammar {
-    #![expect(clippy::result_large_err)]
-    use unsynn::{BraceGroupContaining, Colon, CommaDelimitedVec, Ident, LiteralString, unsynn};
-
-    unsynn! {
-        pub(super) struct SymbolModule(pub CommaDelimitedVec<SymbolEntry>);
-
-        pub(super) enum SymbolEntry {
-            Module {
-                name: Ident,
-                _colon: Colon,
-                entries: BraceGroupContaining<SymbolModule>
-            },
-            Explicit {
-                name: Ident,
-                _colon: Colon,
-                value: LiteralString
-            },
-            Implicit(Ident)
-        }
-    }
-}
-
-use grammar::SymbolEntry;
-
-use self::grammar::SymbolModule;
-
-pub(crate) fn expand(item: TokenStream) -> TokenStream {
-    let entries = match parse(item) {
-        Ok(entries) => entries,
-        Err(error) => {
-            if let Some(token) = error.failed_at() {
-                emit_error(token.span().unwrap(), error);
-
-                return TokenStream::new();
-            }
-
-            let message = error.to_string();
-            return quote!(compile_error!(#message));
-        }
-    };
-
-    generate(&entries)
-}
-
-#[expect(clippy::result_large_err)]
-fn parse(item: TokenStream) -> Result<Vec<SymbolEntry>, unsynn::Error> {
-    let mut tokens = item.to_token_iter();
-
-    let parsed: SymbolModule = unsynn::Parse::parse_all(&mut tokens)?;
-
-    Ok(parsed.0.into())
-}
 
 /// Returns the string content of an identifier, stripping any `r#` raw prefix.
 #[expect(clippy::option_if_let_else)]
@@ -69,41 +16,6 @@ fn ident_string_value(ident: &Ident) -> String {
         Some(stripped) => stripped.to_owned(),
         None => raw,
     }
-}
-
-fn generate(entries: &[SymbolEntry]) -> TokenStream {
-    let mut output = TokenStream::new();
-
-    // 1. SYMBOLS array
-    let mut symbol_values = Vec::new();
-    for entry in entries {
-        collect_symbol_values(entry, &mut symbol_values);
-    }
-    output.extend(quote! {
-        pub(crate) static SYMBOLS: &[&str] = &[
-            #(#symbol_values),*
-        ];
-    });
-
-    // 2. Constants and modules
-    let mut counter = 0;
-    for entry in entries {
-        generate_entry_constants(entry, &mut counter, &mut output);
-    }
-
-    // 3. LOOKUP
-    let mut lookup_entries = Vec::new();
-    let mut module_path = Vec::new();
-    for entry in entries {
-        generate_lookup_entry(entry, &mut module_path, &mut lookup_entries);
-    }
-    output.extend(quote! {
-        pub(crate) static LOOKUP: &[(&'static str, super::repr::Repr)] = &[
-            #(#lookup_entries),*
-        ];
-    });
-
-    output
 }
 
 fn collect_symbol_values(entry: &SymbolEntry, values: &mut Vec<TokenStream>) {
@@ -175,9 +87,13 @@ fn generate_entry_constants(entry: &SymbolEntry, counter: &mut usize, output: &m
     }
 }
 
-fn generate_lookup_entry<'a>(
-    entry: &'a SymbolEntry,
-    module_path: &mut Vec<&'a Ident>,
+fn build_path(module_path: &[&Ident], name: &Ident) -> TokenStream {
+    quote_spanned!(name.span() => self #(:: #module_path)* :: #name)
+}
+
+fn generate_lookup_entry<'entry>(
+    entry: &'entry SymbolEntry,
+    module_path: &mut Vec<&'entry Ident>,
     lookup: &mut Vec<TokenStream>,
 ) {
     match entry {
@@ -201,6 +117,99 @@ fn generate_lookup_entry<'a>(
     }
 }
 
-fn build_path(module_path: &[&Ident], name: &Ident) -> TokenStream {
-    quote_spanned!(name.span() => self #(:: #module_path)* :: #name)
+#[expect(
+    clippy::result_large_err,
+    reason = "macro parsing returns unsynn::Error directly"
+)]
+fn parse(item: TokenStream) -> Result<Vec<SymbolEntry>, unsynn::Error> {
+    let mut tokens = item.to_token_iter();
+
+    let parsed: SymbolModule = unsynn::Parse::parse_all(&mut tokens)?;
+
+    Ok(parsed.0.into())
+}
+
+fn generate(entries: &[SymbolEntry]) -> TokenStream {
+    let mut output = TokenStream::new();
+
+    // 1. SYMBOLS array and compile-time uniqueness check over rustc-decoded string values
+    let mut symbol_values = Vec::new();
+    for entry in entries {
+        collect_symbol_values(entry, &mut symbol_values);
+    }
+
+    let num_symbols = symbol_values.len();
+    output.extend(quote! {
+        pub(crate) static SYMBOLS: [&str; #num_symbols] = [
+            #(#symbol_values),*
+        ];
+
+        // duplication is checked by the static table builder
+    });
+
+    // 2. Constants and modules
+    let mut counter = 0;
+    for entry in entries {
+        generate_entry_constants(entry, &mut counter, &mut output);
+    }
+
+    // 3. LOOKUP (used only by tests to verify every predefined symbol resolves statically)
+    let mut lookup_entries = Vec::new();
+    let mut module_path = Vec::new();
+    for entry in entries {
+        generate_lookup_entry(entry, &mut module_path, &mut lookup_entries);
+    }
+
+    output.extend(quote! {
+        #[cfg(test)]
+        pub(crate) static LOOKUP: &[(&'static str, super::repr::Repr)] = &[
+            #(#lookup_entries),*
+        ];
+    });
+
+    output
+}
+
+pub(crate) fn expand(item: TokenStream) -> TokenStream {
+    let entries = match parse(item) {
+        Ok(entries) => entries,
+        Err(error) => {
+            if let Some(token) = error.failed_at() {
+                emit_error(token.span().unwrap(), error);
+
+                return TokenStream::new();
+            }
+
+            let message = error.to_string();
+            return quote!(compile_error!(#message));
+        }
+    };
+
+    generate(&entries)
+}
+
+mod grammar {
+    #![expect(
+        clippy::result_large_err,
+        reason = "unsynn::Parser returns unsynn::Error directly"
+    )]
+    use unsynn::{BraceGroupContaining, Colon, CommaDelimitedVec, Ident, LiteralString, unsynn};
+
+    unsynn! {
+        pub(super) struct SymbolModule(pub CommaDelimitedVec<SymbolEntry>);
+
+        pub(super) enum SymbolEntry {
+            Module {
+                name: Ident,
+                _colon: Colon,
+                entries: BraceGroupContaining<SymbolModule>
+            },
+            Explicit {
+                name: Ident,
+                _colon: Colon,
+                value: LiteralString
+            },
+            Implicit(Ident)
+        }
+    }
 }

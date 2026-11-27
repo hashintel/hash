@@ -103,7 +103,7 @@ pub(crate) struct TileTrailer<'details> {
 
 impl<'details> TileTrailer<'details> {
     /// Builds an empty trailer with room for `capacity` points.
-    fn new(capacity: usize) -> Self {
+    const fn new(capacity: usize) -> Self {
         Self {
             labels: IdVec::with_capacity(capacity),
             icons: IdVec::with_capacity(capacity),
