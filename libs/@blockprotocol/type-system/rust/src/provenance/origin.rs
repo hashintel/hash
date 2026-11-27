@@ -6,6 +6,8 @@ use utoipa::{
     openapi::{ObjectBuilder, OneOfBuilder, RefOr, Schema, SchemaType},
 };
 
+use crate::provenance::validation::MAX_SHORT_TEXT_LENGTH;
+
 /// How an edition reached HASH. The public API writes `external`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -31,6 +33,38 @@ pub enum OriginType {
     },
     Migration,
     External,
+}
+
+/// The user agent of a client, cut to at most [`UserAgent::MAX_LENGTH`] characters.
+///
+/// Serializes as a string. A longer string is cut when it is read.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(transparent)]
+pub struct UserAgent(String);
+
+impl UserAgent {
+    /// The most characters a user agent keeps.
+    pub const MAX_LENGTH: usize = MAX_SHORT_TEXT_LENGTH;
+
+    #[must_use]
+    pub fn new(user_agent: impl Into<String>) -> Self {
+        let mut user_agent = user_agent.into();
+        if let Some((end, _)) = user_agent.char_indices().nth(Self::MAX_LENGTH) {
+            user_agent.truncate(end);
+        }
+        Self(user_agent)
+    }
+
+    #[must_use]
+    pub const fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for UserAgent {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(Self::new)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -88,7 +122,7 @@ pub struct OriginProvenance {
         deserialize_with = "hash_codec::serde::non_null",
         skip_serializing_if = "Option::is_none"
     )]
-    pub user_agent: Option<String>,
+    pub user_agent: Option<UserAgent>,
 }
 
 impl OriginProvenance {

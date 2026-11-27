@@ -8,13 +8,22 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+serde_core = { workspace = true, public = true }
+time       = { workspace = true, public = true, features = ["std"] }
+uuid       = { workspace = true, public = true, features = ["v7"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+erased-serde   = { workspace = true, features = ["alloc"] }
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+serde      = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true

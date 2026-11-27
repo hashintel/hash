@@ -27,8 +27,11 @@ use type_system::{
         actor::{ActorId, ActorType},
         actor_group::WebId,
     },
-    provenance::validation::{
-        MAX_SOURCES, ProvenanceField, ProvenanceOwner, ProvenanceRule, ProvenanceViolation,
+    provenance::{
+        UserAgent,
+        validation::{
+            MAX_SOURCES, ProvenanceField, ProvenanceOwner, ProvenanceRule, ProvenanceViolation,
+        },
     },
 };
 
@@ -143,7 +146,11 @@ struct NewEntity {
 
 impl NewEntity {
     /// The parameters the store creates the entity from.
-    fn into_params(self, actor_type: ActorType, user_agent: Option<String>) -> CreateEntityParams {
+    fn into_params(
+        self,
+        actor_type: ActorType,
+        user_agent: Option<UserAgent>,
+    ) -> CreateEntityParams {
         CreateEntityParams {
             web_id: self.web_id,
             entity_uuid: None,
