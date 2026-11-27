@@ -200,11 +200,30 @@ const fn try_pack_table(
     true
 }
 
+const fn assert_unique(symbols: &[&str]) {
+    let mut first = 0;
+
+    while first + 1 < symbols.len() {
+        let mut second = first + 1;
+        while second < symbols.len() {
+            assert!(
+                !symbols[first].as_bytes().eq(symbols[second].as_bytes()),
+                "duplicate symbol value in define_symbols!"
+            );
+
+            second += 1;
+        }
+
+        first += 1;
+    }
+}
+
 const fn build_static_table(symbols: &[&str]) -> StaticTable {
     assert!(
         symbols.len() <= u16::MAX as usize,
         "define_symbols! supports at most 65535 constant symbols"
     );
+    assert_unique(symbols);
 
     let mut num_buckets = (symbols.len() >> 1).max(16).next_power_of_two();
     let mut counts = Vec::new();

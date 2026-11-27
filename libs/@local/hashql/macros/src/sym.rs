@@ -144,20 +144,7 @@ fn generate(entries: &[SymbolEntry]) -> TokenStream {
             #(#symbol_values),*
         ];
 
-        const _: () = {
-            let mut __first = 0;
-            while __first + 1 < SYMBOLS.len() {
-                let mut __second = __first + 1;
-                while __second < SYMBOLS.len() {
-                    assert!(
-                        !SYMBOLS[__first].as_bytes().eq(SYMBOLS[__second].as_bytes()),
-                        "duplicate symbol value in define_symbols!"
-                    );
-                    __second += 1;
-                }
-                __first += 1;
-            }
-        };
+        // duplication is checked by the static table builder
     });
 
     // 2. Constants and modules
