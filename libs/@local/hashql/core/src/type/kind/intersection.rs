@@ -1,10 +1,10 @@
 use core::ops::ControlFlow;
 
-use bitvec::bitvec;
 use smallvec::SmallVec;
 
-use super::TypeKind;
+use super::{TypeKind, VariantId};
 use crate::{
+    id::{IdSlice, bit_vec::DenseBitSet},
     intern::Interned,
     span::SpanId,
     symbol::Ident,
@@ -239,22 +239,28 @@ impl<'heap> IntersectionType<'heap> {
         let mut lhs_compatible = true;
         let mut rhs_compatible = true;
 
-        let mut lhs_matched = bitvec![0; lhs_variants.len()];
-        let mut rhs_matched = bitvec![0; rhs_variants.len()];
+        let lhs_variants = IdSlice::<VariantId, _>::from_raw(lhs_variants);
+        let rhs_variants = IdSlice::<VariantId, _>::from_raw(rhs_variants);
+
+        let mut lhs_unmatched = DenseBitSet::new_filled(lhs_variants.len());
+        let mut rhs_unmatched = DenseBitSet::new_filled(rhs_variants.len());
 
         // Find all matching pairs
-        for (&lhs_variant, mut lhs_matched) in lhs_variants.iter().zip(lhs_matched.iter_mut()) {
-            for (&rhs_variant, rhs_matched) in rhs_variants.iter().zip(rhs_matched.iter_mut()) {
-                if env.is_equivalent(lhs_variant, rhs_variant) {
-                    *lhs_matched = true;
-                    rhs_matched.commit(true);
+        for (lhs_id, &lhs_variant) in lhs_variants.iter_enumerated() {
+            for (rhs_id, &rhs_variant) in rhs_variants.iter_enumerated() {
+                // a pair that does not match is no mismatch, the loops below report a variant
+                // without any match
+                if env.with_diagnostics_disabled(|env| env.is_equivalent(lhs_variant, rhs_variant))
+                {
+                    lhs_unmatched.remove(lhs_id);
+                    rhs_unmatched.remove(rhs_id);
                 }
             }
         }
 
         // Check if there are any lhs variants which weren't matched
-        for index in lhs_matched.iter_zeros() {
-            let lhs_variant = lhs_variants[index];
+        for lhs_id in &lhs_unmatched {
+            let lhs_variant = lhs_variants[lhs_id];
 
             if env
                 .record_diagnostic(|env| {
@@ -269,8 +275,8 @@ impl<'heap> IntersectionType<'heap> {
         }
 
         // Check if there are any rhs variants which weren't matched
-        for index in rhs_matched.iter_zeros() {
-            let rhs_variant = rhs_variants[index];
+        for rhs_id in &rhs_unmatched {
+            let rhs_variant = rhs_variants[rhs_id];
 
             if env
                 .record_diagnostic(|env| {
@@ -632,14 +638,32 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             }
         }
 
-        // Drop supertypes of other variants
-        let backup = variants.clone();
-        variants.retain(|&supertype| {
-            // keep `supertype` only if it is not a supertype of any other variant
-            !backup.iter().any(|&subtype| {
-                subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
-            })
-        });
+        // Drop every variant that is a supertype of another variant. The variants are sorted, of
+        // two that are supertypes of each other the earlier one stays.
+        let candidates = IdSlice::<VariantId, _>::from_raw(&variants);
+        let mut redundant = DenseBitSet::new_empty(candidates.len());
+
+        for later in candidates.ids() {
+            for earlier in candidates.prefix(later).ids() {
+                if redundant.contains(earlier) {
+                    // whatever would make `earlier` redundant is a supertype of the variant that
+                    // makes `earlier` redundant as well
+                    continue;
+                }
+
+                if env.is_subtype_of(Variance::Covariant, candidates[earlier], candidates[later]) {
+                    redundant.insert(later);
+                    break;
+                }
+
+                if env.is_subtype_of(Variance::Covariant, candidates[later], candidates[earlier]) {
+                    redundant.insert(earlier);
+                }
+            }
+        }
+
+        let mut ids = candidates.ids();
+        variants.retain(|_| ids.next().is_some_and(|id| !redundant.contains(id)));
 
         match variants.as_slice() {
             [] => env.intern_provisioned(

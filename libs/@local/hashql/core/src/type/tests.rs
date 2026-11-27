@@ -187,16 +187,32 @@ fn unknown_with_other_type() {
     let unknown = builder.unknown();
     let never = builder.never();
 
-    analysis.is_subtype_of(Variance::Covariant, unknown, never);
-
-    assert!(
-        analysis
-            .take_diagnostics()
-            .expect("should have diagnostics enabled")
-            .is_empty()
-    );
+    assert!(!analysis.is_subtype_of(Variance::Covariant, unknown, never));
+    assert_eq!(analysis.fatal_diagnostics(), 1);
 
     assert_matches!(env.r#type(unknown).kind, TypeKind::Unknown);
+}
+
+#[test]
+fn unknown_with_primitive() {
+    scaffold!(heap, env, builder, [analysis: analysis]);
+
+    let unknown = builder.unknown();
+    let integer = builder.integer();
+
+    assert!(!analysis.is_subtype_of(Variance::Covariant, unknown, integer));
+    assert_eq!(analysis.fatal_diagnostics(), 1);
+}
+
+#[test]
+fn primitive_with_never() {
+    scaffold!(heap, env, builder, [analysis: analysis]);
+
+    let integer = builder.integer();
+    let never = builder.never();
+
+    assert!(!analysis.is_subtype_of(Variance::Covariant, integer, never));
+    assert_eq!(analysis.fatal_diagnostics(), 1);
 }
 
 #[test]

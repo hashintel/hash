@@ -1,0 +1,10 @@
+//@ run: pass
+//@ description: A value for a name the query does not load is accepted without a check.
+{
+  "#struct": {
+    "query": ["input", "x", "Integer"],
+    "inputs": {
+      "#struct": { "x": { "#literal": 1 }, "y": { "#literal": "a" } }
+    }
+  }
+}

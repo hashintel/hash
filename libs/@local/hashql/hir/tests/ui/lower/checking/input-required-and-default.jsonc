@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: An input that is loaded with a default at one site and without one at another is required.
+[
+  "let",
+  "foo",
+  ["input", "x", "Integer", { "#literal": 0 }],
+  ["let", "bar", ["input", "x", "Integer"], "foo"]
+]

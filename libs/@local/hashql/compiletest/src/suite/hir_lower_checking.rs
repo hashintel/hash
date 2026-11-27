@@ -10,7 +10,7 @@ use hashql_core::{
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
-    lower::checking::{TypeChecking, TypeCheckingResidual},
+    lower::checking::{InputParameter, TypeChecking, TypeCheckingResidual},
     node::Node,
     pretty::NodeFormatter,
     visit::Visitor as _,
@@ -85,9 +85,9 @@ impl Suite for HirLowerTypeCheckingSuite {
         let mut checking_inputs: Vec<_> = residual
             .inputs
             .iter()
-            .map(|(&name, &type_id)| (name, type_id))
+            .map(|(&name, &parameter)| (name, parameter))
             .collect();
-        checking_inputs.sort_unstable_by_key(|&(hir_id, _)| hir_id);
+        checking_inputs.sort_unstable_by_key(|&(name, _)| name);
 
         let formatter = Formatter::new(heap);
         let mut value_formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
@@ -104,14 +104,17 @@ impl Suite for HirLowerTypeCheckingSuite {
             let _ = writeln!(output, "\n{}\n", Header::new("Inputs"));
         }
 
-        for (name, type_id) in checking_inputs {
+        for (name, InputParameter { r#type, required }) in checking_inputs {
+            // The sigil of a load in the HIR: `$` for a required input, `?` for an optional one
+            let sigil = if required { '$' } else { '?' };
+
             let _ = writeln!(
                 output,
                 "\n{}\n",
                 Annotated {
-                    content: name,
+                    content: format_args!("{sigil}{name}"),
                     annotation: type_formatter
-                        .render(type_id, RenderOptions::default().with_plain())
+                        .render(r#type, RenderOptions::default().with_plain())
                 }
             );
         }

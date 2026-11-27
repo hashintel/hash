@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: A tuple value is typed element by element.
+{
+  "#struct": {
+    "query": ["input", "xs", "List<(Number, String)>"],
+    "inputs": {
+      "#struct": {
+        "xs": {
+          "#list": [{ "#tuple": [{ "#literal": 1 }, { "#literal": "a" }] }]
+        }
+      }
+    }
+  }
+}

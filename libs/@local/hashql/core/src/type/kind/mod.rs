@@ -42,7 +42,13 @@ use super::{
     inference::{Constraint, Inference, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
 };
-use crate::symbol::Ident;
+use crate::{id, symbol::Ident};
+
+id::newtype!(
+    /// The position of a variant among the variants of a union or an intersection.
+    #[id(crate = crate)]
+    pub(crate) struct VariantId(u32 is 0..=0xFFFF_FF00)
+);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {

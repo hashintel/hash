@@ -14,7 +14,8 @@
     const_convert,
     const_index,
     const_trait_impl,
-    try_trait_v2
+    try_trait_v2,
+    maybe_uninit_fill
 )]
 
 extern crate alloc;

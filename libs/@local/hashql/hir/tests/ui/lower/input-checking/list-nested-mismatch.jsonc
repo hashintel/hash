@@ -1,0 +1,18 @@
+//@ run: fail
+//@ description: A list of lists is rejected when its inner lists agree with each other, but not with the declared type.
+{
+  "#struct": {
+    "query": ["input", "xs", "List<List<Number>>"],
+    "inputs": {
+      "#struct": {
+        "xs": {
+          "#list": [
+            { "#list": [{ "#literal": "a" }] },
+            //~^ ERROR This is of type `String`
+            { "#list": [{ "#literal": "b" }] }
+          ]
+        }
+      }
+    }
+  }
+}

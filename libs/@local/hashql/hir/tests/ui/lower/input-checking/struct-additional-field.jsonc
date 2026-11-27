@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: A struct value with a field that the declared type does not name is accepted.
+{
+  "#struct": {
+    "query": ["input", "x", { "#struct": { "a": "Integer" } }],
+    "inputs": {
+      "#struct": {
+        "x": { "#struct": { "a": { "#literal": 1 }, "b": { "#literal": "c" } } }
+      }
+    }
+  }
+}

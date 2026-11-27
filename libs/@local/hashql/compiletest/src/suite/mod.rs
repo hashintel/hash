@@ -13,6 +13,7 @@ mod hir_lower_ctor;
 mod hir_lower_graph_hoisting;
 mod hir_lower_inference;
 mod hir_lower_inference_intrinsics;
+mod hir_lower_input_checking;
 mod hir_lower_normalization;
 mod hir_lower_specialization;
 mod hir_lower_thunking;
@@ -48,6 +49,7 @@ use self::{
     hir_lower_graph_hoisting::HirLowerGraphHoistingSuite,
     hir_lower_inference::HirLowerTypeInferenceSuite,
     hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
+    hir_lower_input_checking::HirLowerInputCheckingSuite,
     hir_lower_normalization::HirLowerNormalizationSuite,
     hir_lower_specialization::HirLowerSpecializationSuite,
     hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
@@ -144,6 +146,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
     &HirLowerGraphHoistingSuite,
+    &HirLowerInputCheckingSuite,
     &HirLowerNormalizationSuite,
     &HirLowerSpecializationSuite,
     &HirLowerThunkingSuite,

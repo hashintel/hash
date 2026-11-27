@@ -2,6 +2,7 @@ use core::fmt::Display;
 
 use hashql_core::{
     collections::{FastHashMap, FastHashSet},
+    heap::ScopeAllocator,
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -32,7 +33,7 @@ use crate::{
     context::HirContext,
     lower::error::generic_argument_mismatch,
     node::{
-        HirId, HirIdMap, HirIdSet, HirPtr, Node,
+        HirId, HirIdMap, HirIdSet, HirPtr, Node, Value,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
@@ -50,9 +51,46 @@ use crate::{
     visit::{self, Visitor},
 };
 
+/// An input that a program declares.
+#[derive(Copy, Clone)]
+pub struct InputParameter {
+    /// The meet of the types that the loads of the input declare.
+    pub r#type: TypeId,
+    /// Whether the program loads the input at one site or more without a default.
+    pub required: bool,
+}
+
 pub struct TypeCheckingResidual<'heap> {
-    pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
+    pub inputs: FastHashMap<Symbol<'heap>, InputParameter>,
     pub intrinsics: HirIdMap<Symbol<'heap>>,
+}
+
+/// Records in `diagnostics` why `subtype` is not a subtype of `supertype`, unless it is one.
+///
+/// `analysis` must collect diagnostics.
+fn verify_subtype(
+    analysis: &mut AnalysisEnvironment<'_, '_>,
+    diagnostics: &mut TypeCheckDiagnosticIssues,
+    subtype: TypeId,
+    supertype: TypeId,
+) {
+    // We're not directly interested in the result, as the analysis environment collects
+    // diagnostics, in that case, if verification fails we'll have a diagnostic telling us why. We
+    // just use the return type to ensure that said diagnostics have been emitted and we don't
+    // silently swallow an error.
+    let compatible = analysis.is_subtype_of(Variance::Covariant, subtype, supertype);
+
+    if compatible {
+        analysis.clear_diagnostics();
+    } else {
+        debug_assert_ne!(
+            analysis.fatal_diagnostics(),
+            0,
+            "subtype verification should've contributed to the amount of fatal diagnostics"
+        );
+
+        analysis.merge_diagnostics_into(diagnostics);
+    }
 }
 
 pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
@@ -72,7 +110,7 @@ pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
     diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: TypeCheckDiagnosticIssues,
 
-    inputs: FastHashMap<Symbol<'heap>, TypeId>,
+    inputs: FastHashMap<Symbol<'heap>, InputParameter>,
     simplified: TypeIdMap<TypeId>,
 }
 
@@ -161,26 +199,12 @@ impl<'ctx, 'env, 'hir, 'heap> TypeChecking<'ctx, 'env, 'hir, 'heap> {
     }
 
     fn verify_subtype(&mut self, subtype: TypeId, supertype: TypeId) {
-        // We're not directly interested in the result, as we initialize the analysis environment
-        // with diagnostics, in that case, if verification fails we'll have a diagnostic telling us
-        // why. We just use the return type to ensure that said diagnostics have been emitted and we
-        // don't silently swallow an error.
-        let compatible = self
-            .analysis
-            .is_subtype_of(Variance::Covariant, subtype, supertype);
-
-        if compatible {
-            self.analysis.clear_diagnostics();
-        } else {
-            debug_assert_ne!(
-                self.analysis.fatal_diagnostics(),
-                0,
-                "subtype verification should've contributed to the amount of fatal diagnostics"
-            );
-
-            self.analysis
-                .merge_diagnostics_into(&mut self.analysis_diagnostics);
-        }
+        verify_subtype(
+            &mut self.analysis,
+            &mut self.analysis_diagnostics,
+            subtype,
+            supertype,
+        );
     }
 
     fn is_subtype(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
@@ -361,9 +385,9 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
         self.transfer_type(self.current.id); // We just need to transfer the (simplified) type of the current input
 
         // Additionally we need to register the input (if it's a load instruction)
-        if operation.op.value == InputOp::Exists {
+        let InputOp::Load { required } = operation.op.value else {
             return; // nothing more that needs to be done
-        }
+        };
 
         let inferred = self.context.map.type_id(self.current.id);
 
@@ -373,12 +397,16 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
                 // (GLB), in case that we have: `input(a, Integer)` and `input(a, Number)`. The only
                 // acceptable input for `a` is logically `Integer`, as it is both a `Number` and a
                 // `Integer`.
-                let existing_id = *occupied.get();
-                let new_id = self.lattice.meet(existing_id, inferred);
-                occupied.insert(new_id);
+                let parameter = occupied.get_mut();
+                parameter.r#type = self.lattice.meet(parameter.r#type, inferred);
+                // sticky: a parameter that is otherwise required stays required
+                parameter.required |= required;
             }
             Entry::Vacant(vacant) => {
-                vacant.insert(inferred);
+                vacant.insert(InputParameter {
+                    r#type: inferred,
+                    required,
+                });
             }
         }
     }
@@ -477,4 +505,49 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {
         unreachable!("graph operations shouldn't be present yet");
     }
+}
+
+/// Checks the values supplied for the inputs of a program against the types it declares for them.
+///
+/// A value fits if [its type](Value::type) is a subtype of the type of the [`InputParameter`] with
+/// the same name. Where no parameter has the name of a value, the value fits without a check, like
+/// a field of a struct value that the expected struct type does not name.
+///
+/// `scratch` holds working memory alone, and the function releases that memory before it returns.
+///
+/// # Errors
+///
+/// Fails with [`LoweringDiagnosticCategory::TypeChecking`] diagnostics that locate the parts of a
+/// value which do not fit the type of its parameter.
+pub fn check_inputs<'heap, 'alloc, S>(
+    env: &Environment<'heap>,
+    parameters: &FastHashMap<Symbol<'heap>, InputParameter>,
+    values: impl IntoIterator<Item = (Symbol<'heap>, Value<'heap>)>,
+    mut scratch: S,
+) -> LoweringDiagnosticStatus<()>
+where
+    S: ScopeAllocator<'alloc>,
+    'heap: 'alloc,
+{
+    let mut lattice = LatticeEnvironment::new(env);
+    let mut analysis = AnalysisEnvironment::new(env);
+    analysis.with_diagnostics();
+
+    let mut diagnostics = DiagnosticIssues::new();
+
+    for (name, value) in values {
+        let Some(parameter) = parameters.get(&name) else {
+            // TODO(BE-948): discharge diagnostic
+            continue;
+        };
+
+        let r#type = scratch.scoped(|scope| value.r#type(&mut lattice, scope));
+        verify_subtype(&mut analysis, &mut diagnostics, r#type, parameter.r#type);
+    }
+
+    diagnostics.append(&mut lattice.take_diagnostics());
+
+    diagnostics
+        .map_category(LoweringDiagnosticCategory::TypeChecking)
+        .into_status(())
 }

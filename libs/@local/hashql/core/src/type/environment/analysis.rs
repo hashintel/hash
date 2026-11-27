@@ -17,7 +17,10 @@ use super::{
 };
 use crate::r#type::{
     Type, TypeId,
-    error::{TypeCheckDiagnostic, TypeCheckDiagnosticIssues, circular_type_reference},
+    error::{
+        TypeCheckDiagnostic, TypeCheckDiagnosticIssues, cannot_be_subtype_of_never,
+        cannot_be_supertype_of_unknown, circular_type_reference,
+    },
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{Apply, Generic, Infer, IntersectionType, Param, TypeKind, UnionType},
     lattice::Lattice as _,
@@ -298,6 +301,16 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         result
     }
 
+    /// Checks whether `id` resolves to the `!` type itself.
+    ///
+    /// [`Self::is_bottom`] also holds for a compound type that has no members.
+    pub(crate) fn is_never(&mut self, id: TypeId) -> bool {
+        let r#type = self.environment.r#type(self.resolve_id(id));
+
+        self.resolve_type(r#type)
+            .is_some_and(|r#type| *r#type.kind == TypeKind::Never)
+    }
+
     pub fn is_top(&mut self, id: TypeId) -> bool {
         let r#type = self.environment.r#type(self.resolve_id(id));
 
@@ -432,7 +445,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         }
     }
 
-    fn is_quick_subtype(&self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
+    fn is_quick_subtype(&mut self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
         if subtype.id == supertype.id {
             return Some(true);
         }
@@ -448,11 +461,17 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
 
         // `T <: Never` never holds
         if *supertype.kind == TypeKind::Never {
+            let _: ControlFlow<()> =
+                self.record_diagnostic(|env| cannot_be_subtype_of_never(env, *subtype, *supertype));
+
             return Some(false);
         }
 
         // `Unknown <: T` never holds
         if *subtype.kind == TypeKind::Unknown {
+            let _: ControlFlow<()> = self
+                .record_diagnostic(|env| cannot_be_supertype_of_unknown(env, *subtype, *supertype));
+
             return Some(false);
         }
 

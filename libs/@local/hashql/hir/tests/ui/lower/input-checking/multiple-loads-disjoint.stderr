@@ -1,0 +1,10 @@
+error[lower::type-check::type-mismatch]: Type mismatch
+   ╭▸ 
+ 8 │       ["input", "x", "String"],
+   │                       ────── this is of type `!`
+   ‡
+11 │     "inputs": { "#struct": { "x": { "#literal": 1 } } }
+   │                                                 ━ `Integer` cannot be a subtype of `!`
+   │
+   ├ help: Only the `!` (Never) type itself can be a subtype of `!`. Any type with values cannot be a subtype of `!`, which by definition has no values.
+   ╰ note: In type theory, the `!` type (also called 'bottom type' or 'Never') is a type with no values. It can be a subtype of any type, but only `!` can be a subtype of `!`.

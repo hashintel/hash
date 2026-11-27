@@ -175,7 +175,7 @@ impl<'heap> Pipeline<'heap> {
         ));
         self.scratch.reset();
 
-        let node = tri!(hashql_hir::lower::lower(
+        let (node, _) = tri!(hashql_hir::lower::lower(
             node,
             &types,
             &mut self.env,
@@ -224,7 +224,7 @@ impl<'heap> Pipeline<'heap> {
 
         let result = pass::lower(
             &mut context,
-            &mut self.scratch,
+            self.scratch.as_mut_scope(),
             bodies,
             &LowerConfig::default(),
         );
@@ -255,7 +255,7 @@ impl<'heap> Pipeline<'heap> {
     > {
         let mut context = MirContext::new(&self.env, interner);
 
-        let status = pass::place(&mut context, &mut self.scratch, bodies);
+        let status = pass::place(&mut context, self.scratch.as_mut_scope(), bodies);
         let analysis = process_status(&mut self.diagnostics, status)?;
 
         Ok(analysis)

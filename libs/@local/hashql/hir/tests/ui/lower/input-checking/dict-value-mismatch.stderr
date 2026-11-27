@@ -1,0 +1,10 @@
+error[lower::type-check::type-mismatch]: Type mismatch
+   ╭▸ 
+ 5 │     "query": ["input", "xs", "Dict<Integer | String, Integer>"],
+   │                                                      ─────── ... and this is of type `Integer`
+   ‡
+10 │             [{ "#literal": 1 }, { "#literal": false }],
+   │                                               ━━━━━ This is of type `Boolean`
+   │
+   ├ help: You can convert the boolean to a number using the `::core::number::from_boolean/1` function
+   ╰ note: This type system uses a combination of nominal and structural typing. Types are compatible when they have the same structure (same fields/elements with compatible types) or when they represent the same named type. Union types must have at least one compatible variant, and intersection types require all constraints to be satisfied.

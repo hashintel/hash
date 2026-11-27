@@ -368,6 +368,88 @@ fn is_subtype_of_dict() {
 }
 
 #[test]
+fn is_subtype_of_dict_never_key() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    dict!(
+        env,
+        dict_never_integer,
+        instantiate(&env, TypeKind::Never),
+        primitive!(env, PrimitiveType::Integer)
+    );
+    dict!(
+        env,
+        dict_string_number,
+        primitive!(env, PrimitiveType::String),
+        primitive!(env, PrimitiveType::Number)
+    );
+    dict!(
+        env,
+        dict_string_string,
+        primitive!(env, PrimitiveType::String),
+        primitive!(env, PrimitiveType::String)
+    );
+
+    let mut analysis_env = AnalysisEnvironment::new(&env);
+
+    // Dict<!, Integer> should be a subtype of Dict<String, Number> (no entries to look up)
+    assert!(dict_never_integer.is_subtype_of(dict_string_number, &mut analysis_env));
+
+    // Dict<!, Integer> should not be a subtype of Dict<String, String> (covariant values)
+    assert!(!dict_never_integer.is_subtype_of(dict_string_string, &mut analysis_env));
+
+    // Dict<String, Number> should not be a subtype of Dict<!, Integer>
+    assert!(!dict_string_number.is_subtype_of(dict_never_integer, &mut analysis_env));
+
+    // Dict<!, Integer> should not be equivalent to Dict<String, Number>
+    assert!(!dict_never_integer.is_equivalent(dict_string_number, &mut analysis_env));
+}
+
+#[test]
+fn is_subtype_of_dict_inhabited_intersection_key() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    // Every `Integer` is a member of `(Integer | String) & (Integer | Boolean)`
+    let key = intersection!(
+        env,
+        [
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Integer),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            ),
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Integer),
+                    primitive!(env, PrimitiveType::Boolean)
+                ]
+            )
+        ]
+    );
+    dict!(
+        env,
+        dict_overlap_integer,
+        key,
+        primitive!(env, PrimitiveType::Integer)
+    );
+    dict!(
+        env,
+        dict_boolean_integer,
+        primitive!(env, PrimitiveType::Boolean),
+        primitive!(env, PrimitiveType::Integer)
+    );
+
+    let mut analysis_env = AnalysisEnvironment::new(&env);
+
+    assert!(!dict_overlap_integer.is_subtype_of(dict_boolean_integer, &mut analysis_env));
+}
+
+#[test]
 fn is_equivalent_dict() {
     let heap = Heap::new();
     let env = Environment::new(&heap);

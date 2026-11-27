@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: A dictionary value takes the union of its key types and the union of its value types.
+{
+  "#struct": {
+    "query": ["input", "xs", "Dict<String, Integer | Boolean>"],
+    "inputs": {
+      "#struct": {
+        "xs": { "#dict": { "a": { "#literal": 1 }, "b": { "#literal": true } } }
+      }
+    }
+  }
+}

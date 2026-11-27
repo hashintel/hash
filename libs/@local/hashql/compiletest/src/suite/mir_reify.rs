@@ -55,7 +55,7 @@ pub(crate) fn mir_reify<'heap>(
     )?;
     scratch.reset();
 
-    let node = process_status(
+    let (node, _) = process_status(
         diagnostics,
         hashql_hir::lower::lower(node, &types, environment, &mut hir_context),
     )?;

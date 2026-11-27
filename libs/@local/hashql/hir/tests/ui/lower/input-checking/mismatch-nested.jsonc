@@ -1,0 +1,17 @@
+//@ run: fail
+//@ description: A mismatch inside a compound value is reported at the part that does not fit.
+{
+  "#struct": {
+    "query": [
+      "input",
+      "x",
+      { "#struct": { "a": { "#struct": { "b": "Integer" } } } }
+    ],
+    "inputs": {
+      "#struct": {
+        "x": { "#struct": { "a": { "#struct": { "b": { "#literal": "c" } } } } }
+        //~^ ERROR This is of type `String`
+      }
+    }
+  }
+}

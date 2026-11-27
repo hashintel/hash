@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: No value fits an input that is loaded with two types that share no value.
+{
+  "#struct": {
+    "query": [
+      "let",
+      "foo",
+      ["input", "x", "String"],
+      ["let", "bar", ["input", "x", "Integer"], "foo"]
+    ],
+    "inputs": { "#struct": { "x": { "#literal": 1 } } }
+    //~^ ERROR `Integer` cannot be a subtype of `!`
+  }
+}

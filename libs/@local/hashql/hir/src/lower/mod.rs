@@ -1,10 +1,10 @@
 use hashql_ast::lower::ExtractedTypes;
-use hashql_core::r#type::environment::Environment;
+use hashql_core::{collections::FastHashMap, symbol::Symbol, r#type::environment::Environment};
 use hashql_diagnostics::{DiagnosticIssues, StatusExt as _, Success};
 
 use self::{
     alias::AliasReplacement,
-    checking::TypeChecking,
+    checking::{InputParameter, TypeChecking},
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
     hoist::{GraphHoisting, GraphHoistingConfig},
@@ -26,6 +26,12 @@ pub mod normalization;
 pub mod specialization;
 pub mod thunking;
 
+/// The facts that lowering determines about a program beside its lowered node.
+pub struct LoweringResidual<'heap> {
+    /// The inputs the program loads, by name.
+    pub inputs: FastHashMap<Symbol<'heap>, InputParameter>,
+}
+
 /// Lowers the given node by performing different phases.
 ///
 /// This will set the "substitution" field of the environment given.
@@ -40,7 +46,7 @@ pub fn lower<'env, 'heap>(
     types: &'env ExtractedTypes<'heap>,
     env: &'env mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
-) -> LoweringDiagnosticStatus<Node<'heap>> {
+) -> LoweringDiagnosticStatus<(Node<'heap>, LoweringResidual<'heap>)> {
     let mut diagnostics = DiagnosticIssues::new();
     let mut replacement = AliasReplacement::new(context, &mut diagnostics);
     let Ok(node) = replacement.fold_node(node);
@@ -111,5 +117,10 @@ pub fn lower<'env, 'heap>(
     let normalization = Normalization::new(context, env, &mut norm_state);
     let node = normalization.run(node);
 
-    diagnostics.into_status(node)
+    diagnostics.into_status((
+        node,
+        LoweringResidual {
+            inputs: residual.inputs,
+        },
+    ))
 }

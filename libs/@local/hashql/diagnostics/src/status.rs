@@ -367,20 +367,12 @@ impl<C, S> Failure<C, S> {
 /// ```
 pub type Status<T, C, S> = Result<Success<T, C, S>, Failure<C, S>>;
 
-mod sealed {
-    use super::Status;
-
-    pub trait Sealed {}
-
-    impl<T, C, S> Sealed for Status<T, C, S> {}
-}
-
 /// Extension trait providing diagnostic-aware operations for [`Status`].
 ///
 /// This trait provides methods for creating, manipulating, and converting [`Status`] values while
 /// maintaining proper diagnostic handling semantics. The trait ensures that fatal diagnostics are
 /// always promoted to the error variant while non-fatal diagnostics are accumulated appropriately.
-pub trait StatusExt<T, C, S>: sealed::Sealed {
+pub impl(self) trait StatusExt<T, C, S> {
     /// The type returned by [`boxed`](StatusExt::boxed).
     type Boxed<'category>: StatusExt<T, Box<dyn DiagnosticCategory + 'category>, S>
     where
@@ -1061,4 +1053,111 @@ impl<T, C, S> IntoStatus<T, C, S> for Result<T, Diagnostic<C, S, Critical>> {
             Err(primary) => Status::failure(primary),
         }
     }
+}
+
+/// Extension trait for iterators over [`Status`] values.
+pub impl(self) trait IteratorStatusExt:
+    Iterator<Item = Status<Self::Value, Self::Category, Self::Span>>
+{
+    /// The value of a successful item.
+    type Value;
+    /// The category of the diagnostics of an item.
+    type Category;
+    /// The span of the diagnostics of an item.
+    type Span;
+
+    /// Collects the values of the items into a single [`Status`].
+    ///
+    /// If every item is successful, returns a successful status with the collected values and the
+    /// advisory diagnostics of every item.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`Failure`] if an item is a failure, with the primary diagnostic of the first
+    /// failed item as its own. A failed item does not end the iteration. `collect_status` consumes
+    /// the iterator to its end, and the failure carries the diagnostics of every item, including
+    /// the items after the first failure.
+    ///
+    /// # Examples
+    ///
+    /// Every item successful:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, IteratorStatusExt, Label, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut first = Status::success(1);
+    /// first.push_diagnostic(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
+    /// let second = Status::success(2);
+    ///
+    /// let collected = [first, second]
+    ///     .into_iter()
+    ///     .collect_status::<Vec<_>>()
+    ///     .expect("should be successful");
+    /// assert_eq!(collected.value, [1, 2]);
+    /// assert_eq!(collected.advisories.len(), 1);
+    /// ```
+    ///
+    /// A failure before and after a successful item:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, IteratorStatusExt, Label, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let failure = |span| {
+    ///     let diagnostic =
+    ///         Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(span, "error here"));
+    ///
+    ///     Status::<i32, _, _>::failure(diagnostic.specialize().expect_err("should be critical"))
+    /// };
+    ///
+    /// let collected = [failure(0..5), Status::success(2), failure(10..15)]
+    ///     .into_iter()
+    ///     .collect_status::<Vec<_>>()
+    ///     .expect_err("should be a failure");
+    /// assert_eq!(collected.primary.labels.primary().span(), &(0..5));
+    /// assert_eq!(collected.secondary.len(), 1);
+    /// ```
+    fn collect_status<C>(self) -> Status<C, Self::Category, Self::Span>
+    where
+        C: Default + Extend<Self::Value>,
+        Self: Sized,
+    {
+        let mut result = Status::success(C::default());
+
+        for item in self {
+            // We deliberately don't short-circuit here so that we're able to collect all errors
+            match Status::zip(result, item) {
+                Ok(Success {
+                    value: (mut out, value),
+                    advisories,
+                }) => {
+                    out.extend([value]);
+                    result = Ok(Success {
+                        value: out,
+                        advisories,
+                    });
+                }
+                Err(failure) => {
+                    result = Err(failure);
+                }
+            }
+        }
+
+        result
+    }
+}
+
+impl<I: Iterator<Item = Status<T, C, S>> + ?Sized, T, C, S> IteratorStatusExt for I {
+    type Category = C;
+    type Span = S;
+    type Value = T;
 }

@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: A value for an input with a default is checked like any other.
+{
+  "#struct": {
+    "query": ["input", "x", "Integer", { "#literal": 0 }],
+    "inputs": { "#struct": { "x": { "#literal": "a" } } }
+    //~^ ERROR This is of type `String`
+  }
+}

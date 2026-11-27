@@ -18,6 +18,7 @@ use hashql_core::{
         fast_hash_map, fast_hash_map_in, fast_hash_map_with_capacity,
         fast_hash_map_with_capacity_in,
     },
+    heap::FromIteratorIn,
     symbol::Symbol,
 };
 
@@ -198,5 +199,16 @@ impl<'heap, A: Allocator> Inputs<'heap, A> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
+    }
+}
+
+impl<'heap, A: Allocator> FromIteratorIn<(Symbol<'heap>, Value<'heap, A>), A> for Inputs<'heap, A> {
+    fn from_iter_in<I>(iter: I, alloc: A) -> Self
+    where
+        I: IntoIterator<Item = (Symbol<'heap>, Value<'heap, A>)>,
+    {
+        let mut inner = fast_hash_map_in(alloc);
+        inner.extend(iter);
+        Self { inner }
     }
 }

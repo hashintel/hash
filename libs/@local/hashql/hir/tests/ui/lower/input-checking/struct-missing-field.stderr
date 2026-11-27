@@ -1,0 +1,8 @@
+error[lower::type-check::missing-struct-field]: Missing struct field
+  ╭▸ 
+5 │     "query": ["input", "x", { "#struct": { "a": "Integer", "b": "String" } }],
+  │                             ──────────────────────────────────────────────── field `b` required by this type
+6 │     "inputs": { "#struct": { "x": { "#struct": { "a": { "#literal": 1 } } } } }
+  │                                                ━━━━━━━━━━━━━━━━━━━━━━━━━━ missing field `b`
+  │
+  ╰ help: add field `b` to the struct

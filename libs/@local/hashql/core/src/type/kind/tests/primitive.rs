@@ -269,6 +269,30 @@ fn equivalent() {
 }
 
 #[test]
+fn equivalent_mismatch_diagnostic() {
+    let heap = Heap::new();
+    let env = Environment::new(&heap);
+
+    primitive!(env, integer, PrimitiveType::Integer);
+    primitive!(env, number, PrimitiveType::Number);
+
+    let mut analysis_env = AnalysisEnvironment::new(&env);
+    analysis_env.with_diagnostics();
+
+    assert!(!integer.is_equivalent(number, &mut analysis_env));
+
+    let diagnostics = analysis_env
+        .take_diagnostics()
+        .expect("diagnostics should be enabled")
+        .into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::TypeMismatch
+    );
+}
+
+#[test]
 fn subtype_relationship() {
     let heap = Heap::new();
     let env = Environment::new(&heap);

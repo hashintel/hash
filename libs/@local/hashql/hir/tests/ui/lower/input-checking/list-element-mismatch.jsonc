@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: A list is rejected for the element that does not fit, the elements beside it are not reported.
+{
+  "#struct": {
+    "query": ["input", "xs", "List<Integer>"],
+    "inputs": {
+      "#struct": {
+        "xs": { "#list": [{ "#literal": 1 }, { "#literal": "a" }] }
+        //~^ ERROR variant `String` must be a subtype of at least one variant in the expected union
+        //~| ERROR This is of type `String`
+      }
+    }
+  }
+}

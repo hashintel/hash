@@ -207,9 +207,25 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        _: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        self.kind == other.kind
+        if self.kind == other.kind {
+            return true;
+        }
+
+        let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let help_message = match (*self.kind, *other.kind) {
+                (Self::Integer, Self::Number) | (Self::Number, Self::Integer) => Some(
+                    "These types must be the same here. An Integer can be used where a Number is \
+                     expected, but the two are different types.",
+                ),
+                _ => None,
+            };
+
+            type_mismatch(env, self, other, help_message)
+        });
+
+        false
     }
 
     fn simplify(self: Type<'heap, Self>, _: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {

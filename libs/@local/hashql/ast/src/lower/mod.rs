@@ -85,7 +85,7 @@ pub fn lower<'heap, 'alloc, S>(
     expr: &mut Expr<'heap>,
     env: &Environment<'heap>,
     registry: &ModuleRegistry<'heap>,
-    scratch: &mut S,
+    scratch: S,
 ) -> Status<ExtractedTypes<'heap>, LoweringDiagnosticCategory, SpanId>
 where
     S: ScopeAllocator<'alloc>,

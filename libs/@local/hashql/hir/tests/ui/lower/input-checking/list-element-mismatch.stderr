@@ -1,0 +1,23 @@
+error[lower::type-check::union-variant-mismatch]: Union variant mismatch
+  ╭▸ 
+5 │     "query": ["input", "xs", "List<Integer>"],
+  │                                    ─────── expected union containing at least one supertype variant for `String`
+  ‡
+8 │         "xs": { "#list": [{ "#literal": 1 }, { "#literal": "a" }] }
+  │                                                            ━━━ variant `String` must be a subtype of at least one variant in the expected union
+  │
+  ├ help: For a type `A | B` to be a subtype of `C | D`, every variant (A, B) must be a subtype of at least one variant in the expected union (C, D).
+  │       In other words: (A <: C ∨ A <: D) ∧ (B <: C ∨ B <: D)
+  ╰ note: expected union: `Integer`
+          found variant: `String` which is not a subtype of any expected variants
+
+error[lower::type-check::type-mismatch]: Type mismatch
+  ╭▸ 
+5 │     "query": ["input", "xs", "List<Integer>"],
+  │                                    ─────── ... and this is of type `Integer`
+  ‡
+8 │         "xs": { "#list": [{ "#literal": 1 }, { "#literal": "a" }] }
+  │                                                            ━━━ This is of type `String`
+  │
+  ├ help: You can convert the string to a number using the `::core::number::parse/1` or `::core::number::parse/2` function
+  ╰ note: This type system uses a combination of nominal and structural typing. Types are compatible when they have the same structure (same fields/elements with compatible types) or when they represent the same named type. Union types must have at least one compatible variant, and intersection types require all constraints to be satisfied.

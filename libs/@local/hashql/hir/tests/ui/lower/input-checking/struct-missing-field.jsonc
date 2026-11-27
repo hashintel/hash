@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: A struct value that lacks a field of the declared type is rejected.
+{
+  "#struct": {
+    "query": ["input", "x", { "#struct": { "a": "Integer", "b": "String" } }],
+    "inputs": { "#struct": { "x": { "#struct": { "a": { "#literal": 1 } } } } }
+    //~^ ERROR missing field `b`
+  }
+}
