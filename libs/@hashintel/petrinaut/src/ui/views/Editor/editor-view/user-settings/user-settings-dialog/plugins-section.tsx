@@ -7,7 +7,7 @@ import { PluginRow, type PluginRowProps } from "./plugins-section/plugin-row";
 const tableStyle = css({
   marginTop: "3",
   border: "[1px solid {colors.neutral.s40}]",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   overflow: "hidden",
   // The rows animate their colours, chevrons and disclosures; nothing moves
   // while the user turns animations off or prefers reduced motion.

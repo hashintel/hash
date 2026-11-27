@@ -19,8 +19,8 @@ import { formSizes } from "../../util/form-size.recipe";
  */
 const folderCornerVarRules = {
   "[data-scope='tabs'][data-part='root']:has(> &)": {
-    "--tabs-corner-start": "[var(--radii-none)]",
-    "--tabs-corner-end": "[var(--radii-none)]",
+    "--tabs-corner-start": "[0px]",
+    "--tabs-corner-end": "[0px]",
   },
   "[data-scope='tabs'][data-part='root']:has(> &):has(> [data-scope='tabs'][data-part='content'])":
     {
@@ -29,7 +29,7 @@ const folderCornerVarRules = {
     },
   "[data-scope='tabs'][data-part='root']:has(> & > [data-scope='tabs'][data-part='list'] > [data-part='trigger']:nth-child(2)[data-selected])":
     {
-      "--tabs-corner-start": "[var(--radii-none)]",
+      "--tabs-corner-start": "[0px]",
     },
 };
 
@@ -38,7 +38,7 @@ const folderCornerVarRules = {
 const folderCornerEndFlushRule = {
   "[data-scope='tabs'][data-part='root']:has(> & > [data-scope='tabs'][data-part='list'] > [data-part='trigger']:last-child[data-selected])":
     {
-      "--tabs-corner-end": "[var(--radii-none)]",
+      "--tabs-corner-end": "[0px]",
     },
 };
 

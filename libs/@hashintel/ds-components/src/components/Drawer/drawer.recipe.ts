@@ -48,7 +48,7 @@ export const styles = sva({
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
       "--panel-top-padding": "var(--spacing-4)",
       "--panel-close-button-gap": "var(--spacing-3\\.5)",
-      "--panel-card-radius": "var(--radii-xl)",
+      "--panel-card-radius": "var(--radii-2xl)",
       "--bleed": "3rem",
       position: "relative",
       display: "flex",
@@ -110,10 +110,10 @@ export const styles = sva({
         content: {
           height: "[100dvh]",
           maxWidth: "[var(--panel-width)]",
-          borderTopLeftRadius: "2xl",
-          borderBottomLeftRadius: "2xl",
-          borderTopRightRadius: "none",
-          borderBottomRightRadius: "none",
+          borderTopLeftRadius: "3xl",
+          borderBottomLeftRadius: "3xl",
+          borderTopRightRadius: "[0]",
+          borderBottomRightRadius: "[0]",
           boxShadow:
             "[-1px 0 0 0 rgba(0, 0, 0, 0.03), -1px 0 2px -1px rgba(0, 0, 0, 0.06), -8px 0 16px -6px rgba(0, 0, 0, 0.09), -18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {
@@ -139,10 +139,10 @@ export const styles = sva({
         content: {
           height: "[100dvh]",
           maxWidth: "[var(--panel-width)]",
-          borderTopRightRadius: "2xl",
-          borderBottomRightRadius: "2xl",
-          borderTopLeftRadius: "none",
-          borderBottomLeftRadius: "none",
+          borderTopRightRadius: "3xl",
+          borderBottomRightRadius: "3xl",
+          borderTopLeftRadius: "[0]",
+          borderBottomLeftRadius: "[0]",
           boxShadow:
             "[1px 0 0 0 rgba(0, 0, 0, 0.03), 1px 0 2px -1px rgba(0, 0, 0, 0.06), 8px 0 16px -6px rgba(0, 0, 0, 0.09), 18px 0 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {
@@ -169,10 +169,10 @@ export const styles = sva({
         content: {
           height: "[100%]",
           maxHeight: "[var(--panel-height)]",
-          borderBottomLeftRadius: "2xl",
-          borderBottomRightRadius: "2xl",
-          borderTopLeftRadius: "none",
-          borderTopRightRadius: "none",
+          borderBottomLeftRadius: "3xl",
+          borderBottomRightRadius: "3xl",
+          borderTopLeftRadius: "[0]",
+          borderTopRightRadius: "[0]",
           boxShadow:
             "[0 1px 0 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 8px 16px -6px rgba(0, 0, 0, 0.09), 0 18px 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {
@@ -199,10 +199,10 @@ export const styles = sva({
         content: {
           height: "[100%]",
           maxHeight: "[var(--panel-height)]",
-          borderTopLeftRadius: "2xl",
-          borderTopRightRadius: "2xl",
-          borderBottomLeftRadius: "none",
-          borderBottomRightRadius: "none",
+          borderTopLeftRadius: "3xl",
+          borderTopRightRadius: "3xl",
+          borderBottomLeftRadius: "[0]",
+          borderBottomRightRadius: "[0]",
           boxShadow:
             "[0 -1px 0 0 rgba(0, 0, 0, 0.03), 0 -1px 2px -1px rgba(0, 0, 0, 0.06), 0 -8px 16px -6px rgba(0, 0, 0, 0.09), 0 -18px 32px -14px rgba(0, 0, 0, 0.16)]",
           "&::after": {

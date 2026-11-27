@@ -59,7 +59,7 @@ const box = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bd.subtle",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   overflow: "hidden",
   bg: "bgSolid.min",
 });

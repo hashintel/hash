@@ -57,12 +57,21 @@ const scaledSpacing = scaleTokenValues(
   pandaPreset.theme.tokens.spacing,
   "--density-factor",
 );
-// The Panda scale plus the two steps the Figma radius collection adds to it
+/**
+ * The Panda radius names with a 10px step added at `xl`, so every name from
+ * `xl` up is one step smaller than its Panda value.
+ */
 const scaledRadii = scaleTokenValues(
   {
-    ...pandaPreset.theme.tokens.radii,
-    none: { value: "0rem" },
-    "lg-xl": { value: "0.625rem" },
+    xs: { value: "0.125rem" },
+    sm: { value: "0.25rem" },
+    md: { value: "0.375rem" },
+    lg: { value: "0.5rem" },
+    xl: { value: "0.625rem" },
+    "2xl": { value: "0.75rem" },
+    "3xl": { value: "1rem" },
+    "4xl": { value: "1.5rem" },
+    full: { value: "9999px" },
   },
   "--roundness-factor",
 );

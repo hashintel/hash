@@ -47,8 +47,6 @@ export const styles = sva({
     },
   },
   variants: {
-    // The control's block margin, cancelled on the root, sets how far below
-    // the first label line's centre the box sits when the label wraps.
     size: {
       xxs: {
         root: { gap: "[6px]", fontSize: "[11px]", marginBlock: "[-1.5px]" },

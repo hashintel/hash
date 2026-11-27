@@ -447,7 +447,7 @@ const forEachBox = css({
   boxSizing: "border-box",
   width: "full",
   height: "full",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   bg: "bgSolid.surface",
 });
 const forEachHeader = css({

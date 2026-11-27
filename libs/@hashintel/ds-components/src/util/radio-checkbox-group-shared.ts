@@ -90,7 +90,7 @@ export const styles = cva({
         "--group-padding-y": "15px",
         "--group-padding-left": "22px",
         "--group-padding-right": "32px",
-        "--group-radius": "radii.lg-xl",
+        "--group-radius": "radii.xl",
       },
     },
     layout: {

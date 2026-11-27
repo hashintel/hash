@@ -190,7 +190,7 @@ export const styles = sva({
       },
       sm: {
         content: {
-          borderRadius: "[calc((var(--radii-lg) + var(--radii-lg-xl)) / 2)]",
+          borderRadius: "[calc((var(--radii-lg) + var(--radii-xl)) / 2)]",
           "--selectable-list-container-padding-x": "var(--spacing-1)",
           "--selectable-list-container-padding-y": "var(--spacing-1)",
           "--selectable-list-item-padding-x": "var(--spacing-2)",
@@ -217,7 +217,7 @@ export const styles = sva({
       },
       md: {
         content: {
-          borderRadius: "[calc((var(--radii-lg-xl) + var(--radii-xl)) / 2)]",
+          borderRadius: "[calc((var(--radii-xl) + var(--radii-2xl)) / 2)]",
           "--selectable-list-container-padding-x": "var(--spacing-1)",
           "--selectable-list-container-padding-y": "var(--spacing-1)",
           "--selectable-list-item-padding-x": "var(--spacing-2\\.5)",
@@ -244,7 +244,7 @@ export const styles = sva({
       },
       lg: {
         content: {
-          borderRadius: "xl",
+          borderRadius: "2xl",
           "--selectable-list-container-padding-x": "var(--spacing-1\\.5)",
           "--selectable-list-container-padding-y": "var(--spacing-1\\.5)",
           "--selectable-list-item-padding-x": "var(--spacing-2\\.5)",

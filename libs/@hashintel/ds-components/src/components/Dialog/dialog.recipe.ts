@@ -51,7 +51,7 @@ export const styles = sva({
       outline: "none",
       boxShadow:
         "[0 0 0 1px rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.06), 0 8px 16px -6px rgba(0, 0, 0, 0.09), 0 18px 32px -14px rgba(0, 0, 0, 0.16)]",
-      borderRadius: "xl",
+      borderRadius: "2xl",
       backgroundColor: "neutral.s10",
       padding: "1",
 
@@ -107,15 +107,15 @@ export const styles = sva({
       lg: {
         content: {
           maxWidth: "[860px]",
-          borderRadius: "2xl",
-          "--panel-card-radius": "var(--radii-xl)",
+          borderRadius: "3xl",
+          "--panel-card-radius": "var(--radii-2xl)",
         },
       },
       xl: {
         content: {
           maxWidth: "[1060px]",
-          borderRadius: "2xl",
-          "--panel-card-radius": "var(--radii-xl)",
+          borderRadius: "3xl",
+          "--panel-card-radius": "var(--radii-2xl)",
         },
       },
       fullScreen: {
@@ -125,8 +125,8 @@ export const styles = sva({
           width: "[100dvw]",
           height: "[100dvh]",
           maxHeight: "[100dvh]",
-          borderRadius: "none",
-          "--panel-card-radius": "var(--radii-xl)",
+          borderRadius: "[0]",
+          "--panel-card-radius": "var(--radii-2xl)",
         },
       },
     },

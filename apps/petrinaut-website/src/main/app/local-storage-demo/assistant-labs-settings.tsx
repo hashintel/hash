@@ -7,7 +7,7 @@ import type { OpenAIVoiceConfig } from "@hashintel/brunch-agent/ui";
 
 const sectionStyle = css({
   border: "[1px solid {colors.neutral.s40}]",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   overflow: "hidden",
   marginTop: "3",
 });

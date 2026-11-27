@@ -72,7 +72,7 @@ export const styles = sva({
           borderWidth: "[1px]",
           borderStyle: "solid",
           borderColor: "bd.subtle",
-          borderRadius: "xl",
+          borderRadius: "2xl",
           backgroundColor: "bgSolid.surface",
           "&[data-dragging]": {
             boxShadow: "elevation.raise.macro",

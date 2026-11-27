@@ -12,7 +12,7 @@ const emptyState = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bd.subtle",
-  borderRadius: "xl",
+  borderRadius: "2xl",
   bg: "bgSolid.min",
 });
 const iconCircle = css({
