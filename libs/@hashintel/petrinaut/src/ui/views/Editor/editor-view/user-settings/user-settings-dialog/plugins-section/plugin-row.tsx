@@ -8,7 +8,13 @@
 
 import { useId, useState } from "react";
 
-import { Chip, Icon, type IconName, Toggle } from "@hashintel/ds-components";
+import {
+  Chip,
+  Icon,
+  type IconName,
+  Kbd,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { useUserSettings } from "../../../../../../../react/state/user-settings-context";
@@ -194,6 +200,12 @@ const tagCodeStyle = css({ fontFamily: "mono", fontSize: "[10.5px]" });
 
 const tagDetailStyle = css({ color: "neutral.fg.subtle" });
 
+/** Insets the keycap as far from the tag's end as from its top. */
+const tagShortcutStyle = css({
+  fontSize: "[10px]",
+  marginInlineEnd: "[calc((18px - var(--kbd-key-size)) / 2 - {spacing.1.5})]",
+});
+
 const noContributionsStyle = css({
   marginTop: "1.5",
   fontSize: "[11px]",
@@ -229,6 +241,9 @@ const ContributionTag = ({ item }: { item: PluginContributionItem }) => {
       <span className={code ? tagCodeStyle : undefined}>{item.subject}</span>
       {item.detail !== undefined && (
         <span className={tagDetailStyle}>{` · ${item.detail}`}</span>
+      )}
+      {item.shortcut !== undefined && (
+        <Kbd keys={item.shortcut} className={tagShortcutStyle} />
       )}
     </li>
   );

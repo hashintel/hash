@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { resolveKeys } from "./kbd-util";
+import { detectPlatform, resolveKeys } from "./kbd-util";
 
 const labels = (
   keys: string | readonly string[],
@@ -104,5 +104,24 @@ describe("resolveKeys", () => {
     expect(labels(" mod + k ", "apple")).toEqual(["⌘", "K"]);
     expect(labels("", "apple")).toEqual([]);
     expect(labels([], "apple")).toEqual([]);
+  });
+});
+
+describe("detectPlatform", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("reads the platform from the browser's user agent", () => {
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (Macintosh)" });
+    expect(detectPlatform()).toBe("apple");
+
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (X11; Linux)" });
+    expect(detectPlatform()).toBe("pc");
+  });
+
+  it("falls back to PC where there is no browser", () => {
+    vi.stubGlobal("navigator", undefined);
+    expect(detectPlatform()).toBe("pc");
   });
 });

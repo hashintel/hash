@@ -1,6 +1,5 @@
+import { Kbd, Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
-
-import { ShortcutTooltip } from "../../../../shared/keyboard-shortcut";
 
 import type { CSSProperties, ReactNode, Ref } from "react";
 
@@ -83,7 +82,17 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   ref,
   ...rest
 }) => (
-  <ShortcutTooltip label={tooltip} shortcut={shortcut}>
+  <Tooltip
+    content={
+      shortcut ? (
+        <>
+          {tooltip} <Kbd keys={shortcut} variant="inherit" />
+        </>
+      ) : (
+        tooltip
+      )
+    }
+  >
     <button
       ref={ref}
       type="button"
@@ -103,5 +112,5 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
     >
       {children}
     </button>
-  </ShortcutTooltip>
+  </Tooltip>
 );

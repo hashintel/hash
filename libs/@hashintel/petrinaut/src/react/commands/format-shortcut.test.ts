@@ -5,8 +5,8 @@ import { formatShortcutKeys } from "./format-shortcut";
 describe("formatShortcutKeys", () => {
   it("renders Apple symbols on Apple platforms", () => {
     expect(formatShortcutKeys("mod+shift+z", { apple: true })).toEqual([
-      "⌘",
       "⇧",
+      "⌘",
       "Z",
     ]);
     expect(formatShortcutKeys("alt+enter", { apple: true })).toEqual([
