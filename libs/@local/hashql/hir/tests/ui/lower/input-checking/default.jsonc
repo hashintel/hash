@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: An input with a default needs no value.
+{
+  "#struct": {
+    "query": ["input", "x", "Integer", { "#literal": 0 }],
+    "inputs": { "#struct": {} }
+  }
+}

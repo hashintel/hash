@@ -1,0 +1,15 @@
+error[lower::missing-input]: Missing input
+   ╭▸ 
+14 │         ["let", "c", ["input", "c", "Boolean"], "a"]
+   │                                 ━ missing value for input `c`
+   │
+   ├ help: supply a value of type `Boolean` for `c` or give the input a default
+   ╰ note: an input without a default requires a value
+
+error[lower::missing-input]: Missing input
+  ╭▸ 
+8 │       ["input", "a", "Integer"],
+  │                  ━ missing value for input `a`
+  │
+  ├ help: supply a value of type `Integer` for `a` or give the input a default
+  ╰ note: an input without a default requires a value

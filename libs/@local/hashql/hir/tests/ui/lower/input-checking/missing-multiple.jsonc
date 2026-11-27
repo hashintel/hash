@@ -1,0 +1,20 @@
+//@ run: fail
+//@ description: Every input without a value is reported, not only the first, and an input that has a value is not.
+{
+  "#struct": {
+    "query": [
+      "let",
+      "a",
+      ["input", "a", "Integer"],
+      //~^ ERROR missing value for input `a`
+      [
+        "let",
+        "b",
+        ["input", "b", "String"],
+        ["let", "c", ["input", "c", "Boolean"], "a"]
+        //~^ ERROR missing value for input `c`
+      ]
+    ],
+    "inputs": { "#struct": { "b": { "#literal": "x" } } }
+  }
+}

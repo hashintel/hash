@@ -1,10 +1,14 @@
-//@ run: pass
-//@ description: A value for a name the query does not load is accepted without a check.
+//@ run: fail
+//@ description: A value for a name the query does not declare is rejected.
 {
   "#struct": {
-    "query": ["input", "x", "Integer"],
+    "query": ["input", "offset", "Integer"],
     "inputs": {
-      "#struct": { "x": { "#literal": 1 }, "y": { "#literal": "a" } }
+      "#struct": {
+        "offset": { "#literal": 1 },
+        "name": { "#literal": "a" }
+        //~^ ERROR value for undeclared input `name`
+      }
     }
   }
 }

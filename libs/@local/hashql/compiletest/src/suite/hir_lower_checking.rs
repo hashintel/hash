@@ -104,7 +104,15 @@ impl Suite for HirLowerTypeCheckingSuite {
             let _ = writeln!(output, "\n{}\n", Header::new("Inputs"));
         }
 
-        for (name, InputParameter { r#type, required }) in checking_inputs {
+        for (
+            name,
+            InputParameter {
+                r#type,
+                required,
+                span: _,
+            },
+        ) in checking_inputs
+        {
             // The sigil of a load in the HIR: `$` for a required input, `?` for an optional one
             let sigil = if required { '$' } else { '?' };
 

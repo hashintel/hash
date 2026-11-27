@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: An input that the query declares without a default needs a value.
+{
+  "#struct": {
+    "query": ["input", "x", "Integer"],
+    //~^ ERROR missing value for input `x`
+    "inputs": { "#struct": {} }
+  }
+}
