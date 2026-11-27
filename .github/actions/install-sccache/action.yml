@@ -18,32 +18,14 @@ runs:
         encrypted_value: ${{ inputs.encrypted_credentials }}
         encryption_key: ${{ inputs.encryption_key }}
 
-    - name: Export credentials
-      shell: bash
-      env:
-        CREDENTIALS: ${{ steps.decrypt.outputs.value }}
-      run: |
-        account_id=$(jq --raw-output --exit-status '.account_id' <<<"${CREDENTIALS}")
-        bucket=$(jq --raw-output --exit-status '.bucket' <<<"${CREDENTIALS}")
-        access_key_id=$(jq --raw-output --exit-status '.access_key_id' <<<"${CREDENTIALS}")
-        secret_access_key=$(jq --raw-output --exit-status '.secret_access_key' <<<"${CREDENTIALS}")
-        for value in "${account_id}" "${bucket}" "${access_key_id}" "${secret_access_key}"; do
-          echo "::add-mask::${value}"
-        done
-        {
-          echo "SCCACHE_ACCOUNT_ID=${account_id}"
-          echo "SCCACHE_BUCKET=${bucket}"
-          echo "SCCACHE_AWS_ACCESS_KEY_ID=${access_key_id}"
-          echo "SCCACHE_AWS_SECRET_ACCESS_KEY=${secret_access_key}"
-        } >>"${GITHUB_ENV}"
-
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@v0.0.10
 
+    # The credentials reach only the server: the build steps after it use the cache through the
+    # server, so nothing puts them into the job's environment.
     - name: Start sccache server
       env:
-        SCCACHE_BUCKET: ${{ env.SCCACHE_BUCKET }}
-        SCCACHE_ENDPOINT: https://${{ env.SCCACHE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+        CREDENTIALS: ${{ steps.decrypt.outputs.value }}
         SCCACHE_REGION: auto
         SCCACHE_LOG: debug
         SCCACHE_ERROR_LOG: /tmp/sccache.log
@@ -52,12 +34,23 @@ runs:
         SCCACHE_S3_SERVER_SIDE_ENCRYPTION: "false"
         SCCACHE_S3_ENABLE_VIRTUAL_HOST_STYLE: "false"
         SCCACHE_IDLE_TIMEOUT: "0" # the default idle timeout is 600s (10 minutes) which is too short for our benches, `0` disables the timeout
-        AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
         AWS_EC2_METADATA_DISABLED: "true"
         START_SCCACHE: ${{ github.action_path }}/start-sccache.sh
       shell: bash
-      run: '"$START_SCCACHE"'
+      run: |
+        account_id=$(jq --raw-output --exit-status '.account_id' <<<"${CREDENTIALS}")
+        bucket=$(jq --raw-output --exit-status '.bucket' <<<"${CREDENTIALS}")
+        access_key_id=$(jq --raw-output --exit-status '.access_key_id' <<<"${CREDENTIALS}")
+        secret_access_key=$(jq --raw-output --exit-status '.secret_access_key' <<<"${CREDENTIALS}")
+        for value in "${account_id}" "${bucket}" "${access_key_id}" "${secret_access_key}"; do
+          echo "::add-mask::${value}"
+        done
+        unset CREDENTIALS
+        SCCACHE_BUCKET="${bucket}" \
+          SCCACHE_ENDPOINT="https://${account_id}.r2.cloudflarestorage.com" \
+          AWS_ACCESS_KEY_ID="${access_key_id}" \
+          AWS_SECRET_ACCESS_KEY="${secret_access_key}" \
+          "${START_SCCACHE}"
 
     - name: Inject sccache variables into environment
       shell: bash
