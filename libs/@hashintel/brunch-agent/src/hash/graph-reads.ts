@@ -64,6 +64,25 @@ export const hashReadMaxMaxTokens = 60_000;
 export const hashEntityCountDefaultJoinEntities = 20_000;
 export const hashEntityCountMaxJoinEntities = 100_000;
 
+/**
+ * Most `where` conditions, link steps in one `where` or `groupBy` path, and
+ * distinct link types a count by links may follow. Each distinct link type is
+ * one sized and paged read, so these bound the graph requests a join fans out
+ * to before any is sent; legitimate joins follow a handful of each.
+ */
+export const hashEntityCountMaxWhereConditions = 10;
+export const hashEntityCountMaxPathSteps = 6;
+export const hashEntityCountMaxJoinLinkTypes = 12;
+
+/**
+ * Most graph requests (sizes, pages and the label lookup) one count by links
+ * may make before settling `incomplete`. A count at `maxJoinEntities` over the
+ * most link types needs about `100,000 / 1,000` full pages, one part page and
+ * one size per read, and one label lookup: well under this ceiling. Only
+ * pathologically small pages reach it.
+ */
+export const hashEntityCountMaxJoinRequests = 150;
+
 /** Default and maximum groups a count by links lists before summing the rest. */
 export const hashEntityCountDefaultGroups = 25;
 export const hashEntityCountMaxGroups = 500;
@@ -470,6 +489,10 @@ const emptyPathMessage =
 const emptyGroupByPathMessage =
   "A groupBy path needs at least one link step, each { linkType, direction }.";
 
+const longPathMessage = `A where or groupBy path follows at most ${hashEntityCountMaxPathSteps} link steps: count across fewer hops.`;
+
+const manyWhereConditionsMessage = `where takes at most ${hashEntityCountMaxWhereConditions} conditions: drop or merge some.`;
+
 /** One link followed from an entity, to the entity at the link's other end. */
 const hashEntityCountStepSchema = v.strictObject({
   linkType: v.pipe(
@@ -494,6 +517,7 @@ const hashEntityCountWhereConditionSchema = v.strictObject({
   path: v.pipe(
     v.array(hashEntityCountStepSchema),
     v.minLength(1, emptyPathMessage),
+    v.maxLength(hashEntityCountMaxPathSteps, longPathMessage),
     v.description(
       "One or more link steps from each counted entity, each { linkType, direction }; each later step follows links from the entities the previous step reached.",
     ),
@@ -516,6 +540,7 @@ const hashEntityCountGroupBySchema = v.union([
     path: v.pipe(
       v.array(hashEntityCountStepSchema),
       v.minLength(1, emptyGroupByPathMessage),
+      v.maxLength(hashEntityCountMaxPathSteps, longPathMessage),
       v.description(
         "One or more link steps from each qualifying entity to the entity to group by.",
       ),
@@ -559,10 +584,14 @@ export const hashEntityCountInputSchema = v.strictObject({
         v.pipe(
           v.array(hashEntityCountWhereConditionSchema),
           v.minLength(1, "where cannot be empty; omit it instead."),
+          v.maxLength(
+            hashEntityCountMaxWhereConditions,
+            manyWhereConditionsMessage,
+          ),
         ),
       ]),
       v.description(
-        "Count only the entities for which a path of links (or every condition in a list of paths) does, or does not, reach some entity. A link reaches its other end even when that entity can't be read.",
+        `Count only the entities for which a path of links (or every condition in a list of up to ${hashEntityCountMaxWhereConditions} paths) does, or does not, reach some entity. A link reaches its other end even when that entity can't be read. Paths take at most ${hashEntityCountMaxPathSteps} steps; where and groupBy together follow at most ${hashEntityCountMaxJoinLinkTypes} distinct link types.`,
       ),
     ),
   ),

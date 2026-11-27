@@ -22,6 +22,8 @@ import {
   hashEntityCountDefaultGroups,
   hashEntityCountDefaultJoinEntities,
   hashEntityCountGroupByPath,
+  hashEntityCountMaxJoinLinkTypes,
+  hashEntityCountMaxJoinRequests,
   hashEntityCountWhereConditions,
   hashEntityReadMaxLimit,
 } from "./graph-reads";
@@ -165,15 +167,56 @@ export const hashEntityJoinCountPlan = (input: HashEntityCountInput) => {
   };
 };
 
-/** For each entity id, the ids one step of `links` reaches from it. */
+/**
+ * The entity an id names, whichever edition: a HASH entity id is
+ * `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft edition, and
+ * links name the entity by its live id. Any other id is returned as is.
+ */
+const baseEntityId = (entityId: string) => {
+  const parts = entityId.split("~");
+  return parts.length === 3 ? `${parts[0]}~${parts[1]}` : entityId;
+};
+
+const isDraftEdition = (entityId: string) =>
+  baseEntityId(entityId) !== entityId;
+
+/**
+ * One edition per entity, in first-seen order: with `includeDrafts`, an
+ * entity can be read as its live edition and one or more drafts. A draft is
+ * preferred over the live edition, and among drafts the least id, so an entity
+ * counts once and shows as its draft.
+ */
+const dedupeByBaseEntityId = (
+  entities: readonly HashJoinEntity[],
+): HashJoinEntity[] => {
+  const byBase = new Map<string, HashJoinEntity>();
+  for (const entity of entities) {
+    const base = baseEntityId(entity.entityId);
+    const kept = byBase.get(base);
+    if (
+      kept === undefined ||
+      (isDraftEdition(entity.entityId) &&
+        (!isDraftEdition(kept.entityId) || entity.entityId < kept.entityId))
+    ) {
+      byBase.set(base, entity);
+    }
+  }
+  return [...byBase.values()];
+};
+
+/**
+ * For each entity, by `baseEntityId`, the entities one step of `links` reaches
+ * from it, also by `baseEntityId`, so editions join as one entity.
+ */
 const stepIndex = (links: readonly HashJoinEntity[]) => {
   const outgoing = new Map<string, string[]>();
   const incoming = new Map<string, string[]>();
-  for (const { linkData } of links) {
+  for (const { linkData } of dedupeByBaseEntityId(links)) {
     if (linkData === undefined) {
       continue;
     }
-    const { leftEntityId: left, rightEntityId: right } = linkData;
+    const left = baseEntityId(linkData.leftEntityId);
+    const right = baseEntityId(linkData.rightEntityId);
     const ends = outgoing.get(left);
     if (ends === undefined) {
       outgoing.set(left, [right]);
@@ -299,10 +342,8 @@ const groupQualifyingByPath = (
 
   let singleWeights = new Map<string, number>();
   for (const entity of qualifying) {
-    singleWeights.set(
-      entity.entityId,
-      (singleWeights.get(entity.entityId) ?? 0) + 1,
-    );
+    const id = baseEntityId(entity.entityId);
+    singleWeights.set(id, (singleWeights.get(id) ?? 0) + 1);
   }
   let multiBranches: {
     readonly frontier: readonly string[];
@@ -397,17 +438,20 @@ const groupQualifyingByPath = (
  * reaching none). A step follows `linkData` literally: outgoing from left to
  * right, incoming from right to left. A link reaches its other end whether or
  * not that entity was read: the link's existence is what `exists` tests.
+ * Entities and links read in several editions (with `includeDrafts`) count
+ * once, as their draft, and match by `baseEntityId`; group keys are base ids.
  * Returns a `ReadStop` if multi-hop grouping exceeds `maxExpansionSteps`.
  */
 export const hashEntityJoinCount = (
   { where, groupBy, maxExamples }: JoinInput,
-  counted: readonly HashJoinEntity[],
+  countedEditions: readonly HashJoinEntity[],
   linksByType: ReadonlyMap<string, readonly HashJoinEntity[]>,
   options?: HashEntityJoinCountOptions,
 ): HashEntityJoinCountOutcome => {
   if (options?.signal?.aborted) {
     throw abortErrorFrom(options.signal);
   }
+  const counted = dedupeByBaseEntityId(countedEditions);
   const indexes = new Map(
     [...linksByType].map(([linkType, links]) => [linkType, stepIndex(links)]),
   );
@@ -417,11 +461,11 @@ export const hashEntityJoinCount = (
   }));
   const qualifying =
     conditions.length === 0
-      ? [...counted]
+      ? counted
       : counted.filter((entity) =>
           conditions.every(
             ({ exists, reachable }) =>
-              reachable.has(entity.entityId) === exists,
+              reachable.has(baseEntityId(entity.entityId)) === exists,
           ),
         );
 
@@ -467,6 +511,34 @@ const joinBudget = (limit: number) => {
 
 type JoinBudget = ReturnType<typeof joinBudget>;
 
+/** Most graph requests a count by links has in flight at once. */
+export const hashEntityCountJoinConcurrency = 4;
+
+/**
+ * `run` over each of `items`, at most `limit` at a time, results in order.
+ * Workers share one iterator, so each item runs exactly once; a rejection
+ * rejects the whole once the workers in flight settle their current item.
+ */
+const mapWithConcurrency = async <Item, Result>(
+  items: readonly Item[],
+  limit: number,
+  run: (item: Item) => Promise<Result>,
+): Promise<Result[]> => {
+  const results: Result[] = [];
+  const entries = items.entries();
+  const worker = async () => {
+    for (const [index, item] of entries) {
+      // Sequential within a worker by design: `limit` workers run in parallel.
+      // eslint-disable-next-line no-await-in-loop
+      results[index] = await run(item);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker),
+  );
+  return results;
+};
+
 /** Why a read stopped before its last page. */
 type ReadStop = { readonly reason: string };
 
@@ -488,8 +560,8 @@ const ensureSentence = (text: string) =>
 
 /**
  * Every page of one read, until a page gives no cursor. Stops at a failed
- * page, when another parallel read has already stopped, or once `budget` (when
- * provided) is exceeded.
+ * page, when another parallel read has already stopped, when `onPage` has no
+ * request left for the next page, or once `budget` (when provided) is exceeded.
  */
 const readAllPages = async <Cursor>({
   graph,
@@ -506,7 +578,8 @@ const readAllPages = async <Cursor>({
   budget?: JoinBudget;
   /** Whether another read has stopped, so this one need read no further. */
   stopped: () => boolean;
-  onPage: () => void;
+  /** Claims one request for the next page; false when none are left. */
+  onPage: () => boolean;
   signal: AbortSignal;
 }): Promise<
   | { readonly entities: HashJoinEntity[] }
@@ -518,9 +591,14 @@ const readAllPages = async <Cursor>({
     if (stopped()) {
       return { entities: [...read.values()] };
     }
+    if (!onPage()) {
+      return {
+        reason: `Reading ${readName(name)} would take the count past the ${hashEntityCountMaxJoinRequests.toLocaleString("en-US")} graph requests a count by links may make: narrow the counted set or follow fewer link types.`,
+        entities: [...read.values()],
+      };
+    }
     let result: Awaited<ReturnType<HashJoinGraph<Cursor>["page"]>>;
     try {
-      onPage();
       result = await graph.page(
         selector,
         hashEntityReadMaxLimit,
@@ -600,13 +678,16 @@ const groupOrder = (left: CountedGroup, right: CountedGroup) => {
 };
 
 /**
- * Brunch's count by links, run in the page: it plans what to read, counts the
- * counted and link entities in parallel, and refuses before reading when that
- * exceeds `maxJoinEntities` (default 20,000); else reads every page in
- * parallel, joins them, and with `groupBy` slices to the top `maxGroups`
+ * Brunch's count by links, run in the page: it plans what to read, settling
+ * `incomplete` before any request when that follows more than
+ * `hashEntityCountMaxJoinLinkTypes` link types; counts the counted and link
+ * entities, and refuses before reading when that exceeds `maxJoinEntities`
+ * (default 20,000); else reads every page, joins them, and with `groupBy` slices to the top `maxGroups`
  * (default 25, max 500) before reading labels for those displayed groups only.
- * A failed page, or the budget spent part-way, settles `incomplete` with no
- * count. A failed size count throws; a cancelled call rejects.
+ * Sizes and reads run at most `hashEntityCountJoinConcurrency` at a time, and
+ * the call makes at most `hashEntityCountMaxJoinRequests` requests. A failed
+ * page, or the entity or request budget spent part-way, settles `incomplete`
+ * with no count. A failed size count throws; a cancelled call rejects.
  */
 export const runHashEntityJoinCount = async <Cursor>(
   input: HashEntityCountInput,
@@ -620,6 +701,14 @@ export const runHashEntityJoinCount = async <Cursor>(
   const maxGroups = input.maxGroups ?? hashEntityCountDefaultGroups;
 
   const plan = hashEntityJoinCountPlan(input);
+  if (plan.links.length > hashEntityCountMaxJoinLinkTypes) {
+    return {
+      outcome: "incomplete",
+      reason: `The count follows ${plan.links.length} link types, more than the ${hashEntityCountMaxJoinLinkTypes} a count by links may follow: drop or merge where conditions, or shorten the groupBy path.`,
+      reads: [],
+      requests: 0,
+    };
+  }
   const countedName = {
     role: "counted" as const,
     entityTypes: [...(plan.counted.entityTypes ?? [])],
@@ -651,8 +740,11 @@ export const runHashEntityJoinCount = async <Cursor>(
     };
   }
 
-  const linkSizes = await Promise.all(
-    linkPlans.map(({ selector }) => graph.size(selector, signal)),
+  // At most 1 + hashEntityCountMaxJoinLinkTypes sizes: well under the ceiling.
+  const linkSizes = await mapWithConcurrency(
+    linkPlans,
+    hashEntityCountJoinConcurrency,
+    ({ selector }) => graph.size(selector, signal),
   );
   requests += linkSizes.length;
   const linkSizeByType = new Map(
@@ -716,7 +808,11 @@ export const runHashEntityJoinCount = async <Cursor>(
       budget: readBudget,
       stopped: () => stopped() !== undefined,
       onPage: () => {
+        if (requests >= hashEntityCountMaxJoinRequests) {
+          return false;
+        }
         requests += 1;
+        return true;
       },
       signal,
     });
@@ -725,14 +821,22 @@ export const runHashEntityJoinCount = async <Cursor>(
     }
     return { ...name, read: read.entities };
   };
-  const [counted, ...links] = await Promise.all([
-    readAll(plan.counted, countedName, budget),
-    ...linkPlans.map(({ selector, name }, index) =>
-      (linkSizes[index] ?? 0) === 0
-        ? Promise.resolve({ ...name, read: [] as HashJoinEntity[] })
-        : readAll(selector, name, budget),
-    ),
-  ]);
+  // The pool returns one result per read, so the default never applies.
+  const [counted = { ...countedName, read: [] }, ...links] =
+    await mapWithConcurrency(
+      [
+        () => readAll(plan.counted, countedName, budget),
+        ...linkPlans.map(
+          ({ selector, name }, index) =>
+            () =>
+              (linkSizes[index] ?? 0) === 0
+                ? Promise.resolve({ ...name, read: [] as HashJoinEntity[] })
+                : readAll(selector, name, budget),
+        ),
+      ],
+      hashEntityCountJoinConcurrency,
+      (read) => read(),
+    );
   const reads: JoinRead[] = [counted, ...links].map(
     ({ role, entityTypes, read }) => ({
       role,
@@ -785,10 +889,13 @@ export const runHashEntityJoinCount = async <Cursor>(
 
     // Labels come from entities already read where they can, else one id lookup
     // for the <= maxGroups (<= 500) unlabelled displayed groups only.
+    // Group ids are base ids; a label comes from the entity's draft if read.
+    const knownByBase = (entities: readonly HashJoinEntity[]) =>
+      dedupeByBaseEntityId(entities).map(
+        (entity) => [baseEntityId(entity.entityId), entity] as const,
+      );
     const known = new Map(
-      [counted, ...links].flatMap(({ read }) =>
-        read.map((entity) => [entity.entityId, entity] as const),
-      ),
+      knownByBase([counted, ...links].flatMap(({ read }) => read)),
     );
     const unlabelled = top.flatMap(([id]) =>
       id !== null && !known.has(id) ? [id] : [],
@@ -801,8 +908,8 @@ export const runHashEntityJoinCount = async <Cursor>(
       if (groupedStop !== undefined) {
         return incomplete(groupedStop.reason);
       }
-      for (const entity of grouped.read) {
-        known.set(entity.entityId, entity);
+      for (const [id, entity] of knownByBase(grouped.read)) {
+        known.set(id, entity);
       }
     }
     groups = top

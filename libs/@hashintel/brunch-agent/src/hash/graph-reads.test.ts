@@ -10,6 +10,8 @@ import {
   hashEntityCountMaxExamples,
   hashEntityCountMaxGroups,
   hashEntityCountMaxJoinEntities,
+  hashEntityCountMaxPathSteps,
+  hashEntityCountMaxWhereConditions,
   hashEntityCountResultSchema,
   hashEntityCountToolResultSchema,
   hashEntityCountWhereConditions,
@@ -495,6 +497,48 @@ test("a count by links refuses empty where/groupBy paths or lists", () => {
       groupBy: { path: [] },
     }),
   ).toThrow(/at least one link step/u);
+});
+
+test("a count by links caps where conditions and path steps, with actionable errors", () => {
+  const step = (index: number) => ({
+    linkType: `Link ${index}`,
+    direction: "outgoing" as const,
+  });
+  const longestPath = Array.from(
+    { length: hashEntityCountMaxPathSteps },
+    (_, index) => step(index),
+  );
+  const mostConditions = Array.from(
+    { length: hashEntityCountMaxWhereConditions },
+    (_, index) => ({ path: [step(index)], exists: true }),
+  );
+  const atCaps = {
+    where: mostConditions,
+    groupBy: { path: longestPath },
+  };
+  expect(parseHashEntityCountInput(atCaps)).toEqual(atCaps);
+  expect(
+    parseHashEntityCountInput({ where: { path: longestPath, exists: false } }),
+  ).toEqual({ where: { path: longestPath, exists: false } });
+
+  const tooLongPath = [...longestPath, step(hashEntityCountMaxPathSteps)];
+  expect(() =>
+    parseHashEntityCountInput({ where: { path: tooLongPath, exists: true } }),
+  ).toThrow(
+    new RegExp(`at most ${hashEntityCountMaxPathSteps} link steps`, "u"),
+  );
+  expect(() =>
+    parseHashEntityCountInput({ groupBy: { path: tooLongPath } }),
+  ).toThrow(
+    new RegExp(`at most ${hashEntityCountMaxPathSteps} link steps`, "u"),
+  );
+  expect(() =>
+    parseHashEntityCountInput({
+      where: [...mostConditions, { path: [step(99)], exists: false }],
+    }),
+  ).toThrow(
+    new RegExp(`at most ${hashEntityCountMaxWhereConditions} conditions`, "u"),
+  );
 });
 
 test("a count by links refuses an unknown direction or draft link type URL", () => {

@@ -34,6 +34,10 @@ export {
   hashEntityCountMaxExamples,
   hashEntityCountMaxGroups,
   hashEntityCountMaxJoinEntities,
+  hashEntityCountMaxJoinLinkTypes,
+  hashEntityCountMaxJoinRequests,
+  hashEntityCountMaxPathSteps,
+  hashEntityCountMaxWhereConditions,
   hashEntityCountResultSchema,
   hashEntityCountToolResultSchema,
   hashEntityCountWhereConditions,
@@ -82,6 +86,7 @@ export {
   type HashWebScope,
 } from "./hash/graph-reads";
 export {
+  hashEntityCountJoinConcurrency,
   hashEntityCountMaxGroupExpansionSteps,
   hashEntityJoinCount,
   hashEntityJoinCountPlan,

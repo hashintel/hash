@@ -2,12 +2,15 @@ import { describe, expect, test, vi } from "vitest";
 
 import {
   hashEntityCountDefaultJoinEntities,
+  hashEntityCountMaxJoinLinkTypes,
+  hashEntityCountMaxJoinRequests,
   hashEntityReadMaxLimit,
 } from "./graph-reads";
 import {
   type HashJoinEntity,
   type HashJoinGraph,
   type HashJoinSelector,
+  hashEntityCountJoinConcurrency,
   hashEntityJoinCount,
   hashEntityJoinCountPlan,
   runHashEntityJoinCount,
@@ -303,6 +306,124 @@ describe("the join", () => {
     ).toThrow("cancelled join");
   });
 
+  test("with drafts, counts an entity with live and draft editions once, as its draft, matching links on the live id", () => {
+    // w~o1 is live with a draft edition; its only line item is fulfilled.
+    // w~o2 is draft-only; its line item, linked from the live id, is not.
+    const draftOrders = [
+      record("w~o1", "SO-1"),
+      record("w~o1~d1", "SO-1 (draft)"),
+      record("w~o2~d2", "SO-2 (draft)"),
+    ];
+    const draftLinks = new Map([
+      [
+        "Has Line Item",
+        [link("w~li1", "w~o1", "w~i1"), link("w~li2", "w~o2", "w~i2")],
+      ],
+      ["Fulfills", [link("w~f1", "w~d", "w~i1")]],
+    ]);
+
+    const undeliveredDrafts = joinComplete(
+      { where: undelivered },
+      draftOrders,
+      draftLinks,
+    );
+    expect(undeliveredDrafts.ofType).toBe(2);
+    expect(undeliveredDrafts.count).toBe(1);
+    expect(undeliveredDrafts.examples).toEqual([
+      record("w~o2~d2", "SO-2 (draft)"),
+    ]);
+
+    const onlyLive = joinComplete(
+      { where: undelivered },
+      draftOrders.slice(0, 2),
+      draftLinks,
+    );
+    expect(onlyLive.ofType).toBe(1);
+    expect(onlyLive.count).toBe(0);
+
+    const delivered = joinComplete(
+      { where: { ...undelivered, exists: true } },
+      draftOrders,
+      draftLinks,
+    );
+    expect(delivered.count).toBe(1);
+    expect(delivered.examples).toEqual([record("w~o1~d1", "SO-1 (draft)")]);
+
+    // Several drafts of one entity still count once, choosing one stably.
+    const twoDrafts = joinComplete(
+      {},
+      [record("w~o3~db"), record("w~o3"), record("w~o3~da")],
+      new Map(),
+    );
+    expect(twoDrafts.ofType).toBe(1);
+    expect(twoDrafts.examples).toEqual([record("w~o3~da")]);
+  });
+
+  test("with drafts, joins multi-hop where and groupBy across draft endpoints, a draft link superseding its live edition", () => {
+    const draftOrders = [record("w~o1~d1"), record("w~o2"), record("w~o3")];
+    const draftLinks = new Map([
+      [
+        "Has Customer",
+        [
+          // The live link to c1 is superseded by its draft, to c2.
+          link("w~hc1", "w~o1", "w~c1"),
+          link("w~hc1~dl", "w~o1", "w~c2"),
+          link("w~hc2", "w~o2", "w~c1~dc"),
+          link("w~hc3", "w~o3", "w~c1"),
+        ],
+      ],
+      [
+        "In Region",
+        [
+          // A draft customer's link reaches the region from its draft id.
+          link("w~ir1", "w~c1~dc", "w~r-eu"),
+          link("w~ir2", "w~c2", "w~r-us"),
+        ],
+      ],
+    ]);
+
+    const byCustomer = joinComplete(
+      { groupBy: hasCustomer },
+      draftOrders,
+      draftLinks,
+    );
+    expect(byCustomer.groups).toEqual(
+      new Map([
+        ["w~c1", 2],
+        ["w~c2", 1],
+      ]),
+    );
+
+    const byRegion = joinComplete(
+      { groupBy: { path: [hasCustomer, inRegion] } },
+      draftOrders,
+      draftLinks,
+    );
+    expect(byRegion.groups).toEqual(
+      new Map([
+        ["w~r-eu", 2],
+        ["w~r-us", 1],
+      ]),
+    );
+
+    const inEu = joinComplete(
+      {
+        where: {
+          path: [hasCustomer, inRegion, { ...inRegion, direction: "incoming" }],
+          exists: true,
+        },
+      },
+      [...draftOrders, record("w~o4")],
+      draftLinks,
+    );
+    expect(inEu.count).toBe(3);
+    expect(inEu.examples.map(({ entityId }) => entityId)).toEqual([
+      "w~o1~d1",
+      "w~o2",
+      "w~o3",
+    ]);
+  });
+
   test("plans counted selector, distinct links, and safe single-direction step-0 endpoint anchors", () => {
     const propertyEquals = [
       {
@@ -406,7 +527,12 @@ const fakeGraph = (
       }
       const matches =
         "entityIds" in selector
-          ? all.filter(({ entityId }) => selector.entityIds.includes(entityId))
+          ? // By id, as with drafts: an id matches its draft editions too.
+            all.filter(({ entityId }) =>
+              selector.entityIds.includes(
+                entityId.split("~").slice(0, 2).join("~"),
+              ),
+            )
           : (data.get(key) ?? []);
       const start = cursor === undefined ? 0 : Number(cursor);
       const end = start + Math.min(limit, pageSize);
@@ -925,6 +1051,164 @@ describe("the paged read", () => {
           "entityTypes" in selector && selector.entityTypes?.[0] === "Fulfills",
       ),
     ).toBe(false);
+  });
+
+  test("labels a group reached by its live id from the draft edition read by that id", async () => {
+    const graph = fakeGraph(
+      new Map([
+        ["Sales Order", [record("w~o1~d1"), record("w~o1")]],
+        ["Has Customer", [link("w~hc1", "w~o1", "w~c1")]],
+        ["Customer", [record("w~c1~dc", "Acme (draft)")]],
+      ]),
+      { pageSize: 1000 },
+    );
+    const result = await runHashEntityJoinCount(
+      { ...salesOrders, groupBy: hasCustomer },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 1,
+      count: 1,
+      groups: [
+        { entity: { entityId: "w~c1~dc", label: "Acme (draft)" }, count: 1 },
+      ],
+      examples: [{ entityId: "w~o1~d1" }],
+    });
+  });
+
+  test("refuses a join following more distinct link types than the cap before sizing anything", async () => {
+    const graph = fakeGraph(data);
+    const step = (index: number) => ({
+      linkType: `Link ${index}`,
+      direction: "outgoing" as const,
+    });
+    const result = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        where: [
+          { path: [0, 1, 2, 3].map(step), exists: true },
+          { path: [4, 5, 6, 7].map(step), exists: false },
+        ],
+        groupBy: {
+          path: Array.from(
+            { length: hashEntityCountMaxJoinLinkTypes - 7 },
+            (_, index) => step(index + 8),
+          ),
+        },
+      },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toEqual({
+      outcome: "incomplete",
+      reason: `The count follows ${hashEntityCountMaxJoinLinkTypes + 1} link types, more than the ${hashEntityCountMaxJoinLinkTypes} a count by links may follow: drop or merge where conditions, or shorten the groupBy path.`,
+      reads: [],
+      requests: 0,
+    });
+    expect(graph.size).not.toHaveBeenCalled();
+    expect(graph.page).not.toHaveBeenCalled();
+  });
+
+  test("sizes and reads many link types with bounded concurrency", async () => {
+    const linkTypes = Array.from(
+      { length: hashEntityCountMaxJoinLinkTypes },
+      (_, index) => `Link ${index}`,
+    );
+    const inner = fakeGraph(
+      new Map([
+        ["Sales Order", orders],
+        ...linkTypes.map(
+          (linkType) =>
+            [
+              linkType,
+              orders.map(({ entityId }) =>
+                link(`${linkType}-${entityId}`, entityId, `${entityId}-x`),
+              ),
+            ] as const,
+        ),
+      ]),
+      { pageSize: 1 },
+    );
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const tracked = <Args extends unknown[], Result>(
+      call: (...args: Args) => Promise<Result>,
+    ) => {
+      return async (...args: Args) => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        try {
+          await new Promise((resolve) => {
+            setTimeout(resolve, 1);
+          });
+          return await call(...args);
+        } finally {
+          inFlight -= 1;
+        }
+      };
+    };
+    const graph: HashJoinGraph<string> = {
+      size: tracked(inner.size),
+      page: tracked(inner.page),
+    };
+    const result = await runHashEntityJoinCount(
+      {
+        ...salesOrders,
+        where: linkTypes.map((linkType) => ({
+          path: [{ linkType, direction: "outgoing" as const }],
+          exists: true,
+        })),
+      },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result).toMatchObject({
+      outcome: "counted",
+      ofType: 3,
+      count: 3,
+      // 1 + 12 sizes, then 3 pages for each of 13 reads.
+      requests: 1 + hashEntityCountMaxJoinLinkTypes + 3 * 13,
+    });
+    expect(maxInFlight).toBeGreaterThan(1);
+    expect(maxInFlight).toBeLessThanOrEqual(hashEntityCountJoinConcurrency);
+  });
+
+  test("settles incomplete once a join would pass the request ceiling, however small its pages", async () => {
+    const graph: HashJoinGraph<string> = {
+      size: vi.fn<HashJoinGraph<string>["size"]>(() => Promise.resolve(1)),
+      page: vi.fn<HashJoinGraph<string>["page"]>(
+        (_selector, _limit, cursor) => {
+          const start = cursor === undefined ? 0 : Number(cursor);
+          return Promise.resolve({
+            entities: [record(`o${start}`)],
+            cursor: String(start + 1),
+          });
+        },
+      ),
+    };
+    const result = await runHashEntityJoinCount(
+      { ...salesOrders, where: { path: [hasCustomer], exists: true } },
+      "default",
+      graph,
+      signal,
+    );
+    expect(result.outcome).toBe("incomplete");
+    if (result.outcome !== "incomplete") {
+      throw new Error(`Expected incomplete outcome, got ${result.outcome}`);
+    }
+    expect(result.reason).toContain(
+      `past the ${hashEntityCountMaxJoinRequests} graph requests a count by links may make`,
+    );
+    expect(result.requests).toBe(hashEntityCountMaxJoinRequests);
+    expect(
+      vi.mocked(graph.size).mock.calls.length +
+        vi.mocked(graph.page).mock.calls.length,
+    ).toBe(hashEntityCountMaxJoinRequests);
   });
 
   test("settles incomplete with no count when multi-hop groupBy exceeds the expansion budget", async () => {
