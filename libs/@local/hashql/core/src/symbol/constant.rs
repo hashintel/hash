@@ -1,7 +1,15 @@
 //! Compile-time 4-way SWAR static lookup table for predefined [`sym::SYMBOLS`].
 //!
-//! The hashing algorithm in use is ported from foldhash, and is designed to be
-//! architecture- and endianness-independent.
+//! Because `foldhash` exposes no `const` hashing API, this module ports `foldhash`'s
+//! `folded_multiply` byte hash using fixed little-endian reads and `foldhash`'s `ARBITRARY6`,
+//! `ARBITRARY7`, and `ARBITRARY0` constants. Packing the 4-way SWAR table during target `const`
+//! evaluation keeps host and target tables identical across pointer widths and endianness while
+//! leaving `hashql-macros` free of hashing code.
+//!
+//! On a static-table miss, [`scramble_runtime_hash`] mixes the already-computed static hash with a
+//! per-table random seed via one `folded_multiply` (`ARBITRARY0`), matching `foldhash::quality`
+//! bit avalanche and giving each [`SymbolTable`](super::SymbolTable) an independent runtime bucket
+//! and tag layout without re-reading the string bytes.
 
 use alloc::vec::Vec;
 use core::num::NonZero;
