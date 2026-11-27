@@ -57,8 +57,13 @@ const scaledSpacing = scaleTokenValues(
   pandaPreset.theme.tokens.spacing,
   "--density-factor",
 );
+// The Panda scale plus the two steps the Figma radius collection adds to it
 const scaledRadii = scaleTokenValues(
-  pandaPreset.theme.tokens.radii,
+  {
+    ...pandaPreset.theme.tokens.radii,
+    none: { value: "0rem" },
+    "lg-xl": { value: "0.625rem" },
+  },
   "--roundness-factor",
 );
 const scaledLineHeights = scaleTokenValues(

@@ -31,7 +31,6 @@ export const styles = sva({
       paddingY: "[var(--selectable-list-container-padding-y)]",
       backgroundColor: "white",
       border: "1px solid {colors.bd.subtle}",
-      borderRadius: "lg",
       boxShadow: "lg",
       outline: "0",
       maxHeight: "[var(--available-height)]",
@@ -131,9 +130,11 @@ export const styles = sva({
     },
   },
   variants: {
+    // Each size's content radius is one step above the input radius at that size
     size: {
       xxs: {
         content: {
+          borderRadius: "7px",
           "--selectable-list-container-padding-x": "var(--spacing-0\\.5)",
           "--selectable-list-container-padding-y": "var(--spacing-0\\.5)",
           "--selectable-list-item-padding-x": "var(--spacing-1\\.5)",
@@ -162,6 +163,7 @@ export const styles = sva({
       },
       xs: {
         content: {
+          borderRadius: "lg",
           "--selectable-list-container-padding-x": "var(--spacing-0\\.5)",
           "--selectable-list-container-padding-y": "var(--spacing-0\\.5)",
           "--selectable-list-item-padding-x": "var(--spacing-2)",
@@ -188,6 +190,7 @@ export const styles = sva({
       },
       sm: {
         content: {
+          borderRadius: "9px",
           "--selectable-list-container-padding-x": "var(--spacing-1)",
           "--selectable-list-container-padding-y": "var(--spacing-1)",
           "--selectable-list-item-padding-x": "var(--spacing-2)",
@@ -214,6 +217,7 @@ export const styles = sva({
       },
       md: {
         content: {
+          borderRadius: "11px",
           "--selectable-list-container-padding-x": "var(--spacing-1)",
           "--selectable-list-container-padding-y": "var(--spacing-1)",
           "--selectable-list-item-padding-x": "var(--spacing-2\\.5)",
@@ -240,6 +244,7 @@ export const styles = sva({
       },
       lg: {
         content: {
+          borderRadius: "xl",
           "--selectable-list-container-padding-x": "var(--spacing-1\\.5)",
           "--selectable-list-container-padding-y": "var(--spacing-1\\.5)",
           "--selectable-list-item-padding-x": "var(--spacing-2\\.5)",

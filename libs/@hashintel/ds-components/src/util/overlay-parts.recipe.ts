@@ -7,7 +7,8 @@ import { sva } from "@hashintel/ds-helpers/css";
  *
  * The `--panel-*` custom properties consumed below are declared on each
  * component's `content` slot (the chrome's ancestor) and inherited down, so the
- * two components can tune horizontal/top padding without diverging this recipe.
+ * two components can tune horizontal/top padding and the card radius without
+ * diverging this recipe.
  */
 export const overlayPartsStyles = sva({
   className: "panel",
@@ -62,7 +63,7 @@ export const overlayPartsStyles = sva({
       backgroundColor: "white",
       borderTop: "[1px solid {colors.neutral.s50}]",
       borderInline: "[1px solid {colors.neutral.s50}]",
-      borderTopRadius: "lg",
+      borderTopRadius: "[var(--panel-card-radius, var(--radii-lg))]",
       borderBottomWidth: "1px",
       borderBottomStyle: "solid",
       borderBottomColor: "neutral.s30",
@@ -271,7 +272,7 @@ export const overlayPartsStyles = sva({
     variant: {
       partitionedFooter: {
         body: {
-          borderBottomRadius: "lg",
+          borderBottomRadius: "[var(--panel-card-radius, var(--radii-lg))]",
         },
       },
       plain: {
@@ -281,7 +282,7 @@ export const overlayPartsStyles = sva({
         body: {
           borderBottom: "none",
           "&:last-child": {
-            borderBottomRadius: "lg",
+            borderBottomRadius: "[var(--panel-card-radius, var(--radii-lg))]",
             borderBottom: "[1px solid {colors.neutral.s50}]",
           },
         },
@@ -290,7 +291,7 @@ export const overlayPartsStyles = sva({
           borderTop: "[1px solid {colors.neutral.s20}]",
           borderInline: "[1px solid {colors.neutral.s50}]",
           borderBottom: "[1px solid {colors.neutral.s50}]",
-          borderBottomRadius: "lg",
+          borderBottomRadius: "[var(--panel-card-radius, var(--radii-lg))]",
         },
       },
     },

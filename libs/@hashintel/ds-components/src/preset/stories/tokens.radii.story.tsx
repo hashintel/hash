@@ -6,10 +6,12 @@ import type { Roundness } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
 
 const steps = [
+  "none",
   "xs",
   "sm",
   "md",
   "lg",
+  "lg-xl",
   "xl",
   "2xl",
   "3xl",
@@ -123,8 +125,8 @@ export const RadiiDemo = ({ roundness }: { roundness: Roundness }) => (
             maxWidth: "[640px]",
           })}
         >
-          Radii use the standard Panda preset scale (xs–4xl, full) with each
-          value multiplied by{" "}
+          Radii use the standard Panda preset scale (xs–4xl, full) plus none and
+          lg-xl, with each value multiplied by{" "}
           <code
             className={css({
               fontFamily: "mono",

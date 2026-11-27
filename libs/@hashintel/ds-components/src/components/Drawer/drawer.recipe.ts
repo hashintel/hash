@@ -48,6 +48,7 @@ export const styles = sva({
       "--panel-horizontal-padding": "var(--spacing-5\\.5)",
       "--panel-top-padding": "var(--spacing-4)",
       "--panel-close-button-gap": "var(--spacing-3\\.5)",
+      "--panel-card-radius": "var(--radii-xl)",
       "--bleed": "3rem",
       position: "relative",
       display: "flex",
@@ -109,8 +110,8 @@ export const styles = sva({
         content: {
           height: "[100dvh]",
           maxWidth: "[var(--panel-width)]",
-          borderTopLeftRadius: "xl",
-          borderBottomLeftRadius: "xl",
+          borderTopLeftRadius: "2xl",
+          borderBottomLeftRadius: "2xl",
           borderTopRightRadius: "[0]",
           borderBottomRightRadius: "[0]",
           boxShadow:
@@ -138,8 +139,8 @@ export const styles = sva({
         content: {
           height: "[100dvh]",
           maxWidth: "[var(--panel-width)]",
-          borderTopRightRadius: "xl",
-          borderBottomRightRadius: "xl",
+          borderTopRightRadius: "2xl",
+          borderBottomRightRadius: "2xl",
           borderTopLeftRadius: "[0]",
           borderBottomLeftRadius: "[0]",
           boxShadow:
@@ -168,8 +169,8 @@ export const styles = sva({
         content: {
           height: "[100%]",
           maxHeight: "[var(--panel-height)]",
-          borderBottomLeftRadius: "xl",
-          borderBottomRightRadius: "xl",
+          borderBottomLeftRadius: "2xl",
+          borderBottomRightRadius: "2xl",
           borderTopLeftRadius: "[0]",
           borderTopRightRadius: "[0]",
           boxShadow:
@@ -198,8 +199,8 @@ export const styles = sva({
         content: {
           height: "[100%]",
           maxHeight: "[var(--panel-height)]",
-          borderTopLeftRadius: "xl",
-          borderTopRightRadius: "xl",
+          borderTopLeftRadius: "2xl",
+          borderTopRightRadius: "2xl",
           borderBottomLeftRadius: "[0]",
           borderBottomRightRadius: "[0]",
           boxShadow:

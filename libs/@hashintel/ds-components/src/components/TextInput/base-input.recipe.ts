@@ -61,7 +61,7 @@ export const baseInputRecipe = sva({
       "--base-input-focus-color": "var(--colors-neutral-s40)",
       "--base-input-border-color": "var(--colors-neutral-s40)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
-      "--clear-offset": "[var(--clear-gap, var(--spacing-2))]",
+      "--clear-offset": "[var(--clear-gap, var(--base-input-padding-right))]",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
@@ -305,8 +305,11 @@ export const baseInputRecipe = sva({
         },
         adornment: {
           background: "neutral.s20",
-          "&:not([data-variant='subtle'])": {
-            paddingX: "2",
+          "&:not([data-variant='subtle']):not([data-icon])": {
+            paddingX: "var(--base-input-adornment-padding-x)",
+          },
+          "&:not([data-variant='subtle'])[data-icon]": {
+            paddingX: "var(--base-input-adornment-icon-padding-x)",
           },
           "&[data-variant='subtle']": {
             paddingX: "1 !important",
@@ -327,10 +330,18 @@ export const baseInputRecipe = sva({
           },
         },
         input: {
-          paddingX: "var(--base-input-padding-x)",
+          paddingLeft: "var(--base-input-padding-x)",
+          paddingRight: "var(--base-input-padding-right)",
         },
         styledValueOverlay: {
-          paddingX: "var(--base-input-padding-x)",
+          paddingLeft: "var(--base-input-padding-x)",
+          paddingRight: "var(--base-input-padding-right)",
+        },
+        loading: {
+          paddingRight: "var(--base-input-padding-right)",
+        },
+        editIcon: {
+          right: "var(--base-input-padding-right)",
         },
       },
       subtle: {
@@ -406,6 +417,12 @@ export const baseInputRecipe = sva({
           "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.1.5",
+        },
+        adornment: {
+          gap: "1",
+          "--base-input-adornment-padding-x": "spacing.2",
+          "--base-input-adornment-icon-padding-x": "spacing.1.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.xxs.textStyle },
       },
@@ -415,6 +432,12 @@ export const baseInputRecipe = sva({
           "--clear-icon-size": "[12px]",
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-right": "spacing.1.5",
+        },
+        adornment: {
+          gap: "1",
+          "--base-input-adornment-padding-x": "spacing.2",
+          "--base-input-adornment-icon-padding-x": "spacing.1.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.xs.textStyle },
       },
@@ -424,6 +447,12 @@ export const baseInputRecipe = sva({
           "--clear-icon-size": "[16px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
+          "--base-input-padding-right": "spacing.2",
+        },
+        adornment: {
+          gap: "1",
+          "--base-input-adornment-padding-x": "spacing.2.5",
+          "--base-input-adornment-icon-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.sm.textStyle },
       },
@@ -433,6 +462,12 @@ export const baseInputRecipe = sva({
           "--clear-icon-size": "[24px]",
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
+          "--base-input-padding-right": "spacing.2",
+        },
+        adornment: {
+          gap: "1",
+          "--base-input-adornment-padding-x": "spacing.3",
+          "--base-input-adornment-icon-padding-x": "spacing.2",
         },
         readonly: { textStyle: formSizes.variants.sizes.md.textStyle },
       },
@@ -440,8 +475,14 @@ export const baseInputRecipe = sva({
         wrapper: {
           ...formSizes.variants.sizes.lg,
           "--clear-icon-size": "[24px]",
-          "--base-input-border-radius": "radii.xl",
-          "--base-input-padding-x": "spacing.4",
+          "--base-input-border-radius": "radii.lg-xl",
+          "--base-input-padding-x": "spacing.3.5",
+          "--base-input-padding-right": "spacing.2.5",
+        },
+        adornment: {
+          gap: "2",
+          "--base-input-adornment-padding-x": "spacing.3.5",
+          "--base-input-adornment-icon-padding-x": "spacing.2.5",
         },
         readonly: { textStyle: formSizes.variants.sizes.lg.textStyle },
       },
@@ -494,7 +535,7 @@ export const baseInputRecipe = sva({
         root: {
           width: "[fit-content]",
           minWidth: "[unset]",
-          "--clear-offset": "[var(--base-input-padding-x)]",
+          "--clear-offset": "[var(--base-input-padding-right)]",
         },
         readonly: { width: "[fit-content]" },
         inputWrapper: {
@@ -647,15 +688,6 @@ export const baseInputRecipe = sva({
             {
               borderColor: "var(--base-input-border-color)",
             },
-        },
-      },
-    },
-    {
-      variant: "default",
-      size: "lg",
-      css: {
-        adornment: {
-          paddingX: "2.5",
         },
       },
     },
