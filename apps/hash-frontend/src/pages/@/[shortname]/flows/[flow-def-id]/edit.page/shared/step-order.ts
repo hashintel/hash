@@ -1,10 +1,15 @@
+import { getValueSources } from "@local/hash-isomorphic-utils/flows/built-sources";
+
 import type {
   StepDefinition,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
+/** The steps a source takes an output of: for a source built from several values, the steps of each. */
 const getSourceStepIds = (source: StepInputSource | undefined) =>
-  source?.kind === "step-output" ? [source.stepId] : [];
+  (source ? getValueSources(source) : []).flatMap((valueSource) =>
+    valueSource.kind === "step-output" ? [valueSource.stepId] : [],
+  );
 
 /** The steps `step` or any step inside it runs after, by connection or data link. */
 const getDependencyStepIds = (step: StepDefinition<string>): string[] => [

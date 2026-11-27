@@ -981,6 +981,128 @@ describe("startFlowNetRun", () => {
     expect(run.isPending({ stepId: "get", itemPath: [] })).toBe(false);
   });
 
+  describe("a step whose properties are built from several values", () => {
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const bioUrl = "https://example.com/types/property-type/bio/";
+    const textId = "https://example.com/types/data-type/text/v/1";
+
+    /* Create an entity named by an optional flow input, which it skips on, with the answer step's explanation. */
+    const flowDefinition: FlowDefinition = {
+      name: "Create from an answer",
+      description: "",
+      inputs: [
+        { name: "name", payloadKind: "Text", array: false, required: true },
+        {
+          name: "nickname",
+          payloadKind: "Text",
+          array: false,
+          required: false,
+        },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "answer",
+          actionDefinitionId: "answerQuestion",
+          description: "",
+          inputs: { question: { kind: "flow-input", inputName: "name" } },
+        },
+        {
+          kind: "action",
+          stepId: "create",
+          actionDefinitionId: "createEntity",
+          description: "",
+          inputs: {
+            entityTypeIds: {
+              kind: "constant",
+              payload: {
+                kind: "VersionedUrl",
+                value: ["https://example.com/types/entity-type/person/v/1"],
+              },
+            },
+            properties: {
+              kind: "properties",
+              values: {
+                [nameUrl]: {
+                  dataTypeId: textId,
+                  from: {
+                    kind: "flow-input",
+                    inputName: "nickname",
+                    whenMissing: "skip",
+                  },
+                },
+                [bioUrl]: {
+                  dataTypeId: textId,
+                  from: {
+                    kind: "step-output",
+                    stepId: "answer",
+                    outputName: "explanation",
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+      outputs: [],
+    };
+
+    const answer = { stepId: "answer", itemPath: [] };
+    const create = { stepId: "create", itemPath: [] };
+
+    it("starts once it has every value, and refers its action to each value its input is built from", async () => {
+      const net = await compileFlowDefinition(flowDefinition);
+      const run = startFlowNetRun(net, {
+        flowInputNames: ["name", "nickname"],
+      });
+
+      expect(run.isPending(create)).toBe(true);
+
+      const firings = run.fire({
+        role: "succeedAttempt",
+        stepRun: answer,
+        outputNames: ["explanation"],
+      });
+
+      expect(
+        firings.map(({ role, stepRun }) => [role, stepRun.stepId]),
+      ).toEqual([
+        ["succeedAttempt", "answer"],
+        ["startStep", "create"],
+        ["startAttempt", "create"],
+      ]);
+      expect(run.attemptInputs(firings[2]!).inputs.properties).toEqual({
+        kind: "built",
+        stepId: "create",
+        inputName: "properties",
+        parts: {
+          [nameUrl]: { kind: "flowInput", inputName: "nickname" },
+          [bioUrl]: {
+            kind: "stepOutput",
+            stepId: "answer",
+            outputName: "explanation",
+            itemPath: [],
+          },
+        },
+      });
+      expectFiringsFollowArcs(net, run);
+    });
+
+    it("holds it while a value it skips on is missing", async () => {
+      const net = await compileFlowDefinition(flowDefinition);
+      const run = startFlowNetRun(net, { flowInputNames: ["name"] });
+
+      run.fire({
+        role: "succeedAttempt",
+        stepRun: answer,
+        outputNames: ["explanation"],
+      });
+
+      expect(run.isPending(create)).toBe(true);
+      expect(run.held()).toEqual([]);
+    });
+  });
+
   describe.each(hardcodedFlowDefinitions)(
     "the %s flow",
     (_, flowDefinition) => {

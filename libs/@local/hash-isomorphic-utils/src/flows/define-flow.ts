@@ -9,7 +9,7 @@ import type {
   PayloadKind,
   PayloadKindValues,
   StepDefinition,
-  StepInputSource,
+  ValueSource,
 } from "./types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
 
@@ -71,7 +71,7 @@ export type Ref<
     array: IsArray;
     required: IsRequired;
   };
-  readonly source: StepInputSource;
+  readonly source: ValueSource;
   /*
    * Method syntax, so that parameters are compared bivariantly and `Ref` stays covariant in its type
    * parameters. `wrap`'s `this` parameter still stops it being called on an array ref.
@@ -335,7 +335,7 @@ const createRef = <
   IsArray extends boolean,
   IsRequired extends boolean,
 >(
-  source: StepInputSource,
+  source: ValueSource,
   itemOf?: string,
 ): Ref<Kind, IsArray, IsRequired> => {
   const withOptions = (options: {
@@ -425,7 +425,7 @@ export const defineFlow = <
   ): StepScope => {
     const checkItemScope = (
       stepId: string,
-      source: StepInputSource,
+      source: ValueSource,
       ref: object,
     ) => {
       if (source.kind === "item" && itemScopes.get(ref) !== forEachStepId) {

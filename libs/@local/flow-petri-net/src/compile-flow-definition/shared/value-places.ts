@@ -1,4 +1,9 @@
 import {
+  getSourceParts,
+  isBuiltSource,
+} from "@local/hash-isomorphic-utils/flows/built-sources";
+
+import {
   generateArrayConsumerKey,
   generateCollectConsumerKey,
   generateCopyKey,
@@ -6,6 +11,7 @@ import {
   generateCopyPlaceKey,
   generateDonePortKey,
   generateInputConsumerKey,
+  generateInputPartConsumerKey,
   generateInputValueKey,
   generateInstanceKey,
   generateItemValueKey,
@@ -32,7 +38,7 @@ import type {
 import type {
   FlowDefinition,
   StepDefinition,
-  StepInputSource,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
@@ -73,7 +79,7 @@ type ValueLocation = {
   producedInto: ArcEndpoint[];
 };
 
-const sourceValueKey = (source: StepInputSource): string | null => {
+const sourceValueKey = (source: ValueSource): string | null => {
   switch (source.kind) {
     case "flow-input":
       return generateInputValueKey(source.inputName);
@@ -96,7 +102,7 @@ const itemValueKeyIn = (scope: string[]) => {
   return generateItemValueKey(forEachStepId);
 };
 
-export const consumes = (source: StepInputSource) =>
+export const consumes = (source: ValueSource) =>
   source.kind !== "constant" && source.access === "consume";
 
 const isSameEndpoint = (endpoint: ArcEndpoint, other: ArcEndpoint) =>
@@ -209,17 +215,37 @@ export const placeValues = ({
   /* Register every consumer, so that each value's places can be decided before any arcs are made. */
   for (const { step, scope } of steps.entries) {
     if (step.kind === "action") {
-      for (const [inputName, source] of Object.entries(step.inputs)) {
+      /* An input built from several values is a consumer of each one it takes: a constant isn't a value. */
+      const addInputConsumer = (
+        source: ValueSource,
+        consumer: Pick<Consumer, "key" | "label">,
+      ) => {
         const valueKey =
           source.kind === "item"
             ? itemValueKeyIn(scope)
             : sourceValueKey(source);
 
         if (valueKey) {
-          addConsumer(valueKey, {
+          addConsumer(valueKey, { ...consumer, consumes: consumes(source) });
+        }
+      };
+
+      for (const [inputName, source] of Object.entries(step.inputs)) {
+        if (isBuiltSource(source)) {
+          for (const [partIndex, part] of getSourceParts(source).entries()) {
+            addInputConsumer(part.from, {
+              key: generateInputPartConsumerKey(
+                step.stepId,
+                inputName,
+                partIndex,
+              ),
+              label: `${step.stepId}.${inputName} (${part.key})`,
+            });
+          }
+        } else {
+          addInputConsumer(source, {
             key: generateInputConsumerKey(step.stepId, inputName),
             label: `${step.stepId}.${inputName}`,
-            consumes: consumes(source),
           });
         }
       }
@@ -429,6 +455,12 @@ export const placeValues = ({
     /** The arc a step's input takes its connected value through, or `null` for a constant. */
     stepInputArc: (stepId: string, inputName: string) =>
       consumerInputArc(generateInputConsumerKey(stepId, inputName)),
+
+    /** The arc a step takes one of the values an input is built from through, or `null` for a constant. */
+    stepInputPartArc: (stepId: string, inputName: string, partIndex: number) =>
+      consumerInputArc(
+        generateInputPartConsumerKey(stepId, inputName, partIndex),
+      ),
 
     /** The arc a for-each step takes the array it iterates over through, or `null` for a constant. */
     forEachArrayArc: (forEachStepId: string) =>

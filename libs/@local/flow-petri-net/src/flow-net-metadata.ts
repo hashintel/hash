@@ -32,18 +32,31 @@ export type ActionLifecycleRole =
   | "retryAttempt"
   | "giveUp";
 
+/** A value a step takes or reads from where it's held. */
+export type ConnectedValue = {
+  kind: "value";
+  /** The place or port the value is taken or read from. */
+  from: ArcEndpoint;
+  access: ValueAccess;
+  wrap?: true;
+  whenMissing?: "skip";
+};
+
 /** Where one of an action's inputs gets its value, as the arcs of its step's `startStep` alone don't say. */
 export type InputSource =
-  | {
-      kind: "value";
-      /** The place or port the value is taken or read from. */
-      from: ArcEndpoint;
-      access: ValueAccess;
-      wrap?: true;
-      whenMissing?: "skip";
-    }
+  | ConnectedValue
   /** A constant, which the step's instance records in its `constants`. */
   | { kind: "constant" }
+  /**
+   * Built from several values when the step starts, as `source` says: the definition's `BuiltSource`, as JSON (see
+   * `buildSourcePayload`). `parts` gives where each value it takes from a flow input, a step or an item is held, by
+   * part key (see `getSourceParts`). A part that isn't in `parts` is a constant, which `source` gives.
+   */
+  | {
+      kind: "built";
+      source: JsonValue;
+      parts: Record<string, ConnectedValue>;
+    }
   /** Nothing is connected, and the input takes its default. */
   | { kind: "default" }
   /** Nothing is connected and there's no default: the input's port gets a token marked absent. */

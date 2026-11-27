@@ -10,6 +10,7 @@ import {
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { StatusCode } from "@local/status";
 
+import { addInputValues } from "./build-inputs.js";
 import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-flow.js";
 import { wrapPayload } from "./initialize-flow.js";
 
@@ -19,8 +20,10 @@ import type {
   ForEachStep,
   ForEachStepDefinition,
   FlowStep,
+  Payload,
   PayloadKind,
   StepOutput,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 
@@ -45,37 +48,27 @@ const passOutputsToStep = ({
   producerStepId: string;
   outputs: StepOutput[];
 }) => {
+  /** The payload the producer passes to a source, if the source takes one of its outputs and it gave that output. */
+  const getPassedPayload = (source: ValueSource): Payload | undefined => {
+    if (source.kind !== "step-output" || source.stepId !== producerStepId) {
+      return undefined;
+    }
+
+    /* An optional output the step didn't produce passes nothing. */
+    const payload = outputs.find(
+      ({ outputName }) => outputName === source.outputName,
+    )?.payload;
+
+    return payload && source.wrap ? wrapPayload(payload) : payload;
+  };
+
   if (step.kind === "action") {
-    const { inputs } = getStepDefinitionFromFlowDefinition({
+    const stepDefinition = getStepDefinitionFromFlowDefinition({
       step,
       flowDefinition,
     });
 
-    for (const [inputName, source] of Object.entries(inputs)) {
-      if (source.kind !== "step-output" || source.stepId !== producerStepId) {
-        continue;
-      }
-
-      const matchingOutput = outputs.find(
-        ({ outputName }) => outputName === source.outputName,
-      );
-
-      if (!matchingOutput) {
-        /* The output is optional, and the step didn't produce it. */
-        continue;
-      }
-
-      // eslint-disable-next-line no-param-reassign -- a run's steps hold its state as it runs
-      step.inputs = [
-        ...(step.inputs ?? []),
-        {
-          inputName,
-          payload: source.wrap
-            ? wrapPayload(matchingOutput.payload)
-            : matchingOutput.payload,
-        },
-      ];
-    }
+    addInputValues({ step, stepDefinition, getPayload: getPassedPayload });
   } else {
     const { over } = getStepDefinitionFromFlowDefinition({
       step,

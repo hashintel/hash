@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createFlowEditor, type FlowEditor } from "./flow-editor.js";
 
-import type { FlowDefinition, StepInputSource } from "./types.js";
+import type { FlowDefinition, ValueSource } from "./types.js";
 
-const explanationOf = (stepId: string): StepInputSource => ({
+const explanationOf = (stepId: string): ValueSource => ({
   kind: "step-output",
   stepId,
   outputName: "explanation",
@@ -216,6 +216,23 @@ describe("createFlowEditor", () => {
       /* `second` still takes its context from the removed step, which a new step must not provide. */
       expect(editor.addStep("answerQuestion", { after: "first" })).toBe(
         "answerQuestion3",
+      );
+
+      /* Nor the value of one of an entity's properties. */
+      const create = editor.addStep("createEntity", { after: "first" });
+      editor.setInputSource(create, "properties", {
+        kind: "properties",
+        values: {
+          "https://example.com/types/property-type/bio/": {
+            dataTypeId: "https://example.com/types/data-type/text/v/1",
+            from: explanationOf("answerQuestion3"),
+          },
+        },
+      });
+      editor.removeStep("answerQuestion3");
+
+      expect(editor.addStep("answerQuestion", { after: "first" })).toBe(
+        "answerQuestion4",
       );
     });
   });
@@ -733,6 +750,27 @@ describe("createFlowEditor", () => {
         whenMissing: "skip",
       });
 
+      /* One of an entity's properties reads the output too, beside one that doesn't. */
+      const bioUrl = "https://example.com/types/property-type/bio/";
+      const nameUrl = "https://example.com/types/property-type/name/";
+      const dataTypeId = "https://example.com/types/data-type/text/v/1";
+      const create = editor.addStep("createEntity", { after: "each" });
+      editor.setInputSource(create, "properties", {
+        kind: "properties",
+        values: {
+          [bioUrl]: {
+            dataTypeId,
+            from: {
+              kind: "step-output",
+              stepId: "each",
+              outputName: "explanations",
+              access: "consume",
+            },
+          },
+          [nameUrl]: { dataTypeId, from: explanationOf("first") },
+        },
+      });
+
       editor.setForEachCollect("each", {
         stepId: "answer",
         outputName: "confidence",
@@ -743,6 +781,25 @@ describe("createFlowEditor", () => {
           stepId: "answer",
           outputName: "confidence",
           as: "collectedConfidence",
+        },
+      });
+      expect(stepOf(editor, create)).toMatchObject({
+        inputs: {
+          properties: {
+            kind: "properties",
+            values: {
+              [bioUrl]: {
+                dataTypeId,
+                from: {
+                  kind: "step-output",
+                  stepId: "each",
+                  outputName: "collectedConfidence",
+                  access: "consume",
+                },
+              },
+              [nameUrl]: { dataTypeId, from: explanationOf("first") },
+            },
+          },
         },
       });
       expect(stepOf(editor, filter)).toMatchObject({

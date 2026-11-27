@@ -35,12 +35,14 @@ export const checkUpdateEntityStep: ActionStepCheck = (params) => {
    * Patches are required even with types, so that the step is skipped when the patches it's connected to are missing;
    * an empty list changes types alone. A connected list may be empty when the step runs, which the step checks then.
    */
-  if (
-    !entityTypeIds &&
-    propertyPatches?.kind === "constant" &&
-    Array.isArray(propertyPatches.payload.value) &&
-    propertyPatches.payload.value.length === 0
-  ) {
+  const givesNoPatches =
+    propertyPatches?.kind === "constant"
+      ? Array.isArray(propertyPatches.payload.value) &&
+        propertyPatches.payload.value.length === 0
+      : propertyPatches?.kind === "property-patches" &&
+        propertyPatches.patches.length === 0;
+
+  if (!entityTypeIds && givesNoPatches) {
     params.report("propertyPatches", noEntityChangesMessage);
   }
 };

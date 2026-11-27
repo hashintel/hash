@@ -49,6 +49,13 @@ export const generateItemValueKey = (forEachStepId: string) =>
 export const generateInputConsumerKey = (stepId: string, inputName: string) =>
   joinKey(stepId, inputName);
 
+/** A step taking one of the values an input is built from (see `BuiltSource`): the part at `partIndex` of its source. */
+export const generateInputPartConsumerKey = (
+  stepId: string,
+  inputName: string,
+  partIndex: number,
+) => joinKey(generateInputConsumerKey(stepId, inputName), String(partIndex));
+
 /** A for-each step taking the array it iterates over. */
 export const generateArrayConsumerKey = (forEachStepId: string) =>
   joinKey(forEachStepId, "over");

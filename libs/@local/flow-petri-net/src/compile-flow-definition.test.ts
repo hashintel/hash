@@ -22,6 +22,7 @@ import {
   generateCopyOutputTransitionKey,
   generateCopyPlaceKey,
   generateInputConsumerKey,
+  generateInputPartConsumerKey,
   generateInputPortKey,
   generateInputValueKey,
   generateInstanceKey,
@@ -475,6 +476,107 @@ describe("compileFlowDefinition", () => {
         ),
       },
     });
+  });
+
+  it("takes every value a step's properties are built from, and records where each is held", async () => {
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const bioUrl = "https://example.com/types/property-type/bio/";
+    const scoreUrl = "https://example.com/types/property-type/score/";
+    const textId = "https://example.com/types/data-type/text/v/1";
+
+    const properties = {
+      kind: "properties",
+      values: {
+        [nameUrl]: {
+          dataTypeId: textId,
+          from: { kind: "flow-input", inputName: "name" },
+        },
+        /* Consumed, and a flow output too, so the step takes its own copy. */
+        [bioUrl]: {
+          dataTypeId: textId,
+          from: {
+            kind: "step-output",
+            stepId: "answer",
+            outputName: "explanation",
+            access: "consume",
+          },
+        },
+        [scoreUrl]: {
+          dataTypeId: "https://example.com/types/data-type/number/v/1",
+          from: { kind: "constant", payload: { kind: "Number", value: 3 } },
+        },
+      },
+    } as const;
+
+    const sdcpn = await compileFlowDefinition({
+      name: "Create from an answer",
+      description: "",
+      inputs: [
+        { name: "name", payloadKind: "Text", array: false, required: true },
+      ],
+      steps: [
+        {
+          kind: "action",
+          stepId: "answer",
+          actionDefinitionId: "answerQuestion",
+          description: "",
+          inputs: { question: { kind: "flow-input", inputName: "name" } },
+        },
+        {
+          kind: "action",
+          stepId: "create",
+          actionDefinitionId: "createEntity",
+          description: "",
+          inputs: {
+            entityTypeIds: {
+              kind: "constant",
+              payload: {
+                kind: "VersionedUrl",
+                value: ["https://example.com/types/entity-type/person/v/1"],
+              },
+            },
+            properties,
+          },
+        },
+      ],
+      outputs: [{ name: "bio", stepId: "answer", outputName: "explanation" }],
+    });
+
+    const startCreate = sdcpn.transitions.find(
+      byKey(generateStepTransitionKey("startStep", "create")),
+    );
+
+    const name = placeEndpointOf(
+      generateValuePlaceKey(generateInputValueKey("name")),
+    );
+    /* The second of the values the properties take. */
+    const bioCopy = placeEndpointOf(
+      generateCopyPlaceKey(
+        generateOutputValueKey("answer", "explanation"),
+        generateInputPartConsumerKey("create", "properties", 1),
+      ),
+    );
+
+    expect(
+      startCreate?.inputArcs.map((arc) => [getArcEndpoint(arc), arc.type]),
+    ).toEqual([
+      [placeEndpointOf(generatePendingPlaceKey("create")), "standard"],
+      [name, "read"],
+      [bioCopy, "standard"],
+    ]);
+    /* The fixed score isn't a part the step takes: the source gives it. */
+    expect(
+      (startCreate?.metadata as { inputSources: Record<string, unknown> })
+        .inputSources.properties,
+    ).toEqual({
+      kind: "built",
+      source: properties,
+      parts: {
+        [nameUrl]: { kind: "value", from: name, access: "read" },
+        [bioUrl]: { kind: "value", from: bioCopy, access: "consume" },
+      },
+    });
+    expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
   });
 
   it("keeps a step's inputs apart from what another step waits on, whatever their ids", async () => {

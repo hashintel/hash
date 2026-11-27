@@ -21,6 +21,7 @@ import type {
   InputDefinition,
   PayloadKind,
   StepInputSource,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinitionDiagnosticCode } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
@@ -99,7 +100,7 @@ export const getSourceKey = (source: StepInputSource) => {
 };
 
 export type SourceOption = {
-  source: Exclude<StepInputSource, { kind: "constant" }>;
+  source: Exclude<ValueSource, { kind: "constant" }>;
   /** The value's own name, e.g. "Certificate link". */
   label: string;
   /** Where the value comes from: "Start · Flow inputs", or the step that gives it. */
@@ -273,6 +274,11 @@ export const getSourceLabel = (
     /* One that can be typed shows in a text field instead. */
     case "constant":
       return "Fixed value";
+
+    /* An entity's properties show as rows instead, each with its own value. */
+    case "properties":
+    case "property-patches":
+      return "Several values";
   }
 };
 

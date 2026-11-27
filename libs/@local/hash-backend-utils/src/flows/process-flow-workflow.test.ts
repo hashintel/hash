@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 
 import { getStepReadiness } from "./process-flow-workflow.js";
 import { getStepsInFlowById } from "./process-flow-workflow/get-all-steps-in-flow.js";
+import {
+  initializeActionStep,
+  initializeFlow,
+} from "./process-flow-workflow/initialize-flow.js";
+import { passOutputsToUnprocessedSteps } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ActionStep,
   ActionStepDefinition,
   FlowDefinition,
+  FlowInputValues,
   LocalFlowRun,
+  StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 describe("getStepReadiness", () => {
@@ -373,6 +380,369 @@ describe("getStepReadiness", () => {
 
       expect(readiness("innerYes~0", context)).toBe("ready");
       expect(readiness("innerYes~1", context)).toBe("skip");
+    });
+  });
+});
+
+describe("an input built from several values", () => {
+  const nameUrl = "https://example.com/types/property-type/name/";
+  const bioUrl = "https://example.com/types/property-type/bio/";
+  const scoreUrl = "https://example.com/types/property-type/score/";
+  const textId = "https://example.com/types/data-type/text/v/1";
+  const numberId = "https://example.com/types/data-type/number/v/1";
+
+  const answerStep = (stepId: string): ActionStepDefinition => ({
+    kind: "action",
+    stepId,
+    actionDefinitionId: "answerQuestion",
+    description: "",
+    inputs: { question: { kind: "flow-input", inputName: "name" } },
+  });
+
+  const createStep = (properties: StepInputSource): ActionStepDefinition => ({
+    kind: "action",
+    stepId: "create",
+    actionDefinitionId: "createEntity",
+    description: "",
+    inputs: {
+      entityTypeIds: {
+        kind: "constant",
+        payload: {
+          kind: "VersionedUrl",
+          value: ["https://example.com/types/entity-type/person/v/1"],
+        },
+      },
+      properties,
+    },
+  });
+
+  /** Takes the name from a flow input, the bio from the step before, and a fixed score. */
+  const properties: StepInputSource = {
+    kind: "properties",
+    values: {
+      [nameUrl]: {
+        dataTypeId: textId,
+        from: { kind: "flow-input", inputName: "name" },
+      },
+      [bioUrl]: {
+        dataTypeId: textId,
+        from: {
+          kind: "step-output",
+          stepId: "answer",
+          outputName: "explanation",
+        },
+      },
+      [scoreUrl]: {
+        dataTypeId: numberId,
+        from: { kind: "constant", payload: { kind: "Number", value: 3 } },
+      },
+    },
+  };
+
+  const definitionWith = (steps: FlowDefinition["steps"]): FlowDefinition => ({
+    name: "",
+    description: "",
+    inputs: [
+      { name: "name", payloadKind: "Text", array: false, required: true },
+      { name: "nickname", payloadKind: "Text", array: false, required: false },
+      { name: "names", payloadKind: "Text", array: true, required: true },
+    ],
+    steps,
+    outputs: [],
+  });
+
+  const startRun = (
+    flowDefinition: FlowDefinition,
+    flowInputs: FlowInputValues = { name: { kind: "Text", value: "Ada" } },
+  ) => {
+    const flow = initializeFlow({
+      flowDefinition,
+      flowDefinitionEntityId:
+        "d4e16033-c281-4cde-aa35-9085bf2e7579~0f5f3bd1-3a28-4b9f-9e3a-5b4a6b1c2d00" as EntityId,
+      flowInputs,
+      name: "",
+      temporalWorkflowId: "",
+    });
+    const stepsById = getStepsInFlowById(flow);
+    const processed = new Set<string>();
+    const skipped = new Set<string>();
+
+    return {
+      stepsById,
+      processed,
+      skipped,
+      inputOf: (stepId: string, inputName: string) => {
+        const step = stepsById.get(stepId);
+
+        return step?.kind === "action"
+          ? step.inputs?.find((input) => input.inputName === inputName)?.payload
+          : undefined;
+      },
+      readinessOf: (stepId: string) =>
+        getStepReadiness(stepsById.get(stepId)!, {
+          flowDefinition,
+          stepsById,
+          processedStepIds: processed,
+          skippedStepIds: skipped,
+          failedStepIds: new Set(),
+        }),
+      finish: (stepId: string, explanation?: string) => {
+        const outputs = explanation
+          ? [
+              {
+                outputName: "explanation",
+                payload: { kind: "Text" as const, value: explanation },
+              },
+            ]
+          : [];
+        const step = stepsById.get(stepId);
+
+        if (step?.kind === "action") {
+          step.outputs = outputs;
+        }
+
+        processed.add(stepId);
+
+        passOutputsToUnprocessedSteps({
+          stepsById,
+          flowDefinition,
+          stepId,
+          outputs,
+          processedStepIds: processed,
+        });
+      },
+    };
+  };
+
+  it("waits for every value, then gives the step the input a constant with those values would", () => {
+    const run = startRun(
+      definitionWith([answerStep("answer"), createStep(properties)]),
+    );
+
+    expect(run.inputOf("create", "properties")).toBeUndefined();
+    expect(run.readinessOf("create")).toBe("waiting");
+
+    run.finish("answer", "A mathematician");
+
+    expect(run.readinessOf("create")).toBe("ready");
+    expect(run.inputOf("create", "properties")).toEqual({
+      kind: "PropertyObjectWithMetadata",
+      value: {
+        value: {
+          [nameUrl]: { value: "Ada", metadata: { dataTypeId: textId } },
+          [bioUrl]: {
+            value: "A mathematician",
+            metadata: { dataTypeId: textId },
+          },
+          [scoreUrl]: { value: 3, metadata: { dataTypeId: numberId } },
+        },
+      },
+    });
+  });
+
+  it("builds the input when the run starts if no value comes from a step", () => {
+    const run = startRun(
+      definitionWith([
+        createStep({
+          kind: "properties",
+          values: {
+            [nameUrl]: {
+              dataTypeId: textId,
+              from: { kind: "flow-input", inputName: "name" },
+            },
+          },
+        }),
+      ]),
+    );
+
+    expect(run.readinessOf("create")).toBe("ready");
+    expect(run.inputOf("create", "properties")).toEqual({
+      kind: "PropertyObjectWithMetadata",
+      value: {
+        value: {
+          [nameUrl]: { value: "Ada", metadata: { dataTypeId: textId } },
+        },
+      },
+    });
+  });
+
+  it("skips the step when the step a value comes from was skipped", () => {
+    const run = startRun(
+      definitionWith([answerStep("answer"), createStep(properties)]),
+    );
+
+    run.processed.add("answer");
+    run.skipped.add("answer");
+
+    expect(run.readinessOf("create")).toBe("skip");
+  });
+
+  it("never starts the step when the step a value comes from didn't give it", () => {
+    const run = startRun(
+      definitionWith([answerStep("answer"), createStep(properties)]),
+    );
+
+    run.finish("answer");
+
+    expect(run.readinessOf("create")).toBe("waiting");
+    expect(run.inputOf("create", "properties")).toBeUndefined();
+  });
+
+  it("skips the step when a flow input it skips on wasn't given, and runs it when it was", () => {
+    const flowDefinition = definitionWith([
+      createStep({
+        kind: "properties",
+        values: {
+          [nameUrl]: {
+            dataTypeId: textId,
+            from: {
+              kind: "flow-input",
+              inputName: "nickname",
+              whenMissing: "skip",
+            },
+          },
+        },
+      }),
+    ]);
+
+    expect(startRun(flowDefinition).readinessOf("create")).toBe("skip");
+    expect(
+      startRun(flowDefinition, {
+        nickname: { kind: "Text", value: "Countess" },
+      }).readinessOf("create"),
+    ).toBe("ready");
+  });
+
+  it("builds property patches in the order they're listed, removals included", () => {
+    const run = startRun(
+      definitionWith([
+        answerStep("answer"),
+        {
+          kind: "action",
+          stepId: "update",
+          actionDefinitionId: "updateEntity",
+          description: "",
+          inputs: {
+            entityId: {
+              kind: "constant",
+              payload: {
+                kind: "EntityId",
+                value:
+                  "d4e16033-c281-4cde-aa35-9085bf2e7579~0f5f3bd1-3a28-4b9f-9e3a-5b4a6b1c2d00",
+              },
+            },
+            propertyPatches: {
+              kind: "property-patches",
+              patches: [
+                { op: "remove", path: [scoreUrl] },
+                {
+                  op: "add",
+                  path: [bioUrl],
+                  dataTypeId: textId,
+                  from: {
+                    kind: "step-output",
+                    stepId: "answer",
+                    outputName: "explanation",
+                  },
+                },
+                {
+                  op: "replace",
+                  path: [nameUrl],
+                  dataTypeId: textId,
+                  from: { kind: "flow-input", inputName: "name" },
+                },
+              ],
+            },
+          },
+        },
+      ]),
+    );
+
+    expect(run.readinessOf("update")).toBe("waiting");
+
+    run.finish("answer", "A mathematician");
+
+    expect(run.readinessOf("update")).toBe("ready");
+    expect(run.inputOf("update", "propertyPatches")).toEqual({
+      kind: "PropertyPatch",
+      value: [
+        { op: "remove", path: [scoreUrl] },
+        {
+          op: "add",
+          path: [bioUrl],
+          property: {
+            value: "A mathematician",
+            metadata: { dataTypeId: textId },
+          },
+        },
+        {
+          op: "replace",
+          path: [nameUrl],
+          property: { value: "Ada", metadata: { dataTypeId: textId } },
+        },
+      ],
+    });
+  });
+
+  it("takes each item's own values inside a for-each step", () => {
+    const itemProperties: StepInputSource = {
+      kind: "properties",
+      values: {
+        [nameUrl]: { dataTypeId: textId, from: { kind: "item" } },
+        [bioUrl]: {
+          dataTypeId: textId,
+          from: {
+            kind: "step-output",
+            stepId: "answer",
+            outputName: "explanation",
+          },
+        },
+      },
+    };
+    const create = createStep(itemProperties);
+    const flowDefinition = definitionWith([
+      {
+        kind: "for-each",
+        stepId: "each",
+        description: "",
+        over: { kind: "flow-input", inputName: "names" },
+        steps: [answerStep("answer"), create],
+        collect: { stepId: "create", outputName: "entityId", as: "created" },
+      },
+    ]);
+    const run = startRun(flowDefinition);
+
+    /* The for-each step starts its items: each gets the steps inside it, with its item. */
+    for (const [index, name] of ["Ada", "Grace"].entries()) {
+      for (const stepDefinition of [answerStep("answer"), create]) {
+        const step = initializeActionStep({
+          flowInputs: {},
+          stepDefinition,
+          overrideStepId: `${stepDefinition.stepId}~${index}`,
+          existingStepsById: run.stepsById,
+          item: { kind: "Text", value: name },
+        });
+
+        run.stepsById.set(step.stepId, step);
+      }
+    }
+
+    run.processed.add("each");
+    run.finish("answer~1", "A rear admiral");
+
+    expect(run.readinessOf("create~0")).toBe("waiting");
+    expect(run.readinessOf("create~1")).toBe("ready");
+    expect(run.inputOf("create~1", "properties")).toEqual({
+      kind: "PropertyObjectWithMetadata",
+      value: {
+        value: {
+          [nameUrl]: { value: "Grace", metadata: { dataTypeId: textId } },
+          [bioUrl]: {
+            value: "A rear admiral",
+            metadata: { dataTypeId: textId },
+          },
+        },
+      },
     });
   });
 });

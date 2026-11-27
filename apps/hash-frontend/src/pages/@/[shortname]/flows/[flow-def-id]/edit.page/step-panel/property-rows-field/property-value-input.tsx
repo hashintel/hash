@@ -19,7 +19,10 @@ const typedErrors: Record<PropertyValueKind["kind"], string> = {
 /* The graph's date-time format needs seconds, which `parseDateTime` doesn't. */
 const hasSeconds = (text: string) => /T\d{2}:\d{2}:\d{2}/.test(text);
 
-/** A property's value, typed or picked. Commits only a valid value; until then, `onError` reports what's wrong. */
+/**
+ * A property's value, typed or picked. Commits only a valid value; until then, `onError` reports what's wrong. Its
+ * clear button gives the value up rather than emptying it.
+ */
 export const PropertyValueInput = ({
   valueKind,
   value,
@@ -28,6 +31,8 @@ export const PropertyValueInput = ({
   invalid,
   onCommit,
   onError,
+  onClear,
+  onLeaveEmpty,
 }: {
   valueKind: PropertyValueKind;
   /** `undefined` for a row that has no value yet. */
@@ -37,6 +42,9 @@ export const PropertyValueInput = ({
   invalid: boolean;
   onCommit: (value: RowValue) => void;
   onError: (error: string | undefined) => void;
+  onClear: () => void;
+  /** Called when the input is left with no value and nothing typed. */
+  onLeaveEmpty: () => void;
 }) => {
   /* What's typed, while it differs from the saved value. */
   const [draft, setDraft] = useState<string>();
@@ -59,14 +67,33 @@ export const PropertyValueInput = ({
         invalid={invalid}
         defaultOpen={autoFocus}
         aria-label={label}
+        onOpenChange={(open) => {
+          if (!open && value === undefined) {
+            onLeaveEmpty();
+          }
+        }}
         onChange={(picked) => {
-          if (picked !== null) {
+          if (picked === null) {
+            onClear();
+          } else {
             onCommit(valueKind.kind === "Boolean" ? picked === "true" : picked);
           }
         }}
       />
     );
   }
+
+  const fieldProps = {
+    invalid,
+    autoFocus,
+    "aria-label": label,
+    clearable: { onClear },
+    onBlur: () => {
+      if (value === undefined && (draft ?? "") === "") {
+        onLeaveEmpty();
+      }
+    },
+  };
 
   if (valueKind.kind === "Number") {
     return (
@@ -76,9 +103,7 @@ export const PropertyValueInput = ({
         min={-Number.MAX_VALUE}
         max={Number.MAX_VALUE}
         step="any"
-        invalid={invalid}
-        autoFocus={autoFocus}
-        aria-label={label}
+        {...fieldProps}
         onChange={(number) => {
           if (number === null) {
             setDraft("");
@@ -101,9 +126,7 @@ export const PropertyValueInput = ({
       type={kind === "Date" ? "date" : "text"}
       value={draft ?? (value === undefined ? "" : String(value))}
       placeholder={kind === "DateTime" ? "YYYY-MM-DDTHH:mm:ssZ" : undefined}
-      invalid={invalid}
-      autoFocus={autoFocus}
-      aria-label={label}
+      {...fieldProps}
       onChange={(text) => {
         /* Empty text isn't a value to set: Update entity removes a property instead. */
         if (

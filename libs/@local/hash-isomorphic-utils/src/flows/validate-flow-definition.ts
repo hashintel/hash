@@ -2,6 +2,12 @@ import {
   actionDefinitions as defaultActionDefinitions,
   getKindSources,
 } from "./action-definitions.js";
+import {
+  getBuiltSourceShape,
+  getSourceParts,
+  propertyValueTarget,
+  validateBuiltSource,
+} from "./built-sources.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
 import { flowDefinitionSchema } from "./flow-definition-schema.js";
 import { validatePayloadValue } from "./payload-schemas.js";
@@ -42,6 +48,8 @@ export type FlowDefinitionDiagnosticCode =
   | "unknownStepOutput"
   | "itemOutsideForEach"
   | "invalidConstant"
+  /** A source built from several values (see `BuiltSource`) that would build an invalid one, whatever its values. */
+  | "invalidBuiltSource"
   | "incompatibleConnection"
   /** A for-each step with no list. */
   | "missingOver"
@@ -351,6 +359,13 @@ export const validateFlowDefinition = (
     return shapes.getStepOutputShape(stepId, outputName);
   };
 
+  /* Only a connected value can be wrapped, or skip its step when missing: a constant or a built value is always there. */
+  const wrapOf = (source: StepInputSource) =>
+    "wrap" in source && source.wrap === true;
+
+  const skipsWhenMissing = (source: StepInputSource) =>
+    "whenMissing" in source && source.whenMissing === "skip";
+
   /**
    * Resolves the shape of a source as seen from a consumer, reporting any problem with the reference itself.
    * Returns `null` when the source can't be resolved, so that no connection check follows.
@@ -443,14 +458,51 @@ export const validateFlowDefinition = (
           required: true,
         };
       }
+
+      case "properties":
+      case "property-patches": {
+        for (const part of getSourceParts(source)) {
+          const partPath = [...path, ...part.path];
+
+          const partShape = resolveSource({
+            source: part.from,
+            consumer,
+            path: partPath,
+          });
+
+          if (!partShape) {
+            continue;
+          }
+
+          const check = canConnect({
+            source: partShape,
+            target: propertyValueTarget,
+            wrap: wrapOf(part.from),
+            skipWhenMissing: skipsWhenMissing(part.from),
+          });
+
+          if (!check.ok) {
+            report(
+              "incompatibleConnection",
+              check.problem === "payloadKind"
+                ? `A ${partShape.payloadKind} value can't be a property's value`
+                : check.message,
+              partPath,
+            );
+          }
+        }
+
+        const problem = validateBuiltSource(source);
+
+        if (problem) {
+          report("invalidBuiltSource", problem, path);
+          return null;
+        }
+
+        return getBuiltSourceShape(source);
+      }
     }
   };
-
-  const wrapOf = (source: StepInputSource) =>
-    source.kind !== "constant" && source.wrap === true;
-
-  const skipsWhenMissing = (source: StepInputSource) =>
-    source.kind !== "constant" && source.whenMissing === "skip";
 
   const checkForEachStep = (
     entry: StepEntry,

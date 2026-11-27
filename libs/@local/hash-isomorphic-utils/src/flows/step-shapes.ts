@@ -1,4 +1,5 @@
 import { actionDefinitions as defaultActionDefinitions } from "./action-definitions.js";
+import { getBuiltSourceShape } from "./built-sources.js";
 
 import type { ConnectionSource } from "./can-connect.js";
 import type {
@@ -105,6 +106,10 @@ export const createStepShapeResolver = (
           array: Array.isArray(source.payload.value),
           required: true,
         };
+
+      case "properties":
+      case "property-patches":
+        return getBuiltSourceShape(source);
     }
   };
 

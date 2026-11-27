@@ -10,6 +10,7 @@ import {
 } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { isBuiltSource } from "@local/hash-isomorphic-utils/flows/built-sources";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import { toStepErrors } from "@local/hash-isomorphic-utils/flows/run-events";
 import {
@@ -27,6 +28,7 @@ import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { getActionActivityOptions } from "./action-activity-options.js";
+import { getMissingInputParts } from "./process-flow-workflow/build-inputs.js";
 import { getStepsInFlowById } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
 import {
@@ -57,10 +59,10 @@ import type {
   FlowOutputDefinition,
   FlowStep,
   Payload,
-  StepInputSource,
   SkippedStep,
   StartedForEachStep,
   StepOutput,
+  ValueSource,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 
@@ -146,7 +148,7 @@ export const getStepReadiness = (
     source,
     required,
   }: {
-    source: StepInputSource;
+    source: ValueSource;
     required: boolean;
   }): StepReadiness => {
     if (source.kind !== "step-output") {
@@ -268,14 +270,22 @@ export const getStepReadiness = (
     return getMissingValueReadiness({ source: over, required: true });
   }
 
-  const { inputs } = getStepDefinitionFromFlowDefinition({
+  const stepDefinition = getStepDefinitionFromFlowDefinition({
     step,
     flowDefinition,
   });
 
   const actionDefinition = actionDefinitions[step.actionDefinitionId];
 
-  const readinessOfInputs = Object.entries(inputs).map(
+  /* An input built from several values needs every one of them, whether or not the input itself is required. */
+  const readinessOfInputParts = getMissingInputParts({
+    step,
+    stepDefinition,
+  }).map(({ part }) =>
+    getMissingValueReadiness({ source: part.from, required: true }),
+  );
+
+  const readinessOfInputs = Object.entries(stepDefinition.inputs).map(
     ([inputName, source]): StepReadiness => {
       const inputDefinition = actionDefinition.inputs.find(
         ({ name }) => name === inputName,
@@ -295,7 +305,11 @@ export const getStepReadiness = (
         });
       }
 
-      if (step.inputs?.some((input) => input.inputName === inputName)) {
+      /* A built input is ready once the step has it, and until then its missing parts say what it waits on. */
+      if (
+        step.inputs?.some((input) => input.inputName === inputName) ||
+        isBuiltSource(source)
+      ) {
         return "ready";
       }
 
@@ -306,11 +320,13 @@ export const getStepReadiness = (
     },
   );
 
-  if (readinessOfInputs.includes("skip")) {
+  const readiness = [...readinessOfInputs, ...readinessOfInputParts];
+
+  if (readiness.includes("skip")) {
     return "skip";
   }
 
-  return readinessOfInputs.every((readiness) => readiness === "ready")
+  return readiness.every((inputReadiness) => inputReadiness === "ready")
     ? "ready"
     : "waiting";
 };
