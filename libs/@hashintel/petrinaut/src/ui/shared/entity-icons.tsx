@@ -47,6 +47,10 @@ export const DifferentialEquationIcon = ({ size }: EntityIconProps) => (
   <Icon name="function" size={sizeToIconSize(size)} />
 );
 
+export const MetricIcon = ({ size }: EntityIconProps) => (
+  <Icon name="chartLine" size={sizeToIconSize(size)} />
+);
+
 export const FusionIcon = ({ size }: EntityIconProps) => (
   <Icon name="diagramNodes" size={sizeToIconSize(size)} />
 );

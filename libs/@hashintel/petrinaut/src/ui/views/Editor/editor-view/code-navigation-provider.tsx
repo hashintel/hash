@@ -3,6 +3,7 @@ import { startTransition, use, useState } from "react";
 import {
   getDocumentUri,
   getEffectiveTransitionLambdaType,
+  getMetricDocumentUri,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
@@ -103,6 +104,14 @@ export const CodeNavigationProvider = ({ children }: PropsWithChildren) => {
             },
           ],
     ),
+    // The metric's editor names its document after the metric.
+    ...(petriNetDefinition.metrics ?? []).map((metric): CodeEntry => ({
+      path: getMetricDocumentUri(metric.id),
+      label: "Metric code",
+      selection: { type: "metric", id: metric.id },
+      panel: "metric-properties",
+      section: "metric-main-content",
+    })),
   ];
 
   const value: CodeNavigation = {

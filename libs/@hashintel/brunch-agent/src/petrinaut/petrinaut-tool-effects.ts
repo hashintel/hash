@@ -8,7 +8,6 @@ export const netElementKinds = [
   // Kinds Petrinaut has no selection for.
   "typeElement",
   "scenario",
-  "metric",
   "component",
 ] as const;
 

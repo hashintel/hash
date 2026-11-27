@@ -46,6 +46,8 @@ The lighter parent name in the header returns to the property's sections and hig
 
 Differential equations already occupy the full properties panel. Their code editor uses the same edge-to-edge layout and stays visible, read-only, during simulation.
 
+Select a metric in the **Metrics** group to edit its **Name**, **Description** and **Code** in the same panel. A metric's name must differ from the other metrics' names. The code is a function body that reads `state.places` and returns one finite number; errors show in the editor as you type. Delete a metric from its **⋯** menu in the tree, or select it and press Delete.
+
 ## Top bar
 
 Spans the full editor width and has three sections.
@@ -232,8 +234,9 @@ The left sidebar holds **Entities**, one tree of everything in the net, in these
 | **Token Types**            | Token types (colours). Click **+** to create a new type.             |
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
+| **Metrics**                | The model's metrics, saved with the net. Click **+** to create.      |
 
-A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with components gets a **Components** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. Metrics are always listed for the root net; they belong to the whole model, so the group is not shown while you edit a component. A net with components gets a **Components** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
 
 Toggle the sidebar with the button in the top-left corner.
 

@@ -1,5 +1,6 @@
 import {
   DifferentialEquationIcon,
+  MetricIcon,
   ParameterIcon,
   PlaceIcon,
   TokenTypeIcon,
@@ -8,6 +9,7 @@ import {
 
 import type { ActiveNetDefinition } from "../../../../../../../react/document/active-net-context";
 import type {
+  Metric,
   PetrinautExtensionSettings,
   SelectionItem,
 } from "@hashintel/petrinaut-core";
@@ -16,7 +18,13 @@ import type { ComponentType } from "react";
 /** An entity of a net as the sidebar lists it: a row of the tree, a result of the search. */
 export interface EntityItem {
   id: string;
-  type: "place" | "transition" | "type" | "differentialEquation" | "parameter";
+  type:
+    | "place"
+    | "transition"
+    | "type"
+    | "differentialEquation"
+    | "parameter"
+    | "metric";
   name: string;
   iconColor?: string;
   variableName?: string;
@@ -26,7 +34,8 @@ export type EntityGroupId =
   | "group-nodes"
   | "group-types"
   | "group-equations"
-  | "group-parameters";
+  | "group-parameters"
+  | "group-metrics";
 
 /** A collapsible header row of the tree with the entities below it. */
 export interface EntityGroup {
@@ -48,6 +57,7 @@ export const entityIcons: Record<
   type: TokenTypeIcon,
   differentialEquation: DifferentialEquationIcon,
   parameter: ParameterIcon,
+  metric: MetricIcon,
 };
 
 export const selectionItemOf = ({ type, id }: EntityItem): SelectionItem => ({
@@ -77,7 +87,9 @@ export const entitiesMountedFirst = (
 
 /**
  * The entities of a net in the order the sidebar lists them, under the groups
- * the document's extensions allow.
+ * the document's extensions allow. Metrics belong to the document and not to
+ * a net: the caller passes them where the net shown is the root net, and
+ * leaves them out inside a component.
  */
 export const entityGroups = (
   {
@@ -91,6 +103,7 @@ export const entityGroups = (
     "places" | "transitions" | "types" | "differentialEquations" | "parameters"
   >,
   extensions: PetrinautExtensionSettings,
+  metrics?: readonly Metric[],
 ): EntityGroup[] => [
   {
     id: "group-nodes",
@@ -149,6 +162,20 @@ export const entityGroups = (
             type: "parameter" as const,
             name: parameter.name,
             variableName: parameter.variableName,
+          })),
+        },
+      ]
+    : []),
+  ...(metrics
+    ? [
+        {
+          id: "group-metrics" as const,
+          name: "Metrics",
+          emptyGroupMessage: "No metrics",
+          children: metrics.map((metric) => ({
+            id: metric.id,
+            type: "metric" as const,
+            name: metric.name,
           })),
         },
       ]

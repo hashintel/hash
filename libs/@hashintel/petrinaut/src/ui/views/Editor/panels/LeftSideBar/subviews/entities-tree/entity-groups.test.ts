@@ -87,6 +87,27 @@ describe("entityGroups", () => {
     ]);
   });
 
+  it("lists the document's metrics last, and no Metrics group where none are given", () => {
+    const metrics = [
+      { id: "m1", name: "Stock level", code: "return 0;" },
+      { id: "m2", name: "Throughput", code: "return 1;" },
+    ];
+    const groups = entityGroups(net, DEFAULT_PETRINAUT_EXTENSIONS, metrics);
+
+    expect(groups.at(-1)).toMatchObject({
+      id: "group-metrics",
+      name: "Metrics",
+      children: [
+        { id: "m1", type: "metric", name: "Stock level" },
+        { id: "m2", type: "metric", name: "Throughput" },
+      ],
+    });
+    expect(
+      entityGroups(net, DEFAULT_PETRINAUT_EXTENSIONS, []).at(-1)!.children,
+    ).toEqual([]);
+    expect(groupNames({})).not.toContain("Metrics");
+  });
+
   it("leaves out the groups of an extension that is off", () => {
     expect(groupNames({})).toEqual([
       "Nodes",

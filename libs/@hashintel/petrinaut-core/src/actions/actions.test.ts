@@ -782,6 +782,39 @@ describe("Petrinaut core actions", () => {
     expect(definition.places[0]!.dynamics).toEqual([]);
   });
 
+  test("deleteItemsByIds removes a metric from the document, whichever net it aims at", () => {
+    const instance = createInstance();
+    instance.mutations.addComponent({
+      id: "component-1",
+      name: "Reusable component",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    });
+    instance.mutations.addMetric({
+      id: "metric-1",
+      name: "Kept",
+      code: "return 0;",
+    });
+    instance.mutations.addMetric({
+      id: "metric-2",
+      name: "Deleted",
+      code: "return 1;",
+    });
+
+    instance.mutations.deleteItemsByIds({
+      items: [{ type: "metric", id: "metric-2" }],
+      targetComponentId: "component-1",
+    });
+
+    expect(
+      instance.definition.get().metrics?.map((metric) => metric.name),
+    ).toEqual(["Kept"]);
+  });
+
   test("composes further equations into a place and validates their colour", () => {
     const instance = createInstance();
     instance.mutations.addType({

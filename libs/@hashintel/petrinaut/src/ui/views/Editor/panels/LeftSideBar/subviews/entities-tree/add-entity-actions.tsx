@@ -3,10 +3,12 @@ import { use } from "react";
 import { Button } from "@hashintel/ds-components";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+  DEFAULT_METRIC_CODE,
   generatePetrinautId,
 } from "@hashintel/petrinaut-core";
 
 import { ActiveNetContext } from "../../../../../../../react/document/active-net-context";
+import { useSDCPNState } from "../../../../../../../react/document/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
 import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
 import { useEditorActions } from "../../../../../../../react/state/editor-context";
@@ -156,6 +158,41 @@ export const AddParameterAction: React.FC = () => {
           defaultValue: "0",
         });
         selectItem({ type: "parameter", id });
+      }}
+    />
+  );
+};
+
+/** The first "Metric N" no metric of the document is named yet. */
+const nextMetricName = (names: ReadonlySet<string>): string => {
+  let index = names.size + 1;
+  while (names.has(`Metric ${index}`)) {
+    index += 1;
+  }
+  return `Metric ${index}`;
+};
+
+/** Adds a metric to the document from the tree's Metrics group header. */
+export const AddMetricAction: React.FC = () => {
+  const metrics = useSDCPNState(
+    (document) => document.petriNetDefinition.metrics,
+  );
+  const { addMetric } = usePetrinautMutations();
+  const { selectItem } = useEditorActions();
+
+  return (
+    <AddEntityButton
+      label="Add metric"
+      onClick={() => {
+        const id = generatePetrinautId();
+        addMetric({
+          id,
+          name: nextMetricName(
+            new Set((metrics ?? []).map((metric) => metric.name)),
+          ),
+          code: DEFAULT_METRIC_CODE,
+        });
+        selectItem({ type: "metric", id });
       }}
     />
   );

@@ -52,6 +52,12 @@ export const createItemTypeLookup = (
         }
       }
     }
+    // Metrics belong to the document: only the root holds them.
+    for (const { id } of definition.metrics ?? []) {
+      if (!index.has(id)) {
+        index.set(id, "metric");
+      }
+    }
     return index;
   };
 

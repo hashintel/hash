@@ -16,7 +16,7 @@ import { useEditorActions, useEditorState } from "./editor-context";
  */
 export function useSelectionCleanup() {
   const { activeNet } = use(ActiveNetContext);
-  const { extensions } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
   const selection = useEditorState((editor) => editor.selection);
   const { setSelection } = useEditorActions();
 
@@ -73,6 +73,10 @@ export function useSelectionCleanup() {
     for (const fusion of activeNet.fusions) {
       validIds.add(fusion.id);
     }
+    // Metrics belong to the document, so they stay valid in every net.
+    for (const metric of petriNetDefinition.metrics ?? []) {
+      validIds.add(metric.id);
+    }
 
     // Check if any selected ID is stale
     let hasStale = false;
@@ -97,5 +101,11 @@ export function useSelectionCleanup() {
         { cause: "normalization" },
       );
     }
-  }, [activeNet, extensions, selection, setSelection]);
+  }, [
+    activeNet,
+    extensions,
+    petriNetDefinition.metrics,
+    selection,
+    setSelection,
+  ]);
 }
