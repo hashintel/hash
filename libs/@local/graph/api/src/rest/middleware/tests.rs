@@ -157,11 +157,11 @@ async fn internal_api_answers_beside_its_reference() {
     )
     .assemble(Router::new(), apis, documentation);
 
-    let path = format!("{}/caller", internal::PREFIX);
+    let response = send_request(&router, hashql_request(&json!({"not": "a query"}))).await;
     assert_eq!(
-        send(&router, &path).await.status(),
-        StatusCode::OK,
-        "{path} should answer beside the reference occupying its prefix"
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "the HashQL route should answer beside the reference occupying its prefix"
     );
 }
 
@@ -899,8 +899,7 @@ async fn service_secret_exempt_on_legacy_only() {
         [internal::api().with_state(test_utils::state())],
         Router::new(),
     );
-    let with_secret = |path: &str, peer: IpAddr| {
-        let mut request = request_from(path, peer);
+    let with_secret = |mut request: Request<Body>| {
         request.headers_mut().insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("HASH-Service {SERVICE_SECRET}"))
@@ -911,25 +910,24 @@ async fn service_secret_exempt_on_legacy_only() {
 
     for _ in 0..3 {
         assert_eq!(
-            send_request(&router, with_secret("/legacy", client(1)))
+            send_request(&router, with_secret(request_from("/legacy", client(1))))
                 .await
                 .status(),
             StatusCode::OK,
             "the legacy routes should not charge the service secret"
         );
     }
-    let caller = format!("{}/caller", internal::PREFIX);
     let mut statuses = Vec::new();
     for _ in 0..2 {
-        statuses.push(
-            send_request(&router, with_secret(&caller, client(2)))
-                .await
-                .status(),
-        );
+        let mut request = with_secret(hashql_request(&json!({"#literal": 1})));
+        request
+            .extensions_mut()
+            .insert(ConnectInfo(SocketAddr::new(client(2), 4000)));
+        statuses.push(send_request(&router, request).await.status());
     }
     assert_eq!(
         statuses,
-        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        [StatusCode::UNAUTHORIZED, StatusCode::TOO_MANY_REQUESTS],
         "the internal API should charge the service secret's presenter like any anonymous caller"
     );
 }
@@ -1075,7 +1073,7 @@ async fn cors_preflight_unlisted_origin() {
     for (path, origin) in [
         ("/entities/v1/query", "https://example.com"),
         ("/entities/v1/query", "https://app.hash.ai"),
-        ("/_api/caller", "https://hash.dev"),
+        ("/_api/hashql", "https://hash.dev"),
         ("/_apis", "https://app.hash.ai"),
         ("/", "https://hash.dev"),
     ] {
@@ -1099,7 +1097,7 @@ async fn cors_preflight_internal() {
         Router::new(),
     );
 
-    let response = send_request(&router, preflight("/_api/caller", "https://app.hash.ai")).await;
+    let response = send_request(&router, preflight("/_api/hashql", "https://app.hash.ai")).await;
     assert_eq!(
         response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN),
         Some(&HeaderValue::from_static("https://app.hash.ai")),
