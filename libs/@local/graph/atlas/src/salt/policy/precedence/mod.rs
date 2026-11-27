@@ -137,6 +137,7 @@ pub(crate) struct PolicyOverride {
 /// downstream. The default thresholds are maximally conservative placeholders: a generation
 /// enforcing admission configures them from its precision release evidence.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct CoincidentAdmission {
     /// Whether the generation enforces admission.
     pub enforced: bool = false,
@@ -144,12 +145,6 @@ pub(crate) struct CoincidentAdmission {
     pub class_probability_threshold: UnitFraction = UnitFraction::ONE,
     /// Minimum applicability `τ_A`.
     pub applicability_threshold: UnitFraction = UnitFraction::ONE,
-}
-
-const impl Default for CoincidentAdmission {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// Resolves every relation's geometry policy.

@@ -82,6 +82,7 @@ const DEFAULT_TERMINATION: f64 = 0.001;
 
 /// Pinned NN-Descent sampling, convergence, and termination settings.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct NnDescentOptions {
     /// Candidates sampled per side (new and old, forward and reverse) per row per iteration.
     ///
@@ -94,12 +95,6 @@ pub(crate) struct NnDescentOptions {
     ///
     /// For a finite non-negative rate τ and L stored entries, the ideal update threshold is ceil(τ · L). The stopping count uses f64 count conversion, multiplication and ceil, followed by a saturating u64 cast. Rounding and overflow can change it from the ceiling of the real product. One entry can be displaced repeatedly within an iteration, making this a rate rather than a fraction bounded by one.
     pub termination: f64 = DEFAULT_TERMINATION,
-}
-
-const impl Default for NnDescentOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// A row domain that cannot be used for NN-Descent construction.

@@ -3,6 +3,7 @@ pub mod bit_vec;
 mod chunk_vec;
 mod index;
 mod matrix;
+pub mod ranged;
 mod slice;
 pub mod snapshot_vec;
 #[cfg(test)]
@@ -25,6 +26,17 @@ pub use self::{
     array::IdArray, chunk_vec::IdLocalChunkVec, index::IntoSliceIndex, matrix::IdMatrix,
     slice::IdSlice, snapshot_vec::IdSnapshotVec, union_find::IdUnionFind, vec::IdVec,
 };
+
+/// Panics unless every index in `0..length` is in `I`'s range, and zero as well.
+///
+/// Once it returns, [`Id::from_usize_unchecked`] is sound for each of those indices.
+#[inline]
+fn check_indices<I: Id>(length: usize) {
+    // The numbers in `I`'s range are an interval. The first and the last index therefore decide for
+    // every index between them.
+    let _: I = I::from_usize(0);
+    let _: I = I::from_usize(length.saturating_sub(1));
+}
 
 /// Represents errors that can occur when converting values to an [`Id`].
 ///
@@ -53,12 +65,68 @@ impl Display for IdError {
 ///
 /// Provides type safety for IDs of different domains (nodes, users, etc.)
 /// while maintaining a consistent conversion API.
-pub const trait Id:
+///
+/// [`newtype!`] implements this trait for a struct and [`#[derive(Id)]`](derive@Id) for a unit enum.
+/// The derive also implements [`PartialEq`], [`Eq`], [`PartialOrd`], [`Ord`] and [`Hash`] for the
+/// enum, each over the position of the variant:
+///
+/// ```
+/// # use hashql_core::id::Id;
+/// #[derive(Debug, Copy, Clone, Id)]
+/// enum Axis {
+///     Horizontal,
+///     Vertical,
+/// }
+///
+/// assert!(Axis::Horizontal < Axis::Vertical);
+/// ```
+///
+/// An enum that implements one of them itself does not compile, because such an impl could compare
+/// something other than the variant:
+///
+/// ```compile_fail,E0119
+/// # use hashql_core::id::Id;
+/// #[derive(Debug, Copy, Clone, Id)]
+/// enum Axis {
+///     Horizontal,
+///     Vertical,
+/// }
+///
+/// impl PartialEq for Axis {
+///     fn eq(&self, _: &Self) -> bool {
+///         true
+///     }
+/// }
+/// ```
+///
+/// `newtype!` refuses `u128` as the scalar of a struct. The conversions and the arithmetic of this
+/// trait compute in [`u64`] and [`usize`], which cannot hold every `u128`:
+///
+/// ```compile_fail
+/// hashql_core::id::newtype!(struct Wide(u128));
+/// ```
+///
+/// # Safety
+///
+/// An ID stands for one number, fixed when the ID is created. Every operation this trait and its
+/// supertraits provide, other than formatting through [`Debug`] and [`Display`], must be pure: its
+/// result depends only on that number and on the operation's other arguments, and it has no other
+/// effect. Two IDs must be equal exactly when they stand for the same number. The numbers a type's
+/// IDs stand for must be exactly those from [`Self::MIN`] to [`Self::MAX`], and a conversion from a
+/// number must accept exactly those.
+///
+/// Unsafe code relies on this for any of these operations without checking it. It may repeat an
+/// operation and expect the result it got before.
+#[expect(
+    unsafe_code,
+    reason = "implementors guarantee that an id behaves as the number it stands for"
+)]
+pub const unsafe trait Id:
     Copy
-    + PartialEq
-    + Eq
-    + PartialOrd
-    + Ord
+    + [const] PartialEq
+    + [const] Eq
+    + [const] PartialOrd
+    + [const] Ord
     + Hash
     + Debug
     + Display
@@ -119,6 +187,14 @@ pub const trait Id:
             Err(_) => panic!("Cannot create ID: value outside valid range"),
         }
     }
+
+    /// Creates an ID from a [`usize`] value without checking that it is in range.
+    ///
+    /// # Safety
+    ///
+    /// `index` must be a number from [`Self::MIN`] to [`Self::MAX`].
+    #[must_use]
+    unsafe fn from_usize_unchecked(index: usize) -> Self;
 
     /// Converts this ID to a [`u32`] value.
     fn as_u32(self) -> u32;

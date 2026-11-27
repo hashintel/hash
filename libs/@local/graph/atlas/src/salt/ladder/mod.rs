@@ -168,6 +168,7 @@ pub(crate) struct Field<'coordinates, I> {
 /// The canonical value must name a schedule member exactly: equality on [`NonNegative`] is bit
 /// equality. Use [`Self::canonical_index`] to check membership before projection.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct LadderOptions {
     /// The condition schedule, [`Conditions::REFERENCE`] by default.
     pub conditions: Conditions = Conditions::REFERENCE,
@@ -175,12 +176,6 @@ pub(crate) struct LadderOptions {
     ///
     /// The full-strength condition `1.0` by default.
     pub canonical: NonNegative = NonNegative::ONE,
-}
-
-const impl Default for LadderOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 impl LadderOptions {

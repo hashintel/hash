@@ -71,6 +71,7 @@ const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwra
 
 /// Epoch, learning-rate and negative-sampling settings for one layout.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct LayoutOptions {
     /// Optimization epochs, 500 by default.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
@@ -80,12 +81,6 @@ pub(crate) struct LayoutOptions {
     pub repulsion_strength: NonNegative = DEFAULT_REPULSION_STRENGTH,
     /// Uniform vertex draws per sampled edge, 5 by default.
     pub negative_sample_rate: NonZero<u32> = DEFAULT_NEGATIVE_SAMPLE_RATE,
-}
-
-const impl Default for LayoutOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// The graph stores no edges to optimize toward.

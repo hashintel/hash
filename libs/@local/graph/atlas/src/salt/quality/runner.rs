@@ -33,6 +33,7 @@ use crate::{
 
 /// Sampling, grouping, and threshold settings for one quality run.
 #[derive(Debug, Clone, PartialEq)]
+#[derive_const(Default)]
 pub(crate) struct QualityRunOptions {
     /// Sampling settings, using [`ProbeOptions::default`] by default.
     pub probe: ProbeOptions = ProbeOptions::default(),
@@ -40,12 +41,6 @@ pub(crate) struct QualityRunOptions {
     pub thresholds: QualityThresholds = QualityThresholds::default(),
     /// Clump cosine-distance threshold, using [`DEFAULT_EPSILON`](super::clump::DEFAULT_EPSILON) (0.002) by default.
     pub epsilon: f32 = super::clump::DEFAULT_EPSILON,
-}
-
-const impl Default for QualityRunOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// Probes a published generation and reports its map fidelity.

@@ -7,7 +7,7 @@ use crate::{
     emit_error,
     id::{
         attr::{Attributes, DisplayAttribute, Trait},
-        common::IntegerScalar,
+        common::{IntegerScalar, range_check},
     },
 };
 
@@ -146,37 +146,93 @@ pub(super) fn expand_enum(
         };
     });
 
-    // 4. Id trait impl
+    // 4. Comparison and hashing
+    output.extend(quote! {
+        #[automatically_derived]
+        #konst impl ::core::cmp::PartialEq for #name {
+            #[inline]
+            fn eq(&self, other: &Self) -> bool {
+                self.into_discriminant() == other.into_discriminant()
+            }
+        }
+
+        #[automatically_derived]
+        #konst impl ::core::cmp::Eq for #name {}
+
+        #[automatically_derived]
+        #konst impl ::core::cmp::PartialOrd for #name {
+            #[inline]
+            fn partial_cmp(&self, other: &Self) -> ::core::option::Option<::core::cmp::Ordering> {
+                ::core::option::Option::Some(::core::cmp::Ord::cmp(self, other))
+            }
+        }
+
+        #[automatically_derived]
+        #konst impl ::core::cmp::Ord for #name {
+            #[inline]
+            fn cmp(&self, other: &Self) -> ::core::cmp::Ordering {
+                ::core::cmp::Ord::cmp(&self.into_discriminant(), &other.into_discriminant())
+            }
+        }
+
+        #[automatically_derived]
+        impl ::core::hash::Hash for #name {
+            #[inline]
+            fn hash<H: ::core::hash::Hasher>(&self, state: &mut H) {
+                ::core::hash::Hash::hash(&self.into_discriminant(), state);
+            }
+        }
+    });
+
+    // 5. Id trait impl
     let max = Literal::usize_unsuffixed(variant_count.saturating_sub(1));
     let count = Literal::usize_unsuffixed(variant_count);
-    let message = format!(
-        "ID must be between 0 and {}",
-        variant_count.saturating_sub(1)
+    let check = range_check(
+        &quote!(index < #count),
+        &format!(
+            "ID must be between 0 and {}",
+            variant_count.saturating_sub(1)
+        ),
     );
 
     output.extend(quote! {
+        // SAFETY: `Id` requires every operation on an id other than formatting to be a pure
+        // function of the number it stands for, and equality to be equality of that number. The
+        // discriminant is that number, and a unit enum holds no other state. This expansion
+        // generates each of those operations: conversion, comparison and hashing read the
+        // discriminant and no other state. Therefore each depends on the number alone.
         #[automatically_derived]
         #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
-        #konst impl #krate::id::Id for #name {
+        #konst unsafe impl #krate::id::Id for #name {
             const MIN: Self = Self::from_discriminant(0);
             const MAX: Self = Self::from_discriminant(#max);
 
+            #[inline]
             fn from_u32(index: u32) -> Self {
-                assert!(index < #count, #message);
+                #check
 
                 Self::from_discriminant(index as #backing)
             }
 
+            #[inline]
             fn from_u64(index: u64) -> Self {
-                assert!(index < #count, #message);
+                #check
 
                 Self::from_discriminant(index as #backing)
             }
 
+            #[inline]
             fn from_usize(index: usize) -> Self {
-                assert!(index < #count, #message);
+                #check
 
                 Self::from_discriminant(index as #backing)
+            }
+
+            #[inline]
+            unsafe fn from_usize_unchecked(index: usize) -> Self {
+                // SAFETY: The caller guarantees that `index` is at most `MAX`, the discriminant of
+                // the last variant.
+                unsafe { Self::from_discriminant_unchecked(index as #backing) }
             }
 
             #[inline]
@@ -206,7 +262,7 @@ pub(super) fn expand_enum(
         }
     });
 
-    // 5. TryFrom impls
+    // 6. TryFrom impls
     for int in [quote!(u32), quote!(u64), quote!(usize)] {
         output.extend(quote! {
             #[automatically_derived]
@@ -216,6 +272,8 @@ pub(super) fn expand_enum(
                 #[inline]
                 fn try_from(value: #int) -> ::core::result::Result<Self, #krate::id::IdError> {
                     if value >= #count {
+                        ::core::hint::cold_path();
+
                         return Err(#krate::id::IdError::OutOfRange {
                             value: value as u64,
                             min: 0,
@@ -229,7 +287,7 @@ pub(super) fn expand_enum(
         });
     }
 
-    // 6. HasId impl
+    // 7. HasId impl
     output.extend(quote! {
         #[automatically_derived]
         #konst impl #krate::id::HasId for #name {
@@ -242,7 +300,7 @@ pub(super) fn expand_enum(
         }
     });
 
-    // 7. Display
+    // 8. Display
     match display {
         DisplayAttribute::None => {}
         DisplayAttribute::Format(format) => {
@@ -272,7 +330,7 @@ pub(super) fn expand_enum(
         }
     }
 
-    // 8. Step (optional)
+    // 9. Step (optional)
     if traits.contains(&Trait::Step) {
         output.extend(quote! {
             impl ::core::iter::Step for #name {

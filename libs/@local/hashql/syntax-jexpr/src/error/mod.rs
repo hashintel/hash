@@ -212,7 +212,7 @@ pub(crate) enum ConstructorKind {
 }
 
 impl ConstructorKind {
-    pub(crate) fn from_key(key: &str) -> Option<Self> {
+    pub(crate) const fn from_key(key: &str) -> Option<Self> {
         match key {
             "#literal" => Some(Self::Literal),
             "#struct" => Some(Self::Struct),

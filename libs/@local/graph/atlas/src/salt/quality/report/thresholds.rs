@@ -80,6 +80,7 @@ impl core::error::Error for ThresholdDomainError {}
 // serde derives cannot parse default field values; QualityReport serializes applied thresholds as
 // individual fields
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[derive_const(Default)]
 pub(crate) struct QualityThresholds {
     /// Minimum recall floor.
     ///
@@ -192,11 +193,5 @@ impl QualityThresholds {
             })?;
         }
         Ok(self)
-    }
-}
-
-const impl Default for QualityThresholds {
-    fn default() -> Self {
-        Self { .. }
     }
 }

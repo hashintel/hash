@@ -36,7 +36,7 @@ macro_rules! sym {
 /// Each variant identifies a specific storage location in the entity schema. Consumers can
 /// exhaustively match on this to generate backend-specific access (SQL expressions, placement
 /// decisions, etc.) without duplicating path resolution logic.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
+#[derive(Debug, Copy, Clone, Id)]
 #[id(const)]
 pub enum EntityPath {
     /// `properties.*` — JSONB column in `entity_editions`.

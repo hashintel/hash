@@ -11,7 +11,9 @@
     macro_metavar_expr_concat,
 
     // Library Features
+    const_cmp,
     const_convert,
+    derive_const,
     const_index,
     const_trait_impl,
     try_trait_v2,

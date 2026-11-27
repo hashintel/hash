@@ -43,7 +43,8 @@ impl Definition {
     ) -> Self {
         let attributes = Attributes::parse(attributes);
         let scalar = IntegerScalar::from(r#type);
-        let storage = Storage::new(scalar, &attributes);
+        let constraint = bounds.map(|bounds| Constraint::new(scalar, bounds));
+        let storage = Storage::new(scalar, &attributes, constraint.as_ref());
 
         Self {
             attributes,
@@ -52,7 +53,7 @@ impl Definition {
             generics: Generics::new(parameters),
             scalar,
             storage,
-            constraint: bounds.map(|bounds| Constraint::new(scalar, bounds)),
+            constraint,
         }
     }
 
@@ -67,13 +68,9 @@ impl Definition {
     }
 
     fn min_value(&self) -> TokenStream {
-        self.constraint.as_ref().map_or_else(
-            || quote!(0),
-            |constraint| {
-                let min = constraint.min_value();
-                quote!(#min)
-            },
-        )
+        self.constraint
+            .as_ref()
+            .map_or_else(|| quote!(0), Constraint::min_value)
     }
 
     fn max_value(&self) -> TokenStream {
@@ -139,9 +136,11 @@ impl Definition {
 
     fn declaration(&self) -> TokenStream {
         let extra = &self.attributes.extra;
-        let derives = self
-            .storage
-            .derives(self.constraint.is_some(), !self.generics.is_empty());
+        let derives = self.storage.derives(
+            self.constraint.is_some(),
+            !self.generics.is_empty(),
+            !self.attributes.r#const.is_empty(),
+        );
         let vis = &self.visibility;
         let name = &self.name;
         let generics = &self.generics;
@@ -196,24 +195,37 @@ impl Definition {
         let usize_assertion = self.assertion(IntegerScalar::U64);
 
         quote! {
+            // SAFETY: `Id` requires every operation on an id other than formatting to be a pure
+            // function of the number it stands for, and equality to be equality of that number.
+            // The stored scalar is that number. This expansion generates each of those operations:
+            // conversion, comparison and hashing read the stored scalar and no other state.
+            // Therefore each depends on the number alone.
             #[automatically_derived]
             #[expect(clippy::cast_possible_truncation, clippy::cast_lossless)]
-            #konst impl #parameters #krate::id::Id for #name #generics {
+            #konst unsafe impl #parameters #krate::id::Id for #name #generics {
                 const MIN: Self = Self::new(#min);
                 const MAX: Self = Self::new(#max);
 
+                #[inline]
                 fn from_u32(value: u32) -> Self {
                     #u32_assertion
                     #stored_cast
                 }
 
+                #[inline]
                 fn from_u64(value: u64) -> Self {
                     #u64_assertion
                     #stored_cast
                 }
 
+                #[inline]
                 fn from_usize(value: usize) -> Self {
                     #usize_assertion
+                    #stored_cast
+                }
+
+                #[inline]
+                unsafe fn from_usize_unchecked(value: usize) -> Self {
                     #stored_cast
                 }
 
@@ -272,6 +284,8 @@ impl Definition {
                     if #comparison {
                         ::core::result::Result::Ok(#stored)
                     } else {
+                        ::core::hint::cold_path();
+
                         ::core::result::Result::Err(#krate::id::IdError::OutOfRange {
                             value: value as u64,
                             min: #min as u64,
@@ -287,6 +301,7 @@ impl Definition {
             #konst impl #parameters ::core::convert::TryFrom<#param> for #name #generics {
                 type Error = #krate::id::IdError;
 
+                #[inline]
                 fn try_from(value: #param) -> ::core::result::Result<Self, Self::Error> {
                     #body
                 }

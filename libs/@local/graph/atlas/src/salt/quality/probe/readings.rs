@@ -35,7 +35,7 @@ hashql_core::id::newtype! {
 ///
 /// Each pair identifies a judged space and its reference. [`ProbeReadings`] exposes the
 /// corresponding grids as named fields.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
+#[derive(Debug, Copy, Clone, Id)]
 pub(crate) enum SpacePair {
     /// The 2D map judged against the 512-component representation.
     MapRepresentation,

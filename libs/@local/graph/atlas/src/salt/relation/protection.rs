@@ -104,6 +104,7 @@ impl SprsValue for PairEvidence {
 /// stored pair, including zero-evidence pairs. Calibrate floors and thresholds together against
 /// labeled validation pairs.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct ChannelConfig {
     pub floor: UnitFraction = UnitFraction::ZERO,
     pub threshold: NonNegative = NonNegative::ZERO,
@@ -117,12 +118,6 @@ impl ChannelConfig {
     #[must_use]
     pub(crate) const fn protects(self, evidence: PairEvidence) -> bool {
         evidence.mass(self.floor) >= self.threshold
-    }
-}
-
-const impl Default for ChannelConfig {
-    fn default() -> Self {
-        Self { .. }
     }
 }
 
@@ -169,16 +164,11 @@ impl TryFrom<UnvalidatedProtectionConfig> for ProtectionConfig {
 /// zero and threshold zero by default, with ordinary protection enabled.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "UnvalidatedProtectionConfig")]
+#[derive_const(Default)]
 pub(crate) struct ProtectionConfig {
     hard: ChannelConfig = ChannelConfig::default(),
     ordinary: ChannelConfig = ChannelConfig::default(),
     protect_ordinary: bool = true,
-}
-
-const impl Default for ProtectionConfig {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 impl ProtectionConfig {

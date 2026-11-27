@@ -1,6 +1,7 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 
+use super::constraint::Constraint;
 use crate::{
     emit_error,
     id::{
@@ -17,21 +18,36 @@ impl From<StructScalar> for IntegerScalar {
             StructScalar::U16(_) => Self::U16,
             StructScalar::U32(_) => Self::U32,
             StructScalar::U64(_) => Self::U64,
-            StructScalar::U128(_) => Self::U128,
+            StructScalar::U128(keyword) => {
+                emit_error(
+                    AsRef::<proc_macro2::Ident>::as_ref(&keyword)
+                        .span()
+                        .unwrap(),
+                    "`u128` cannot back an id: `Id` converts and computes in `u64` and `usize`, \
+                     which are lossy over `u128`",
+                );
+
+                Self::U64 // try to gather as many errors as possible, so continue with the next supported size
+            }
         }
     }
 }
 
-/// The stored form of an id is a native scalar or a zerocopy byteorder integer.
+/// The stored form of an id is a native scalar, a ranged scalar or a zerocopy byteorder integer.
 pub(super) struct Storage {
     r#type: TokenStream,
 
     bytes: bool,
     byteorder: bool,
+    ranged: bool,
 }
 
 impl Storage {
-    pub(super) fn new(scalar: IntegerScalar, attributes: &Attributes) -> Self {
+    pub(super) fn new(
+        scalar: IntegerScalar,
+        attributes: &Attributes,
+        constraint: Option<&Constraint>,
+    ) -> Self {
         let mut endian = attributes
             .endian
             .map_or(Endianness::Native, |Spanned { value, .. }| value);
@@ -75,7 +91,6 @@ impl Storage {
                 IntegerScalar::U16 => quote!(U16),
                 IntegerScalar::U32 => quote!(U32),
                 IntegerScalar::U64 => quote!(U64),
-                IntegerScalar::U128 => quote!(U128),
                 IntegerScalar::U8 => unreachable!("u8 never selects the byteorder form"),
             };
 
@@ -86,6 +101,15 @@ impl Storage {
             };
 
             quote!(::zerocopy::#width<::zerocopy::#order>)
+        } else if let Some(constraint) = constraint
+            && !bytes
+        {
+            let krate = &attributes.krate;
+            let name = format_ident!("Ranged{}", scalar.to_string().to_uppercase());
+            let min = constraint.min_value();
+            let max = constraint.max_value();
+
+            quote!(#krate::id::ranged::#name<{ #min }, { #max }>)
         } else {
             quote!(#scalar)
         };
@@ -94,6 +118,7 @@ impl Storage {
             r#type,
             bytes,
             byteorder,
+            ranged: constraint.is_some() && !bytes,
         }
     }
 
@@ -113,26 +138,41 @@ impl Storage {
         }
     }
 
+    /// Expands to the stored form of `value`.
+    ///
+    /// For a ranged scalar the expansion does not check `value`. Every caller places it after a
+    /// check of `value` against the declared range, or inside an `unsafe fn` whose caller
+    /// guarantees the range.
     pub(super) fn wrap(&self, value: TokenStream) -> TokenStream {
+        let ty = &self.r#type;
+
         if self.byteorder {
-            let ty = &self.r#type;
             quote!(<#ty>::new(#value))
+        } else if self.ranged {
+            quote!(unsafe { <#ty>::new_unchecked(#value) })
         } else {
             value
         }
     }
 
     pub(super) fn read(&self, place: TokenStream) -> TokenStream {
-        if self.byteorder {
+        if self.byteorder || self.ranged {
             quote!(#place.get())
         } else {
             place
         }
     }
 
-    pub(super) fn derives(&self, bounded: bool, generic: bool) -> TokenStream {
+    pub(super) fn derives(&self, bounded: bool, generic: bool, konst: bool) -> TokenStream {
         let standard = if generic {
             TokenStream::new()
+        } else if self.bytes && konst {
+            quote!(#[derive(Copy, Clone, ::zerocopy::ByteHash)])
+        } else if konst {
+            quote! {
+                #[derive(Copy, Clone, Hash)]
+                #[derive_const(PartialEq, Eq, PartialOrd, Ord)]
+            }
         } else if self.bytes {
             quote! {
                 #[derive(Copy, Clone, PartialOrd, Ord, ::zerocopy::ByteEq, ::zerocopy::ByteHash)]

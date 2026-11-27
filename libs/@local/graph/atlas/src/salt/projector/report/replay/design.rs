@@ -28,6 +28,7 @@ const DEFAULT_HORIZON_FACTOR: NonZero<usize> = nz!(2);
 /// Each size applies to both estimands: the entity estimand draws that many rows and the class
 /// estimand that many byte-exact representation classes.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive_const(Default)]
 pub(crate) struct ReplaySizes {
     /// Sampled arrival queries.
     ///
@@ -44,12 +45,6 @@ pub(crate) struct ReplaySizes {
     /// A false neighbour counts as an intrusion or extrusion when its 1-based opposite-space rank
     /// passes `factor · k`, clamped to the universe.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
-}
-
-const impl Default for ReplaySizes {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// One replay's generation pair with the seeded sampling design it reads them under.

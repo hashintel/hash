@@ -29,6 +29,7 @@ use crate::{
 
 /// Probe sizing for one live assessment.
 #[derive(Debug, Copy, Clone)]
+#[derive_const(Default)]
 pub(crate) struct Options {
     /// The probe seed.
     ///
@@ -40,12 +41,6 @@ pub(crate) struct Options {
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Upper bound on sampled comparison rows, using 4,096 by default.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },
-}
-
-const impl Default for Options {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// One live assessment's verdict and serialized evidence.

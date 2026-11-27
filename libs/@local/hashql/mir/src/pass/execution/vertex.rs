@@ -48,7 +48,7 @@ fn peel<'heap>(
 /// The vertex type of a [`GraphReadFilter`] body's vertex argument.
 ///
 /// [`GraphReadFilter`]: crate::body::Source::GraphReadFilter
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Id)]
+#[derive(Debug, Copy, Clone, Id)]
 #[repr(u8)]
 pub enum VertexType {
     Entity,

@@ -91,6 +91,7 @@ const DEFAULT_BUDGET: Duration = Duration::from_secs(600);
 
 /// Pinned sampling and admission settings for one recall spot check.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct SpotCheckOptions {
     /// Exact neighbours compared per sampled row.
     ///
@@ -111,12 +112,6 @@ pub(crate) struct SpotCheckOptions {
     ///
     /// The pilot's measured rate converts this duration into a row cap, floored at the pilot's size. This is a sizing estimate rather than a runtime deadline and excludes the pilot's own cost. [`ZERO`](Duration::ZERO) selects the pilot-size floor when the pilot has a positive measured duration. An unmeasurably short pilot imposes no time-derived cap.
     pub budget: Duration = DEFAULT_BUDGET,
-}
-
-const impl Default for SpotCheckOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// Aggregate exact-recall evidence for one backend and corpus.

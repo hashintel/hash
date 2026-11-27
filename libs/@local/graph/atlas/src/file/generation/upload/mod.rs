@@ -20,18 +20,13 @@ pub(crate) use self::{backend::GenerationUploadBackend, error::UploadError};
 
 /// Retention settings applied after a confirmed promotion.
 #[derive(Debug)]
+#[derive_const(Default)]
 pub(crate) struct PromotionOptions {
     /// Removes the captured old previous active prefix after updating both pointers.
     ///
     /// Enabled by default. Pruning preserves the new current and previous identities and every
     /// repository prefix.
     pub prune_active_generations: bool = true,
-}
-
-const impl Default for PromotionOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// A selected generation identity and the revision of its pointer object.

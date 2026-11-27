@@ -34,6 +34,7 @@
     // Library Features
     ascii_char,
     byte_str,
+    const_cmp,
     const_convert,
     portable_simd,
 )]

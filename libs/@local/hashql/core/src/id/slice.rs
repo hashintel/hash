@@ -25,7 +25,7 @@ use rayon::{
     slice::ParallelSliceMut as _,
 };
 
-use super::{Id, index::IntoSliceIndex, vec::IdVec};
+use super::{Id, check_indices, index::IntoSliceIndex, vec::IdVec};
 
 /// Returns the greatest chunk-start offset, or zero when the slice is empty.
 #[inline]
@@ -280,13 +280,16 @@ where
     /// # Panics
     ///
     /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
         let length = self.len();
+        check_indices::<I>(length);
 
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(length.saturating_sub(1));
-
-        (0..length).map(I::from_usize)
+        // SAFETY: `check_indices` returned for `length`, and the range yields indices below it.
+        (0..length).map(|index| unsafe { I::from_usize_unchecked(index) })
     }
 
     /// Returns a parallel iterator over all element IDs for this slice.
@@ -333,16 +336,20 @@ where
     /// # Panics
     ///
     /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn iter_enumerated(
         &self,
     ) -> impl DoubleEndedIterator<Item = (I, &T)> + ExactSizeIterator + Clone {
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len().saturating_sub(1));
+        check_indices::<I>(self.len());
 
-        self.raw
-            .iter()
-            .enumerate()
-            .map(|(index, value)| (I::from_usize(index), value))
+        self.raw.iter().enumerate().map(|(index, value)| {
+            // SAFETY: `check_indices` returned for the length of `raw`, and `enumerate` yields
+            // indices below it.
+            (unsafe { I::from_usize_unchecked(index) }, value)
+        })
     }
 
     /// Returns a parallel iterator over ID-element pairs.
@@ -393,16 +400,20 @@ where
     /// # Panics
     ///
     /// Panics if an element index, or zero for an empty slice, is outside `I`'s range.
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn iter_enumerated_mut(
         &mut self,
     ) -> impl DoubleEndedIterator<Item = (I, &mut T)> + ExactSizeIterator {
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len().saturating_sub(1));
+        check_indices::<I>(self.len());
 
-        self.raw
-            .iter_mut()
-            .enumerate()
-            .map(|(index, value)| (I::from_usize(index), value))
+        self.raw.iter_mut().enumerate().map(|(index, value)| {
+            // SAFETY: `check_indices` returned for the length of `raw`, and `enumerate` yields
+            // indices below it.
+            (unsafe { I::from_usize_unchecked(index) }, value)
+        })
     }
 
     /// Returns a parallel mutable iterator over ID-element pairs.

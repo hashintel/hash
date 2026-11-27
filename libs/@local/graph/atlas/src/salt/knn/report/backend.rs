@@ -76,6 +76,7 @@ const _: () = {
 
 /// The sweep grid.
 #[derive(Debug, Clone)]
+#[derive_const(Default)]
 pub(crate) struct Options {
     /// Fit seeds whose build and sample streams the sweep replays.
     ///
@@ -89,12 +90,6 @@ pub(crate) struct Options {
     ///
     /// By default, uses [`DEFAULT_SEARCHES`].
     pub searches: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_SEARCHES),
-}
-
-const impl Default for Options {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// One `ef_search` reading of one built index against one sample.

@@ -17,12 +17,14 @@ mod sym;
 /// implementations. For struct-based Id types, use [`define_id!`] instead.
 ///
 /// The enum must have `#[repr(u8)]` (or the appropriate integer type for the
-/// variant count) and derive the standard traits required by [`Id`].
+/// variant count) and derive [`Debug`](core::fmt::Debug), [`Copy`] and [`Clone`]. The expansion
+/// implements [`PartialEq`], [`Eq`], [`PartialOrd`], [`Ord`] and [`Hash`] over the discriminant. An
+/// enum that derives or implements one of them as well does not compile.
 ///
 /// # Example
 ///
 /// ```ignore
-/// #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_macros::Id)]
+/// #[derive(Debug, Copy, Clone, hashql_macros::Id)]
 /// #[repr(u8)]
 /// pub enum TargetId {
 ///     Interpreter,
@@ -77,7 +79,7 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Supported backing types: `u8`, `u16`, `u32`, `u64`, `u128`. `usize` is
+/// Supported backing types: `u8`, `u16`, `u32`, `u64`. `usize` is
 /// intentionally excluded: proc macros are compiled for and run on the host,
 /// so they cannot determine the target's pointer width. This makes it
 /// impossible to select the correct widening cast for range assertions during

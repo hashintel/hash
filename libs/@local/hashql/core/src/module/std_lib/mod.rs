@@ -177,7 +177,7 @@ impl ItemDef<'_> {
 /// Variants are listed in preorder traversal of the module tree (parent before children, left
 /// before right). Adding a new stdlib module requires adding a variant here in the correct
 /// position.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, hashql_macros::Id)]
+#[derive(Debug, Copy, Clone, hashql_macros::Id)]
 #[id(const, crate = crate)]
 enum CacheId {
     Core,

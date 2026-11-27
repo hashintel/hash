@@ -40,16 +40,11 @@ const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
 
 /// Contraction settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive_const(Default)]
 pub(crate) struct QuotientOptions {
     /// Strongest directed edges each landmark row keeps before union, 64 by default.
     // the unvalidated default bounds retained directions at M · 64 before union. Trustworthiness and landmark rank correlation supply the measurements for revising it.
     pub maximum_neighbours: NonZero<usize> = MAXIMUM_NEIGHBOURS,
-}
-
-const impl Default for QuotientOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// The contraction inputs are inconsistent or the quotient collapses.

@@ -32,6 +32,7 @@ const DEFAULT_TRIPLET_PAIRS: usize = 64;
 
 /// Sampling and neighbourhood settings for one probe.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive_const(Default)]
 pub(crate) struct ProbeOptions {
     /// Upper bound on sampled anchor rows: the queries every reading aggregates over.
     ///
@@ -55,12 +56,6 @@ pub(crate) struct ProbeOptions {
     ///
     /// Zero disables triplet sampling. The resulting report cannot pass admission because the triplet control requires observed triplets.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
-}
-
-const impl Default for ProbeOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
 }
 
 /// Disjoint sample budgets and metric axes supported by one corpus.

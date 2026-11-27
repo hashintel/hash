@@ -14,7 +14,7 @@ use core::{
     slice,
 };
 
-use super::{Id, IdSlice};
+use super::{Id, IdSlice, check_indices};
 
 /// A fixed-size array that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -201,13 +201,18 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// assert_eq!(indexed[SlotId::new(2)], "2:30");
     /// ```
     #[inline]
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn map_enumerated<U>(self, mut func: impl FnMut(I, T) -> U) -> IdArray<I, U, N> {
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len().saturating_sub(1));
+        check_indices::<I>(N);
 
         let mut index = 0;
         IdArray::from_raw(self.raw.map(|elem| {
-            let value = func(I::from_usize(index), elem);
+            // SAFETY: `check_indices` returned for `N`. `array::map` calls the closure once for
+            // each of the `N` elements, and `index` counts the calls before this one.
+            let value = func(unsafe { I::from_usize_unchecked(index) }, elem);
             index += 1;
             value
         }))
@@ -264,14 +269,18 @@ impl<I: Id, T, const N: usize> IdArray<I, T, N> {
     /// assert_eq!(pairs[2], (SlotId::new(2), "c"));
     /// ```
     #[inline]
+    #[expect(
+        unsafe_code,
+        reason = "the indices are checked once, before the first conversion"
+    )]
     pub fn into_iter_enumerated(self) -> impl ExactSizeIterator<Item = (I, T)> {
-        // Elide bound checks from subsequent calls to `I::from_usize`
-        let _: I = I::from_usize(self.len().saturating_sub(1));
+        check_indices::<I>(N);
 
-        self.raw
-            .into_iter()
-            .enumerate()
-            .map(|(index, value)| (I::from_usize(index), value))
+        self.raw.into_iter().enumerate().map(|(index, value)| {
+            // SAFETY: `check_indices` returned for `N`, the length of `raw`, and `enumerate` yields
+            // indices below it.
+            (unsafe { I::from_usize_unchecked(index) }, value)
+        })
     }
 }
 

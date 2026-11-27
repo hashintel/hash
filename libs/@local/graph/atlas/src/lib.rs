@@ -116,6 +116,7 @@
     const_result_trait_fn,
     const_try,
     core_io,
+    derive_const,
     exact_size_is_empty,
     file_buffered,
     generic_atomic,

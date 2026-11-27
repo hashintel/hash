@@ -4,7 +4,7 @@ mod generic;
 
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
-use super::{Id as _, IdError, newtype};
+use super::{Id, IdError, IdSlice, IdVec, newtype};
 
 newtype!(
     #[id(crate = crate)]
@@ -151,6 +151,197 @@ fn native_bytes_round_trip() {
         id
     );
     assert_eq!(id.as_u64(), 0x1234);
+}
+
+newtype!(
+    #[id(crate = crate, const)]
+    struct RangedId(u32 is 0..=0xFFFF_FF00)
+);
+
+newtype!(
+    #[id(crate = crate)]
+    struct ExclusiveId(u16 is 10..20)
+);
+
+newtype!(
+    #[id(crate = crate)]
+    struct CompoundEndId(u8 is 0..2 | 8)
+);
+
+newtype!(
+    #[id(crate = crate)]
+    struct InferredEndId(u8 is 0..=(!0 >> 1))
+);
+
+newtype!(
+    #[id(crate = crate, endian = big, unaligned)]
+    struct CompoundEndBytesId(u16 is 0..2 | 8)
+);
+
+#[test]
+fn ranged_compound_end() {
+    assert_eq!(CompoundEndId::MAX.get(), 9);
+    assert_eq!(CompoundEndId::new(9).get(), 9);
+    assert_eq!(CompoundEndId::try_from(9_u32), Ok(CompoundEndId::MAX));
+    assert_eq!(
+        CompoundEndId::try_from(10_u32),
+        Err(IdError::OutOfRange {
+            value: 10,
+            min: 0,
+            max: 9,
+        })
+    );
+    assert_eq!(size_of::<Option<CompoundEndId>>(), 1);
+
+    assert_eq!(CompoundEndBytesId::MAX.get(), 9);
+    CompoundEndBytesId::try_read_from_bytes(&[0, 9]).expect("9 lies in the range");
+    CompoundEndBytesId::try_read_from_bytes(&[0, 10]).expect_err("10 lies above the range");
+}
+
+#[test]
+fn ranged_inferred_end() {
+    assert_eq!(InferredEndId::MAX.get(), 127);
+    assert_eq!(InferredEndId::try_from(127_u32), Ok(InferredEndId::MAX));
+    assert_eq!(
+        InferredEndId::try_from(128_u32),
+        Err(IdError::OutOfRange {
+            value: 128,
+            min: 0,
+            max: 127,
+        })
+    );
+    assert_eq!(
+        InferredEndId::try_from(u64::from(u32::MAX)),
+        Err(IdError::OutOfRange {
+            value: u64::from(u32::MAX),
+            min: 0,
+            max: 127,
+        })
+    );
+}
+
+#[test]
+fn ranged_niche() {
+    assert_eq!(size_of::<RangedId>(), 4);
+    assert_eq!(size_of::<Option<RangedId>>(), 4);
+    assert_eq!(size_of::<Option<Option<ExclusiveId>>>(), 2);
+
+    assert_eq!(size_of::<Option<NarrowUnboundedId>>(), 4);
+}
+
+#[test]
+fn ranged_bounds() {
+    const IN_CONST: RangedId = RangedId::new(0xFFFF_FF00);
+
+    assert_eq!(IN_CONST.get(), 0xFFFF_FF00);
+    assert_eq!(RangedId::MAX, IN_CONST);
+    assert_eq!(RangedId::MIN.get(), 0);
+
+    assert_eq!(ExclusiveId::MIN.get(), 10);
+    assert_eq!(ExclusiveId::MAX.get(), 19);
+    assert_eq!(ExclusiveId::MAX.prev(), Some(ExclusiveId::new(18)));
+    assert_eq!(ExclusiveId::MIN.prev(), None);
+    assert_eq!(
+        ExclusiveId::try_from(20_u32),
+        Err(IdError::OutOfRange {
+            value: 20,
+            min: 10,
+            max: 19,
+        })
+    );
+    assert_eq!(
+        [Some(ExclusiveId::new(19)), None].map(|id| id.map(ExclusiveId::get)),
+        [Some(19), None]
+    );
+    assert!(ExclusiveId::new(10) < ExclusiveId::new(11));
+}
+
+#[test]
+#[should_panic(expected = "id value must be between 10<20")]
+fn ranged_above() {
+    let _id = ExclusiveId::new(20);
+}
+
+#[test]
+fn enumerated_full_range() {
+    let raw = [0_u8; 10];
+    let slice = IdSlice::<CompoundEndId, _>::from_raw(&raw);
+
+    let ids: Vec<u8> = slice.ids().map(CompoundEndId::get).collect();
+    assert_eq!(ids, (0..10).collect::<Vec<u8>>());
+    assert_eq!(
+        slice.iter_enumerated().map(|(id, _)| id).next_back(),
+        Some(CompoundEndId::MAX)
+    );
+
+    let squares = IdVec::<CompoundEndId, u8>::from_fn(10, |id| id.get() * id.get());
+    assert_eq!(squares[CompoundEndId::MAX], 81);
+    assert_eq!(
+        squares.into_iter_enumerated().next_back(),
+        Some((CompoundEndId::MAX, 81))
+    );
+}
+
+#[test]
+#[should_panic(expected = "id value must be between 0<2 | 8")]
+fn enumerated_above() {
+    let raw = [0_u8; 11];
+    let _ids = IdSlice::<CompoundEndId, _>::from_raw(&raw).ids();
+}
+
+#[test]
+#[should_panic(expected = "id value must be between 10<20")]
+fn enumerated_below() {
+    let raw = [0_u8; 15];
+    let _iter = IdSlice::<ExclusiveId, _>::from_raw(&raw).iter_enumerated();
+}
+
+#[test]
+fn ranged_constant_pattern() {
+    const FIRST: RangedId = RangedId::new(0);
+
+    let label = match RangedId::new(1) {
+        FIRST => "first",
+        RangedId::MAX => "last",
+        _ => "other",
+    };
+
+    assert_eq!(label, "other");
+}
+
+newtype!(
+    #[id(crate = crate, const, endian = big, unaligned)]
+    struct ConstBytesId(u16 is 10..=20)
+);
+
+const fn precedes<I: [const] Id>(lhs: &I, rhs: &I) -> bool {
+    *lhs < *rhs && *lhs != *rhs
+}
+
+#[test]
+fn const_comparison() {
+    const RANGED: bool = precedes(&RangedId::new(1), &RangedId::new(2));
+    const BYTES: bool = precedes(&ConstBytesId::new(10), &ConstBytesId::new(20));
+    const REVERSED: bool = precedes(&ConstBytesId::new(20), &ConstBytesId::new(10));
+
+    assert_eq!([RANGED, BYTES, REVERSED], [true, true, false]);
+}
+
+#[derive(Debug, Copy, Clone, Id)]
+#[id(crate = crate, const)]
+enum Axis {
+    Horizontal,
+    Vertical,
+    Depth,
+}
+
+#[test]
+fn enum_comparison() {
+    const ORDERED: bool = precedes(&Axis::Horizontal, &Axis::Depth);
+    const REVERSED: bool = precedes(&Axis::Depth, &Axis::Vertical);
+
+    assert_eq!([ORDERED, REVERSED], [true, false]);
+    assert_eq!(Axis::all().into_iter().max(), Some(Axis::Depth));
 }
 
 #[cfg(feature = "rayon")]

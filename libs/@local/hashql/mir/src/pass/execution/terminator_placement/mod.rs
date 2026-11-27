@@ -129,7 +129,7 @@ impl TransMatrix {
     /// Same-backend transitions (where `from == to`) are always recorded with cost 0,
     /// regardless of the `cost` argument.
     #[inline]
-    pub(crate) fn insert(&mut self, from: TargetId, to: TargetId, mut cost: Cost) {
+    pub(crate) const fn insert(&mut self, from: TargetId, to: TargetId, mut cost: Cost) {
         if from == to {
             cost = cost!(0);
         }
@@ -320,7 +320,7 @@ impl<N, S> Metadata<N, S> for ComponentSizeMetadata {
 
 /// Fixed overhead for switching between different execution backends, independent of how much
 /// data crosses the edge.
-fn backend_switch_cost() -> TransMatrix {
+const fn backend_switch_cost() -> TransMatrix {
     let mut matrix = TransMatrix::new();
 
     // Postgres -> Interpreter: continuation ROW + block id + locals/values arrays + interpreter
