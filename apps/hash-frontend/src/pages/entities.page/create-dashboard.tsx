@@ -11,7 +11,10 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { createEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import {
+  createEntityMutation,
+  querySidebarDashboardsQuery,
+} from "../../graphql/queries/knowledge/entity.queries";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { Button } from "../../shared/ui/button";
 import { Modal } from "../../shared/ui/modal";
@@ -36,7 +39,7 @@ export const CreateDashboard = ({ webId }: { webId: WebId }) => {
   const [createEntity, { loading }] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
-  >(createEntityMutation, { refetchQueries: ["querySidebarDashboards"] });
+  >(createEntityMutation, { refetchQueries: [querySidebarDashboardsQuery] });
 
   const close = () => {
     if (loading) {

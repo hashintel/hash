@@ -34,6 +34,7 @@ import {
   archiveEntitiesMutation,
   createEntityMutation,
   queryEntitySubgraphQuery,
+  querySidebarDashboardsQuery,
   updateEntityMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { getLayoutWithSidebar } from "../../shared/layout";
@@ -403,7 +404,7 @@ const DashboardPage: NextPageWithLayout = () => {
 
     await archiveEntities({
       variables: { entityIds: [...entityIds] },
-      refetchQueries: ["querySidebarDashboards"],
+      refetchQueries: [querySidebarDashboardsQuery],
     });
     await router.push("/");
   }, [archiveEntities, dashboard, router]);
@@ -415,7 +416,7 @@ const DashboardPage: NextPageWithLayout = () => {
       }
 
       await updateEntity({
-        refetchQueries: ["querySidebarDashboards"],
+        refetchQueries: [querySidebarDashboardsQuery],
         variables: {
           entityUpdate: {
             entityId: dashboard.entityId,
