@@ -145,6 +145,7 @@
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
+#![expect(uncommon_codepoints, reason = "used by the zerocopy derive")]
 #![cfg_attr(
     not(feature = "cli"),
     allow(

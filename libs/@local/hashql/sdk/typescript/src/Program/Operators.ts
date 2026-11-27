@@ -3,12 +3,14 @@
  *
  * Ordinary expressions have no operator methods. These constructors return Boolean expressions with chaining methods. Binding one through let produces an ordinary expression again. Both composition forms emit HashQL calls, not host predicates, and preserve every operand's input requirements.
  *
+ * @since 0.1.0
  * @module
  */
 
 import { Array, Function, Pipeable, Result, flow, pipe } from "effect";
 
 import * as Relocation from "../internal/relocation.js";
+import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "./AST/index.js";
 import * as Expression from "./Expression.js";
 
@@ -16,6 +18,7 @@ import type * as Type from "../Type.js";
 import type * as ExpressionType from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
 import type * as ProgramError from "./ProgramError.js";
+import type * as Structural from "./Structural.js";
 
 type BooleanValue = Expression.Value<Type.PrimitiveBoolean>;
 type Requirements<L, R> = Inputs.Merge<
@@ -27,6 +30,9 @@ type Requirements<L, R> = Inputs.Merge<
  * A Boolean expression with fluent logical composition and a retained input record.
  *
  * Chaining constructs syntax rather than testing a host condition. Binding the result with a declaration gives an ordinary Boolean expression. Use the standalone operators to continue composing that binding. See {@link eq} for both fluent and pipe-based forms.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface Predicate<I> extends Expression.Expression<
   Type.PrimitiveBoolean,
@@ -54,11 +60,11 @@ export interface Predicate<I> extends Expression.Expression<
 
 const call = <I>(
   path: string,
-  operands: readonly Expression.Value.Any[],
+  operands: readonly Structural.Value.Any[],
 ): Predicate<I> =>
   pipe(
     operands,
-    Array.map(Expression.toNode),
+    Array.map(StructuralSyntax.valueNode),
     Result.all,
     Result.map((arguments_) => new AST.Call(new AST.Expr(path), arguments_)),
     // oxlint-disable-next-line eslint/no-use-before-define -- syntax construction and predicate decoration are mutually recursive
@@ -94,46 +100,52 @@ const predicate = <I>(
   };
 };
 
+/** The input requirements of two compared operands, either of which may be structural shorthand. */
+type ComparisonRequirements<
+  L extends Structural.Value.Any,
+  R extends Structural.Value.Any,
+> = Inputs.Merge<
+  Structural.Value.Requirements<L>,
+  Structural.Value.Requirements<R>
+>;
+
 /** Direct and data-last comparison forms, checking the second supplied operand against the first operand's semantic descriptor. */
 interface Comparison {
-  <const R extends Expression.Value.Any>(
-    right: R,
-  ): <
-    const L extends Expression.Value<
-      ExpressionType.Normalize<Expression.Value.Type<R>>
-    >,
-  >(
-    left: L,
-  ) => Predicate<Requirements<L, R>>;
-  <
-    const L extends Expression.Value.Any,
-    const R extends Expression.Value<
-      ExpressionType.Normalize<Expression.Value.Type<L>>
-    >,
-  >(
-    left: L,
-    right: R,
-  ): Predicate<Requirements<L, R>>;
+  <const R extends Structural.Value.Any>(
+    right: R & Structural.Value.FixedLength<R>,
+  ): <const L extends Structural.Value.Any>(
+    left: L &
+      Structural.Value.Exact<
+        ExpressionType.Normalize<Structural.Value.Type<R>>,
+        L
+      >,
+  ) => Predicate<ComparisonRequirements<L, R>>;
+  <const L extends Structural.Value.Any, const R extends Structural.Value.Any>(
+    left: L & Structural.Value.FixedLength<L>,
+    right: R &
+      Structural.Value.Exact<
+        ExpressionType.Normalize<Structural.Value.Type<L>>,
+        R
+      >,
+  ): Predicate<ComparisonRequirements<L, R>>;
 }
 
 const comparison = (path: string): Comparison =>
   Function.dual(
     2,
     <
-      const L extends Expression.Value.Any,
-      const R extends Expression.Value<
-        ExpressionType.Normalize<Expression.Value.Type<L>>
-      >,
+      const L extends Structural.Value.Any,
+      const R extends Structural.Value.Any,
     >(
       left: L,
       right: R,
-    ): Predicate<Requirements<L, R>> => call(path, [left, right]),
+    ): Predicate<ComparisonRequirements<L, R>> => call(path, [left, right]),
   );
 
 /**
  * Constructs equality between operands with matching semantic descriptors.
  *
- * `eq(left, right)` checks the right descriptor against the left. `eq(right)(left)` fixes the right descriptor first. Host primitives use their SDK descriptors: use bigint with an Integer expression and number with a Number expression. The operands' descriptors must be identical, with no subtyping. To compare a nullable index result with `null`, give `null` the same union descriptor through {@link Expression.assume}. The result retains both operands' inputs and construction failures.
+ * `eq(left, right)` checks the right descriptor against the left. `eq(right)(left)` fixes the right descriptor first. Either operand may be structural shorthand, such as a record of values for a struct. Host primitives use their SDK descriptors: use bigint with an Integer expression and number with a Number expression. The operands' descriptors must be identical, with no subtyping. To compare a nullable index result with `null`, give `null` the same union descriptor through {@link Expression.assume}. The result retains both operands' inputs and construction failures.
  *
  * @example <caption>Compose the same predicate with chaining or a pipe.</caption>
  * ```ts
@@ -141,8 +153,8 @@ const comparison = (path: string): Comparison =>
  * import { Program } from "@local/hashql";
  * import { Result, pipe } from "effect";
  *
- * const { Expression, Operators, Structural } = Program;
- * const count = Structural.input("count", BigInt);
+ * const { Expression, Operators } = Program;
+ * const count = Expression.input("count", BigInt);
  * const chained = Operators.eq(count, 1n).and(true).not();
  * const piped = pipe(count, Operators.eq(1n), Operators.and(true), Operators.not);
  * assert.deepEqual(
@@ -150,11 +162,19 @@ const comparison = (path: string): Comparison =>
  *   Result.getOrThrow(Expression.toJExpr(piped)),
  * );
  * ```
+ *
+ * @category Comparisons
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the curried form fixes the right descriptor and checks the left; both argument orders have exact-type tests
 export const eq: Comparison = comparison("::core::cmp::eq");
 
-/** Constructs inequality with the same operand constraints and composition forms as {@link eq}. */
+/**
+ * Constructs inequality with the same operand constraints and composition forms as {@link eq}.
+ *
+ * @category Comparisons
+ * @since 0.1.0
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the curried form fixes the right descriptor and checks the left; both argument orders have exact-type tests
 export const ne: Comparison = comparison("::core::cmp::ne");
 
@@ -178,25 +198,50 @@ const combination = (path: string): BooleanCombination =>
     ): Predicate<Requirements<L, R>> => call(path, [left, right]),
   );
 
-/** Constructs a Boolean conjunction, directly or as `and(right)(left)`, without short-circuiting host construction. */
+/**
+ * Constructs a Boolean conjunction, directly or as `and(right)(left)`, without short-circuiting host construction.
+ *
+ * @category Logic
+ * @since 0.1.0
+ */
 export const and: BooleanCombination = combination("::core::bool::and");
 
-/** Constructs a Boolean disjunction, directly or as `or(right)(left)`, without short-circuiting host construction. */
+/**
+ * Constructs a Boolean disjunction, directly or as `or(right)(left)`, without short-circuiting host construction.
+ *
+ * @category Logic
+ * @since 0.1.0
+ */
 export const or: BooleanCombination = combination("::core::bool::or");
 
-/** Constructs Boolean negation while retaining the operand's inputs and construction failures. */
+/**
+ * Constructs Boolean negation while retaining the operand's inputs and construction failures.
+ *
+ * @category Logic
+ * @since 0.1.0
+ */
 export const not = <const E extends BooleanValue>(
   expression: E,
 ): Predicate<Expression.Value.Inputs<E>> =>
   call("::core::bool::not", [expression]);
 
-/** Constructs an equality comparison with true, returning a chainable {@link Predicate}. */
+/**
+ * Constructs an equality comparison with true, returning a chainable {@link Predicate}.
+ *
+ * @category Comparisons
+ * @since 0.1.0
+ */
 export const isTrue = <const E extends BooleanValue>(
   expression: E,
 ): Predicate<Expression.Value.Inputs<E>> =>
   call("::core::cmp::eq", [expression, true]);
 
-/** Constructs an equality comparison with false, returning a chainable {@link Predicate}. */
+/**
+ * Constructs an equality comparison with false, returning a chainable {@link Predicate}.
+ *
+ * @category Comparisons
+ * @since 0.1.0
+ */
 export const isFalse = <const E extends BooleanValue>(
   expression: E,
 ): Predicate<Expression.Value.Inputs<E>> =>
@@ -216,6 +261,9 @@ type Optional<E extends Expression.Value.Any> =
  * Compares an optional value with the HashQL `::core::option::None` constructor.
  *
  * The operand's normalized descriptor must be a union with a {@link Type.Opaque} member whose name is the string `"::core::option::None"`. The check compares that name, so it rejects a None declared under a symbol identity or any other name. Null is a different value and does not satisfy this constraint. The resulting equality expression retains the operand's TypeScript descriptor without narrowing it.
+ *
+ * @category Comparisons
+ * @since 0.1.0
  */
 export const isNone = <const E extends Expression.Value.Any>(
   expression: E & Optional<E>,
@@ -233,7 +281,12 @@ export const isNone = <const E extends Expression.Value.Any>(
     predicate<Expression.Value.Inputs<E>>,
   );
 
-/** The same constructors are available on authoring contexts and as standalone functions. */
+/**
+ * The same constructors are available on authoring contexts and as standalone functions.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Operations {
   readonly eq: typeof eq;
   readonly ne: typeof ne;

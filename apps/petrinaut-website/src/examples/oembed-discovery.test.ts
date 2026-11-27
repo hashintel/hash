@@ -32,13 +32,13 @@ describe("getOEmbedDiscoveryUrl", () => {
   it("orders the contract parameters canonically", () => {
     expect(
       getOEmbedDiscoveryUrl("gases-2-spn", {
-        subnet: "subnet-a",
+        component: "component-a",
         scenario: "scenario__drawing",
       }),
     ).toBe(
       getOEmbedDiscoveryUrl("gases-2-spn", {
         scenario: "scenario__drawing",
-        subnet: "subnet-a",
+        component: "component-a",
       }),
     );
   });

@@ -1,6 +1,7 @@
 import { getPropertyTypes } from "@blockprotocol/graph/stdlib";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
+import { actorHeaders } from "@local/hash-graph-client";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
@@ -239,8 +240,8 @@ export const createAiActivities = ({
 
       // Store to DB
       if (embeddings.length > 0) {
-        await graphApiClient
-          .updateEntityEmbeddings(params.authentication.actorId, {
+        await graphApiClient.updateEntityEmbeddings(
+          {
             entityId: entity.metadata.recordId.entityId,
             embeddings: embeddings.map((embedding) => ({
               property: embedding.property,
@@ -251,8 +252,9 @@ export const createAiActivities = ({
               entity.metadata.temporalVersioning.transactionTime.start.limit,
             updatedAtDecisionTime:
               entity.metadata.temporalVersioning.decisionTime.start.limit,
-          })
-          .then((response) => response.data);
+          },
+          actorHeaders(params.authentication.actorId),
+        );
       }
 
       usage.prompt_tokens += entityUsage.prompt_tokens;

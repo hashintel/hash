@@ -15,7 +15,7 @@ eval "$(mise activate bash --shims)"
 # The storybook build is Node throughout — `storybook build` <- `codegen` <- the
 # `ds-helpers` build — and `.yarnrc.yml` sets `enableScripts: false`, so nothing
 # compiles during install. That leaves out the Rust toolchain, wasm-pack,
-# binaryen, java, protoc and redocly the other Vercel apps here install; turbo
+# binaryen and protoc the other Vercel apps here install; turbo
 # loads the Cargo workspace only for a selection that contains a crate.
 #
 # turbo comes from the pin rather than the build image: the root `turbo.json`

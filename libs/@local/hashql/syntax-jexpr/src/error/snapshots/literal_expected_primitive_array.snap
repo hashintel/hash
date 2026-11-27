@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": [1, 2]}"
+---
+error[jexpr::parser::object::literal-expected-primitive]: Expected primitive value for `#literal`
+  ╭▸ 
+1 │ {"#literal": [1, 2]}
+  │  ┬─────────  ━━━━━━ expected a primitive literal, found an array
+  │  │
+  │  required by `#literal`
+  │
+  ├ help: use `{"#list": [...]}` or `{"#tuple": [...]}` for collections
+  ╰ note: `#literal` only accepts primitive JSON values: strings, numbers, booleans, or `null`

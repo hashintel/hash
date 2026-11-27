@@ -1,14 +1,16 @@
 import { createContext } from "react";
 
+import { WEBGPU_FIXED_STEP_SIMULATOR_ID } from "@hashintel/petrinaut-core";
+
 import type { SimulatorSelection } from "../simulators/context";
 import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
+  SweepSelection,
 } from "./parameter-grid";
 import type {
   SweepBatchStatus,
   SweepNavigateOptions,
-  SweepSelection,
   SweepVisitedCell,
 } from "./sweep-session";
 
@@ -55,6 +57,13 @@ export type ExperimentMetricSpecInput =
 
 /** What an experiment's runs were computed on: worker threads, or the GPU. */
 export type ExperimentComputeBackend = "cpu" | "webgpu";
+
+/**
+ * Which of the two compute paths the backend that ran is: the graphics
+ * card, or worker threads.
+ */
+export const computeBackendOf = (backendId: string): ExperimentComputeBackend =>
+  backendId === WEBGPU_FIXED_STEP_SIMULATOR_ID ? "webgpu" : "cpu";
 
 export type CreateExperimentInput = {
   name: string;
@@ -278,7 +287,7 @@ export function getExperimentElapsedMs(
 }
 
 /** An experiment something else started, handed over to be listed. */
-export type AdoptExperimentInput = {
+type AdoptExperimentInput = {
   name: string;
   /** The experiment, started by its previous owner. */
   handle: MonteCarloExperiment;

@@ -1,7 +1,7 @@
 use core::assert_matches;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -1476,7 +1476,7 @@ fn instantiate_intersection() {
         opaque!(env, "A", param1),
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1486,7 +1486,7 @@ fn instantiate_intersection() {
         opaque!(env, "A", param2),
         [GenericArgument {
             id: argument2,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1539,7 +1539,7 @@ fn projection_empty() {
     let intersection = intersection!(env, []);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(intersection, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(projection, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics().into_vec();
@@ -1560,7 +1560,7 @@ fn projection_single_variant() {
     let intersection = intersection!(env, [r#struct!(env, [struct_field!(env, "foo", string)])]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(intersection, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 0);
 
     assert_eq!(projection, Projection::Resolved(string));
@@ -1577,7 +1577,7 @@ fn projection_propagate_error() {
     let intersection = intersection!(env, [integer, string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(intersection, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 2);
     assert_eq!(projection, Projection::Error);
 }
@@ -1593,7 +1593,7 @@ fn projection_propagate_pending() {
     let intersection = intersection!(env, [instantiate_infer(&env, hole), string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(intersection, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 1);
     assert_eq!(projection, Projection::Pending);
 }
@@ -1615,7 +1615,7 @@ fn projection_intersection_values() {
     );
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(intersection, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 0);
     let Projection::Resolved(id) = projection else {
         panic!("expected resolved projection")

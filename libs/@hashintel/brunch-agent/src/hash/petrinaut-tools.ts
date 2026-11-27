@@ -249,9 +249,9 @@ const mergedNodeUpdate = (
       [key]: nodeIdSchemas[key],
       update: schemas[update].shape.update.optional(),
       position: schemas[position].shape.position.optional(),
-      targetSubnetId: schemas[update].shape.targetSubnetId,
+      targetComponentId: schemas[update].shape.targetComponentId,
     },
-    split: ({ update: fields, position: at, targetSubnetId, ...rest }) => {
+    split: ({ update: fields, position: at, targetComponentId, ...rest }) => {
       const id = rest[key];
       return [
         ...(fields === undefined
@@ -260,7 +260,7 @@ const mergedNodeUpdate = (
               operationCall(update, {
                 [key]: id,
                 update: fields,
-                targetSubnetId,
+                targetComponentId,
               }),
             ]),
         ...(at === undefined
@@ -269,7 +269,7 @@ const mergedNodeUpdate = (
               operationCall(position, {
                 [key]: id,
                 position: at,
-                targetSubnetId,
+                targetComponentId,
               }),
             ]),
       ];
@@ -308,7 +308,7 @@ export const hashPetrinautTools = {
       newEndpoint: schemas.updateArcPlace.shape.newEndpoint,
       type: schemas.updateArcType.shape.type.optional(),
       weight: schemas.updateArcWeight.shape.weight.optional(),
-      targetSubnetId: schemas.updateArcWeight.shape.targetSubnetId,
+      targetComponentId: schemas.updateArcWeight.shape.targetComponentId,
     },
     check: (input, context) => {
       const {
@@ -320,9 +320,9 @@ export const hashPetrinautTools = {
         newEndpoint,
         type,
         weight,
-        targetSubnetId,
+        targetComponentId,
       } = input;
-      const current = { transitionId, placeId, endpoint, targetSubnetId };
+      const current = { transitionId, placeId, endpoint, targetComponentId };
       // Validate the requested operation at the advertised schema boundary,
       // retaining the canonical endpoint rules without inventing a no-op policy.
       const parsed =
@@ -334,7 +334,7 @@ export const hashPetrinautTools = {
               oldEndpoint: endpoint,
               newPlaceId,
               newEndpoint,
-              targetSubnetId,
+              targetComponentId,
             })
           : weight !== undefined
             ? schemas.updateArcWeight.safeParse({
@@ -377,7 +377,7 @@ export const hashPetrinautTools = {
       newEndpoint,
       type,
       weight,
-      targetSubnetId,
+      targetComponentId,
     }) => {
       // The retarget is the one step that can fail, so it runs first; the
       // others then find the arc at its new endpoint.
@@ -395,7 +395,7 @@ export const hashPetrinautTools = {
                 oldEndpoint: endpoint,
                 newPlaceId,
                 newEndpoint,
-                targetSubnetId,
+                targetComponentId,
               }),
             ]
           : []),
@@ -406,7 +406,7 @@ export const hashPetrinautTools = {
                 transitionId,
                 ...at,
                 type,
-                targetSubnetId,
+                targetComponentId,
               }),
             ]),
         ...(weight === undefined
@@ -417,7 +417,7 @@ export const hashPetrinautTools = {
                 arcDirection,
                 ...at,
                 weight,
-                targetSubnetId,
+                targetComponentId,
               }),
             ]),
       ];
@@ -437,9 +437,9 @@ export const hashPetrinautTools = {
       elementId: schemas.updateTypeElement.shape.elementId,
       update: schemas.updateTypeElement.shape.update.optional(),
       toIndex: schemas.moveTypeElement.shape.toIndex.optional(),
-      targetSubnetId: schemas.updateTypeElement.shape.targetSubnetId,
+      targetComponentId: schemas.updateTypeElement.shape.targetComponentId,
     },
-    split: ({ typeId, elementId, update, toIndex, targetSubnetId }) => [
+    split: ({ typeId, elementId, update, toIndex, targetComponentId }) => [
       ...(update === undefined
         ? []
         : [
@@ -447,7 +447,7 @@ export const hashPetrinautTools = {
               typeId,
               elementId,
               update,
-              targetSubnetId,
+              targetComponentId,
             }),
           ]),
       ...(toIndex === undefined
@@ -457,7 +457,7 @@ export const hashPetrinautTools = {
               typeId,
               elementId,
               toIndex,
-              targetSubnetId,
+              targetComponentId,
             }),
           ]),
     ],
@@ -481,25 +481,32 @@ export const hashPetrinautTools = {
   petrinaut_create_metric: mapped("addMetric"),
   petrinaut_update_metric: mapped("updateMetric"),
   petrinaut_remove_metric: mapped("removeMetric"),
-  petrinaut_create_subnet: mapped("addSubnet"),
-  petrinaut_update_subnet: mapped("updateSubnet"),
-  petrinaut_remove_subnet: mapped("removeSubnet"),
-  petrinaut_create_component: mapped("addComponentInstance"),
-  petrinaut_update_component: mergedNodeUpdate(
+  petrinaut_create_component: mapped("addComponent"),
+  petrinaut_update_component: mapped("updateComponent"),
+  petrinaut_remove_component: mapped("removeComponent"),
+  petrinaut_set_implementation: mapped("setImplementation"),
+  petrinaut_create_component_instance: mapped("addComponentInstance"),
+  petrinaut_update_component_instance: mergedNodeUpdate(
     "updateComponentInstance",
     "updateComponentInstancePosition",
     "instanceId",
     "Update fields on an existing component instance, its canvas position, or both.",
   ),
-  petrinaut_remove_component: mapped("removeComponentInstance"),
+  petrinaut_remove_component_instance: mapped("removeComponentInstance"),
+  petrinaut_create_fusion: mapped("addFusion"),
+  petrinaut_update_fusion: mapped("updateFusion"),
+  petrinaut_remove_fusion: mapped("removeFusion"),
+  petrinaut_create_fusion_member: mapped("addFusionMember"),
+  petrinaut_remove_fusion_member: mapped("removeFusionMember"),
+  petrinaut_replace_fusion_member: mapped("replaceFusionMember"),
   petrinaut_get_net: standIn({
     operation: "getLatestNetDefinition",
     description:
-      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document.",
+      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document. Where the net imports libraries or the editor offers some, also `imports`: each library with its `status` and, once `resolved`, its `name` and `components`, each with its `id`, whether it is an `interface`, its `ports` and its `parameters`. Place an instance of one with `petrinaut_create_component_instance` and `component: { from: <library id>, id: <component id> }`.",
     shape: {
       detail: netDetailSchema.meta({
         description:
-          "`outline`: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances; code and expressions (lambda, kernel, equation and metric code, parameter overrides, component parameter values, scenario initial states other than the shape of an ad-hoc one), canvas positions, visual settings and host metadata are left out. `structure`: every core property, code and expressions included; canvas positions, visualizer code, icons, colours and host metadata left out. `full`: the complete definition, positions and visualizer code included.",
+          "`outline`: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, components and component instances; code and expressions (lambda, kernel, equation and metric code, parameter overrides, component parameter values, scenario initial states other than the shape of an ad-hoc one), canvas positions, visual settings and host metadata are left out. `structure`: every core property, code and expressions included; canvas positions, visualizer code, icons, colours and host metadata left out. `full`: the complete definition, positions and visualizer code included.",
       }),
     },
   }),

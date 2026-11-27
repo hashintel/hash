@@ -4,8 +4,8 @@
 //! [`separation_buckets`] computes the same assignment at [`Depth::MAX`] in one pass over the
 //! `(key, rank)` order.
 
+use alloc::alloc::Global;
 use core::alloc::Allocator;
-use std::alloc::Global;
 
 use hashql_core::{
     collections::fast_hash_set,

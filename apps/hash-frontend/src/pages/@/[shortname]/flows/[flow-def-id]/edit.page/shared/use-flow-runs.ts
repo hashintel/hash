@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
 
 import { getFlowDefinitionRunsQuery } from "../../../../../../../graphql/queries/knowledge/flow.queries";
+import { isRunGoing } from "./run-state";
 
 import type {
   FlowRunSummary,
@@ -121,9 +122,10 @@ export const loadAllRuns = async (
 
 /**
  * Reads the runs that changed since `runs` were read into them. The API gives the runs that changed most recently
- * first, so pages are read until one holds a run that changed before the latest change in `runs`. A run that's gone,
- * such as an archived one, isn't among those, so when the API has a different number of runs than were read, every
- * page is read again.
+ * first, so pages are read until one holds a run that changed before the latest change in `runs`, and every run that
+ * was going has been read again: the API only finds a run ended without saving how, which leaves its last change
+ * where it was, when it reads it. A run that's gone, such as an archived one, isn't among those, so when the API has
+ * a different number of runs than were read, every page is read again.
  */
 export const loadRecentRuns = async (
   client: FlowRunsClient,
@@ -134,14 +136,26 @@ export const loadRecentRuns = async (
     (latest, { updatedAt }) => Math.max(latest, Date.parse(updatedAt)),
     -Infinity,
   );
+  const goingRunIds = new Set(
+    runs
+      .filter(({ status }) => isRunGoing(status))
+      .map(({ flowRunEntityId }) => flowRunEntityId),
+  );
+  let reachedOlderChange = false;
 
   const recent = await readPages({
     client,
     flowDefinitionEntityId,
     fetchPolicy: "network-only",
     runs,
-    isLastPage: (page) =>
-      page.some(({ updatedAt }) => Date.parse(updatedAt) < latestChange),
+    isLastPage: (page) => {
+      for (const { flowRunEntityId, updatedAt } of page) {
+        goingRunIds.delete(flowRunEntityId);
+        reachedOlderChange ||= Date.parse(updatedAt) < latestChange;
+      }
+
+      return reachedOlderChange && goingRunIds.size === 0;
+    },
   });
 
   return recent.runs.length === recent.totalCount

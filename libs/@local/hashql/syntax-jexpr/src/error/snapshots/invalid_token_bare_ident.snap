@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"add\", x]"
+---
+error[jexpr::lexer::invalid-token]: Invalid token
+  ╭▸ 
+1 │ ["add", x]
+  │         ━ unexpected bare identifier `x`
+  │
+  ╰ note: J-Expr uses JSON syntax, where identifiers and paths must be double-quoted strings
+help: wrap the identifier in double quotes
+  ╭╴
+1 - ["add", x]
+1 + ["add", "x"]
+  ╰╴

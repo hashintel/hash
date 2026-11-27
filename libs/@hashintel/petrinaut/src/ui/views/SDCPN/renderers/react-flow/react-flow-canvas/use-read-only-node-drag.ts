@@ -1,6 +1,6 @@
 import { useRef, type PointerEvent } from "react";
 
-import { useReadOnlyFeedback } from "../../../../../../react/hooks/use-read-only-feedback";
+import { useReadOnlyFeedback } from "../../../../../../react/editing/use-read-only-feedback";
 
 const dragThresholdPx = 6;
 

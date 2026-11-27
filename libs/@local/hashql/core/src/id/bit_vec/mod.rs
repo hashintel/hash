@@ -284,12 +284,9 @@ impl<T: Id> DenseBitSet<T> {
             }
 
             let remaining = start_word_index + 1..end_word_index;
-            if remaining.start <= remaining.end {
-                self.words[remaining].iter().any(|&w| w != 0)
-                    || self.words[end_word_index] & (end_mask | (end_mask - 1)) != 0
-            } else {
-                false
-            }
+            remaining.start <= remaining.end
+                && (self.words[remaining].iter().any(|&w| w != 0)
+                    || self.words[end_word_index] & (end_mask | (end_mask - 1)) != 0)
         }
     }
 

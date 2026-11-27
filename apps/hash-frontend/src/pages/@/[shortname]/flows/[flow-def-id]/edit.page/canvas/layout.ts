@@ -1,10 +1,13 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 
 import { getStepsBefore } from "../shared/step-order";
+import { getStepPaths } from "../shared/step-paths";
 import { getStartPosition, startNodeId } from "./flow-graph";
 import {
   collapsedForEachSize,
+  emptyForEachSize,
   forEachBoxPadding,
+  getStepCardSize,
   stepCardSize,
   stepGap,
 } from "./sizes";
@@ -58,7 +61,10 @@ const getElkNodes = (
 ): ElkNode[] =>
   steps.map((step) =>
     step.kind === "action"
-      ? { id: getStepElkId(step.stepId), ...stepCardSize }
+      ? {
+          id: getStepElkId(step.stepId),
+          ...getStepCardSize(getStepPaths(step).length),
+        }
       : collapsedStepIds.has(step.stepId)
         ? { id: getStepElkId(step.stepId), ...collapsedForEachSize }
         : {
@@ -69,7 +75,7 @@ const getElkNodes = (
               ...layoutOptions,
               "elk.padding": `[top=${forEachBoxPadding.header},left=${forEachBoxPadding.side},bottom=${forEachBoxPadding.side},right=${forEachBoxPadding.side}]`,
               "elk.nodeSize.constraints": "MINIMUM_SIZE",
-              "elk.nodeSize.minimum": `(${stepCardSize.width}, ${stepCardSize.height + forEachBoxPadding.header})`,
+              "elk.nodeSize.minimum": `(${emptyForEachSize.width}, ${emptyForEachSize.height})`,
             },
           },
   );
@@ -102,17 +108,18 @@ const readLayout = (
   return positions;
 };
 
-/** `position`, or as far below it as needed for a new card to cover none of `taken`. */
+/** `position`, or as far below it as needed for a new card of `size` to cover none of `taken`. */
 export const getFreePosition = (
   position: StepPosition,
+  size: { width: number; height: number },
   taken: { position: StepPosition; width: number; height: number }[],
 ): StepPosition => {
   const covered = taken.filter(
     (rect) =>
       position.x < rect.position.x + rect.width &&
-      rect.position.x < position.x + stepCardSize.width &&
+      rect.position.x < position.x + size.width &&
       position.y < rect.position.y + rect.height &&
-      rect.position.y < position.y + stepCardSize.height,
+      rect.position.y < position.y + size.height,
   );
 
   return covered.length === 0
@@ -124,13 +131,14 @@ export const getFreePosition = (
             Math.max(...covered.map((rect) => rect.position.y + rect.height)) +
             stepGap / 2,
         },
+        size,
         taken,
       );
 };
 
 /**
- * Lays a flow out left to right, counting data links as well as connections, keeping Start where it is. Inner steps'
- * places are returned in `forEachLayouts` and never saved, except for the top-level for-each steps in
+ * Lays a flow out left to right, counting data links as well as connections, keeping Start where it is. The places of
+ * steps inside a box, relative to it, are returned in `forEachLayouts`, except for the top-level for-each steps in
  * `collapsedStepIds`, which are laid out at their collapsed size.
  */
 export const layOutFlow = async (

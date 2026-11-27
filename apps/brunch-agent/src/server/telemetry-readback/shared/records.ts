@@ -3,7 +3,10 @@ import type {
   chronologyLogMessage,
   SubmissionChronology,
 } from "../../observe-turn-chronology.ts";
-import type { ModelStreamIdleTimeout } from "../../provider-admission.ts";
+import type {
+  ModelOutputLimit,
+  ModelStreamIdleTimeout,
+} from "../../provider-admission.ts";
 import type {
   ClassifiedError,
   DiagnosticStage,
@@ -13,6 +16,7 @@ import type {
 export const chronologyMarker: typeof chronologyLogMessage =
   "[brunch] flue.submission chronology";
 export const idleTimeoutMarker = `[brunch] ${"provider.timeout" satisfies DiagnosticStage}`;
+export const outputLimitMarker = `[brunch] ${"provider.output-limit" satisfies DiagnosticStage}`;
 
 type TurnChronology = SubmissionChronology["turns"][number];
 type ToolCallChronology = TurnChronology["toolCalls"][number];
@@ -92,6 +96,16 @@ export type LoggedIdleTimeout = {
   readonly lastEventType: string | null;
   readonly acknowledged: boolean | null;
   readonly retryClaimed: boolean | null;
+};
+
+/** A `provider.output-limit` line; any field a log store dropped is null. */
+export type LoggedOutputLimit = {
+  readonly timestamp: string | null;
+  readonly submissionId: string | null;
+  readonly turnId: string | null;
+  readonly provider: string | null;
+  readonly model: string | null;
+  readonly outputTokens: number | null;
 };
 
 /** One model call's span, reduced to metadata. */
@@ -262,5 +276,21 @@ export const toIdleTimeout = (
     retryClaimed: booleanOrNull(fields.retryClaimed),
   }) satisfies Record<
     keyof ModelStreamIdleTimeout | keyof ModelCallScope | "timestamp",
+    unknown
+  >;
+
+export const toOutputLimit = (
+  fields: Readonly<Record<string, unknown>>,
+  timestamp: string | null,
+): LoggedOutputLimit =>
+  ({
+    timestamp: stringOrNull(fields.timestamp) ?? timestamp,
+    submissionId: stringOrNull(fields.submissionId),
+    turnId: stringOrNull(fields.turnId),
+    provider: stringOrNull(fields.provider),
+    model: stringOrNull(fields.model),
+    outputTokens: numberOrNull(fields.outputTokens),
+  }) satisfies Record<
+    keyof ModelOutputLimit | keyof ModelCallScope | "timestamp",
     unknown
   >;

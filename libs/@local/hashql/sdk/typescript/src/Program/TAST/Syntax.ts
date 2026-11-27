@@ -1,8 +1,10 @@
-import { Pipeable } from "effect";
+import { Pipeable, Result, pipe } from "effect";
 
+import * as Overflow from "../../internal/overflow.js";
 import * as Referential from "../../internal/referential.js";
+import * as JExpr from "../../JExpr/index.js";
+import * as ProgramError from "../ProgramError.js";
 
-import type * as JExpr from "../../JExpr/index.js";
 import type { TypeNode } from "./TypeNode.js";
 
 /** Type syntax built outside the tree, which names no binding of the program. */
@@ -26,3 +28,21 @@ export class Syntax
     return this.syntax;
   }
 }
+
+const makeType = Overflow.makeResult(JExpr.Type.Schema);
+
+/**
+ * Wraps type syntax a caller built, after checking it against the J-Expr type schema.
+ *
+ * A caller can write type syntax as an object literal, whose names no parser has read. Every other node takes names and paths that a parser decoded before they reached it. With this check, a tree therefore holds valid syntax by construction. Syntax the schema refuses, such as a struct member whose name is not an identifier, returns a {@link ProgramError.Construction} with the `InvalidExpression` reason. Syntax nested deep enough to exhaust the call stack during the check returns the same reason.
+ */
+export const fromSyntax = (
+  syntax: JExpr.Type.Type,
+): Result.Result<Syntax, ProgramError.Construction> =>
+  pipe(
+    makeType(syntax),
+    Result.mapBoth({
+      onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
+      onSuccess: () => new Syntax(syntax),
+    }),
+  );

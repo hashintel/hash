@@ -8,7 +8,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::{any::TypeId, fmt::Write as _, mem, str, str::FromStr};
+use core::{any::TypeId, assert_matches, fmt::Write as _, mem, str, str::FromStr};
 
 use error_stack::Report;
 use hash_integrations_definition::{
@@ -874,18 +874,17 @@ fn alias_bomb_refused() {
     }
 
     let report = Definition::from_yaml(&text).expect_err("an alias bomb should be refused");
-    assert!(
-        matches!(report.current_context(), ParseError::Syntax { .. }),
+    assert_matches!(
+        report.current_context(),
+        ParseError::Syntax { .. },
         "an alias bomb should stop at the YAML parser"
     );
     // A budget breach while the parser expands an alias becomes an `AliasError` that keeps only
     // the breach's message.
     let error = parser_error(&report);
-    assert!(
-        matches!(
-            error,
-            serde_saphyr::Error::AliasError { msg, .. } if msg.starts_with("budget breached: Nodes")
-        ),
+    assert_matches!(
+        error,
+        serde_saphyr::Error::AliasError { msg, .. } if msg.starts_with("budget breached: Nodes"),
         "the parser's node budget should refuse the alias bomb, not: {error}"
     );
 }
@@ -901,19 +900,18 @@ fn deep_nesting_refused() {
     );
 
     let report = Definition::from_yaml(&text).expect_err("deep nesting should be refused");
-    assert!(
-        matches!(report.current_context(), ParseError::Syntax { .. }),
+    assert_matches!(
+        report.current_context(),
+        ParseError::Syntax { .. },
         "deep nesting should stop at the YAML parser"
     );
     let error = parser_error(&report);
-    assert!(
-        matches!(
-            error,
-            serde_saphyr::Error::Budget {
-                breach: BudgetBreach::Depth { .. },
-                ..
-            }
-        ),
+    assert_matches!(
+        error,
+        serde_saphyr::Error::Budget {
+            breach: BudgetBreach::Depth { .. },
+            ..
+        },
         "the parser's depth budget should refuse deep nesting, not: {error}"
     );
 }

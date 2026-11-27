@@ -1,0 +1,7 @@
+error[type-check::non-convergent-system]: Non-convergent constraint system
+   ╭▸ 
+11 │     { "#tuple": ["bar.b", "foo[foo[foo[0]]]"] }
+   │                                    ━━━━━━ type inference did not settle on a type here
+   │
+   ├ help: add a type annotation, for example by binding the value with `let` and an explicit type
+   ╰ note: type inference stops after a number of iterations that grows with the program, and it was still producing constraints on the labelled types when it stopped

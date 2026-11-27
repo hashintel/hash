@@ -13,7 +13,7 @@ import {
   generateOutputValueKey,
   generateValuePlaceKey,
 } from "../../flow-net-keys.js";
-import { getActionDefinition, getRunAfterStepIds } from "./flow-steps.js";
+import { getActionDefinition, getRunAfterEntries } from "./flow-steps.js";
 import {
   createTransition,
   inputArc,
@@ -246,10 +246,20 @@ export const placeValues = ({
   }
 
   /*
-   * A step waits for a step it runs after by reading one of its outputs, which a step produces all at once. An action
-   * with no outputs has none, so `runAfterArcs` reads its `Done` port instead.
+   * A step waits for a step it runs after by reading one of its outputs, which a step produces all at once: its path's
+   * output, or else the first. An action with no outputs has none, so `runAfterArcs` reads its `Done` port instead.
    */
-  const completionValueKey = (stepId: string): string | null => {
+  const completionValueKey = ({
+    stepId,
+    outputName,
+  }: {
+    stepId: string;
+    outputName?: string;
+  }): string | null => {
+    if (outputName !== undefined) {
+      return generateOutputValueKey(stepId, outputName);
+    }
+
     const { step } = steps.getStep(stepId);
 
     if (step.kind === "for-each") {
@@ -264,8 +274,8 @@ export const placeValues = ({
   };
 
   for (const { step } of steps.entries) {
-    for (const beforeStepId of getRunAfterStepIds(step)) {
-      const valueKey = completionValueKey(beforeStepId);
+    for (const entry of getRunAfterEntries(step)) {
+      const valueKey = completionValueKey(entry);
 
       if (valueKey) {
         getValue(valueKey).isWaitedOn = true;
@@ -435,28 +445,34 @@ export const placeValues = ({
       return arc;
     },
 
-    /** The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`. */
+    /**
+     * The read arcs a step waits on the steps it runs after through, except any it already has from `valueArcs`, with
+     * the endpoints for its metadata: `runAfter` for those arcs, and `paths` for every path's output (see
+     * `PathEndpoints`).
+     */
     runAfterArcs: (
       step: StepDefinition,
       valueArcs: { endpoint: ArcEndpoint }[],
-    ): (InputArc & { endpoint: ArcEndpoint })[] => {
+    ) => {
       const arcs: (InputArc & { endpoint: ArcEndpoint })[] = [];
+      const paths: ArcEndpoint[] = [];
+      const entries = getRunAfterEntries(step);
 
-      for (const beforeStepId of getRunAfterStepIds(step)) {
-        const { step: before } = steps.getStep(beforeStepId);
-        const valueKey = completionValueKey(beforeStepId);
+      for (const entry of entries) {
+        const { step: before } = steps.getStep(entry.stepId);
+        const valueKey = completionValueKey(entry);
 
         const waitedOn = valueKey
           ? getValueLocation(valueKey).shared
           : before.kind === "action"
             ? portEndpoint(
-                generateInstanceKey(beforeStepId),
+                generateInstanceKey(entry.stepId),
                 generateDonePortKey(steps.getSubnetName(before)),
               )
             : null;
 
         if (!waitedOn) {
-          throw new Error(`Step "${beforeStepId}" has nothing to wait on`);
+          throw new Error(`Step "${entry.stepId}" has nothing to wait on`);
         }
 
         const arc = inputArc(waitedOn, "read");
@@ -468,9 +484,20 @@ export const placeValues = ({
         ) {
           arcs.push(arc);
         }
+
+        if (entry.outputName !== undefined) {
+          paths.push(waitedOn);
+        }
       }
 
-      return arcs;
+      return {
+        arcs,
+        runAfter: arcs.map(({ endpoint }) => endpoint),
+        /* A plain line is followed whenever the step can start, so its paths can't keep it from starting. */
+        paths: entries.some(({ outputName }) => outputName === undefined)
+          ? []
+          : paths,
+      };
     },
 
     /** Arcs putting a for-each step's item where each step inside it takes it from. */

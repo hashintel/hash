@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import {
   deserializeGraphVertices,
   mapGraphApiSubgraphToSubgraph,
@@ -45,8 +47,8 @@ export const hasPermissionForDataTypes = (
   >,
 ): Promise<VersionedUrl[]> =>
   graphAPI
-    .hasPermissionForDataTypes(authentication.actorId, params)
-    .then(({ data: permitted }) => permitted as VersionedUrl[]);
+    .hasPermissionForDataTypes(params, actorHeaders(authentication.actorId))
+    .then((permitted) => permitted as VersionedUrl[]);
 
 export type QueryDataTypesParams = Omit<
   QueryDataTypesParamsGraphApi,
@@ -73,8 +75,8 @@ export const queryDataTypes = (
   params: QueryDataTypesParams,
 ): Promise<QueryDataTypesResponse> =>
   graphApi
-    .queryDataTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryDataTypes(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       dataTypes: mapGraphApiDataTypesToDataTypes(response.dataTypes),
       cursor: response.cursor as VersionedUrl | undefined,
@@ -110,8 +112,8 @@ export const queryDataTypeSubgraph = (
   params: QueryDataTypeSubgraphParams,
 ): Promise<QueryDataTypeSubgraphResponse> =>
   graphApi
-    .queryDataTypeSubgraph(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryDataTypeSubgraph(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
       cursor: response.cursor as VersionedUrl | undefined,
@@ -160,8 +162,8 @@ export const findDataTypeConversionTargets = (
   Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>
 > =>
   graphApi
-    .findDataTypeConversionTargets(authentication.actorId, params)
-    .then(({ data }) => mapGraphApiDataTypeConversions(data.conversions));
+    .findDataTypeConversionTargets(params, actorHeaders(authentication.actorId))
+    .then((data) => mapGraphApiDataTypeConversions(data.conversions));
 
 export const getDataTypeById = async (
   graphApi: GraphApi,

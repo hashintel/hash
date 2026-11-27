@@ -5,11 +5,11 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EventPlaybackContext } from "../../../../../react/event-playback/context";
+import { constantStore } from "../../../../../react/shared/use-store";
 import {
   DEFAULT_SIMULATION_CONTEXT,
   SimulationContext,
 } from "../../../../../react/simulation/context";
-import { constantStore } from "../../../../../react/use-store";
 import { EventTimeControls } from "./event-time-controls";
 
 import type { EventPlaybackContextValue } from "../../../../../react/event-playback/context";

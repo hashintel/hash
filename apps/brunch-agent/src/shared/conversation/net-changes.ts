@@ -4,10 +4,11 @@ import {
   type NetElementAddress,
   browserToolEnvelopeOf,
   browserToolFacts,
-  canonicalCallsOf,
   generatedArcId,
   namesId,
   parseClientToolResultMetadata,
+  readRecordedCall,
+  recordedCanonicalCallsOf,
   type NetStructure,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
@@ -32,17 +33,22 @@ export interface NetCall {
   readonly partIndex: number;
 }
 
-/** One chronological projection of the browser's settled results, without replay. */
+/**
+ * One chronological projection of the browser's settled results, without
+ * replay. Each call is under the tool of today that takes it, and in that
+ * tool's keys: a conversation may have recorded it under older ones.
+ */
 export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
   snapshot.messages.flatMap((message, messageIndex) =>
     message.role === "assistant" && message.purpose === "assistant"
       ? message.parts.flatMap((part, partIndex) => {
-          if (
-            part.type !== "dynamic-tool" ||
-            !browserToolFacts(part.toolName).runsOnNet ||
-            part.state !== "output-available"
-          )
+          if (part.type !== "dynamic-tool" || part.state !== "output-available")
             return [];
+          const { toolName, input } = readRecordedCall(
+            part.toolName,
+            part.input,
+          );
+          if (!browserToolFacts(toolName).runsOnNet) return [];
           const envelope = browserToolEnvelopeOf(part.output);
           if (!envelope) return [];
           const recordedMetadata = envelope.metadata;
@@ -50,8 +56,8 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
           return [
             {
               toolCallId: part.toolCallId,
-              toolName: part.toolName,
-              input: part.input,
+              toolName,
+              input,
               output: envelope.output,
               revisionBefore: metadata?.documentRevision.before,
               revisionAfter: metadata?.documentRevision.after,
@@ -124,7 +130,9 @@ export const callsForElement = (
 ): NetCall[] =>
   netCalls(snapshot).filter((call) => {
     if (!isAppliedChange(call)) return false;
-    const canonicalCalls = canonicalCallsOf(call.toolName, call.input);
+    // A recorded call that no tool of today takes yields no canonical call,
+    // and so is credited to no element.
+    const canonicalCalls = recordedCanonicalCallsOf(call.toolName, call.input);
     const { arc } = element;
     return arc
       ? canonicalCalls.some((canonical) =>

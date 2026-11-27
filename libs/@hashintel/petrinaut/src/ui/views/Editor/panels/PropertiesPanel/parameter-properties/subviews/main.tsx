@@ -1,24 +1,19 @@
 import { Form, TextInput, Tooltip } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import {
   validateDisplayName,
   validateVariableName,
 } from "@hashintel/petrinaut-core";
 
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { ParameterIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
+import { DraftFieldInput } from "../../draft-field-input";
+import { fieldsSectionStyle } from "../../styles";
 import { useParameterPropertiesContext } from "../context";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
-
-const ParameterMainContent: React.FC = () => {
-  const { parameter, updateParameter } = useParameterPropertiesContext();
+export const ParameterMainContent: React.FC = () => {
+  const { parameter } = useParameterPropertiesContext();
+  const { updateParameter } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
 
   const handleUpdateDefaultValue = (defaultValue: string) => {
@@ -43,8 +38,6 @@ const ParameterMainContent: React.FC = () => {
             update: { name },
           })
         }
-        disabled={isDisabled}
-        tooltip={readOnlyTooltip}
       />
 
       <DraftFieldInput
@@ -58,9 +51,7 @@ const ParameterMainContent: React.FC = () => {
             update: { variableName },
           })
         }
-        disabled={isDisabled}
         monospace
-        tooltip={readOnlyTooltip}
       />
 
       <Form.Field label="Default Value" size="sm" disabled={isDisabled}>
@@ -75,12 +66,4 @@ const ParameterMainContent: React.FC = () => {
       </Form.Field>
     </Form.Section>
   );
-};
-
-export const parameterMainContentSubView: SubView = {
-  id: "parameter-main-content",
-  title: "Parameter",
-  icon: ParameterIcon,
-  main: true,
-  component: ParameterMainContent,
 };

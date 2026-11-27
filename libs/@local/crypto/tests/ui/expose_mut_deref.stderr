@@ -1,13 +1,17 @@
 error[E0277]: the size for values of type `[u8]` cannot be known at compilation time
- --> tests/ui/expose_mut_deref.rs:5:9
-  |
-5 |     let _copy = *secret.as_mut().expose_mut();
-  |         ^^^^^ doesn't have a size known at compile-time
-  |
-  = help: the trait `Sized` is not implemented for `[u8]`
-  = note: all local variables must have a statically known size
+  --> tests/ui/expose_mut_deref.rs:5:9
+   |
+LL |     let _copy = *secret.as_mut().expose_mut();
+   |         ^^^^^ doesn't have a size known at compile-time
+   |
+   = help: the trait `Sized` is not implemented for `[u8]`
+   = note: all local variables must have a statically known size
 help: references are always `Sized`, even if they point to unsized data; consider not dereferencing the expression
-  |
-5 -     let _copy = *secret.as_mut().expose_mut();
-5 +     let _copy = secret.as_mut().expose_mut();
-  |
+   |
+LL -     let _copy = *secret.as_mut().expose_mut();
+LL +     let _copy = secret.as_mut().expose_mut();
+   |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.

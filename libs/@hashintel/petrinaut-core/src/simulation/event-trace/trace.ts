@@ -1,5 +1,7 @@
+import { SOLVER_ERROR_DIAGNOSTIC } from "../steppers/run-stepper";
+
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
-import type { SimulationFrameNewStrings } from "../worker/frame-payload";
+import type { SimulationFrameNewStrings } from "../frames/frame-payload";
 
 export type TraceEventKind =
   /** The state the run starts from, at time 0. */
@@ -49,14 +51,7 @@ export type TraceEvent = {
   diagnostics?: Readonly<Record<string, Float64Array>>;
 };
 
-/**
- * The diagnostic an error-controlled simulator publishes: per frame place
- * index, its accumulated local error estimate for the place's continuous
- * state since the run started, in attribute units. It is the sum over the
- * place's integration steps of the largest error any token's attribute took
- * in the step, and zero for a place without dynamics or one advanced exactly.
- */
-export const SOLVER_ERROR_DIAGNOSTIC = "solverError";
+export { SOLVER_ERROR_DIAGNOSTIC };
 
 /**
  * Whether an event changes the discrete state: the initial marking or a

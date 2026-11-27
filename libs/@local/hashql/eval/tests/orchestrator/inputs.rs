@@ -1,7 +1,7 @@
 use alloc::rc::Rc;
 
 use hashql_core::{
-    heap::{FromIn as _, Heap},
+    heap::{FromIn as _, Heap, SymbolAllocator as _},
     intern::InternSet,
     symbol::{Symbol, sym},
 };
@@ -292,7 +292,7 @@ pub(crate) fn build_inputs<'heap>(
     // Insert an EntityUuid-typed input.
     let insert_entity_uuid =
         |inputs: &mut Inputs<'heap, &'heap Heap>, name: &str, uuid: EntityUuid| {
-            inputs.insert(heap.intern_symbol(name), entity_uuid(uuid));
+            inputs.insert(heap.alloc_symbol(name), entity_uuid(uuid));
         };
 
     // Insert a full EntityId-typed input.
@@ -300,7 +300,7 @@ pub(crate) fn build_inputs<'heap>(
         |inputs: &mut Inputs<'heap, &'heap Heap>,
          name: &str,
          id: type_system::knowledge::entity::EntityId| {
-            inputs.insert(heap.intern_symbol(name), entity_id(id));
+            inputs.insert(heap.alloc_symbol(name), entity_id(id));
         };
 
     insert_entity_uuid(&mut inputs, "alice_uuid", entities.alice.entity_uuid);
@@ -324,12 +324,12 @@ pub(crate) fn build_inputs<'heap>(
     insert_entity_id(&mut inputs, "draft_alice_id", entities.draft_alice);
 
     // WebId input (all seeded entities share the same web).
-    inputs.insert(heap.intern_symbol("web_id"), web_id(entities.alice.web_id));
+    inputs.insert(heap.alloc_symbol("web_id"), web_id(entities.alice.web_id));
 
     // Creator input: all seeded entities are created by the test user, whose
     // actor UUID doubles as the UUID of the shared user web.
     inputs.insert(
-        heap.intern_symbol("creator_uuid"),
+        heap.alloc_symbol("creator_uuid"),
         value::Value::Opaque(value::Opaque::new(
             sym::path::CreatedById,
             Rc::new_in(uuid(entities.alice.web_id.into()), heap),
@@ -337,12 +337,12 @@ pub(crate) fn build_inputs<'heap>(
     );
 
     // String inputs for property-based filtering.
-    inputs.insert(heap.intern_symbol("alice_name"), string("Alice"));
+    inputs.insert(heap.alloc_symbol("alice_name"), string("Alice"));
 
     // Temporal axes from directives (or default: unbounded decision time,
     // far-future transaction pin).
     inputs.insert(
-        heap.intern_symbol("temporal_axes"),
+        heap.alloc_symbol("temporal_axes"),
         temporal_axes_from_directives(heap, symbols, directives),
     );
 

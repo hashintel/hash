@@ -279,7 +279,8 @@ fn self_recursion_blocked() {
     };
 
     let mut bodies = [body];
-    let mut pass = AdministrativeReduction::new_in(Scratch::new());
+    let scratch = Scratch::new();
+    let mut pass = AdministrativeReduction::new_in(&scratch);
     let changed = pass.run(
         &mut context,
         &mut GlobalTransformState::new(DefIdSlice::from_raw_mut(&mut [Changed::No])),
@@ -318,7 +319,8 @@ fn assert_admin_reduction_pass<'heap>(
         .format(DefIdSlice::from_raw(bodies), &[])
         .expect("should be able to write bodies");
 
-    let mut pass = AdministrativeReduction::new_in(Scratch::new());
+    let scratch = Scratch::new();
+    let mut pass = AdministrativeReduction::new_in(&scratch);
     let changed = pass.run(
         context,
         &mut GlobalTransformState::new_in(DefIdSlice::from_raw(bodies), context.heap),

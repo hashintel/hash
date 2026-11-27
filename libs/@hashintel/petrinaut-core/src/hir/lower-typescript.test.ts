@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../equation-arity";
+import { MAX_DIFFERENTIAL_EQUATION_ARITY } from "../document/equation-arity";
 import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 

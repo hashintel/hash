@@ -4,7 +4,8 @@ import type {
   PetrinautAiVoiceSessionState,
   VoiceAudioSettingsActions,
 } from "./voice-session/types";
-import type { BrunchInputMode } from "@hashintel/brunch-agent";
+import type { BrunchInputMode, EditorSelection } from "@hashintel/brunch-agent";
+import type { SelectionItem } from "@hashintel/petrinaut-core/selection";
 import type { ReactNode } from "react";
 
 export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
@@ -38,10 +39,20 @@ export type PetrinautAiComposerSubmitText = (params: {
   id?: string;
   /** Persist this finalized text as voice-origin input. */
   source?: "voice";
+  /**
+   * Send this text, a Ledger comments body, as a turn of comments. It never
+   * answers a pending tool.
+   */
+  ledgerComments?: true;
   /** Defaults to `auto`; use `message` for text that must not answer a pending tool. */
   target?: "auto" | "message";
   /** Keep the user's unsent composer text when reporting a background result. */
   preserveDraft?: boolean;
+  /**
+   * The editor's selection the text is about, captured when the person
+   * finished it. Omitted: the selection when the text is sent.
+   */
+  selection?: readonly SelectionItem[];
   text: string;
 }) => Promise<PetrinautAiComposerSubmitTextResult>;
 
@@ -136,6 +147,8 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   canAcceptVoiceInput: boolean;
   inputMode: PetrinautAiInputMode;
   isAiAssistantOpen: boolean;
+  /** Reads the editor's selection now; call it when the person finishes speaking. */
+  readSelection: () => EditorSelection;
   /**
    * Registers the controls Petrinaut uses to coordinate panel closure and
    * typed-message handoff with the host-owned Voice lifecycle.
@@ -166,8 +179,13 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   submitVoiceInput: (
     params: Omit<
       Parameters<PetrinautAiComposerControlContext["submitText"]>[0],
-      "source"
+      "source" | "selection"
     > & {
+      /**
+       * The editor's selection as the person finished speaking; empty when
+       * nothing was selected. A queued turn keeps it until it is sent.
+       */
+      readonly selection: readonly SelectionItem[];
       /**
        * Withdraws a retained turn that has not been submitted yet, for example
        * when the Voice session ends while chat is still busy. A turn already

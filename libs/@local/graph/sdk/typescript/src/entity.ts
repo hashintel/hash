@@ -8,6 +8,7 @@ import {
   isValueMetadata,
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+import { actorHeaders } from "@local/hash-graph-client";
 
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
@@ -102,7 +103,7 @@ import type {
   QueryEntitiesResponse as QueryEntitiesResponseGraphApi,
   QueryEntitiesTableParams as QueryEntitiesTableParamsGraphApi,
   QueryEntitiesTableResponse as QueryEntitiesTableResponseGraphApi,
-  QueryEntitiesTableResponseSummary as QueryEntitiesTableResponseSummaryGraphApi,
+  EntityTableSummary as QueryEntitiesTableResponseSummaryGraphApi,
   QueryEntitySubgraphRequest as QueryEntitySubgraphRequestGraphApi,
   QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
@@ -428,8 +429,8 @@ export const queryEntitySubgraph = async <
   params: QueryEntitySubgraphRequest,
 ): Promise<QueryEntitySubgraphResponse<PropertyMap>> => {
   return await context.graphApi
-    .queryEntitySubgraph(authentication.actorId, params)
-    .then(({ data }) => {
+    .queryEntitySubgraph(params, actorHeaders(authentication.actorId))
+    .then((data) => {
       const { subgraph: unfilteredSubgraph, ...response } = data;
 
       const subgraph = mapGraphApiSubgraphToSubgraph<
@@ -1231,15 +1232,15 @@ export class HashEntity<
   ): Promise<{ [I in keyof T]: HashEntity<T[I]> }> {
     return graphAPI
       .createEntities(
-        authentication.actorId,
         params.map(({ entityTypeIds, draft, ...rest }) => ({
           entityTypeIds,
           draft: draft ?? false,
           ...rest,
         })),
+        actorHeaders(authentication.actorId),
       )
       .then(
-        ({ data: entities }) =>
+        (entities) =>
           // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           entities.map((entity, index) => {
@@ -1256,8 +1257,8 @@ export class HashEntity<
     },
   ): Promise<EntityValidationReport | undefined> {
     return await graphAPI
-      .validateEntity(authentication.actorId, params)
-      .then(({ data }) => data["0"] as EntityValidationReport);
+      .validateEntity(params, actorHeaders(authentication.actorId))
+      .then((data) => data["0"] as EntityValidationReport);
   }
 
   public async patch(
@@ -1282,15 +1283,15 @@ export class HashEntity<
   ): Promise<this> {
     return graphAPI
       .patchEntity(
-        authentication.actorId,
         this.preparePatch({
           entityTypeIds,
           propertyPatches,
           additionalAllowedPropertyBaseUrls,
           ...params,
         }),
+        actorHeaders(authentication.actorId),
       )
-      .then(({ data }) => new HashEntity(data) as this);
+      .then((data) => new HashEntity(data) as this);
   }
 
   public preparePatch({
@@ -1419,11 +1420,14 @@ export class HashEntity<
     authentication: AuthenticationContext,
     provenance: ProvidedEntityEditionProvenance,
   ): Promise<void> {
-    await graphAPI.patchEntity(authentication.actorId, {
-      entityId: this.entityId,
-      archived: true,
-      provenance,
-    });
+    await graphAPI.patchEntity(
+      {
+        entityId: this.entityId,
+        archived: true,
+        provenance,
+      },
+      actorHeaders(authentication.actorId),
+    );
   }
 
   public async unarchive(
@@ -1431,11 +1435,14 @@ export class HashEntity<
     authentication: AuthenticationContext,
     provenance: ProvidedEntityEditionProvenance,
   ): Promise<void> {
-    await graphAPI.patchEntity(authentication.actorId, {
-      entityId: this.entityId,
-      archived: false,
-      provenance,
-    });
+    await graphAPI.patchEntity(
+      {
+        entityId: this.entityId,
+        archived: false,
+        provenance,
+      },
+      actorHeaders(authentication.actorId),
+    );
   }
 
   public get metadata(): EntityMetadata {
@@ -1533,15 +1540,15 @@ export class HashLinkEntity<
   ): Promise<{ [I in keyof T]: HashLinkEntity<T[I]> }> {
     return graphAPI
       .createEntities(
-        authentication.actorId,
         params.map(({ entityTypeIds, draft, ...rest }) => ({
           entityTypeIds,
           draft: draft ?? false,
           ...rest,
         })),
+        actorHeaders(authentication.actorId),
       )
       .then(
-        ({ data: entities }) =>
+        (entities) =>
           entities.map((entity) => new HashLinkEntity(entity)) as {
             [I in keyof T]: HashLinkEntity<T[I]>;
           },
@@ -1572,15 +1579,15 @@ export class HashLinkEntity<
   ): Promise<this> {
     return graphAPI
       .patchEntity(
-        authentication.actorId,
         this.preparePatch({
           entityTypeIds,
           propertyPatches,
           additionalAllowedPropertyBaseUrls,
           ...params,
         }),
+        actorHeaders(authentication.actorId),
       )
-      .then(({ data }) => new HashLinkEntity(data) as this);
+      .then((data) => new HashLinkEntity(data) as this);
   }
 
   public preparePatch({
@@ -1638,8 +1645,8 @@ export const queryEntities = async <
   params: QueryEntitiesRequest,
 ): Promise<QueryEntitiesResponse<PropertyMap>> => {
   return context.graphApi
-    .queryEntities(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryEntities(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       entities: response.entities.map((entity) => new HashEntity(entity)),
       closedMultiEntityTypes: response.closedMultiEntityTypes
@@ -1664,8 +1671,8 @@ export const searchEntities = async (
   params: SearchEntitiesRequest,
 ): Promise<SearchEntitiesResponse> =>
   context.graphApi
-    .searchEntities(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .searchEntities(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       entities: response.entities.map((entity) => new HashEntity(entity)),
       closedMultiEntityTypes: response.closedMultiEntityTypes
@@ -1683,8 +1690,8 @@ export const summarizeEntities = async (
   params: SummarizeEntitiesParams,
 ): Promise<SummarizeEntitiesResponse> =>
   context.graphApi
-    .summarizeEntities(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .summarizeEntities(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       webIds: response.webIds,
       createdByIds: response.createdByIds,
@@ -1701,8 +1708,8 @@ export const queryEntitiesTable = async (
   params: QueryEntitiesTableParams,
 ): Promise<QueryEntitiesTableResponse> =>
   context.graphApi
-    .queryEntitiesTable(authentication.actorId, params)
-    .then(({ data: response }) => ({
+    .queryEntitiesTable(params, actorHeaders(authentication.actorId))
+    .then((response) => ({
       ...response,
       rows: response.rows as QueryEntitiesTableResponse["rows"],
       summary: response.summary,

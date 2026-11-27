@@ -9,8 +9,12 @@ import {
   petrinautContextualUserMessageBody,
   readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
-import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
+import {
+  FlueChatAdmissionError,
+  FlueChatDisconnectError,
+} from "@local/flue-aisdk-transport";
 
+import { withRequestInputMode } from "../shared/request-input-mode";
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
@@ -22,6 +26,7 @@ import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import type { PetrinautAiComposerSubmitText } from "../ui/chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "../ui/chat/ai-assistant-panel";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { FlueChatAdmissionFailure } from "@local/flue-aisdk-transport";
 
 // The same await-and-return contract as the panel, using the installed SDK.
 const submitThroughChat =
@@ -68,6 +73,98 @@ test("host submission rejects a refused admission even though SDK sendMessage fu
   });
 });
 
+test("a send that meets a submission conflict is delivered: its admission is recorded and the chat shows no error", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(409, {
+      error: {
+        details: "",
+        message: "The delivery key already names another payload.",
+        meta: { submissionId: "admitted-first" },
+        type: "submission_conflict",
+      },
+    });
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const onAdmission = vi.fn();
+  const onSubmissionConflict = vi.fn();
+  const failureListener = vi.fn();
+  tracker.subscribeToAdmissionFailure(
+    { kind: "user", messageId: "host" },
+    failureListener,
+  );
+  // Voice waits for its input's admission the same way.
+  const admissionListener = vi.fn();
+  tracker.subscribeToAdmission(
+    { kind: "user", messageId: "host" },
+    admissionListener,
+  );
+  const chat = new Chat<PetrinautAiMessage>({
+    transport: createBrunchPanelTransport(
+      Promise.resolve({ send } as unknown as FlueClient),
+      tracker,
+      { onAdmission, onSubmissionConflict },
+    ),
+  });
+
+  await expect(
+    tracker.submitTextWithAdmission(submitThroughChat(chat), {
+      id: "host",
+      text: "Results",
+      target: "message",
+    }),
+  ).resolves.toEqual({ kind: "message", messageId: "host" });
+
+  // The earlier admission under this delivery key is this message's: its
+  // reply arrives through the conversation's history, not this send.
+  expect(chat.error).toBeUndefined();
+  expect(chat.status).toBe("ready");
+  expect(chat.messages.map(({ role }) => role)).toEqual(["user"]);
+  expect(failureListener).not.toHaveBeenCalled();
+  expect(admissionListener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      admission: { submissionId: "admitted-first" },
+      messageId: "host",
+    }),
+  );
+  expect(onAdmission).toHaveBeenCalledWith({ submissionId: "admitted-first" });
+  // A retry resends its first payload, so a conflict means that payload was
+  // lost: whatever changed since did not reach the agent.
+  expect(onSubmissionConflict).toHaveBeenCalledExactlyOnceWith({
+    messageId: "host",
+    submissionId: "admitted-first",
+  });
+  expect(tracker.submissionForInput("host")).toBe("admitted-first");
+  // Leaving the editor stops the turn until history shows it settled.
+  expect(tracker.hasUnsettledTurn(undefined)).toBe(true);
+  expect(send).toHaveBeenCalledOnce();
+});
+
+// A submission conflict never arrives here: the transport records it as the
+// message's admission.
+test.each<FlueChatAdmissionFailure>([
+  { kind: "rejected", status: 403 },
+  { kind: "aborted", requestSent: false },
+  { kind: "aborted", requestSent: true },
+  { kind: "ambiguous" },
+])("a host send whose admission fails with %o fails", async (failure) => {
+  const tracker = new BrunchPanelConversationTracker();
+  // As the panel transport reports it: the failure, then the AI SDK's
+  // fulfilled `sendMessage`.
+  const submitText: PetrinautAiComposerSubmitText = async ({ id }) => {
+    const messageId = id ?? "missing";
+    tracker.recordAdmissionFailure(
+      { kind: "user", messageId },
+      new FlueChatAdmissionError(failure),
+    );
+    return { kind: "message", messageId };
+  };
+  const submission = tracker.submitTextWithAdmission(submitText, {
+    id: "host",
+    text: "Results",
+  });
+  await expect(submission).rejects.toMatchObject({ failure });
+});
+
 test("captures words before waiting for the client and retains them for the same admission identity", async () => {
   let words = ["RelayDesk"];
   let resolveClient!: (client: FlueClient) => void;
@@ -109,6 +206,80 @@ test("captures words before waiting for the client and retains them for the same
   ).toEqual([expected, expected]);
 });
 
+test("sends the editor's selection with the message it was sent with, and keeps it on a retry", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+  );
+  const options = (selection: unknown) => ({
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Why is this here?" }],
+      },
+    ],
+    abortSignal: undefined,
+    body: { selection },
+  });
+  await expect(
+    transport.sendMessages(options([{ type: "place", id: "queue" }])),
+  ).rejects.toThrow();
+  await expect(transport.sendMessages(options([]))).rejects.toThrow();
+  const expected = petrinautContextualUserMessageBody({
+    userText: "Why is this here?",
+    diagnosticsContext: "",
+    submissionContext: { selection: [{ type: "place", id: "queue" }] },
+  });
+  expect(
+    send.mock.calls.map(([submission]) => submission.message.body),
+  ).toEqual([expected, expected]);
+});
+
+test("a retry through a transport rebuilt after a version load and a reply resends the first payload", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new TypeError("Connection lost after request write");
+  });
+  const client = Promise.resolve({ send } as unknown as FlueClient);
+  const tracker = new BrunchPanelConversationTracker();
+  const options = {
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Results." }],
+      },
+    ],
+    abortSignal: undefined,
+  };
+  await expect(
+    createBrunchPanelTransport(client, tracker, {
+      interviewBudgetLevel: "quick",
+      interviewRepliesAsked: 1,
+    }).sendMessages(options),
+  ).rejects.toThrow();
+  await expect(
+    createBrunchPanelTransport(client, tracker, {
+      interviewBudgetLevel: "quick",
+      interviewRepliesAsked: 2,
+      versionLoad: { id: "version-2", decisionTime: "2026-11-16T00:00:00Z" },
+    }).sendMessages(options),
+  ).rejects.toThrow();
+  const [first, retry] = send.mock.calls.map(
+    ([submission]) => submission.message,
+  );
+  expect(retry).toEqual(first);
+});
+
 test("announces a typed or comment submission before Flue admits it, but not an internal continuation", async () => {
   const events: string[] = [];
   const send = vi.fn<FlueClient["send"]>(async ({ message }) => {
@@ -142,6 +313,7 @@ test("announces a typed or comment submission before Flue admits it, but not an 
       {
         id: "comments",
         role: "user",
+        metadata: { ledgerComments: true },
         parts: [
           {
             type: "text",
@@ -267,6 +439,7 @@ test("sends the host's version load with the user's text", async () => {
   expect(readPetrinautSubmissionContext(body)).toEqual({
     words: [],
     versionLoad,
+    selection: [],
   });
 });
 
@@ -285,11 +458,9 @@ test.each(interviewBudgetLevels)(
     };
     for (const inputMode of ["text", "voice"] as const) {
       for (const asked of [0, 2, 9]) {
-        const tracker = new BrunchPanelConversationTracker();
-        tracker.recordInputMode(inputMode);
         const transport = createBrunchPanelTransport(
           Promise.resolve({ send } as unknown as FlueClient),
-          tracker,
+          new BrunchPanelConversationTracker(),
           {
             initialData,
             interviewBudgetLevel: level,
@@ -302,6 +473,7 @@ test.each(interviewBudgetLevels)(
             chatId: "conversation",
             messageId: undefined,
             abortSignal: undefined,
+            body: withRequestInputMode(undefined, inputMode),
             messages: [
               // Rendered messages can merge steps or include a wrap-up. They
               // are deliberately different from the host's canonical count.
@@ -369,11 +541,9 @@ test.each([
     const send = vi.fn<FlueClient["send"]>(async () => {
       throw new FlueApiError(503, "test admission unavailable");
     });
-    const tracker = new BrunchPanelConversationTracker();
-    tracker.recordInputMode(inputMode);
     const transport = createBrunchPanelTransport(
       Promise.resolve({ send } as unknown as FlueClient),
-      tracker,
+      new BrunchPanelConversationTracker(),
       { interviewBudgetLevel: "standard", interviewRepliesAsked: 1 },
     );
     await expect(
@@ -382,6 +552,7 @@ test.each([
         chatId: "conversation",
         messageId: undefined,
         abortSignal: undefined,
+        body: withRequestInputMode(undefined, inputMode),
         messages: [
           {
             id: "answer",

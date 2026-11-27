@@ -18,19 +18,28 @@
     binary_heap_into_iter_sorted,
     bound_copied,
     clone_from_ref,
+    clone_to_uninit,
+    const_alloc_error,
+    const_clone,
+    const_closures,
     const_cmp,
     const_convert,
     const_destruct,
+    const_index,
+    const_iter,
     const_ops,
     const_range,
+    const_range_bounds,
     const_trait_impl,
     extend_one,
     extern_types,
     get_disjoint_mut_helpers,
-    get_mut_unchecked,
+    impl_restriction,
     iter_intersperse,
     iter_map_windows,
     iter_next_chunk,
+    lock_value_accessors,
+    maybe_uninit_fill,
     nonpoison_mutex,
     slice_partition_dedup,
     slice_swap_unchecked,
@@ -38,10 +47,11 @@
     sync_nonpoison,
     try_trait_v2,
     variant_count,
-    const_range_bounds,
-    const_index,
-    clone_to_uninit,
-    maybe_uninit_fill
+    vec_repeat,
+)]
+#![cfg_attr(
+    feature = "zerocopy",
+    expect(uncommon_codepoints, reason = "used by the zerocopy derive")
 )]
 
 extern crate alloc;

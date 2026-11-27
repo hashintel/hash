@@ -80,10 +80,10 @@ const sourceArcExists = (
     arcDirection,
     oldPlaceId,
     oldEndpoint,
-    targetSubnetId,
+    targetComponentId,
   } = call.input;
-  const net = targetSubnetId
-    ? definition.subnets?.find(({ id }) => id === targetSubnetId)
+  const net = targetComponentId
+    ? definition.components?.find(({ id }) => id === targetComponentId)
     : definition;
   const transition = net?.transitions.find(({ id }) => id === transitionId);
   if (!transition) return false;
@@ -113,6 +113,7 @@ const standIns: Partial<
       handle,
       title: document.title.get(),
       detail: netDetailSchema.parse(input.detail),
+      imports: document.imports.get(),
     }),
   petrinaut_get_diagnostics: (_input, { readDiagnosticsContext }) =>
     readDiagnosticsContext(),

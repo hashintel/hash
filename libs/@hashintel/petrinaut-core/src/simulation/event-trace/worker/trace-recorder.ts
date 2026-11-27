@@ -2,8 +2,8 @@ import { computeDerivatives } from "../derivatives";
 import { engineFrameFromRunFrame, touchedPlaceIndices } from "./run-frame";
 
 import type { SimulationCompletionReason } from "../../engine/compute-next-frame";
+import type { RunStepper } from "../../steppers/run-stepper";
 import type { TraceEvent, TraceEventKind } from "../trace";
-import type { RunStepper } from "./run-stepper";
 
 export type TraceRecording = {
   /** The event the advance produced, if it produced one. */

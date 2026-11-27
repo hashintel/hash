@@ -1,5 +1,5 @@
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     r#type::{
         PartialType,
@@ -120,7 +120,7 @@ fn join_generic_argument_merging() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -130,7 +130,7 @@ fn join_generic_argument_merging() {
         number,
         [GenericArgument {
             id: argument2,
-            name: heap.intern_symbol("U"),
+            name: heap.alloc_symbol("U"),
             constraint: None
         }]
     );
@@ -173,7 +173,7 @@ fn join_same_generic_arguments() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(string),
         }]
     );
@@ -183,7 +183,7 @@ fn join_same_generic_arguments() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(boolean),
         }]
     );
@@ -237,7 +237,7 @@ fn join_identical_generic_arguments() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(string),
         }]
     );
@@ -247,7 +247,7 @@ fn join_identical_generic_arguments() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(string),
         }]
     );
@@ -295,7 +295,7 @@ fn join_swallow_generic_arguments() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(string),
         }]
     );
@@ -305,7 +305,7 @@ fn join_swallow_generic_arguments() {
         number,
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None,
         }]
     );
@@ -365,22 +365,22 @@ fn join_complex_generic_merging() {
         [
             GenericArgument {
                 id: argument1,
-                name: heap.intern_symbol("T"),
+                name: heap.alloc_symbol("T"),
                 constraint: Some(string),
             },
             GenericArgument {
                 id: argument2,
-                name: heap.intern_symbol("U"),
+                name: heap.alloc_symbol("U"),
                 constraint: Some(number),
             },
             GenericArgument {
                 id: argument3,
-                name: heap.intern_symbol("V"),
+                name: heap.alloc_symbol("V"),
                 constraint: Some(integer),
             },
             GenericArgument {
                 id: argument5,
-                name: heap.intern_symbol("X"),
+                name: heap.alloc_symbol("X"),
                 constraint: Some(number),
             }
         ]
@@ -392,22 +392,22 @@ fn join_complex_generic_merging() {
         [
             GenericArgument {
                 id: argument1,
-                name: heap.intern_symbol("T"),
+                name: heap.alloc_symbol("T"),
                 constraint: Some(string),
             },
             GenericArgument {
                 id: argument2,
-                name: heap.intern_symbol("U"),
+                name: heap.alloc_symbol("U"),
                 constraint: Some(boolean),
             },
             GenericArgument {
                 id: argument4,
-                name: heap.intern_symbol("W"),
+                name: heap.alloc_symbol("W"),
                 constraint: Some(string),
             },
             GenericArgument {
                 id: argument5,
-                name: heap.intern_symbol("X"),
+                name: heap.alloc_symbol("X"),
                 constraint: None,
             }
         ]
@@ -432,32 +432,32 @@ fn join_complex_generic_merging() {
         [
             GenericArgument {
                 id: argument1,
-                name: heap.intern_symbol("T"),
+                name: heap.alloc_symbol("T"),
                 constraint: Some(string),
             },
             GenericArgument {
                 id: argument2,
-                name: heap.intern_symbol("U"),
+                name: heap.alloc_symbol("U"),
                 constraint: Some(number),
             },
             GenericArgument {
                 id: argument2,
-                name: heap.intern_symbol("U"),
+                name: heap.alloc_symbol("U"),
                 constraint: Some(boolean),
             },
             GenericArgument {
                 id: argument3,
-                name: heap.intern_symbol("V"),
+                name: heap.alloc_symbol("V"),
                 constraint: Some(integer),
             },
             GenericArgument {
                 id: argument4,
-                name: heap.intern_symbol("W"),
+                name: heap.alloc_symbol("W"),
                 constraint: Some(string),
             },
             GenericArgument {
                 id: argument5,
-                name: heap.intern_symbol("X"),
+                name: heap.alloc_symbol("X"),
                 constraint: Some(number),
             }
         ]
@@ -650,7 +650,7 @@ fn collect_constraints() {
         instantiate(&env, TypeKind::Never),
         [GenericArgument {
             id: GenericArgumentId::new(0),
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(primitive!(env, PrimitiveType::Number))
         }]
     );
@@ -681,7 +681,7 @@ fn collect_dependencies() {
         instantiate(&env, TypeKind::Never),
         [GenericArgument {
             id: GenericArgumentId::new(0),
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: Some(instantiate_infer(&env, 1_u32))
         }]
     );

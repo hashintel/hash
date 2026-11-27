@@ -1,12 +1,18 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
+import {
+  getEndedFlowRunRecordHeader,
+  getFlowRunRecord,
+} from "@local/hash-backend-utils/flows/run-record";
 import { correctFlowRunStatusFromRecord } from "@local/hash-backend-utils/flows/shared/save-flow-run-status";
 
 import * as Error from "../../../error";
 
 import type { FlowRunSummary } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
-import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-record";
+import type {
+  FlowRunRecord,
+  FlowRunRecordHeader,
+} from "@local/hash-isomorphic-utils/flows/run-record";
 
 /** A run as `getFlowRunById` and `getFlowRuns` give it to its field resolvers: what its entity says about it. */
 export type FlowRunParent = Omit<FlowRunSummary, "__typename">;
@@ -69,4 +75,45 @@ export const getRecordOfFlowRun = (
   recordsByFlowRun.set(flowRun, record);
 
   return record;
+};
+
+/**
+ * The header of a run's record once it has ended, or `null` while it's running, without reading its history. Like
+ * `getRecordOfFlowRun`, it corrects the status the run's entity holds if it's out of date.
+ */
+export const getEndedRecordHeaderOfFlowRun = async (
+  flowRun: FlowRunParent,
+  context: Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
+): Promise<FlowRunRecordHeader | null> => {
+  const flowRunEntity = await getFlowRunEntityById({
+    flowRunEntityId: flowRun.flowRunEntityId,
+    graphApiClient: context.dataSources.graphApi,
+    userAuthentication: context.authentication,
+  });
+
+  if (!flowRunEntity) {
+    throw Error.notFound(
+      `Flow run with id ${flowRun.flowRunEntityId} not found`,
+    );
+  }
+
+  const header = await getEndedFlowRunRecordHeader({
+    storageProvider: context.dataSources.uploadProvider,
+    temporalClient: context.temporal,
+    workflowId:
+      flowRunEntity.properties[
+        "https://hash.ai/@h/types/property-type/workflow-id/"
+      ],
+  });
+
+  if (header) {
+    await correctFlowRunStatusFromRecord({
+      flowRunEntity,
+      graphApiClient: context.dataSources.graphApi,
+      header,
+      userAuthentication: context.authentication,
+    });
+  }
+
+  return header;
 };

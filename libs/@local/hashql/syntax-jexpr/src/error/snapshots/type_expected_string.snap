@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1, \"#type\": 42}"
+---
+error[jexpr::parser::object::type-expected-string]: Expected string for `#type`
+  ╭▸ 
+1 │ {"#literal": 1, "#type": 42}
+  │                 ┬──────  ━━ expected a string, found a number
+  │                 │
+  │                 required by `#type`
+  │
+  ╰ help: write the type annotation as a string, for example `"#type": "Int"`

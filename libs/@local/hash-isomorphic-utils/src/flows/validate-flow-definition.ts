@@ -44,9 +44,13 @@ export type FlowDefinitionDiagnosticCode =
   | "itemOutsideForEach"
   | "invalidConstant"
   | "incompatibleConnection"
+  /** A for-each step with no list. */
+  | "missingOver"
   | "overNotArray"
   | "overNotRequired"
   | "nestedForEach"
+  /** A for-each step that collects nothing. */
+  | "missingCollect"
   | "invalidCollect"
   | "cycle"
   | "unusedFlowInput"
@@ -287,16 +291,7 @@ export const validateFlowDefinition = (
       ? (getActionDefinition(step.actionDefinitionId)?.outputs.some(
           ({ name }) => name === outputName,
         ) ?? false)
-      : outputName === step.collect.as;
-
-  /**
-   * The step a for-each step collects from, if it's directly inside the for-each step.
-   */
-  const getCollectedStep = (step: ForEachStepDefinition<string>) => {
-    const collected = stepsById.get(step.collect.stepId);
-
-    return collected?.scope.at(-1) === step.stepId ? collected : undefined;
-  };
+      : outputName === step.collect?.as;
 
   const resolveStepOutput = ({
     stepId,
@@ -473,28 +468,35 @@ export const validateFlowDefinition = (
       );
     }
 
-    const parallelizeOnShape = resolveSource({
-      source: step.over,
-      consumer: { stepId: step.stepId, scope: entry.scope },
-      path: [...entry.path, "over"],
-    });
+    const { over, collect } = step;
 
-    if (
-      parallelizeOnShape &&
-      (!parallelizeOnShape.array || wrapOf(step.over))
-    ) {
-      report("overNotArray", "A for-each step must iterate over an array", [
-        ...entry.path,
-        "over",
-      ]);
-    } else if (
-      parallelizeOnShape &&
-      !parallelizeOnShape.required &&
-      !skipsWhenMissing(step.over)
-    ) {
+    if (over) {
+      const parallelizeOnShape = resolveSource({
+        source: over,
+        consumer: { stepId: step.stepId, scope: entry.scope },
+        path: [...entry.path, "over"],
+      });
+
+      if (parallelizeOnShape && (!parallelizeOnShape.array || wrapOf(over))) {
+        report("overNotArray", "A for-each step must iterate over an array", [
+          ...entry.path,
+          "over",
+        ]);
+      } else if (
+        parallelizeOnShape &&
+        !parallelizeOnShape.required &&
+        !skipsWhenMissing(over)
+      ) {
+        report(
+          "overNotRequired",
+          "A for-each step can only iterate over a value that may be missing if it is skipped when the value is missing",
+          [...entry.path, "over"],
+        );
+      }
+    } else {
       report(
-        "overNotRequired",
-        "A for-each step can only iterate over a value that may be missing if it is skipped when the value is missing",
+        "missingOver",
+        "This for-each step has no list yet: set the list first",
         [...entry.path, "over"],
       );
     }
@@ -503,38 +505,50 @@ export const validateFlowDefinition = (
       addDependency(step.stepId, child.stepId);
     }
 
-    if (step.collect.as === "") {
+    const collectPath = [...entry.path, "collect"];
+
+    if (!collect) {
+      report(
+        "missingCollect",
+        step.steps.length === 0
+          ? "This for-each step collects nothing yet: add a step inside it first"
+          : "This for-each step collects nothing yet: choose an output of a step inside it",
+        collectPath,
+      );
+      return;
+    }
+
+    if (collect.as === "") {
       report(
         "unnamedOutput",
         `The output for-each step "${step.stepId}" collects into has no name`,
-        [...entry.path, "collect", "as"],
+        [...collectPath, "as"],
       );
     }
 
-    const collected = getCollectedStep(step);
-    const collectPath = [...entry.path, "collect"];
+    const collected = stepsById.get(collect.stepId);
 
-    if (!collected) {
+    if (collected?.scope.at(-1) !== step.stepId) {
       report(
         "invalidCollect",
-        `A for-each step can only collect the output of a step directly inside it, and "${step.collect.stepId}" is not`,
+        `A for-each step can only collect the output of a step directly inside it, and "${collect.stepId}" is not`,
         [...collectPath, "stepId"],
       );
       return;
     }
 
-    if (!hasStepOutput(collected.step, step.collect.outputName)) {
+    if (!hasStepOutput(collected.step, collect.outputName)) {
       report(
         "unknownStepOutput",
-        `Step "${step.collect.stepId}" has no output "${step.collect.outputName}"`,
+        `Step "${collect.stepId}" has no output "${collect.outputName}"`,
         [...collectPath, "outputName"],
       );
       return;
     }
 
     const collectedShape = shapes.getStepOutputShape(
-      step.collect.stepId,
-      step.collect.outputName,
+      collect.stepId,
+      collect.outputName,
     );
 
     if (collectedShape && !collectedShape.required) {
@@ -741,7 +755,9 @@ export const validateFlowDefinition = (
   }
 
   for (const { step, path, scope } of entries) {
-    for (const [index, { stepId }] of (step.runAfter ?? []).entries()) {
+    for (const [index, { stepId, outputName }] of (
+      step.runAfter ?? []
+    ).entries()) {
       const runAfterPath = [...path, "runAfter", index, "stepId"];
       const before = stepsById.get(stepId);
 
@@ -758,6 +774,15 @@ export const validateFlowDefinition = (
           "stepNotInScope",
           `Step "${stepId}" runs once per item of a for-each step, so only steps inside that step can run after it`,
           runAfterPath,
+        );
+      } else if (
+        outputName !== undefined &&
+        !hasStepOutput(before.step, outputName)
+      ) {
+        report(
+          "unknownStepOutput",
+          `Step "${stepId}" has no output "${outputName}"`,
+          [...path, "runAfter", index, "outputName"],
         );
       } else {
         addDependency(step.stepId, stepId);
@@ -810,7 +835,7 @@ export const getValidFlowDefinition = ({
 }: ReturnType<typeof validateFlowDefinition>): FlowDefinition | null =>
   flowDefinition !== null &&
   !diagnostics.some(({ severity }) => severity === "error")
-    ? /* Every action id was checked against `actionDefinitions`. */
+    ? /* Every action id was checked against `actionDefinitions`, and every for-each step is complete. */
       (flowDefinition as FlowDefinition)
     : null;
 

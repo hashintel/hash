@@ -2,7 +2,7 @@
  * @layerRoot core.optimization.browser.worker
  * @role Hosts Optuna in Pyodide off the main thread and pairs each evaluate request with the study loop
  */
-import { createWorkerThreadRuntime } from "../../../environment";
+import { createWorkerThreadRuntime } from "../../../environment/environment";
 import { attachOptimizerWorker } from "./attach-optimizer-worker";
 import { createOptimizerStudyRunner } from "./study-runner";
 

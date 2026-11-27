@@ -1,0 +1,29 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/type.rs
+description: Nested tuple type
+expression: "((Int, String), Boolean)"
+info:
+  kind: Ok
+---
+Type#4294967040@14
+  TypeKind (Tuple)
+    TupleType#4294967040@14
+      TupleField#4294967040@9
+        Type#4294967040@9
+          TypeKind (Tuple)
+            TupleType#4294967040@9
+              TupleField#4294967040@4
+                Type#4294967040@4
+                  TypeKind (Path)
+                    Path#4294967040@4 (rooted: false)
+                      PathSegment#4294967040@3 (name: Int)
+              TupleField#4294967040@8
+                Type#4294967040@7
+                  TypeKind (Path)
+                    Path#4294967040@7 (rooted: false)
+                      PathSegment#4294967040@6 (name: String)
+      TupleField#4294967040@13
+        Type#4294967040@12
+          TypeKind (Path)
+            Path#4294967040@12 (rooted: false)
+              PathSegment#4294967040@11 (name: Boolean)

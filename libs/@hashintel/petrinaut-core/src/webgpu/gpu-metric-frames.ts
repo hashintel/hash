@@ -30,7 +30,7 @@
  */
 import { tryTranslateMetric } from "./try-translate-metric";
 
-import type { PetrinautExtensionSettings } from "../extensions";
+import type { PetrinautExtensionSettings } from "../extensions/extensions";
 import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,

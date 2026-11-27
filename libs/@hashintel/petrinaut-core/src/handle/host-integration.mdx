@@ -30,6 +30,7 @@ type DocChangeEvent = {
   next: SDCPN;
   patches?: PetrinautPatch[];
   source?: "local" | "remote";
+  restored?: { index: number };
 };
 ```
 
@@ -69,7 +70,7 @@ Per member, on the current code:
 
 | Member         | Consumption                                                                                                                                                                |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `doc()`        | Read by the definition store in `petrinaut-core/src/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.             |
+| `doc()`        | Read by the definition store in `petrinaut-core/src/instance/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.    |
 | `subscribe`    | Two internal subscribers: the definition store (re-render pipeline) and the patch stream (`instance.patches`). Events without `patches` are dropped from the patch stream. |
 | `change(fn)`   | The single write path. Every mutation and command in the editor funnels through it; commands capture return values inside `fn`.                                            |
 | `capabilities` | Resolved once at instance creation and merged with the `readonly` prop. Drives extension sanitization and the readonly check.                                              |
@@ -102,6 +103,11 @@ proper.
   a handle that loads asynchronously must emit an event when the document
   first becomes available; otherwise the editor stays on the empty net until
   something unrelated forces a re-render.
+- **Set `restored` on a change that moves through the history.** An undo, a
+  redo or a jump puts the document at an entry of `history.entries`, and
+  `restored: { index }` names that entry, so a listener can tell the move from
+  an edit. `createJsonDocHandle` sets it. A handle without `history` never
+  does.
 - **`id` is unique per document and immutable for the handle's lifetime.**
   Reusing one id across documents leaks simulation and language-server state
   between them; deriving it from mutable state resets that state mid-session.
@@ -111,7 +117,7 @@ proper.
   id it is given, so its `handle.id` may differ from `opts.id`.
 - **Entity ids are lowercase UUIDs too.** This covers places, transitions,
   types, type elements, parameters, equations, scenarios, metrics, component
-  instances and subnets, and every reference to them. `normalizeSDCPN` and
+  instances and components, and every reference to them. `normalizeSDCPN` and
   `createJsonDocHandle` convert other ids with `canonicalizePetrinautIds`,
   which returns the same object when every id is already a UUID. A custom
   handle converts its document the same way before `doc()` returns it.
@@ -170,7 +176,7 @@ Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
 `type: "standard"`, place `colorId: null` and `dynamicsEnabled: false`,
 transition `lambdaType: "predicate"` with empty lambda and kernel code, and
 empty top-level `types`, `parameters`, and `differentialEquations` arrays.
-Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
+Optional fields (`scenarios`, `metrics`, `components`, `componentInstances`,
 place `isPort`, `dynamics`, `visualizerCode`, `showAsInitialState`) pass
 through only when present, so a normalized document compares equal to what the editor itself
 produces (`isSDCPNEqual`).
@@ -398,12 +404,251 @@ full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
 | `slots`                                                                       | `settingsLabs`: host content rendered after the built-in groups in the Labs settings section.                                            |
 | `eventSimulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
 | `plugins`                                                                     | Plugins that add buttons, top-bar items, commands, settings and UI. Define each at module scope.                                         |
+| `resolveImport`, `libraries`                                                  | The libraries of components the host offers, and how each import of a document is resolved. See Libraries and imports.                   |
+| `rules`                                                                       | What the host lets the editor do: `{ edit: "compose" }` keeps it to placing and wiring the components of `libraries`. See Rules.         |
 
 A plugin declares what it adds in a manifest and returns it from a hook the
 editor runs per document; see [Plugins](doc:ui.plugins/overview).
 Wrap `<Petrinaut>` in `ErrorTrackerContext` (exported from
 `@hashintel/petrinaut`) to receive plugin failures and `api.errors.capture`
 calls; without it they are dropped.
+
+## Libraries and imports
+
+A host can offer **libraries**: sets of components kept outside the document.
+A document that uses one **imports** it, by the library's id, and names its
+components by reference. Nothing of a library is stored in the document.
+
+```yaml
+imports:
+  - { id: "@hashintel/logistics" }
+componentInstances:
+  - id: belt-1
+    name: Belt1
+    component: { from: "@hashintel/logistics", id: conveyor }
+  - id: drill-1
+    name: Drill1
+    component: { id: stage }
+```
+
+An instance names its component with `component`: `{ from, id }` for a
+component of an import, `{ id }` for a component of the document. A binding's
+`interface` and `component` and an instance's `implementation` take the same
+form. With `from`, both ids are kept as written: the import's is whatever its
+publisher owns, and the component's is the one it has in its library.
+
+The host hands the libraries over through two props, which `createPetrinaut`
+takes under the same names:
+
+```tsx
+import {
+  Petrinaut,
+  type Library,
+  type ResolveImport,
+} from "@hashintel/petrinaut";
+
+const logistics: Library = {
+  id: "@hashintel/logistics",
+  name: "Logistics",
+  components: [
+    {
+      id: "conveyor",
+      name: "Conveyor",
+      ports: [
+        { id: "in", name: "In", direction: "in" },
+        { id: "out", name: "Out", direction: "out" },
+      ],
+      parameters: [
+        {
+          id: "rate",
+          name: "Rate",
+          variableName: "rate",
+          type: "real",
+          defaultValue: "1",
+        },
+      ],
+      // Left out, the component is an interface.
+      body: { places: [/* In, Out */], transitions: [/* Move */] },
+    },
+  ],
+};
+
+// At module scope: a new function or a new list creates a new editor
+// instance, which resolves every import again.
+const resolveImport: ResolveImport = async (id) =>
+  id === logistics.id ? logistics : fetchLibrary(id);
+const libraries = [logistics.id];
+
+<Petrinaut
+  handle={handle}
+  resolveImport={resolveImport}
+  libraries={libraries}
+/>;
+```
+
+- **`resolveImport(id)`** gives the whole library for an import: a promise of
+  it, the library itself when it is already in memory, which then resolves at
+  once, or `undefined` for a library the host does not know. A rejection's
+  message is shown to the user.
+- **`libraries`** lists the ids on offer. Each is resolved through
+  `resolveImport` and listed in the Components panel, to place instances of
+  its components. The panel shows once the composition interface is on: see
+  Rules. A document's own imports are resolved whether they are on
+  offer or not. Placing the first instance from a library adds the import to
+  the document, as does choosing one of its components as an instance's
+  implementation, and removing the last one leaves it there. A mutation can
+  only name a component of a library that is on offer or already imported.
+- **A library is checked when it arrives.** Every id is required: the
+  library's, which must be the import's, a component's, a port's, a
+  parameter's. Two components, or two ports or parameters of one component,
+  under one id make the library fail, with a message that names them, and so
+  does a component the document's own schema would refuse, such as one whose
+  icon holds anything but plain shapes.
+- **A body** is what a component runs, in the shape a component of a document
+  holds its own content: `places`, `transitions`, and `types` and
+  `differentialEquations` where it has them. Its ports are the places `ports`
+  names: a port's `id` is that place's id, its `name` the place's name, and its
+  `tokenType` describes the place's token type. A component without a body is an
+  [interface](doc:core.composition/interfaces-and-fusions): an instance of it
+  needs an implementation bound, a component of the document or a component of
+  an import, and a net does not run while one is missing.
+- **The ids of ports and parameters** are read as a document reads any id: a
+  UUID stays as written, and any other string is converted with
+  `toPetrinautId`. A fusion member or an arc names a port of an instance by
+  that id, and `parameterValues` are keyed by the parameters' ids the same
+  way.
+- **The other ids of a body** are the component's own. A type and its
+  elements, an equation, a transition and a place that is not a port each
+  take an id made from the library's id, the component's id and the id the
+  body writes, with every reference to it inside the body. The id is the same
+  each time the library is resolved, and no document and no other component
+  has it: a body can write `item` for a type beside a document, or another
+  library, that does too. Nothing in a document names these ids.
+
+Core resolves each import once, when the instance is created and when an
+import joins the document, and holds the outcome in `instance.imports`, a
+readable store of `resolving`, `resolved` with the library, or `failed` with a
+message, per import id. Everything else reads that store as it stands: the
+mutations, the checks (`checkComposition(sdcpn, instance.imports.get())`), the
+editor and the assistants. `resolveComponent(sdcpn, reference, libraries)`
+answers a reference from the document or from the resolved libraries
+(`resolvedLibraries(states)`), and `describeImports(states)` lists the
+libraries with their components.
+
+While an import of the document resolves, the editor covers itself with a
+loader and the word "Resolving", and the checks say nothing about that import.
+One that fails is one error of `checkComposition`, of kind `import`, naming
+its id and how many instances use it; those instances draw as unresolved. A
+library a reference names without the document importing it is one error of
+that kind too, whatever the host resolved it to. An instance that names a
+component a resolved library does not have is one error of kind `interface`,
+with the code `missing-component`, on the instance.
+
+The simulator, the compiler and the language server take one net and no
+libraries. `inlineImports(sdcpn, libraries)` gives that net: each component the
+document takes from a library becomes one of its own, under ids that are the
+same on every call. The editor passes it wherever a net is run or checked, and a
+host that runs a simulation itself does the same:
+
+```ts
+const net = inlineImports(
+  instance.definition.get(),
+  resolvedLibraries(instance.imports.get()),
+);
+```
+
+Passed `generatePetrinautId` as its third argument, `inlineImports` gives the
+components fresh ids instead. That is the editor's **Export with imports
+inlined**: a file that reads without the libraries and imports nothing.
+
+:::caution
+A document keeps the id of a library and of its components, and no version.
+A library that later drops or renames a component, a port or a parameter
+leaves the documents that named it with an instance or a fusion that no
+longer resolves.
+:::
+
+### Rules
+
+`rules`, on `<Petrinaut>` and on `createPetrinaut`, says what the host lets an
+editor do. It is an object with a key per rule, and a rule left out takes its
+default:
+
+| Rule   | Values               | Default |
+| ------ | -------------------- | ------- |
+| `edit` | `"all"`, `"compose"` | `"all"` |
+
+Nothing reads into the object: core answers for it. `composesOnly(rules)` says
+whether the rules keep an instance to composing, and
+`instance.mutationRefusal(name, input)` and
+`instance.commandRefusal(name, input)` say what they refuse. A rule added
+later is another key, answered by the same functions. `<Petrinaut>` reads the
+rules by what they say, so the object can be written inline: one that says the
+same as the last keeps the editor's instance.
+
+The editor's composition interface is the Nets panel, the component tool and
+the Components panel. It is off until the user switches **Net Components** on
+in the Labs settings, and `edit: "compose"` switches it on whatever the
+setting says. One hook decides it, `useIsCompositionInterfaceOn`. A document
+that already holds components draws and runs with the interface off.
+
+`edit: "compose"` makes an editor that composes the components of the
+libraries on offer and changes nothing else:
+
+```tsx
+<Petrinaut
+  handle={handle}
+  resolveImport={resolveImport}
+  libraries={libraries}
+  rules={{ edit: "compose" }}
+/>
+```
+
+The user places instances, names them and sets their parameters, fuses ports
+by dragging between pins, moves or detaches the ends of fusion links, deletes
+instances and fusions, and arranges the canvas. The editor offers no tool
+that draws a place or a transition, no Nets panel, no Definitions view, no
+Simulate mode and no playback, and the canvas connects ports by fusion alone.
+The left sidebar holds the Components panel, and the bottom panel the
+Diagnostics tab. The editor stays on the root net: a location that names a
+component, from the host's navigation or from a click on a diagnostic, resolves
+to the root net.
+
+Core holds the rule, so every caller meets it. An instance created with
+`edit: "compose"` composes its root net: a mutation that targets a component is
+refused. Of the others, these go through:
+
+| Mutation                                                                 | Allowed when                                                                           |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `addComponentInstance`                                                   | `component` names one of a library on offer, and so does an `implementation` it names. |
+| `updateComponentInstance`                                                | A `component` or an `implementation` it names is one of a library on offer.            |
+| `updateComponentInstancePosition`, `removeComponentInstance`             | Always.                                                                                |
+| `addFusion`, `updateFusion`, `removeFusion`                              | Always.                                                                                |
+| `addFusionMember`, `removeFusionMember`, `replaceFusionMember`           | Always.                                                                                |
+| `deleteItemsByIds`                                                       | Every item is a component instance or a fusion.                                        |
+| `commitNodePositions`, `updatePlacePosition`, `updateTransitionPosition` | Always.                                                                                |
+
+Every other mutation throws one sentence, "This editor only places and
+connects the components it is given.", followed by the mutation's name.
+`instance.mutationRefusal(name, input)` gives the sentence without running
+the mutation, the React bindings show it as a notice, and a plugin's `edit`
+returns it as a refusal of kind `host-restriction`. `applyClipboardPaste`
+throws too, since the clipboard carries places and transitions, and so does
+`applyAutoLayout` on a component; `instance.commandRefusal(name, input)` gives
+either sentence, and the React bindings show it as a notice.
+
+A document that already holds places and transitions shows them. They can be
+moved and fused with ports, and nothing else of them changes. With no
+`libraries`, the editor places nothing and still wires what the document
+holds. The rule binds the instance's mutations and commands: code that holds
+the document handle can still change the document through `handle.change`.
+
+The editor's history starts where it took the handle. Undoing an earlier
+change would make a change the rule refuses, so an undo, or a jump from
+Recent changes, goes back no further than the entry `handle.history` was at
+when the editor was given the handle with `edit: "compose"`, and Recent
+changes lists the entries from that one on. The handle's own history is left
+whole: `handle.history` still moves through all of it.
 
 ## Capabilities
 
@@ -420,15 +665,15 @@ const capabilities: PetrinautHandleCapabilities = {
     "stochasticity",
     "dynamics",
     "parameters",
-    "subnets",
+    "components",
   ],
 };
 ```
 
 The five extensions are `"colors"`, `"stochasticity"`, `"dynamics"`,
-`"parameters"`, and `"subnets"`. Two derivation rules: disabling `"colors"`
-also disables `"dynamics"`, and disabling `"subnets"` removes component-port
-arcs along with `subnets` and `componentInstances`.
+`"parameters"`, and `"components"`. Two derivation rules: disabling `"colors"`
+also disables `"dynamics"`, and disabling `"components"` removes component-port
+arcs along with `components` and `componentInstances`.
 
 Sanitization is destructive and runs early. `createJsonDocHandle` strips
 disabled-extension data from the initial document at construction and after
@@ -440,13 +685,58 @@ on handles whose persisted document should also be restricted; for a read-only
 view of a richer document, prefer `readonly: true` with all extensions
 enabled.
 
+The pass after a change also runs when no extension is disabled. It is what
+blanks a kernel on a transition with no coloured output place, and a lambda
+of a kind the transition cannot have, so `createJsonDocHandle` cannot leave
+it out. The test "drops the kernel a direct change writes on a transition
+with no coloured output place, with every extension enabled" in
+`create-json-doc-handle.test.ts` holds that.
+
+### What the pass after a change costs
+
+The pass runs inside every `change()`, so every edit pays for it. Its cost
+must follow the size of the net, and never the number of places times the
+number of transitions.
+
+Which code a transition can have depends on the places its arcs reach, and
+finding a place by its id takes an index of the places of the net. The rule:
+a pass over the transitions of a net builds that index once and asks about
+every transition through it. `createTransitionLogicAvailabilityReader` in
+`extensions.ts` is that one index for one net. It builds no index when
+colours are disabled. `getTransitionLogicAvailability` builds the index on
+every call. It answers for one transition: a loop over the transitions of a
+net asks through a reader.
+
+A reader keeps the places as they were when it was made. Each pass makes a
+reader of its own once the change has run, so a place that joined or left the
+net in that change counts, and no reader outlives its pass.
+
+Two passes run on the main thread for a change and follow the rule:
+
+- `stripDisabledExtensionData`, the pass after a change, which also makes the
+  sanitized copy the definition store hands out.
+- `sanitizeAllTransitions` in `actions.ts`, which settles every transition
+  after a place changes or is removed, a type is removed, or a selection is
+  deleted.
+
+The tests that hold it count how often the places are read:
+"reads each place of a net once, however many transitions the net has" in
+`extensions.test.ts`, and "a change of a place reads the places of the net
+as often for 250 transitions as for 2" in `actions.test.ts`.
+
+The language service does not follow the rule yet: it indexes the places
+once per transition when it builds the context of that transition's code, in
+`hir/surface-context.ts`. [Editor performance on a large net](doc:editor-performance)
+gives what an edit costs, and the two loops of the editor that do not follow
+it either.
+
 ## Reference implementations in this repo
 
 | Pattern                                                                                                                   | Where                                                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor.tsx`                                  |
 | Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts`                                   |
-| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                                                           |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/stories/petrinaut-story-provider.tsx`                                                                   |
 | Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/petrinaut-editor/process-petrinaut/top-bar-plugin.tsx` |
 
 The handles among them all wrap `createJsonDocHandle`; no adapter over an

@@ -1,56 +1,47 @@
 import { isEqual, memoize } from "lodash";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
-  Button,
   Filter,
-  FilterGroup,
   Form,
   LoadingSpinner,
-  Menu,
   NumberInput,
   Select,
-  SelectableListSearch,
-  TextArea,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { isIsoDate } from "@local/hash-isomorphic-utils/flows/datetime";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 
 import { useLatestEntityTypesOptional } from "../../../../../../../shared/entity-types-context/hooks";
-import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { usePropertyTypes } from "../../../../../../../shared/property-types-context";
-import { useDataTypesContext } from "../../../../../../shared/data-types-context";
-import { getPathInSource } from "./field-problems";
-import { InputField } from "./input-field";
-import {
-  getConditionProperties,
-  getLatestDataTypeIds,
-} from "./query-field/condition-properties";
 import {
   operatorsByKind,
   readQueryForm,
   sortOrders,
   toEntityQuery,
-} from "./query-field/query-form";
+} from "../shared/query-form";
+import { getPathInSource } from "./field-problems";
+import { InputField } from "./input-field";
+import { getConditionProperties } from "./shared/condition-properties";
+import {
+  AddFilterMenu,
+  ConditionRows,
+  UnreadableCondition,
+} from "./shared/condition-rows";
+import { useConditionOntology } from "./shared/use-condition-ontology";
+import { useRowKeys } from "./shared/use-row-keys";
 
-import type {
-  ConditionOntology,
-  ConditionProperty,
-} from "./query-field/condition-properties";
 import type {
   ConditionOperator,
   ConditionValueKind,
   QueryCondition,
   QueryForm,
   SortOrder,
-} from "./query-field/query-form";
+} from "../shared/query-form";
+import type { ConditionProperty } from "./shared/condition-properties";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   FilterChange,
   FilterOperator,
   FilterValue,
-  MenuItem,
 } from "@hashintel/ds-components";
 import type { ComponentProps } from "react";
 
@@ -73,21 +64,6 @@ const operatorLabels: Record<ConditionOperator, string> = {
 };
 
 const limitPath = ["payload", "value", "limit"];
-
-/*
- * Each condition and each join gets a full-width line of the group, so a chip has the whole column: the panel is too
- * narrow for a join and a chip side by side. The group shrinks to the column, so a long chip stays inside the panel.
- */
-const conditionGroup = css({ flex: "1", minWidth: "0" });
-const groupLine = css({ width: "full" });
-const joinText = css({ textStyle: "sm", color: "fg.subtle", px: "2" });
-const note = css({ textStyle: "sm", color: "fg.subtle" });
-const unreadable = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "2",
-});
 
 const getOperator = (
   operator: ConditionOperator,
@@ -130,7 +106,6 @@ const ConditionFilter = ({
   rowKey,
   property,
   condition,
-  readOnly,
   autoFocus,
   onCommit,
   onRemove,
@@ -138,7 +113,6 @@ const ConditionFilter = ({
   rowKey: string;
   property: ConditionProperty;
   condition: QueryCondition | undefined;
-  readOnly: boolean;
   autoFocus: boolean;
   /** Called with `null` when the value is cleared. */
   onCommit: (condition: QueryCondition | null) => void;
@@ -177,64 +151,9 @@ const ConditionFilter = ({
       )}
       value={condition ? getFilterValue(condition) : null}
       errors={error === undefined ? undefined : [error]}
-      disabled={readOnly}
       autoFocus={autoFocus}
-      removeable={!readOnly && { onRemove }}
+      removeable={{ onRemove }}
       onChange={commit}
-    />
-  );
-};
-
-const AddConditionMenu = ({
-  properties,
-  onPick,
-}: {
-  properties: ConditionProperty[];
-  onPick: (property: ConditionProperty) => void;
-}) => {
-  const [query, setQuery] = useState("");
-
-  const matching = properties.filter(({ title }) =>
-    title.toLowerCase().includes(query.toLowerCase()),
-  );
-
-  const items: MenuItem[] =
-    matching.length > 0
-      ? matching.map((property) => ({
-          id: property.baseUrl,
-          text: property.title,
-          icon: property.valueKind.kind === "date" ? "calendar" : "list",
-          onClick: () => onPick(property),
-        }))
-      : [
-          {
-            id: "none",
-            text:
-              properties.length === 0
-                ? "These types have no dates or statuses"
-                : "No matching properties",
-            disabled: true,
-            onClick: () => {},
-          },
-        ];
-
-  return (
-    <Menu
-      items={items}
-      header={
-        <SelectableListSearch
-          value={query}
-          onChange={setQuery}
-          placeholder="Search properties"
-          aria-label="Search properties"
-        />
-      }
-      onOpen={(open) => {
-        if (!open) {
-          setQuery("");
-        }
-      }}
-      trigger={<FilterGroup.AddFilter renderAs="plusLabel" />}
     />
   );
 };
@@ -244,53 +163,16 @@ const AddConditionMenu = ({
  * input or an earlier step shows as any other input does.
  */
 export const QueryField = (props: ComponentProps<typeof InputField>) => {
-  const { editor, stepId, input, source, problems, readOnly } = props;
+  const { editor, stepId, input, source, problems } = props;
 
   /* Set from picking a property under Add filter until the condition is complete. */
   const [newConditionProperty, setNewConditionProperty] =
     useState<ConditionProperty>();
 
-  /*
-   * A key for each condition's row, kept across removals, so that a chip that collapses as it's removed isn't reused for
-   * the condition after it. Rows past `keys` haven't needed one kept yet, and count on from `next`.
-   */
-  const [rowKeys, setRowKeys] = useState({ keys: [] as number[], next: 0 });
-  const getRowKey = (index: number) =>
-    rowKeys.keys[index] ?? rowKeys.next + index - rowKeys.keys.length;
+  const { getRowKey, forgetRowKey } = useRowKeys();
 
-  const { entityTypes, entityTypeParentIds } = useEntityTypesContextRequired();
   const { latestEntityTypes } = useLatestEntityTypesOptional();
-  const { propertyTypes } = usePropertyTypes();
-  const { propertyTypes: latestPropertyTypes } = usePropertyTypes({
-    latestOnly: true,
-  });
-  const { dataTypes } = useDataTypesContext();
-
-  const ontology = useMemo(
-    (): ConditionOntology | null =>
-      entityTypes &&
-      entityTypeParentIds &&
-      propertyTypes &&
-      latestPropertyTypes &&
-      dataTypes
-        ? {
-            entityTypes,
-            entityTypeParentIds,
-            propertyTypes,
-            latestDataTypeIds: getLatestDataTypeIds(
-              Object.values(latestPropertyTypes),
-            ),
-            dataTypes,
-          }
-        : null,
-    [
-      entityTypes,
-      entityTypeParentIds,
-      propertyTypes,
-      latestPropertyTypes,
-      dataTypes,
-    ],
-  );
+  const ontology = useConditionOntology();
 
   /* By base URL, the properties a condition can be on for entities of any type. */
   const conditionProperties = useMemo(
@@ -371,37 +253,14 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
 
   if (!form) {
     return (
-      <Form.Field
-        layout="inline"
+      <UnreadableCondition
         label="Query"
-        errors={
-          problems.length > 0
-            ? problems.map(({ message }) => message)
-            : undefined
-        }
-      >
-        <div className={unreadable}>
-          <span className={note}>
-            This query wasn&apos;t built here, so it can&apos;t be changed here.
-            The step runs it as it is.
-          </span>
-          <TextArea
-            readonly
-            value={JSON.stringify(query)}
-            aria-label="Query"
-            onChange={() => {}}
-          />
-          {!readOnly && (
-            <Button
-              size="sm"
-              variant="subtle"
-              onClick={() => editor.setInputSource(stepId, input.name, null)}
-            >
-              Build a new query
-            </Button>
-          )}
-        </div>
-      </Form.Field>
+        value={query}
+        note="This query wasn't built here, so it can't be changed here. The step runs it as it is."
+        resetLabel="Build a new query"
+        errors={problems.map(({ message }) => message)}
+        onReset={() => editor.setInputSource(stepId, input.name, null)}
+      />
     );
   }
 
@@ -421,19 +280,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
       : []),
   ];
 
-  const forgetRowKey = (index: number) =>
-    setRowKeys(({ keys, next }) => {
-      const kept = Array.from(
-        { length: rows.length },
-        (_, rowIndex) => keys[rowIndex] ?? next + rowIndex - keys.length,
-      );
-
-      return {
-        keys: kept.toSpliced(index, 1),
-        next: next + Math.max(0, rows.length - keys.length),
-      };
-    });
-
   const commitCondition = (index: number, condition: QueryCondition | null) => {
     if (index === form.conditions.length) {
       if (condition) {
@@ -444,7 +290,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
     }
 
     if (!condition) {
-      forgetRowKey(index);
+      forgetRowKey(index, rows.length);
     }
 
     save({
@@ -456,7 +302,7 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
   };
 
   const removeCondition = (index: number) => {
-    forgetRowKey(index);
+    forgetRowKey(index, rows.length);
 
     if (index === form.conditions.length) {
       setNewConditionProperty(undefined);
@@ -464,8 +310,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
       save({ ...form, conditions: form.conditions.toSpliced(index, 1) });
     }
   };
-
-  const joinLabel = form.join === "all" ? "AND" : "OR";
 
   return (
     <>
@@ -477,76 +321,59 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
           items={typeItems}
           value={form.entityTypeBaseUrls}
           placeholder="Any"
-          disabled={readOnly}
           aria-label="Entity type"
           onChange={(entityTypeBaseUrls) =>
             save({ ...form, entityTypeBaseUrls })
           }
         />
       </Form.Field>
-      {(rows.length > 0 || !readOnly) && (
-        <Form.Field layout="inline" label="Where">
-          <div className={conditionGroup}>
-            <FilterGroup dismissAbandoned>
-              {rows.map(({ condition, property }, index) => (
-                <Fragment key={getRowKey(index)}>
-                  {index > 0 && (
-                    <div className={groupLine}>
-                      {index === 1 && !readOnly ? (
-                        <Select<"all" | "any">
-                          size="xs"
-                          width="fitContent"
-                          required
-                          items={[
-                            { value: "all", text: "AND" },
-                            { value: "any", text: "OR" },
-                          ]}
-                          value={form.join}
-                          aria-label="Join conditions with"
-                          onChange={(join) => save({ ...form, join })}
-                        />
-                      ) : (
-                        <span className={joinText}>{joinLabel}</span>
-                      )}
-                    </div>
-                  )}
-                  {property && (
-                    <div className={groupLine}>
-                      <ConditionFilter
-                        rowKey={`condition-${getRowKey(index)}`}
-                        property={property}
-                        condition={condition}
-                        readOnly={readOnly}
-                        autoFocus={condition === undefined}
-                        onCommit={(next) => commitCondition(index, next)}
-                        onRemove={() => removeCondition(index)}
-                      />
-                    </div>
-                  )}
-                </Fragment>
-              ))}
-              {!readOnly && !newConditionProperty && (
-                <AddConditionMenu
-                  properties={
-                    form.entityTypeBaseUrls.length === 0
-                      ? [...conditionProperties.values()]
-                      : getPropertiesOfTypes(
-                          latestEntityTypes
-                            .filter(({ metadata }) =>
-                              form.entityTypeBaseUrls.includes(
-                                metadata.recordId.baseUrl,
-                              ),
-                            )
-                            .map(({ schema }) => schema.$id),
-                        )
-                  }
-                  onPick={setNewConditionProperty}
-                />
-              )}
-            </FilterGroup>
-          </div>
-        </Form.Field>
-      )}
+      <ConditionRows
+        rows={rows.flatMap(({ condition, property }, index) =>
+          property
+            ? [
+                {
+                  key: getRowKey(index),
+                  chip: (
+                    <ConditionFilter
+                      rowKey={`condition-${getRowKey(index)}`}
+                      property={property}
+                      condition={condition}
+                      autoFocus={condition === undefined}
+                      onCommit={(next) => commitCondition(index, next)}
+                      onRemove={() => removeCondition(index)}
+                    />
+                  ),
+                },
+              ]
+            : [],
+        )}
+        join={form.join}
+        add={
+          newConditionProperty ? null : (
+            <AddFilterMenu
+              options={(form.entityTypeBaseUrls.length === 0
+                ? [...conditionProperties.values()]
+                : getPropertiesOfTypes(
+                    latestEntityTypes
+                      .filter(({ metadata }) =>
+                        form.entityTypeBaseUrls.includes(
+                          metadata.recordId.baseUrl,
+                        ),
+                      )
+                      .map(({ schema }) => schema.$id),
+                  )
+              ).map((property) => ({ ...property, key: property.baseUrl }))}
+              getIcon={({ valueKind }) =>
+                valueKind.kind === "date" ? "calendar" : "list"
+              }
+              emptyText="These types have no dates or statuses"
+              onPick={setNewConditionProperty}
+            />
+          )
+        }
+        errors={[]}
+        onJoinChange={(join) => save({ ...form, join })}
+      />
       <Form.Field layout="inline" label="Sort">
         <Select<SortOrder>
           required
@@ -555,7 +382,6 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
             text: label,
           }))}
           value={form.sort}
-          disabled={readOnly}
           aria-label="Sort"
           onChange={(sort) => save({ ...form, sort })}
         />
@@ -566,12 +392,12 @@ export const QueryField = (props: ComponentProps<typeof InputField>) => {
         errors={limitErrors.length > 0 ? limitErrors : undefined}
       >
         <NumberInput
+          width="xs"
           value={form.limit ?? null}
           min={1}
           max={maxEntitiesPerStep}
           placeholder="No limit"
           invalid={limitErrors.length > 0}
-          disabled={readOnly}
           aria-label="Limit"
           onChange={(limit) => {
             /* A negative would be rejected for the whole query, not reported here, so it isn't saved. */

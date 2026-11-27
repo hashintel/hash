@@ -1,6 +1,7 @@
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
 
 import type { FlowRunSummary } from "../../../../../../../graphql/api-types.gen";
+import type { StepState } from "./step-states";
 
 /**
  * How the editor and the flows page show a run's status, finer than the API's where it helps, e.g. a run waiting on a
@@ -11,7 +12,6 @@ export type RunState =
   | "needsReview"
   | "completed"
   | "failed"
-  | "timedOut"
   | "cancelled"
   | "unknown";
 
@@ -27,12 +27,17 @@ const stateOfStatus: Record<FlowRunStatus, RunState> = {
   [FlowRunStatus.ContinuedAsNew]: "running",
   [FlowRunStatus.Completed]: "completed",
   [FlowRunStatus.Failed]: "failed",
-  [FlowRunStatus.TimedOut]: "timedOut",
+  /* A run that timed out failed, and reads as one. */
+  [FlowRunStatus.TimedOut]: "failed",
   [FlowRunStatus.Cancelled]: "cancelled",
   [FlowRunStatus.Terminated]: "cancelled",
   [FlowRunStatus.Unknown]: "unknown",
   [FlowRunStatus.Unspecified]: "unknown",
 };
+
+/** Whether the run is still going, so more of its steps will run and its status will change. */
+export const isRunGoing = (status: FlowRunStatus) =>
+  stateOfStatus[status] === "running";
 
 export const getRunState = ({
   status,
@@ -56,7 +61,6 @@ export const runStates: Record<
   { label: string; tab: Exclude<RunTab, "all"> | null }
 > = {
   failed: { label: "Failed", tab: "failed" },
-  timedOut: { label: "Timed out", tab: "failed" },
   cancelled: { label: "Cancelled", tab: "failed" },
   unknown: { label: "Unknown", tab: null },
   needsReview: { label: "Needs review", tab: "running" },
@@ -65,3 +69,13 @@ export const runStates: Record<
 };
 
 export const runStatesByUrgency = Object.keys(runStates) as RunState[];
+
+/** A run's mark, from the same set as its steps'. It has none of its own for a cancelled run, so takes skipped's. */
+export const runStateMarks: Record<RunState, StepState> = {
+  running: "running",
+  needsReview: "needsReview",
+  completed: "done",
+  failed: "failed",
+  cancelled: "skipped",
+  unknown: "notReached",
+};

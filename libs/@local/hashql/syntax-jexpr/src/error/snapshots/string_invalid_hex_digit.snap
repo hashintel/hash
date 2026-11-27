@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"hello\\u12g4\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "hello\u12g4"}
+  │                        ━ invalid hexadecimal digit `g` in Unicode escape
+  │
+  ├ help: replace with a hexadecimal digit (`0`-`9`, `a`-`f`, or `A`-`F`)
+  ╰ note: `\uXXXX` escapes require four hexadecimal digits

@@ -1,3 +1,5 @@
+import { actorHeaders } from "@local/hash-graph-client";
+
 import type { AuthenticationContext } from "./authentication-context.js";
 import type { Brand, Timestamp } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -52,8 +54,8 @@ export const createApiToken = (
   params: CreateApiTokenRequest,
 ): Promise<CreateApiTokenResponse> =>
   graphAPI
-    .createApiToken(authentication.actorId, params)
-    .then(({ data }) => data as CreateApiTokenResponse);
+    .createApiToken(params, actorHeaders(authentication.actorId))
+    .then((data) => data as CreateApiTokenResponse);
 
 /**
  * Returns the API tokens of the authenticated user, newest first, including expired and revoked
@@ -64,8 +66,8 @@ export const listApiTokens = (
   authentication: AuthenticationContext,
 ): Promise<ApiTokenResponse[]> =>
   graphAPI
-    .listApiTokens(authentication.actorId)
-    .then(({ data }) => data as ApiTokenResponse[]);
+    .listApiTokens(actorHeaders(authentication.actorId))
+    .then((data) => data as ApiTokenResponse[]);
 
 /**
  * Revokes the API token `tokenId` of the authenticated user.
@@ -77,4 +79,6 @@ export const revokeApiToken = (
   authentication: AuthenticationContext,
   tokenId: ApiTokenId,
 ): Promise<void> =>
-  graphAPI.revokeApiToken(authentication.actorId, tokenId).then(() => {});
+  graphAPI
+    .revokeApiToken(tokenId, actorHeaders(authentication.actorId))
+    .then(() => {});

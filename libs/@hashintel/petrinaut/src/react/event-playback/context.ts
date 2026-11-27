@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import { constantStore } from "../use-store";
+import { constantStore } from "../shared/use-store";
 
 import type {
   EventPlaybackSnapshot,

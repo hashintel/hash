@@ -1,3 +1,5 @@
+import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import type { FlightPositionLight } from "./types.js";
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
@@ -31,7 +33,7 @@ export const mapFlight = (
     "https://hash.ai/@h/types/property-type/altitude/": {
       value: feetToMeters(input.alt),
       metadata: {
-        dataTypeId: "https://hash.ai/@h/types/data-type/meters/v/1",
+        dataTypeId: systemDataTypes.meters.dataTypeId,
         provenance,
       },
     },

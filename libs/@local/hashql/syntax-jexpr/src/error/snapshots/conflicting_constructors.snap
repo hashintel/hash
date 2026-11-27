@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1, \"#list\": []}"
+---
+error[jexpr::parser::object::conflicting-constructor]: Conflicting constructor keys
+  ╭▸ 
+1 │ {"#literal": 1, "#list": []}
+  │  ┬─────────     ━━━━━━━ cannot combine `#list` with `#literal` in the same object
+  │  │
+  │  object already defined as `#literal` here
+  │
+  ├ help: keep a single constructor key; `#literal` only accepts `#type` as an additional key
+  ╰ note: each J-Expr object represents a single constructor

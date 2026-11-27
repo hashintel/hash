@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 007}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": 007}
+  │              ━━ leading zeros are not allowed in JSON numbers
+  │
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`
+help: remove the leading zeros
+  ╭╴
+1 - {"#literal": 007}
+1 + {"#literal": 7}
+  ╰╴

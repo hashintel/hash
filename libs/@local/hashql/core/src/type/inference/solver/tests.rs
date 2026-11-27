@@ -1,10 +1,12 @@
 #![expect(clippy::similar_names)]
+use core::iter;
+
 use hashql_diagnostics::Success;
 
-use super::{Constraint, InferenceSolver, VariableConstraint};
+use super::{Constraint, InferenceSolver, InferenceSolverConfig, VariableConstraint};
 use crate::{
     collections::{FastHashMap, SmallVec},
-    heap::{Heap, Scratch},
+    heap::{Heap, Scratch, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -1115,7 +1117,7 @@ fn contract() {
             kind: env.intern_kind(TypeKind::Struct(StructType {
                 fields: env
                     .intern_struct_fields(&mut [StructField {
-                        name: env.heap.intern_symbol("name"),
+                        name: env.heap.alloc_symbol("name"),
                         value: id.value(),
                     }])
                     .expect("should be unique"),
@@ -1220,7 +1222,7 @@ fn single_projection() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1266,12 +1268,12 @@ fn multi_projection() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         variable.into_type(&env).id,
-        Ident::synthetic(heap.intern_symbol("b")),
+        Ident::synthetic(heap.alloc_symbol("b")),
     );
 
     let solver = environment.into_solver();
@@ -1320,7 +1322,7 @@ fn early_projection() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         variable,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1356,7 +1358,7 @@ fn late_projection() {
     let access = environment.add_projection(
         SpanId::SYNTHETIC,
         variable,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1404,7 +1406,7 @@ fn unconstrained_projection() {
     environment.add_projection(
         SpanId::SYNTHETIC,
         variable,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1436,7 +1438,7 @@ fn recursive_projection() {
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
         kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
-            name: heap.intern_symbol("example"),
+            name: heap.alloc_symbol("example"),
             repr: id.value(),
         })),
     });
@@ -1446,7 +1448,7 @@ fn recursive_projection() {
     environment.add_projection(
         SpanId::SYNTHETIC,
         circular.id,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1485,7 +1487,7 @@ fn projection_equality_constraint() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1535,7 +1537,7 @@ fn projection_unify_variables_lower() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1585,7 +1587,7 @@ fn projection_unify_variables_upper() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.collect_constraints(
@@ -1637,7 +1639,7 @@ fn projection_unify_variables_equal_is_equivalent() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.add_constraint(Constraint::Equals {
@@ -1688,7 +1690,7 @@ fn projection_unify_variables_equal_is_not_equivalent() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         r#struct,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     environment.add_constraint(Constraint::Equals {
@@ -1732,7 +1734,7 @@ fn projection_simplify() {
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
         intersection,
-        Ident::synthetic(heap.intern_symbol("a")),
+        Ident::synthetic(heap.alloc_symbol("a")),
     );
 
     let solver = environment.into_solver();
@@ -1949,7 +1951,7 @@ fn recursive_subscript() {
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
         kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
-            name: heap.intern_symbol("example"),
+            name: heap.alloc_symbol("example"),
             repr: id.value(),
         })),
     });
@@ -2454,5 +2456,297 @@ fn nested_inference_constraints() {
         &env,
         substitution.infer(hole1).expect("should be resolved"),
         string,
+    );
+}
+
+#[test]
+fn long_projection_chain() {
+    // T = (f: (f: ... (f: Integer)))
+    // T.f.f...f
+    //
+    // Every projection resolves one iteration after the one before it. The chain is long enough
+    // to take more iterations than the solver grants a system whatever its size.
+    let depth = 2 * InferenceSolverConfig::default().base_iterations;
+
+    scaffold!(heap, env, builder);
+
+    let field = Ident::synthetic(heap.alloc_symbol("f"));
+
+    let mut record = builder.integer();
+    for _ in 0..depth {
+        record = builder.r#struct([("f", record)]);
+    }
+
+    let mut inference = InferenceEnvironment::new(&env);
+    let mut variable = inference.add_projection(SpanId::SYNTHETIC, record, field);
+    for _ in 1..depth {
+        variable = inference.add_projection(SpanId::SYNTHETIC, variable.into_type(&env).id, field);
+    }
+
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution
+            .infer(variable.kind.hole().expect("variable should be hole"))
+            .expect("should have inferred variable"),
+        builder.integer(),
+    );
+}
+
+#[test]
+fn non_convergent_nested_subscript() {
+    // T = Integer[]
+    // T[T[T[0]]]
+    //
+    // `T[0]` is `Integer | Null`, which cannot index a list. The subscripts around it never
+    // resolve, and every attempt discharges the upper bound `Integer` on their index again.
+    scaffold!(heap, env, builder);
+
+    let list = builder.list(builder.integer());
+
+    let mut inference = InferenceEnvironment::new(&env);
+    let mut index = builder.integer();
+    for _ in 0..3 {
+        index = inference
+            .add_subscript(SpanId::SYNTHETIC, list, index)
+            .into_type(&env)
+            .id;
+    }
+
+    let categories: Vec<_> = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out")
+        .into_issues()
+        .into_iter()
+        .map(|diagnostic| diagnostic.category)
+        .collect();
+
+    assert_eq!(
+        categories,
+        [TypeCheckDiagnosticCategory::NonConvergentSystem]
+    );
+}
+
+#[test]
+fn non_convergent_structural_bounds() {
+    // ?1 <: ?2
+    // ?1 <: Unknown
+    // List<?2> <: ?3
+    // ?3 <: List<String>
+    //
+    // `?1 = ?2 = String` with `?3 = List<String>` solves the system. The solver does not find
+    // that solution, because comparing the two bounds of `?3` discharges `?2 <: String` again in
+    // every iteration.
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+    let hole2 = builder.fresh_hole();
+    let hole3 = builder.fresh_hole();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.infer(hole1),
+        builder.infer(hole2),
+    );
+    inference.collect_constraints(Variance::Covariant, builder.infer(hole1), builder.unknown());
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.list(builder.infer(hole2)),
+        builder.infer(hole3),
+    );
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.infer(hole3),
+        builder.list(builder.string()),
+    );
+
+    let categories: Vec<_> = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out")
+        .into_issues()
+        .into_iter()
+        .map(|diagnostic| diagnostic.category)
+        .collect();
+
+    assert_eq!(
+        categories,
+        [TypeCheckDiagnosticCategory::NonConvergentSystem]
+    );
+}
+
+#[test]
+fn non_convergent_recursive_key() {
+    // R = R[]
+    // ?subject <: Dict<R, String>
+    // Integer[][?index]
+    // ?subject[?index]
+    // (a: (b: (c: Integer))).a.b.c
+    //
+    // The subscripts bound `?index` by `Integer` and equate it with `R`, which no type satisfies.
+    // No iteration repeats an earlier one, because simplifying the bound of `?subject` interns `R`
+    // anew every time and the equality on `?index` names the new type. The projections keep the
+    // solver iterating until the subscripts discharge constraints a second time.
+    scaffold!(heap, env, builder);
+
+    let field = |name| Ident::synthetic(heap.alloc_symbol(name));
+
+    let recursive = env.types.intern(|id| PartialType {
+        span: SpanId::SYNTHETIC,
+        kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(ListType {
+            element: id.value(),
+        }))),
+    });
+
+    let index = builder.fresh_hole();
+
+    let mut inference = InferenceEnvironment::new(&env);
+
+    let subject = inference.fresh_hole(SpanId::SYNTHETIC);
+    inference.add_constraint(Constraint::UpperBound {
+        variable: subject,
+        bound: builder.dict(recursive.id, builder.string()),
+    });
+
+    inference.add_subscript(
+        SpanId::SYNTHETIC,
+        builder.list(builder.integer()),
+        builder.infer(index),
+    );
+    inference.add_subscript(
+        SpanId::SYNTHETIC,
+        subject.into_type(&env).id,
+        builder.infer(index),
+    );
+
+    let record = builder.r#struct([(
+        "a",
+        builder.r#struct([("b", builder.r#struct([("c", builder.integer())]))]),
+    )]);
+    let first = inference.add_projection(SpanId::SYNTHETIC, record, field("a"));
+    let second = inference.add_projection(SpanId::SYNTHETIC, first.into_type(&env).id, field("b"));
+    inference.add_projection(SpanId::SYNTHETIC, second.into_type(&env).id, field("c"));
+
+    let categories: Vec<_> = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out")
+        .into_issues()
+        .into_iter()
+        .map(|diagnostic| diagnostic.category)
+        .collect();
+
+    assert_eq!(
+        categories,
+        [TypeCheckDiagnosticCategory::NonConvergentSystem]
+    );
+}
+
+#[test]
+fn tuple_bound_ordering_chain() {
+    // (Integer, ?l0, ?l1, ?l1, ?l2, ..., ?pack) <: ?outer
+    // ?outer <: (?l0, ?h0, ?h0, ?h1, ?h1, ..., (?l0, ..., ?h0, ...))
+    //
+    // Comparing the two bounds of `?outer` discharges `Integer <: ?l0`, `?li <: ?hi` and
+    // `?l(i + 1) <: ?hi`. `Integer` reaches one more variable of that chain in every iteration,
+    // and the system has three constraints.
+    const DEPTH: usize = 20;
+
+    scaffold!(heap, env, builder);
+
+    let mut inference = InferenceEnvironment::new(&env);
+    let outer = inference.fresh_hole(SpanId::SYNTHETIC);
+    let pack = inference.fresh_hole(SpanId::SYNTHETIC);
+
+    let lows: Vec<_> = iter::repeat_with(|| builder.fresh_hole())
+        .take(DEPTH + 1)
+        .collect();
+    let highs: Vec<_> = iter::repeat_with(|| builder.fresh_hole())
+        .take(DEPTH)
+        .collect();
+
+    let mut lower = vec![builder.integer()];
+    let mut upper = vec![builder.infer(lows[0])];
+    for index in 0..DEPTH {
+        lower.extend([builder.infer(lows[index]), builder.infer(lows[index + 1])]);
+        upper.extend([builder.infer(highs[index]), builder.infer(highs[index])]);
+    }
+    lower.push(pack.into_type(&env).id);
+    upper.push(builder.tuple(lows.iter().chain(&highs).map(|&hole| builder.infer(hole))));
+
+    inference.add_dependency(outer, pack);
+    inference.add_constraint(Constraint::LowerBound {
+        variable: outer,
+        bound: builder.tuple(lower),
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable: outer,
+        bound: builder.tuple(upper),
+    });
+
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
+
+    for hole in lows.into_iter().chain(highs) {
+        assert_equivalent(
+            &env,
+            substitution.infer(hole).expect("should be resolved"),
+            builder.integer(),
+        );
+    }
+}
+
+#[test]
+fn non_convergent_repeated_conflict() {
+    // Integer[][?index]
+    // Dict<String, Integer>[?index]
+    // Dict<Boolean, Integer>[?index]
+    // (f: (f: Integer)).f.f
+    //
+    // The dicts equate `?index` with `String` and with `Boolean`. The subscripts stay pending and
+    // discharge both equalities at every attempt, which raises their conflict every time.
+    scaffold!(heap, env, builder);
+
+    let field = Ident::synthetic(heap.alloc_symbol("f"));
+    let index = builder.infer(builder.fresh_hole());
+
+    let mut inference = InferenceEnvironment::new(&env);
+    for subject in [
+        builder.list(builder.integer()),
+        builder.dict(builder.string(), builder.integer()),
+        builder.dict(builder.boolean(), builder.integer()),
+    ] {
+        inference.add_subscript(SpanId::SYNTHETIC, subject, index);
+    }
+
+    let record = builder.r#struct([("f", builder.r#struct([("f", builder.integer())]))]);
+    let first = inference.add_projection(SpanId::SYNTHETIC, record, field);
+    inference.add_projection(SpanId::SYNTHETIC, first.into_type(&env).id, field);
+
+    let categories: Vec<_> = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out")
+        .into_issues()
+        .into_iter()
+        .map(|diagnostic| diagnostic.category)
+        .collect();
+
+    assert_eq!(
+        categories,
+        [
+            TypeCheckDiagnosticCategory::NonConvergentSystem,
+            TypeCheckDiagnosticCategory::ConflictingEqualityConstraints
+        ]
     );
 }

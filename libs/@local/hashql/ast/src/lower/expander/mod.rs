@@ -21,7 +21,7 @@ mod r#use;
 use core::mem;
 
 use hashql_core::{
-    heap::{self, BumpAllocator},
+    heap::{self, ScopeAllocator},
     module::{
         self, Reference, Universe,
         item::{IntrinsicItem, IntrinsicTypeItem, Item, ItemKind},
@@ -162,9 +162,9 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     /// Returns `None` when the expression resolved to a local binding,
     /// was not a path, or resolution failed (in which case the expression
     /// is replaced with a dummy expression).
-    fn visit(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<CurrentItem<'heap>>
+    fn visit<'alloc>(&mut self, expr: &mut node::expr::Expr<'heap>) -> Option<CurrentItem<'heap>>
     where
-        S: BumpAllocator,
+        S: ScopeAllocator<'alloc>,
     {
         let prev_current_item = self.current_item.take();
         visit::walk_expr(self, expr);
@@ -259,9 +259,9 @@ impl<'env, 'heap, S> Expander<'env, 'heap, S> {
     }
 }
 
-impl<'heap, S> Visitor<'heap> for Expander<'_, 'heap, S>
+impl<'heap, 'alloc, S> Visitor<'heap> for Expander<'_, 'heap, S>
 where
-    S: BumpAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     #[expect(
         clippy::too_many_lines,

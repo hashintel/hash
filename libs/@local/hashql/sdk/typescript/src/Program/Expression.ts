@@ -7,53 +7,51 @@
  *
  * Members a handle inherits from `Function.prototype` and `Object.prototype`, such as `toString` and `call`, keep their JavaScript meaning. Use `$project` for a field with one of those names.
  *
+ * @since 0.1.0
  * @module
  */
-// oxlint-disable max-lines -- expression constructors and their API examples belong with the private handle metadata and proxy machinery
-import {
-  Function,
-  Pipeable,
-  Predicate,
-  Result,
-  Schema,
-  SchemaIssue,
-  SchemaParser,
-  identity,
-  pipe,
-} from "effect";
+// oxlint-disable max-lines -- expression constructors and their API examples belong in one module
+// oxlint-disable max-dependencies -- the constructors lower host values, structural shorthand and type definitions into syntax and AST nodes
+import { Function, Pipeable, Result, Struct, pipe } from "effect";
 
-import { Relocate, head } from "../internal/relocation.js";
+import * as internal from "../internal/expression.js";
+import { Relocate } from "../internal/relocation.js";
+import * as StructuralSyntax from "../internal/structural.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
-import * as ProgramError from "./ProgramError.js";
+import * as Structural from "./Structural.js";
 import * as TAST from "./TAST/index.js";
 
+import type { Binding, TypeId } from "../internal/expression.js";
 import type { Bound, Relocatable } from "../internal/relocation.js";
 import type * as Type from "../Type.js";
-import type {
-  Accessors,
-  Arguments,
-  Callable,
-  Conditional,
-} from "./ExpressionType.js";
+import type { Accessors, Callable, Conditional } from "./ExpressionType.js";
 import type * as Input from "./Inputs.js";
-import type * as TypeExpression from "./TypeExpression.js";
+import type * as ProgramError from "./ProgramError.js";
 import type { Types } from "effect";
+import type { ReadonlyRecord } from "effect/Record";
 
 export type { Conditional } from "./ExpressionType.js";
 
-const TypeId = "~hashql/Expression";
-/** The string key that marks an expression handle, which {@link isExpression} checks. */
+/**
+ * The string key that marks an expression handle, which {@link isExpression} checks.
+ *
+ * @category Type IDs
+ * @since 0.1.0
+ */
 export type TypeId = typeof TypeId;
-
-const Binding: unique symbol = Symbol("~hashql/Expression");
 
 interface Variance<T, Inputs> {
   readonly _T: Types.Invariant<T>;
   readonly _Inputs: Types.Contravariant<Inputs>;
 }
 
-/** Host literals accepted without an explicit expression wrapper: strings, numbers, bigints, booleans and null. */
+/**
+ * Host literals accepted without an explicit expression wrapper: strings, numbers, bigints, booleans and null.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export type Primitive = Type.Primitive["value"];
 
 type InputAlternatives<E> = E extends Primitive
@@ -75,6 +73,9 @@ type InputAlternatives<E> = E extends Primitive
  * An exactly typed handle or the host primitive corresponding to its semantic descriptor.
  *
  * Argument compatibility uses the semantic metadata that adapted callables retain. {@link Type.PrimitiveInteger} operands accept bigint and Integer handles. TypeScript rejects a host number at that position rather than widening its descriptor.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Value<T extends Type.Any> =
   | (Expression.Any &
@@ -112,25 +113,6 @@ export declare namespace Value {
   export type Inputs<E> = Input.Conservative<InputAlternatives<E>>;
 }
 
-class ExpressionImpl<T extends Type.Any, Inputs> {
-  readonly [TypeId]: Variance<T, Inputs>;
-
-  readonly #expr: Result.Result<AST.Node.Any, ProgramError.Construction>;
-
-  constructor(expr: Result.Result<AST.Node.Any, ProgramError.Construction>) {
-    this.#expr = expr;
-    this[TypeId] = {
-      _T: identity,
-      // oxlint-disable-next-line typescript/strict-void-return -- only used for type variance
-      _Inputs: identity,
-    };
-  }
-
-  get [Binding](): Result.Result<AST.Node.Any, ProgramError.Construction> {
-    return this.#expr;
-  }
-}
-
 /**
  * A symbolic HashQL value with type-directed projection, indexing and calls.
  *
@@ -157,6 +139,9 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
  *   Result.getOrThrow(Expression.toJExpr(account.$project("active"))),
  * );
  * ```
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Expression<T extends Type.Any, Inputs> = [T] extends [Type.Any]
   ? Expression.Base<T, Inputs>
@@ -195,202 +180,70 @@ export declare namespace Expression {
  * Recognizes the private expression marker without checking the stored result or semantic type.
  *
  * Use this to distinguish SDK handles from host literals, not to validate untrusted objects.
+ *
+ * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
-export const isExpression = (value: unknown): value is Expression.Any =>
-  Predicate.hasProperty(value, TypeId);
-
-const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
-
-const parseNode = (
-  expression: JExpr.Expression,
-): Result.Result<AST.Node.Any, ProgramError.Construction> =>
-  Result.mapBoth(jexprParser(expression), {
-    onSuccess: (syntax) => new AST.Expr(syntax),
-    onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
-  });
+export const isExpression: (value: unknown) => value is Expression.Any =
+  internal.isExpression;
 
 /**
  * Extracts a handle's stored AST result or validates a host literal into an AST node.
  *
  * Existing construction failures pass through unchanged. Invalid primitive syntax, including a non-finite number, returns a {@link ProgramError.Construction} with the `InvalidExpression` reason. A host record that carries the {@link TypeId} key without being a handle fails with the same reason. Prefer {@link toJExpr} when consuming J-Expr syntax rather than builder nodes.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
-export const toNode = (
+export const toNode: (
   value: Value.Any,
-): Result.Result<AST.Node.Any, ProgramError.Construction> => {
-  if (isExpression(value)) {
-    if (Predicate.hasProperty(value, Binding)) {
-      return value[Binding];
-    }
-
-    // The marker is a string key, so a data record can carry it. Only a handle stores a result.
-    return Result.fail(
-      ProgramError.Construction.invalidExpression(
-        new SchemaIssue.InvalidValue(
-          { message: `A record with the "${TypeId}" key is not an expression` },
-          value,
-        ),
-      ),
-    );
-  }
-
-  return parseNode(JExpr.literal(value));
-};
+) => Result.Result<AST.Node.Any, ProgramError.Construction> = internal.toNode;
 
 /**
  * Extracts J-Expr syntax without evaluating the represented value.
  *
- * A failed handle returns its stored construction error. Host literals undergo the same syntax validation as {@link literal}. Serialize the resulting structured syntax with `JExpr.compile`.
+ * A failed handle returns its stored construction error. Host literals undergo the same syntax validation as {@link literal}. Serialize the resulting structured syntax with {@link JExpr.compile}.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const toJExpr = (
   value: Value.Any,
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
   pipe(value, toNode, Result.map(AST.compile));
 
-const projectionKey = (
-  key: string | number,
-): Result.Result<string | number, ProgramError.Construction> => {
-  if (typeof key === "string") {
-    return Result.succeed(key);
-  }
-
-  // `JExpr.access` writes a numeric key as an Integer literal without checking it. Parsing that literal stores a fraction or a non-finite number as a failure, as an `$index` key does.
-  return pipe(
-    key,
-    JExpr.integer,
-    parseNode,
-    Result.map(() => key),
-  );
-};
-
-const access = (
-  value: Result.Result<AST.Node.Any, ProgramError.Construction>,
-  key: string | number,
-): Result.Result<AST.Node.Any, ProgramError.Construction> =>
-  pipe(
-    { value, key: projectionKey(key) },
-    Result.all,
-    Result.map(({ value, key }) => new AST.Access(value, key)),
-  );
-
-const make = <T extends Type.Any, Inputs>(
-  impl: ExpressionImpl<T, Inputs>,
-): Expression<T, Inputs> => {
-  const target: Expression.Handle<T, Inputs> = Object.assign(
-    (...args: Arguments.Any) =>
-      make(
-        new ExpressionImpl(
-          pipe(
-            {
-              callee: impl[Binding],
-              arguments: Result.all(args.map(toNode)),
-            },
-            Result.all,
-            Result.map(
-              ({ callee, arguments: arguments_ }) =>
-                new AST.Call(callee, arguments_),
-            ),
-          ),
-        ),
-      ),
-    {
-      [TypeId]: impl[TypeId],
-      [Binding]: impl[Binding],
-      [Relocate]: (
-        path: JExpr.Path.Path,
-        bound?: Bound,
-      ): Result.Result<Expression<T, Inputs>, ProgramError.Construction> =>
-        impl[Binding].pipe(
-          Result.map(() =>
-            make(
-              new ExpressionImpl<T, Inputs>(
-                Result.succeed(new AST.Path(path, head(path, "value", bound))),
-              ),
-            ),
-          ),
-        ),
-      ...Pipeable.Prototype,
-    },
-  );
-
-  const proxy = new Proxy(target, {
-    get(
-      target,
-      property,
-      receiver,
-    ): // oxlint-disable-next-line typescript/no-restricted-types -- proxy property reads may return arbitrary host values
-    unknown {
-      if (property === "pipe") {
-        return Reflect.get(target, property, receiver);
-      }
-
-      if (property === "$index" || property === "$indexUnsafe") {
-        return (key: Value.Any) => {
-          const expr = pipe(
-            { value: target[Binding], key: toNode(key) },
-            Result.all,
-            Result.map(({ value, key }) => new AST.Subscript(value, key)),
-          );
-          const impl = new ExpressionImpl(expr);
-          return make(impl);
-        };
-      }
-
-      if (property === "$project" || property === "$projectUnsafe") {
-        return (key: string | number) =>
-          make(new ExpressionImpl(access(target[Binding], key)));
-      }
-
-      if (property === Binding) {
-        return target[Binding];
-      }
-
-      if (property === TypeId) {
-        return target[TypeId];
-      }
-
-      if (property in target && !Object.hasOwn(target, property)) {
-        return Reflect.get(target, property, receiver);
-      }
-
-      if (typeof property === "string" && /^\d+$/u.test(property)) {
-        return make(
-          new ExpressionImpl(access(target[Binding], Number(property))),
-        );
-      }
-
-      if (typeof property === "string") {
-        return make(new ExpressionImpl(access(target[Binding], property)));
-      }
-
-      return Reflect.get(target, property, receiver);
-    },
-  });
-
-  // SAFETY: the handle retains T and Inputs. The traps supply their type-directed operations.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot derive conditional accessors and call signatures from proxy traps
-  return proxy as Expression<T, Inputs>;
-};
-
 /**
  * Wraps an AST construction result while retaining either its node or its failure.
  *
  * This low-level builder operation trusts the caller to establish `T`, `Inputs` and the node's validity. Use {@link fromJExpr} when syntax needs validation.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
-export const fromResult = <T extends Type.Any, Inputs>(
+export const fromResult: <T extends Type.Any, Inputs>(
   node: Result.Result<AST.Node.Any, ProgramError.Construction>,
-): Expression<T, Inputs> => make(new ExpressionImpl<T, Inputs>(node));
+) => Expression<T, Inputs> = internal.fromResult;
 
 /**
  * Ascribes a semantic type to syntax supplied by a declaration or another trusted builder.
  *
  * The caller supplies the semantic type and input requirements. This operation validates syntax only. Invalid syntax stores a {@link ProgramError.Construction} with the `InvalidExpression` reason. Extract it with {@link toJExpr}. It does not resolve names or infer requirements from the syntax.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const fromJExpr = <T extends Type.Any, Inputs>(
   expression: JExpr.Expression,
-): Expression<T, Inputs> => pipe(expression, parseNode, fromResult<T, Inputs>);
+): Expression<T, Inputs> =>
+  pipe(expression, internal.parseNode, fromResult<T, Inputs>);
 
-/** Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}. */
+/**
+ * Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}.
+ *
+ * @category Conversions
+ * @since 0.1.0
+ */
 export const fromNode = <T extends Type.Any, Inputs>(
   node: AST.Node.Any,
 ): Expression<T, Inputs> => pipe(node, Result.succeed, fromResult<T, Inputs>);
@@ -429,6 +282,9 @@ export const fromNode = <T extends Type.Any, Inputs>(
  *   Result.getOrThrow(Expression.toJExpr(trimmedLookup(" Ada "))),
  * );
  * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
  */
 export const adaptCallable: {
   <
@@ -469,8 +325,8 @@ export const adaptCallable: {
     const callable = ((...args: never[]) => adapted(...args)) as C;
 
     return Object.assign(callable, {
-      [TypeId]: self[TypeId],
-      [Binding]: self[Binding],
+      [internal.TypeId]: self[internal.TypeId],
+      [internal.Binding]: self[internal.Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
         bound?: Bound,
@@ -507,6 +363,9 @@ export const adaptCallable: {
  *   Result.getOrThrow(Expression.toJExpr(text)),
  * );
  * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
  */
 export const assume =
   <T extends Type.Any>() =>
@@ -514,9 +373,75 @@ export const assume =
     pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
 /**
+ * Asserts that an expression has the type `type`, which emits the `as` special form.
+ *
+ * The expression can be structural shorthand, such as a record of values. `type` can be a definition, as {@link Structural."type"} takes it. The result has the asserted type and keeps the expression's input requirements. The HashQL compiler checks the assertion rather than the SDK, and accepts one that keeps the expression's type or widens it to a supertype, never one that narrows it. Unlike {@link assume}, which changes only the SDK's type, `as` puts the assertion into the program. Call it as `as(expression, type)`, or as `as(type)` inside a `pipe`.
+ *
+ * A construction failure already stored in `expression` or `type` passes through.
+ *
+ * @example <caption>Widen an Integer to a Number.</caption>
+ * ```ts
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression } = Program;
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(Expression.as(2n, Number)))),
+ *   '["::kernel::special_form::as",{"#literal":2},"::kernel::type::Number"]',
+ * );
+ * ```
+ *
+ * @category Combinators
+ * @since 0.1.0
+ */
+export const as: (<const T extends Structural.Definition>(
+  type: T,
+) => <const E extends Structural.Value.Any>(
+  expression: E & Structural.Value.FixedLength<E>,
+) => Expression<
+  Structural.Definition.Type<T>,
+  Structural.Value.Requirements<E>
+>) &
+  (<
+    const E extends Structural.Value.Any,
+    const T extends Structural.Definition,
+  >(
+    expression: E & Structural.Value.FixedLength<E>,
+    type: T,
+  ) => Expression<
+    Structural.Definition.Type<T>,
+    Structural.Value.Requirements<E>
+  >) = Function.dual(
+  2,
+  <E extends Structural.Value.Any, T extends Structural.Definition>(
+    expression: E,
+    type: T,
+  ): Expression<
+    Structural.Definition.Type<T>,
+    Structural.Value.Requirements<E>
+  > =>
+    pipe(
+      {
+        value: StructuralSyntax.valueNode(expression),
+        type: Structural.type(type).pipe(Result.flatMap(Struct.get(TAST.Node))),
+      },
+      Result.all,
+      Result.map(({ value, type }) => new AST.As(value, type)),
+      fromResult<
+        Structural.Definition.Type<T>,
+        Structural.Value.Requirements<E>
+      >,
+    ),
+);
+
+/**
  * Constructs a typed host literal with no input requirements.
  *
  * Use a string to construct a string literal rather than a name reference. A host number has the {@link Type.PrimitiveNumber} descriptor even when its emitted syntax is integral. Bigints have the {@link Type.PrimitiveInteger} descriptor. A non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason, which {@link toJExpr} returns. Objects and arrays need structural construction instead.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const literal = <const V extends Primitive>(
   value: V,
@@ -526,88 +451,125 @@ export const literal = <const V extends Primitive>(
  * Constructs an Integer literal from a bigint or integral host number.
  *
  * A fraction or a non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason. Use bigint when the original integer exceeds the safe number range, because a number has already undergone JavaScript rounding. See {@link toJExpr} to inspect success or failure.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const integer = (
   value: number | bigint,
 ): Expression<Type.PrimitiveInteger, Input.Empty> =>
   fromJExpr(JExpr.integer(value));
 
-/** Constructs a Number literal, retaining non-finite values as construction failures as in {@link literal}. */
+/**
+ * Constructs a Number literal, retaining non-finite values as construction failures as in {@link literal}.
+ *
+ * @category Constructors
+ * @since 0.1.0
+ */
 export const number = (
   value: number,
 ): Expression<Type.PrimitiveNumber, Input.Empty> =>
   fromJExpr(JExpr.literal(value));
 
+/** A default that may be `undefined`. */
+type InputArguments = readonly [defaultValue: Structural.Value.Any | undefined];
+
+/** Checks each defined alternative without rejecting an explicitly absent default. */
+type ExactDefault<T extends Type.Any, V> = V extends undefined
+  ? V
+  : V extends Structural.Value.Any
+    ? Structural.Value.Exact<T, V>
+    : never;
+
+type ExactDefaults<T extends Type.Any, D extends InputArguments> = {
+  readonly [K in keyof D]: ExactDefault<T, D[K]>;
+};
+
+/** The input's own entry, optional when the default is definitely present, merged with the default's requirements. */
+type DefaultedInputs<
+  Name extends string,
+  T extends Type.Any,
+  D extends InputArguments,
+> = [D[0]] extends [undefined]
+  ? Readonly<Record<Name, T>>
+  : Input.Merge<
+      undefined extends D[0]
+        ? Readonly<Record<Name, T>>
+        : Readonly<Partial<Record<Name, T>>>,
+      Structural.Value.Requirements<Exclude<D[0], undefined>>
+    >;
+
 /**
- * References a program input, optionally supplying its default expression.
+ * References a program input, optionally supplying its default.
  *
- * The inferred {@link Value.Inputs} record requires the input when you omit the default or pass `undefined`. A definitely present default makes this occurrence optional, but another required use of the same name takes precedence. If the default's type includes `undefined`, the input remains required. Requirements of the default expression also contribute to the result.
+ * The inferred {@link Value.Inputs} record requires the input when you omit the default or pass `undefined`. A definitely present default makes this occurrence optional, but another required use of the same name takes precedence. If the default's type includes `undefined`, the input remains required. Requirements of the default also contribute to the result.
+ *
+ * The default is an expression or structural shorthand, and it must match `type` exactly, including nested fields and tuple positions. Use constructed expressions for list, dictionary and nominal defaults.
  *
  * @param name - The input name emitted into the program.
- * @param type - The input's HashQL type, which also constrains the default.
- * @param defaultValue - The value or expression used when the input is absent at query execution.
+ * @param type - The input's HashQL type, as a type expression or structural shorthand that {@link Structural."type"} takes, which also constrains the default.
+ * @param defaultValue - The value used when the input is absent at query execution.
  * @returns A symbolic reference. Use {@link toJExpr} to extract the syntax or its construction failure.
  *
  * @example <caption>Supply a default page size.</caption>
  * ```ts
  * import assert from "node:assert/strict";
  * import { JExpr, Program } from "@local/hashql";
- * import type { Type } from "@local/hashql";
- * import { Option, Result } from "effect";
+ * import { Result } from "effect";
  *
- * const { Expression, TypeExpression } = Program;
- * const integer = TypeExpression.fromType<Type.PrimitiveInteger>(
- *   Option.getOrThrow(JExpr.Type.reference("::kernel::type::Integer")),
- * );
- * const pageSize = Expression.input("pageSize", integer, 10n);
+ * const { Expression } = Program;
+ * const pageSize = Expression.input("pageSize", BigInt, 10n);
  * assert.equal(
  *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(pageSize))),
  *   '["::kernel::special_form::input","pageSize","::kernel::type::Integer",{"#literal":10}]',
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs an input from its name and type
-export function input<const Name extends string, T extends Type.Any>(
-  name: Name,
-  type: TypeExpression.TypeExpression<T>,
-  defaultValue?: undefined,
-): Expression<T, Readonly<Record<Name, T>>>;
 export function input<
   const Name extends string,
-  T extends Type.Any,
-  const Default extends Value<NoInfer<T>>,
+  const T extends Structural.Definition,
 >(
   name: Name,
-  type: TypeExpression.TypeExpression<T>,
-  defaultValue: Default,
+  type: T,
+  defaultValue?: undefined,
 ): Expression<
-  T,
-  Input.Merge<Readonly<Partial<Record<Name, T>>>, Value.Inputs<Default>>
+  Structural.Definition.Type<T>,
+  ReadonlyRecord<Name, Structural.Definition.Type<T>>
 >;
 export function input<
   const Name extends string,
-  T extends Type.Any,
-  const Default extends Value<NoInfer<T>>,
+  const T extends Structural.Definition,
+  const Defaults extends InputArguments,
 >(
   name: Name,
-  type: TypeExpression.TypeExpression<T>,
-  defaultValue: Default | undefined,
-): Expression<T, Input.Merge<Readonly<Record<Name, T>>, Value.Inputs<Default>>>;
-export function input<T extends Type.Any>(
+  type: T,
+  ...defaults: Defaults &
+    ExactDefaults<NoInfer<Structural.Definition.Type<T>>, Defaults>
+): Expression<
+  Structural.Definition.Type<T>,
+  DefaultedInputs<Name, Structural.Definition.Type<T>, Defaults>
+>;
+export function input<T extends Structural.Definition>(
   name: string,
-  type: TypeExpression.TypeExpression<T>,
-  defaultValue?: Value.Any,
-): Expression<T, never> {
+  type: T,
+  defaultValue?: Structural.Value.Any,
+): Expression<Structural.Definition.Type<T>, never> {
   return Result.gen(function* () {
     const ident = yield* AST.decodeInputName(name);
-    const node = yield* type[TAST.Node];
+    const typeExpr = yield* Structural.type(type);
+    const node = yield* typeExpr[TAST.Node];
+
     if (defaultValue === undefined) {
-      return yield* AST.validate(new AST.Input(ident, node, undefined));
+      return new AST.Input(ident, node, undefined);
     }
 
-    const value = yield* toNode(defaultValue);
-    return yield* AST.validate(new AST.Input(ident, node, value));
-  }).pipe(fromResult<T, never>);
+    const value = yield* StructuralSyntax.valueNode(defaultValue);
+    return new AST.Input(ident, node, value);
+  }).pipe(fromResult<Structural.Definition.Type<T>, never>);
 }
 
 /**
@@ -634,6 +596,9 @@ export function input<T extends Type.Any>(
  *   Result.getOrThrow(Expression.toJExpr(label)),
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const ifElse: {
   <const Then extends Value.Any, const Else extends Value.Any>(branches: {

@@ -1,0 +1,69 @@
+---
+title: The UI layer
+description: The UI layer is the visual editor, made of the canvas, panels, dialogs and the Monaco integration.
+sidebar_order: 5
+---
+
+The UI layer is the visual editor: the canvas, the panels, the dialogs and the Monaco integration.
+It renders what the [React layer](layer:react) holds and calls its hooks to change it. It owns no document state.
+
+![Petrinaut mounts the React layer, Monaco and the plugins, then one editor view that shows a workspace per mode](./ui-layer.d2)
+
+## Entry point
+
+`Petrinaut` in `ui/petrinaut.tsx` creates one Core instance for the document handle and disposes it when the inputs change. It wraps the editor in `PetrinautSlotsContext`, `CommandRegistryProvider` and `PortalContainerContext`, whose container is the `OverlayHost` at the end of the editor's root, then mounts, from the outside in:
+
+1. `PetrinautProvider`, which connects the instance to React. See the [React layer](layer:react).
+2. `PetrinautPresentationProvider`, which says what a profile shows: the editor, a review, or a preview. See [`ui.presentation`](layer:ui.presentation).
+3. `MonacoProvider`. See [Monaco](doc:ui.monaco/monaco).
+4. The `.petrinaut-root` element, which holds the next provider and, beside it, `ResolvingOverlay`.
+5. `PetrinautPluginsProvider`, which runs the [built-in plugins](layer:ui.plugins.built-in) and the host's. See [How the editor runs plugins](doc:ui.plugins/runtime).
+6. `EditorView`. See [The editor shell](doc:ui.views.editor/editor-shell).
+
+`PetrinautPreview` in [`ui.preview`](layer:ui.preview) mounts the same canvas without the shell, as [The preview](doc:ui.preview/preview) describes. It takes five components from inside the shell's folder: `SelectedItemProperties` for the properties of the selected item, `NetNavigationList` for the list of nets, `EventSimulationControls` and `EventTimeline` for a quick simulation, and `ActualTimeline` for Actual mode.
+
+`EditorView` and `PetrinautPreview` each mount `PetrinautIconProvider` from `ui/views/shared`. Below it the design system's `Icon` draws from the `@hashintel/ds-icons` set, and the icons of that set move only while the Animations setting is on.
+
+## Where a thing goes
+
+| To add                                                                                         | Put it in                                                            | Read                                                                                 |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| A section or tab of a panel                                                                    | The `sub-views.ts` of the panel, and a component module beside it    | [Sub-views](doc:ui.sub-view/sub-views)                                               |
+| A node, an arc or a canvas gesture                                                             | `ui/views/SDCPN`                                                     | [The canvas](doc:ui.views.canvas/canvas)                                             |
+| A region, a mode or a command                                                                  | `ui/views/Editor`                                                    | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
+| A code input                                                                                   | `CodeEditor` from `ui/monaco`                                        | [Monaco](doc:ui.monaco/monaco)                                                       |
+| A table                                                                                        | `ui/spreadsheet-kit`                                                 | [Building a spreadsheet](doc:ui.spreadsheet-kit/building-a-spreadsheet)              |
+| Arrow-key movement between controls                                                            | `ui/worksheet`                                                       | [The worksheet keyboard flow](doc:ui.worksheet/worksheet)                            |
+| A part of a form or a drawer that collapses                                                    | `Section` from `ui/shared/section.tsx`                               | [`ui.shared`](layer:ui.shared)                                                       |
+| A component, a hook or a constant that imports no view, for more than one layer                | `ui/shared`, one piece per file                                      | [`ui.shared`](layer:ui.shared)                                                       |
+| What the screens under `ui/views` must agree on, such as the payload of a drag onto the canvas | `ui/views/shared`                                                    | [`ui.views`](layer:ui.views)                                                         |
+| What only the editor shell and its panels share                                                | `ui/views/Editor/shared`                                             | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
+| A file a single layer imports                                                                  | In that layer's folder                                               |                                                                                      |
+| Something a profile shows or hides                                                             | A capability in `ui/presentation/presentation-context.ts`            | [`ui.presentation`](layer:ui.presentation)                                           |
+| How a place's visualizer is drawn                                                              | `ui/visualizer`                                                      | [`ui.visualizer`](layer:ui.visualizer)                                               |
+| Opening, saving or exporting a file                                                            | `ui/views/Editor/shared/file-io`                                     |                                                                                      |
+| A value that follows a panel on every frame                                                    | `styleRef` or `useReading` from `ui/shared/readings.ts`              | [Panel geometry outside React state](doc:react.state/panel-sizes)                    |
+| State a panel's content keeps while the panel is closed                                        | `useKeptState` or `useKeptScroll` from `ui/shared/use-kept-state.ts` | [The editor shell](doc:ui.views.editor/editor-shell)                                 |
+| Something only one host needs                                                                  | A plugin                                                             | [Plugins](doc:ui.plugins/overview)                                                   |
+| A story of the whole editor, or a fixture its stories share                                    | `ui/stories`                                                         |                                                                                      |
+| An icon                                                                                        | `@hashintel/ds-icons`, imported where it is drawn                    | [Its README](https://github.com/hashintel/hash/tree/main/libs/%40hashintel/ds-icons) |
+
+`ui/shared` and `ui/views/shared` differ in who imports them. `ui/shared` imports no view and no plugin, so views, kits and the preview all import it. `ui/views/shared` is part of [`ui.views`](layer:ui.views): the screens and the preview import it, and no kit does. Rules of `archinaut check` keep `ui.shared`, `ui.sub-view` and `ui.monaco` from importing a view, `ui/views/shared` included.
+
+A component and its private parts share a name: `x.tsx` is the entry, and the folder `x/` holds what only it uses. The entry file calls hooks, then composes parts. The panels under `ui/views/Editor/panels` differ: the entry is `panel.tsx` or `main.tsx`, and the sections sit in `subviews/`.
+
+## Rules
+
+**No file under `react/` imports from `ui/`.** The providers stay testable without mounting the editor. `archinaut check` fails on such an import. Run it with `yarn workspace @apps/petrinaut-docs lint:arch-docs`.
+
+**No component is declared during render.** React treats a component created during render as a new type and remounts it with its state. The lint rule `react/static-components` reports it. A factory that runs at module scope, such as `createDeferredSubView`, may declare components.
+
+**A component reads the part of the state it draws.** `useEditorState` and `useUserSettings` take a selector, `useEditorFields` and `useUserSettingsFields` take field names, and `useEditorActions` returns functions that keep their identity. A component that reads a whole context renders for every change to it. `benchmarks/monaco-performance/panel-toggles.mjs details=1`, run from the package root against the profiling build, lists the components that render for each panel toggle. Its header says which build to serve.
+
+**The React Compiler memoizes.** A `useMemo`, `useCallback` or `memo` carries a comment that says what the compiler cannot cover, as on `PluginHost` and `EntityRow`. No lint rule checks the comment. The lint rules `react/refs` and `react/set-state-in-effect` keep render free of what the compiler refuses.
+
+## Pitfalls
+
+- A plugin or a `rules` object created during render is a new value on every render. `Petrinaut` holds `rules` by content, but a plugin must be defined at module scope.
+- Inside a hook, a value built before another hook call and used after it is not memoized. Call the hooks first, then build each value in one expression.
+- Two classes on one element that set one property to different values are settled by the order of their rules in the stylesheet, and that order follows the paths of the source files. `cx(own, className)` does not make the caller's class win, and moving a file can change which one does. No check reports it. Give both the same value, as `StackedSectionHeader` does for its `zIndex`, or end the value that must win with `!`.

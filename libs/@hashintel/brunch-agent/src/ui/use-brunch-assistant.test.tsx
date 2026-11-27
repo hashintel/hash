@@ -59,9 +59,6 @@ const brunchFlueAdapterTools = vi.hoisted(() => ({
 const brunchPanelTransportOptions = vi.hoisted(() => ({
   current: undefined as Parameters<typeof createBrunchPanelTransport>[2],
 }));
-const brunchPanelTransportTracker = vi.hoisted(() => ({
-  current: null as BrunchPanelConversationTracker | null,
-}));
 const brunchPanelTransportSessions = vi.hoisted(
   () =>
     [] as {
@@ -112,7 +109,6 @@ vi.mock("../client/brunch-panel-transport", async (importOriginal) => {
       ...args: Parameters<typeof actual.createBrunchPanelTransport>
     ) => {
       brunchPanelTransportOptions.current = args[2];
-      brunchPanelTransportTracker.current = args[1];
       brunchPanelTransportSessions.push({ client: args[0], tracker: args[1] });
       return actual.createBrunchPanelTransport(...args);
     },
@@ -221,7 +217,7 @@ const placeInput = {
   dynamicsEnabled: false,
   x: 0,
   y: 0,
-  targetSubnetId: null,
+  targetComponentId: null,
 };
 
 beforeEach(() => {
@@ -248,7 +244,6 @@ beforeEach(() => {
   mutationApprovalCoordinators.length = 0;
   brunchPanelTransportOptions.current = undefined;
   brunchFlueAdapterTools.current = undefined;
-  brunchPanelTransportTracker.current = null;
   vi.stubGlobal(
     "fetch",
     vi.fn<typeof fetch>(async () => Response.json({ available: false })),
@@ -774,6 +769,28 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
   ).not.toContain(brunchTools.appSaveNet);
 });
 
+test("reports a send that met a submission conflict to the host's error tracker", async () => {
+  captureException.mockClear();
+  const rendered = renderAssistant();
+  await waitFor(() => expect(rendered.assistant()).toBeDefined());
+  const transportOptions = brunchPanelTransportOptions.current as {
+    readonly onSubmissionConflict?: (conflict: {
+      readonly messageId: string;
+      readonly submissionId: string;
+    }) => void;
+  };
+
+  transportOptions.onSubmissionConflict?.({
+    messageId: "comments",
+    submissionId: "admitted-first",
+  });
+
+  expect(captureException).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {
+    source: "brunch.submission-conflict",
+    tags: { messageId: "comments", submissionId: "admitted-first" },
+  });
+});
+
 test("a host's own tools run beside Brunch's while a document is bound", async () => {
   flueClientMock.current = {
     history: async () => ({
@@ -919,7 +936,7 @@ test("an absent replay baseline stays immutable when admission refresh publishes
     dynamicsEnabled: false,
     x: 0,
     y: 0,
-    targetSubnetId: null,
+    targetComponentId: null,
   };
   const conversationId = currentAssistant().conversationId ?? "";
   snapshot = {
@@ -1056,7 +1073,7 @@ test("I does not execute a canonical write while history is loading", async () =
       dynamicsEnabled: false,
       x: 0,
       y: 0,
-      targetSubnetId: null,
+      targetComponentId: null,
     }),
   ).toThrow("Conversation history is not ready");
   const handle = currentAssistant().documentHandle as PetrinautDocHandle;
@@ -1071,7 +1088,7 @@ test("a pending bound mutation in history is not executed again after reload", a
     dynamicsEnabled: false,
     x: 0,
     y: 0,
-    targetSubnetId: null,
+    targetComponentId: null,
   };
   flueClientMock.current = {
     observe: () => ({
@@ -1253,6 +1270,7 @@ test.each(["standard", "thorough", "off"] as const)(
         ...context,
         inputMode: "voice",
         isAiAssistantOpen: true,
+        readSelection: () => ({ items: [], labels: [] }),
         canAcceptVoiceInput: true,
         registerVoiceModeControls: vi.fn(() => () => {}),
         reportVoiceSessionState: vi.fn(),
@@ -1263,15 +1281,10 @@ test.each(["standard", "thorough", "off"] as const)(
       if (
         !isValidElement<{
           interviewBudgetLevel: string;
-          onInputModeChange?: (mode: "text" | "voice") => void;
         }>(voice)
       )
         throw new Error("Missing Voice control");
       expect(voice.props.interviewBudgetLevel).toBe(level);
-      voice.props.onInputModeChange?.("voice");
-      expect(brunchPanelTransportTracker.current?.inputMode).toBe("voice");
-      voice.props.onInputModeChange?.("text");
-      expect(brunchPanelTransportTracker.current?.inputMode).toBe("text");
     };
     expectBudget(false);
     rendered.rerender({

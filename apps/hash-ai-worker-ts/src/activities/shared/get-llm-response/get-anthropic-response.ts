@@ -136,9 +136,7 @@ const isServerError = (error: unknown): error is APIError =>
   error.status >= 500 &&
   error.status < 600;
 
-const switchProvider = (
-  provider: AnthropicApiProvider,
-): AnthropicApiProvider =>
+const switchProvider = (provider: AnthropicApiProvider): AnthropicApiProvider =>
   provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
 const createAnthropicMessagesWithToolsWithBackoff = async (params: {
@@ -316,6 +314,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     previousInvalidResponses,
     retryContext,
     toolChoice,
+    maxTokens = anthropicMessageModelToMaxOutput[params.model],
     ...remainingParams
   } = params;
 
@@ -326,12 +325,6 @@ export const getAnthropicResponse = async <ToolName extends string>(
   const anthropicMessages = messages.map((message) =>
     mapLlmMessageToAnthropicMessage({ message }),
   );
-
-  /**
-   * Default to the maximum context window, if `max_tokens` is not provided.
-   */
-  const maxTokens =
-    params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
 
   let anthropicResponse: AnthropicMessagesCreateResponse;
 

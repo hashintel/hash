@@ -4,6 +4,7 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { actorHeaders } from "@local/hash-graph-client";
 import {
   getEntityTypeById,
   hasPermissionForEntityTypes,
@@ -158,8 +159,7 @@ export const createEntityType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi.createEntityType(
-    authentication.actorId,
+  const metadata = await graphApi.createEntityType(
     {
       schema,
       provenance: {
@@ -167,6 +167,7 @@ export const createEntityType: ImpureGraphFunction<
         ...params.provenance,
       },
     },
+    actorHeaders(authentication.actorId),
   );
 
   // TODO: Avoid casting through `unknown` when new codegen is in place
@@ -205,9 +206,9 @@ export const updateEntityType: ImpureGraphFunction<
     },
   };
 
-  const { data: metadata } = await ctx.graphApi.updateEntityType(
-    authentication.actorId,
+  const metadata = await ctx.graphApi.updateEntityType(
     updateArguments,
+    actorHeaders(authentication.actorId),
   );
 
   const newEntityTypeId = ontologyTypeRecordIdToVersionedUrl(
@@ -258,9 +259,9 @@ export const updateEntityTypes: ImpureGraphFunction<
     }),
   );
 
-  const { data: metadatas } = await ctx.graphApi.updateEntityTypes(
-    authentication.actorId,
+  const metadatas = await ctx.graphApi.updateEntityTypes(
     updateArguments,
+    actorHeaders(authentication.actorId),
   );
 
   return metadatas.map((metadata, index) => {
@@ -351,9 +352,9 @@ export const archiveEntityType: ImpureGraphFunction<
   ArchiveEntityTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.archiveEntityType(
-    actorId,
+  const temporalMetadata = await graphApi.archiveEntityType(
     params,
+    actorHeaders(actorId),
   );
 
   return temporalMetadata as OntologyTemporalMetadata;
@@ -369,9 +370,9 @@ export const unarchiveEntityType: ImpureGraphFunction<
   Omit<UnarchiveEntityTypeParams, "provenance">,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi, provenance }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.unarchiveEntityType(
-    actorId,
+  const temporalMetadata = await graphApi.unarchiveEntityType(
     { ...params, provenance },
+    actorHeaders(actorId),
   );
 
   return temporalMetadata as OntologyTemporalMetadata;

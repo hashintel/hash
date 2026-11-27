@@ -1,8 +1,9 @@
 /**
  * Typed construction operations inside a synchronous Draft callback.
  *
- * Context preserves each operation's semantic type and input requirements. It does not select an input policy: the program callback contract checks declarations against its explicit input schema. Nested callbacks receive fresh declaration collectors with the same prelude.
+ * Context preserves each operation's semantic type and input requirements. It does not select an input policy: the program callback contract checks declarations against its explicit input schema. A declaration belongs to the body its program is building at the time, so a branch or a filter predicate keeps every declaration made while its callback runs, whichever of the program's `$` makes it.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable import/max-dependencies -- a context names the operations of every construction module
@@ -23,6 +24,9 @@ import type * as Type from "../Type.js";
  * The call signature of a Draft nominal constructor: it wraps an exactly typed value of the underlying type `T` as the nominal type `N`.
  *
  * The argument can be an expression or structural shorthand, such as a record of host values and expressions for a struct. TypeScript rejects missing, extra and wrongly typed fields. The call emits the representation first and applies the constructor to it. The result requires the inputs the argument requires.
+ *
+ * @category Nominal Types
+ * @since 0.1.0
  */
 export type NominalCall<N extends string, T extends Type.Any> = <
   const V extends Structural.Value<T> & Structural.Value.Any,
@@ -33,7 +37,10 @@ export type NominalCall<N extends string, T extends Type.Any> = <
 /**
  * A Draft nominal constructor: an expression of function type that also accepts structural shorthand.
  *
- * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. `Expression.adaptCallable` constructs it. It is an interface rather than that function's `Expression.Expression.Adapted` result, because TypeScript defers an interface's recursive rebinding until a comparison reaches it. That keeps comparisons of `newtype` signatures within TypeScript's instantiation depth.
+ * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. {@link Expression.adaptCallable} constructs it. It is an interface rather than that function's {@link Expression.Expression.Adapted} result, because TypeScript defers an interface's recursive rebinding until a comparison reaches it. That keeps comparisons of `newtype` signatures within TypeScript's instantiation depth.
+ *
+ * @category Nominal Types
+ * @since 0.1.0
  */
 export interface NominalValue<N extends string, T extends Type.Any>
   extends
@@ -49,13 +56,23 @@ export interface NominalValue<N extends string, T extends Type.Any>
   readonly [Relocate]: Relocatable<NominalValue<N, T>>[typeof Relocate];
 }
 
-/** The result of `newtype`: one handle that is both the nominal type expression and its constructor. */
+/**
+ * The result of `newtype`: one handle that is both the nominal type expression and its constructor.
+ *
+ * @category Nominal Types
+ * @since 0.1.0
+ */
 export type Nominal<N extends string, T extends Type.Any> = Namespace.Joined<
   NominalValue<N, T>,
   TypeExpression.TypeExpression<Type.Opaque<N, T>>
 >;
 
-/** HashQL's `Option<T>`: the `Some` newtype around `T`, or `None`. */
+/**
+ * HashQL's `Option<T>`: the `Some` newtype around `T`, or `None`.
+ *
+ * @category Conditionals
+ * @since 0.1.0
+ */
 export type Option<T extends Type.Any> = Type.Union<
   readonly [
     Type.Opaque<"::core::option::Some", T>,
@@ -63,32 +80,48 @@ export type Option<T extends Type.Any> = Type.Union<
   ]
 >;
 
-/** The expression `if` returns with both branches: its type combines the branch types, and its input requirements combine the condition's with both branches'. */
+/**
+ * The expression `if` returns with both branches: its type combines the branch types, and its input requirements combine the condition's with both branches'.
+ *
+ * @category Conditionals
+ * @since 0.1.0
+ */
 export type Conditional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
-  T extends Expression.Value.Any,
-  E extends Expression.Value.Any,
+  T extends Structural.Value.Any,
+  E extends Structural.Value.Any,
 > = Expression.Expression<
-  Expression.Conditional<Expression.Value.Type<T>, Expression.Value.Type<E>>,
+  Expression.Conditional<Structural.Value.Type<T>, Structural.Value.Type<E>>,
   Inputs.Merge<
     Expression.Value.Inputs<C>,
-    Inputs.Merge<Expression.Value.Inputs<T>, Expression.Value.Inputs<E>>
+    Inputs.Merge<
+      Structural.Value.Requirements<T>,
+      Structural.Value.Requirements<E>
+    >
   >
 >;
 
-/** The expression `if` returns without `else`: its type is an {@link Option} of the `then` branch's type, and it requires the condition's inputs and the branch's. */
+/**
+ * The expression `if` returns without `else`: its type is an {@link Option} of the `then` branch's type, and it requires the condition's inputs and the branch's.
+ *
+ * @category Conditionals
+ * @since 0.1.0
+ */
 export type Optional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
-  T extends Expression.Value.Any,
+  T extends Structural.Value.Any,
 > = Expression.Expression<
-  Option<Expression.Value.Type<T>>,
-  Inputs.Merge<Expression.Value.Inputs<C>, Expression.Value.Inputs<T>>
+  Option<Structural.Value.Type<T>>,
+  Inputs.Merge<Expression.Value.Inputs<C>, Structural.Value.Requirements<T>>
 >;
 
 /**
- * A graph query under construction: the graph expression with `filter` and `collect`.
+ * A graph query under construction: the graph expression with {@link filter} and {@link collect}.
  *
- * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql!Program.Query.filter | Query.filter} and {@link @local/hashql!Program.Query.collect | Query.collect} still take that reference.
+ * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql#Program.Query.filter | `Query.filter`} and {@link @local/hashql#Program.Query.collect | `Query.collect`} still take that reference.
+ *
+ * @category Queries
+ * @since 0.1.0
  */
 export interface Query<
   S extends Scope.Scope.Any,
@@ -96,9 +129,9 @@ export interface Query<
   I,
 > extends Expression.Expression.Handle<Graph<V>, I> {
   /**
-   * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter. Declarations made through a captured outer `$` belong to the outer callback instead.
+   * Keeps the vertices `predicate` accepts, constructing it now. Every declaration made while `predicate` runs stays inside the filter, including one made through a captured outer `$` of the same program.
    *
-   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql!Program.Query.filter | Query.filter}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql#Program.Query.filter | `Query.filter`}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it after the predicate returns fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
    */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
@@ -108,17 +141,22 @@ export interface Query<
     ) => P,
   ) => Query<S, V, Inputs.Merge<I, Expression.Value.Inputs<P>>>;
 
-  /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql#Program.Query.collect | `Query.collect`}. */
   readonly collect: () => Expression.Expression<Type.List<V>, I>;
 }
 
-/** `$.query`: starts a graph query from a graph expression, or from every entity with `entities`. */
+/**
+ * {@link Context.query | `$.query`}: starts a graph query from a graph expression, or from every entity with {@link entities}.
+ *
+ * @category Queries
+ * @since 0.1.0
+ */
 export interface Queries<S extends Scope.Scope.Any> {
   <const G extends Expression.Expression.Any>(
     graph: G & Graph.Check<G>,
   ): Query<S, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
 
-  /** Starts a query from every entity at the temporal axes `axis`. This is {@link @local/hashql!Program.Query.entities | Query.entities}. */
+  /** Starts a query from every entity at the temporal axes `axis`. This is {@link @local/hashql#Program.Query.entities | `Query.entities`}. */
   readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
     axis: A,
   ) => Query<S, Entity, Expression.Value.Inputs<A>>;
@@ -127,7 +165,10 @@ export interface Queries<S extends Scope.Scope.Any> {
 /**
  * The unrestricted Draft construction context for the scope `S`.
  *
- * Its operations construct syntax and collect declarations, accepting values regardless of their input requirements. A program callback receives `Body.Context` instead, which restricts them to the program's input schema. The predicate constructors `eq`, `ne`, `and`, `or`, `not`, `isTrue`, `isFalse` and `isNone` are the standalone `Operators` functions.
+ * Its operations construct syntax and collect declarations, accepting values regardless of their input requirements. A program callback receives {@link @local/hashql/Draft#Body.Context | `Body.Context`} instead, which restricts them to the program's input schema. The predicate constructors `eq`, `ne`, `and`, `or`, `not`, `isTrue`, `isFalse` and `isNone` are the standalone {@link Operators} functions.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export interface Context<S extends Scope.Scope.Any>
   extends Operators.Operations {
@@ -144,7 +185,7 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Imports a module's exports into the declaring callback and returns them as handles.
    *
-   * Omitting `selection` imports every export. Given a name array, `import` selects those exports. Given an alias record, it imports each listed export under a new name, where `"_"` keeps the export's own name. The returned record joins same-named exports as `prelude()` does and refers to them by their local names. It leaves `prelude()` and `modules()` unchanged.
+   * Omitting `selection` imports every export. Given a name array, `import` selects those exports. Given an alias record, it imports each listed export under a new name, where `"_"` keeps the export's own name. The returned record joins same-named exports as {@link prelude | `prelude()`} does and refers to them by their local names. It leaves `prelude()` and {@link modules | `modules()`} unchanged.
    *
    * Unlike the other declarations, a failed import interrupts the callback, because it cannot supply the handles it promises. An invalid alias stops the callback with an `InvalidImportName` failure. The failure stays with the callback's result even if the callback catches the interruption: the program for a program callback, and otherwise the conditional or query that contains the callback.
    */
@@ -161,44 +202,59 @@ export interface Context<S extends Scope.Scope.Any>
     ): Namespace.Flatten<Import.Bindings.Bindings<M, I>>;
   };
 
-  /** Lifts a host primitive to an expression whose type follows the host type. This is `Expression.literal`. */
+  /** Lifts a host primitive to an expression whose type follows the host type. This is {@link Expression.literal}. */
   readonly literal: typeof Expression.literal;
 
-  /** Constructs an Integer literal, failing construction for a fractional or non-finite number. This is `Expression.integer`. */
+  /** Constructs an Integer literal, failing construction for a fractional or non-finite number. This is {@link Expression.integer}. */
   readonly integer: typeof Expression.integer;
 
-  /** Constructs a Number literal. This is `Expression.number`. */
+  /** Constructs a Number literal. This is {@link Expression.number}. */
   readonly number: typeof Expression.number;
 
-  /** Changes an expression's semantic type assumption without validating that semantic type. This is `Expression.assume`. */
+  /** Changes an expression's semantic type assumption without validating that semantic type. This is {@link Expression.assume}. */
   readonly assume: typeof Expression.assume;
 
-  /** References a program input, optionally with a default. This is `Expression.input`. */
+  /** References a program input, optionally with a default. This is {@link Expression.input}. */
   readonly input: typeof Expression.input;
+
+  /** Asserts that an expression has a type, which the HashQL compiler checks. This is {@link Expression.as}. */
+  readonly as: typeof Expression.as;
+
+  /** Constructs a struct from a record of values, where each field is an expression or structural shorthand. This is {@link Structural.struct}. */
+  readonly struct: typeof Structural.struct;
+
+  /** Constructs a tuple from an array of values, where each element is an expression or structural shorthand. This is {@link Structural.tuple}. */
+  readonly tuple: typeof Structural.tuple;
+
+  /** Constructs a list from its elements. This is {@link Structural.list}. */
+  readonly list: typeof Structural.list;
+
+  /** Constructs a dictionary from its entries. This is {@link Structural.dict}. */
+  readonly dict: typeof Structural.dict;
 
   /**
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
-   * Pass `type`, a type expression or structural shorthand as `$.type` takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with `assume`, and the HashQL compiler does.
+   * `value` is an expression or structural shorthand, such as a host primitive or a record of values, and the reference keeps its semantic type and input requirements. Pass `type`, a type expression or structural shorthand as {@link "type" | `$.type`} takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with {@link assume}, and the HashQL compiler does.
    */
   readonly let: {
-    <const E extends Expression.Value.Any>(
+    <const E extends Structural.Value.Any>(
       name: string,
-      value: E,
+      value: E & Structural.Value.FixedLength<E>,
     ): Expression.Expression<
-      Expression.Value.Type<E>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Type<E>,
+      Structural.Value.Requirements<E>
     >;
     <
-      const E extends Expression.Value.Any,
+      const E extends Structural.Value.Any,
       const D extends Structural.Definition,
     >(
       name: string,
-      value: E,
+      value: E & Structural.Value.FixedLength<E>,
       type: D,
     ): Expression.Expression<
       Structural.Definition.Type<D>,
-      Expression.Value.Inputs<E>
+      Structural.Value.Requirements<E>
     >;
   };
 
@@ -215,7 +271,7 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Declares a nominal type and returns one handle that is both the type and its constructor.
    *
-   * The handle is a type expression for `Type.Opaque<N, T>`, where `N` is the declared name and `T` is the definition's type, and a constructor from an exactly typed value of `T`, including structural shorthand such as `Foo({ foo: true })`. Calling it emits a call to the declared name. TypeScript tells newtypes apart by name, so `name` must be a string literal.
+   * The handle is a type expression for {@link Type.Opaque | `Type.Opaque<N, T>`}, where `N` is the declared name and `T` is the definition's type, and a constructor from an exactly typed value of `T`, including structural shorthand such as `Foo({ foo: true })`. Calling it emits a call to the declared name. TypeScript tells newtypes apart by name, so `name` must be a string literal.
    */
   readonly newtype: <
     const N extends string,
@@ -228,26 +284,28 @@ export interface Context<S extends Scope.Scope.Any>
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The callbacks run immediately, `then` first, whatever the condition's value, each with a fresh context whose declarations stay inside that branch. Declarations made through a captured outer `$` belong to the outer callback instead. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The callbacks run immediately, `then` first, whatever the condition's value, and each returns an expression or structural shorthand. Every declaration made while a callback runs stays inside its branch, including one made through a captured outer `$` of the same program. Without `else`, the conditional is an {@link Option}: `Some` of the `then` branch when the condition holds, and `None` otherwise. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    */
   readonly if: {
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
-      const E extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
+      const E extends Structural.Value.Any,
     >(
       condition: C,
       branches: {
-        readonly then: ($: Context<S>) => T;
-        readonly else: ($: Context<S>) => E;
+        readonly then: ($: Context<S>) => T & Structural.Value.FixedLength<T>;
+        readonly else: ($: Context<S>) => E & Structural.Value.FixedLength<E>;
       },
     ): Conditional<C, T, E>;
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
-      const T extends Expression.Value.Any,
+      const T extends Structural.Value.Any,
     >(
       condition: C,
-      branches: { readonly then: ($: Context<S>) => T },
+      branches: {
+        readonly then: ($: Context<S>) => T & Structural.Value.FixedLength<T>;
+      },
     ): Optional<C, T>;
   };
 

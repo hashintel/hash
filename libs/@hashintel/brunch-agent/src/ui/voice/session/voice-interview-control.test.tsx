@@ -43,10 +43,8 @@ let registeredVoiceModeControls:
   | undefined;
 
 const VoiceInterviewHarness = ({
-  onInputModeChange,
   readWords,
 }: {
-  onInputModeChange?: (mode: PetrinautAiVoiceModeContext["inputMode"]) => void;
   readWords?: () => readonly { spelling: string }[];
 }) => {
   "use no memo";
@@ -64,6 +62,7 @@ const VoiceInterviewHarness = ({
     conversationId: "voice-control-test",
     inputMode,
     isAiAssistantOpen,
+    readSelection: () => ({ items: [], labels: [] }),
     messages: [],
     registerVoiceModeControls: (controls) => {
       registeredVoiceModeControls = controls;
@@ -125,7 +124,6 @@ const VoiceInterviewHarness = ({
       <VoiceInterviewControl
         {...context}
         config={config}
-        onInputModeChange={onInputModeChange}
         readWords={readWords}
       />
     </>
@@ -255,6 +253,7 @@ describe("voice interview control", () => {
     });
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
+        selection: [],
         admissionTarget: {
           kind: "user",
           messageId: "voice-answer",
@@ -291,6 +290,7 @@ describe("voice interview control", () => {
     const unsubscribe = vi.fn();
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
+        selection: [],
         admissionTarget: {
           kind: "user",
           messageId: "voice-answer",
@@ -310,7 +310,7 @@ describe("voice interview control", () => {
     abortController.abort();
 
     await expect(resultPromise).rejects.toMatchObject({
-      failure: { kind: "aborted" },
+      failure: { kind: "aborted", requestSent: true },
       name: "FlueChatAdmissionError",
     });
     expect(unsubscribe).toHaveBeenCalledOnce();
@@ -323,6 +323,7 @@ describe("voice interview control", () => {
     const unsubscribeFromFailure = vi.fn();
     const resultPromise = submitVoiceInputWithAdmission({
       input: {
+        selection: [],
         admissionTarget: { kind: "user", messageId: "voice-turn-1" },
         id: "voice-turn-1",
         onAdmission: vi.fn(),
@@ -631,27 +632,6 @@ describe("voice interview control", () => {
 
     unmount();
     expect(registeredVoiceModeControls).toBeUndefined();
-  });
-
-  test("reports the panel's input mode until Voice unmounts", async () => {
-    const onInputModeChange = vi.fn();
-    const { unmount } = render(
-      <VoiceInterviewHarness onInputModeChange={onInputModeChange} />,
-    );
-    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    await screen.findByText("Voice mode");
-    expect(onInputModeChange).toHaveBeenLastCalledWith("voice");
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Text" }));
-    await screen.findByText("Text mode");
-    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    await screen.findByText("Voice mode");
-    unmount();
-    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
   });
 
   test("restarts when Voice is reselected before teardown completes", async () => {

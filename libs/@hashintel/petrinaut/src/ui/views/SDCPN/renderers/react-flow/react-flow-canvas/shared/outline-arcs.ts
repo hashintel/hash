@@ -11,7 +11,16 @@ export type OutlineNode = {
 /** Where an arc meets an endpoint, and the direction it leaves in. */
 export type FixedEndpoint = { point: CanvasPoint; normal: CanvasPoint };
 
-export type OutlineArcPath = [path: string, labelX: number, labelY: number];
+/** What an arc ends at: the outline of a node, or a point. */
+export type ArcEnd = OutlineNode | FixedEndpoint;
+
+/** The cubic curve an arc follows, as its four points. */
+export type ArcCurve = {
+  start: CanvasPoint;
+  firstControl: CanvasPoint;
+  lastControl: CanvasPoint;
+  end: CanvasPoint;
+};
 
 // Keyed by React Flow's side names, so this module needs only its types.
 const sideNormals: Record<`${Position}`, CanvasPoint> = {
@@ -22,8 +31,9 @@ const sideNormals: Record<`${Position}`, CanvasPoint> = {
 };
 
 /**
- * A point an arc ends at rather than an outline: a subnet port's handle, which
- * the arc leaves along the side it sits on, or the pointer, which has none.
+ * A point an arc ends at rather than an outline: a component port's handle,
+ * which the arc leaves along the side it sits on, or the pointer, which has
+ * none.
  */
 export const fixedEndpoint = (
   x: number,
@@ -103,20 +113,36 @@ export const getOutlineAttachment = (
   };
 };
 
-const attach = (
-  endpoint: OutlineNode | FixedEndpoint,
-  direction: CanvasPoint,
-): FixedEndpoint =>
+/** Whether two ends are one object, or two points with the same normal. */
+export const sameEnd = (left: ArcEnd | null, right: ArcEnd | null): boolean =>
+  left === right ||
+  (left !== null &&
+    right !== null &&
+    "point" in left &&
+    "point" in right &&
+    left.point.x === right.point.x &&
+    left.point.y === right.point.y &&
+    left.normal.x === right.normal.x &&
+    left.normal.y === right.normal.y);
+
+const attach = (endpoint: ArcEnd, direction: CanvasPoint): FixedEndpoint =>
   "position" in endpoint ? getOutlineAttachment(endpoint, direction) : endpoint;
 
-const centerOf = (endpoint: OutlineNode | FixedEndpoint): CanvasPoint =>
+const centerOf = (endpoint: ArcEnd): CanvasPoint =>
   "position" in endpoint ? endpoint.position : endpoint.point;
 
-export const getOutlineArcPath = (
-  source: OutlineNode | FixedEndpoint,
-  target: OutlineNode | FixedEndpoint,
+/**
+ * The curve of an arc between two ends. It leaves an outline where the line
+ * between the two centres crosses it, along the outline's normal there, and
+ * a fixed end along that end's own normal. An arc that has one running the
+ * other way between the same two nodes takes a lane to one side, so the two
+ * do not lie on each other.
+ */
+export const getOutlineArcCurve = (
+  source: ArcEnd,
+  target: ArcEnd,
   hasReverseArc = false,
-): OutlineArcPath => {
+): ArcCurve => {
   const sourceCenter = centerOf(source);
   const targetCenter = centerOf(target);
   const direction = {
@@ -141,17 +167,35 @@ export const getOutlineArcPath = (
     80,
     Math.hypot(end.x - start.x, end.y - start.y) * 0.35,
   );
-  const firstControl = {
-    x: start.x + sourceAttachment.normal.x * controlDistance,
-    y: start.y + sourceAttachment.normal.y * controlDistance,
+  return {
+    start,
+    firstControl: {
+      x: start.x + sourceAttachment.normal.x * controlDistance,
+      y: start.y + sourceAttachment.normal.y * controlDistance,
+    },
+    lastControl: {
+      x: end.x + targetAttachment.normal.x * controlDistance,
+      y: end.y + targetAttachment.normal.y * controlDistance,
+    },
+    end,
   };
-  const lastControl = {
-    x: end.x + targetAttachment.normal.x * controlDistance,
-    y: end.y + targetAttachment.normal.y * controlDistance,
-  };
-  return [
-    `M ${start.x},${start.y} C ${firstControl.x},${firstControl.y} ${lastControl.x},${lastControl.y} ${end.x},${end.y}`,
-    (start.x + 3 * firstControl.x + 3 * lastControl.x + end.x) / 8,
-    (start.y + 3 * firstControl.y + 3 * lastControl.y + end.y) / 8,
-  ];
 };
+
+/**
+ * A number of path data to a hundredth of a unit. A net's arcs are written
+ * out together, and the digits past that are most of what they would write.
+ */
+const rounded = (value: number): number => Math.round(value * 100) / 100;
+
+/** A point as path data. */
+export const pathPoint = ({ x, y }: CanvasPoint): string =>
+  `${rounded(x)},${rounded(y)}`;
+
+/** A curve as path data. */
+export const curvePath = ({
+  start,
+  firstControl,
+  lastControl,
+  end,
+}: ArcCurve): string =>
+  `M${pathPoint(start)}C${pathPoint(firstControl)} ${pathPoint(lastControl)} ${pathPoint(end)}`;

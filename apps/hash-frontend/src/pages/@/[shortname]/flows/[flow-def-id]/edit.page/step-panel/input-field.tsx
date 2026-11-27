@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Button,
@@ -8,11 +8,14 @@ import {
   Menu,
   NumberInput,
   SelectableListSearch,
+  TextArea,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getInputSize } from "@local/hash-isomorphic-utils/flows/input-size";
 
+import { getForEachScope, useItemNames } from "../shared/item-name";
 import { getNameLabel } from "../shared/name-label";
 import {
   getKindIcon,
@@ -20,6 +23,7 @@ import {
   withArticle,
 } from "../shared/value-display";
 import {
+  brokenSourceCodes,
   getInputTarget,
   getNewFlowInput,
   getSourceKey,
@@ -27,6 +31,7 @@ import {
   getSourceOptions,
   getTypedConstant,
   getTypedKind,
+  goneSourceCodes,
 } from "./input-sources";
 
 import type { SourceOption } from "./input-sources";
@@ -40,28 +45,15 @@ import type {
   PayloadKind,
   StepInputSource,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type {
-  FlowDefinitionDiagnosticCode,
-  FlowDefinitionDiagnosticWithStepId,
-} from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
-
-/** Problems with a value whose source no longer exists. */
-const goneSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
-  "unknownStep",
-  "unknownFlowInput",
-  "unknownStepOutput",
-]);
-
-/** Problems with where a value comes from, shown as a red chip in place of the value. */
-const brokenSourceCodes = new Set<FlowDefinitionDiagnosticCode>([
-  ...goneSourceCodes,
-  "stepNotInScope",
-  "selfReference",
-  "itemOutsideForEach",
-]);
+import type { FlowDefinitionDiagnosticWithStepId } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
+import type { FocusEvent } from "react";
 
 /** Values shown before Show more. */
 const shownOptionCount = 4;
+
+/** Rows of a medium text beside its label, and of a long or expanded one, which then grows with its text. */
+const besideLabelRows = 2;
+const ownLineRows = 6;
 
 /* The Button only fills the row; what's inside it is laid out by these. */
 const trigger = css({ width: "full" });
@@ -78,6 +70,15 @@ const triggerValue = css({
   textAlign: "left",
 });
 const placeholder = css({ color: "fg.muted" });
+/* A value's step and name share its row's line: the Menu's `description` would put the name on a second one. */
+const optionText = css({ display: "flex", minWidth: "0" });
+const optionStep = css({ minWidth: "0", truncate: true });
+const optionValue = css({
+  flexShrink: "0",
+  color: "fg.subtle",
+  whiteSpace: "nowrap",
+});
+const optionSeparator = css({ px: "1.5" });
 
 const matchesQuery = ({ label, from }: SourceOption, query: string) => {
   const text = `${label} ${from}`.toLowerCase();
@@ -92,14 +93,14 @@ const matchesQuery = ({ label, from }: SourceOption, query: string) => {
  * Picks where an input's value comes from: a flow input, an earlier step's output, or a value typed in. Shows the
  * picked value, or a red chip saying why it's broken.
  */
-const SourceMenu = ({
+export const SourceMenu = ({
   label,
+  placeholder: placeholderText = "Choose a value",
   options,
   pickedKey,
   pickedLabel,
   brokenReason,
   invalid,
-  disabled,
   newFlowInputLabel,
   typeLabel,
   onPick,
@@ -108,13 +109,14 @@ const SourceMenu = ({
   onClear,
 }: {
   label: string;
-  /** Flow inputs, then the outputs of earlier steps, nearest first. */
+  /** Shown while nothing is picked. */
+  placeholder?: string;
+  /** The current item inside a for-each step, flow inputs, then the outputs of earlier steps, nearest first. */
   options: SourceOption[];
   pickedKey: string | undefined;
   pickedLabel: string | undefined;
   brokenReason: string | undefined;
   invalid: boolean;
-  disabled: boolean;
   /** Offered only when no value fits. */
   newFlowInputLabel: string | null;
   typeLabel: string | null;
@@ -131,10 +133,18 @@ const SourceMenu = ({
     showAll || query !== "" ? matching : matching.slice(0, shownOptionCount);
 
   const earlierStepItems: MenuItem[] = [
+    /* Step first, as a large flow can have many values of one name, such as "email". */
     ...shown.map((option): MenuItem => ({
       id: getSourceKey(option.source),
-      text: option.label,
-      description: option.from,
+      text: (
+        <span className={optionText}>
+          <span className={optionStep}>{option.from}</span>
+          <span className={optionValue}>
+            <span className={optionSeparator}>›</span>
+            {option.label}
+          </span>
+        </span>
+      ),
       icon: getKindIcon(option.shape),
       selected: getSourceKey(option.source) === pickedKey,
       onClick: () => onPick(option),
@@ -150,11 +160,13 @@ const SourceMenu = ({
           } satisfies MenuItem,
         ]
       : []),
-    ...(options.length > 0 && matching.length === 0
+    ...(matching.length === 0 &&
+    (options.length > 0 || (newFlowInputLabel === null && typeLabel === null))
       ? [
           {
             id: "no-matches",
-            text: "No matching values",
+            text:
+              options.length > 0 ? "No matching values" : "No values to pick",
             disabled: true,
             onClick: () => {},
           } satisfies MenuItem,
@@ -213,7 +225,7 @@ const SourceMenu = ({
       </Tooltip>
     ) : (
       <span className={pickedLabel === undefined ? placeholder : undefined}>
-        {pickedLabel ?? "Choose a value"}
+        {pickedLabel ?? placeholderText}
       </span>
     );
 
@@ -238,7 +250,6 @@ const SourceMenu = ({
         <Button
           variant="subtle"
           tone={invalid ? "error" : "neutral"}
-          disabled={disabled}
           aria-label={`${label}: ${pickedLabel ?? "no value"}`}
           className={trigger}
         >
@@ -253,8 +264,8 @@ const SourceMenu = ({
 };
 
 /**
- * A step input's field: a menu to pick its value, or a text field once a value is typed. Its problems show beneath
- * it; a value whose source is gone shows as a red chip.
+ * A step input's field: a menu to pick its value, or a text field once a value is typed, sized by the input (see
+ * `getInputSize`). Its problems show beneath it; a value whose source is gone shows as a red chip.
  */
 export const InputField = ({
   editor,
@@ -264,7 +275,6 @@ export const InputField = ({
   actionDefinition,
   source,
   problems,
-  readOnly,
   onSelectStart,
 }: {
   editor: FlowEditor;
@@ -274,12 +284,15 @@ export const InputField = ({
   actionDefinition: ActionDefinition<FlowActionDefinitionId>;
   source: StepInputSource | undefined;
   problems: FlowDefinitionDiagnosticWithStepId[];
-  /** For steps inside a for-each step, which can't be edited yet. */
-  readOnly: boolean;
   onSelectStart: () => void;
 }) => {
   /* Set from picking Type a value until the field is left with nothing typed. */
   const [typing, setTyping] = useState(false);
+  /* Whether a medium text has been given a line of its own. */
+  const [expanded, setExpanded] = useState(false);
+  const textArea = useRef<HTMLTextAreaElement>(null);
+  const expandButton = useRef<HTMLButtonElement>(null);
+  const getItemName = useItemNames(flowDefinition);
 
   const label = getNameLabel(input.name);
   const target = getInputTarget({
@@ -317,37 +330,86 @@ export const InputField = ({
       );
     };
     const fieldProps = {
-      readonly: readOnly,
       invalid: errors.length > 0,
       autoFocus: typing,
-      clearable: !readOnly && {
-        onClear: () => {
+      /* Moving between a text and its Expand button doesn't leave the field. */
+      onBlur: ({ relatedTarget }: FocusEvent) => {
+        const staysInField =
+          relatedTarget !== null &&
+          (relatedTarget === textArea.current ||
+            relatedTarget === expandButton.current);
+
+        if (!staysInField) {
           setTyping(false);
-          setSource(null);
-        },
+        }
       },
-      onBlur: () => setTyping(false),
     };
+    const clearable = {
+      onClear: () => {
+        setTyping(false);
+        setSource(null);
+      },
+    };
+
+    /* Text of a few lines or more is typed in a text area, on a line of its own when it's long or expanded. */
+    const size = getInputSize(input);
+    const ownLine = size === "long" || (size === "medium" && expanded);
 
     return (
       <Form.Field
-        layout="inline"
+        layout={ownLine ? "block" : "inline"}
         label={label}
         errors={errors.length > 0 ? errors : undefined}
+        labelActions={
+          size === "medium" && (
+            <Button
+              ref={expandButton}
+              variant="ghost"
+              size="xs"
+              iconName={expanded ? "collapse" : "expand"}
+              aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+              tooltip={expanded ? "Collapse" : "Expand"}
+              /* A click leaves focus in the text, as Safari doesn't move it to a clicked button. */
+              onMouseDown={(event) => event.preventDefault()}
+              onBlur={fieldProps.onBlur}
+              /* The text is laid out anew, so it takes focus back once it is. */
+              onClick={() => {
+                setExpanded(!expanded);
+                setTyping(true);
+              }}
+            />
+          )
+        }
       >
+        {/*
+         * Widths are Salt's presets. A number takes the narrowest, as steps take counts of a few digits. Text keeps the
+         * full width, as the menu it replaces had: the panel's column is narrower than Salt's other presets anyway.
+         */}
         {typedInKind === "Number" ? (
           <NumberInput
             {...fieldProps}
+            width="xs"
+            clearable={clearable}
             value={typedConstant ? Number(typedConstant.text) : null}
             min={-Number.MAX_VALUE}
             max={Number.MAX_VALUE}
             step="any"
             onChange={setTypedValue}
           />
-        ) : (
+        ) : size === "short" ? (
           <TextInput
             {...fieldProps}
+            clearable={clearable}
             type={typedInKind === "Date" ? "date" : "text"}
+            value={typedConstant?.text ?? ""}
+            onChange={setTypedValue}
+          />
+        ) : (
+          <TextArea
+            {...fieldProps}
+            inputRef={textArea}
+            rows={ownLine ? ownLineRows : besideLabelRows}
+            autoResize={ownLine}
             value={typedConstant?.text ?? ""}
             onChange={setTypedValue}
           />
@@ -356,10 +418,22 @@ export const InputField = ({
     );
   }
 
-  const { flowInputs, earlierSteps } = readOnly
-    ? { flowInputs: [], earlierSteps: [] }
-    : getSourceOptions({ flowDefinition, stepId, target });
-  const pickedLabel = source && getSourceLabel(flowDefinition, source);
+  const { item, flowInputs, earlierSteps } = getSourceOptions({
+    flowDefinition,
+    stepId,
+    target,
+    getItemName,
+  });
+  const forEachStepId = getForEachScope(flowDefinition.steps, stepId)?.at(-1);
+  const pickedLabel =
+    source &&
+    getSourceLabel(
+      flowDefinition,
+      source,
+      forEachStepId
+        ? { stepId: forEachStepId, itemName: getItemName(forEachStepId) }
+        : undefined,
+    );
   const newFlowInput = getNewFlowInput({
     flowDefinition,
     inputName: input.name,
@@ -374,7 +448,7 @@ export const InputField = ({
     >
       <SourceMenu
         label={label}
-        options={[...flowInputs, ...earlierSteps]}
+        options={[...(item ? [item] : []), ...flowInputs, ...earlierSteps]}
         pickedKey={source && getSourceKey(source)}
         pickedLabel={pickedLabel}
         brokenReason={
@@ -384,7 +458,6 @@ export const InputField = ({
             : brokenProblem.message)
         }
         invalid={errors.length > 0}
-        disabled={readOnly}
         newFlowInputLabel={
           newFlowInput &&
           `Add ${withArticle(getKindLabel(newFlowInput))} input on Start`

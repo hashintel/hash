@@ -10,9 +10,14 @@
       "dependsOn": ["^manifest"]
     },
     // Development commands
+    // A crate's default inputs include the whole directory of each local crate it depends
+    // on, Cargo's gitignored `target/` included. A crate that writes into its own `target/`,
+    // such as `ui_test` output, would otherwise change its dependents' hashes, and fail
+    // hashing while it is being written.
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$", "!$TURBO_ROOT$/**/target/**"]
     },
     // Build commands
     //
@@ -27,7 +32,9 @@
     "//#doc:task-dependencies": {
       "cache": false
     },
-    "build": {},
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", "!$TURBO_ROOT$/**/target/**"]
+    },
     // Runs as `prepack`, so the payload check reads the files a pack is about to ship
     // rather than replaying a cached result.
     "build:pack": {
@@ -116,7 +123,9 @@
     "prepare:oxlint": {
       "cache": false
     },
-    "lint": {},
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "!$TURBO_ROOT$/**/target/**"]
+    },
     // The clippy invocation differs between pull requests (`--all-features`) and other runs
     // such as the merge queue (`cargo hack --feature-powerset`), selected via
     // `GITHUB_EVENT_NAME` in the `.justfile`. Include it in the hash so the two run modes

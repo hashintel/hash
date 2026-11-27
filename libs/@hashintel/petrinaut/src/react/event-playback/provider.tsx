@@ -16,10 +16,10 @@ import {
   type SimulationState as CoreSimulationState,
 } from "@hashintel/petrinaut-core";
 
-import { useLatest } from "../hooks/use-latest";
-import { useStableCallback } from "../hooks/use-stable-callback";
+import { useLatest } from "../shared/use-latest";
+import { useStableCallback } from "../shared/use-stable-callback";
+import { constantStore, useStore, useStoreSelector } from "../shared/use-store";
 import { SimulationContext } from "../simulation/context";
-import { constantStore, useStore, useStoreSelector } from "../use-store";
 import {
   EventPlaybackContext,
   type EventPlaybackContextValue,

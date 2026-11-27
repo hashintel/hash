@@ -1,26 +1,21 @@
 import { Form, Tooltip } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { DescriptionField } from "../../../../../../components/description-field";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { SectionList } from "../../../../../../components/section";
-import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
-import { ColorSelect } from "../color-select";
+import { useIsReadOnly } from "../../../../../../../react/editing/use-is-read-only";
+import { usePetrinautMutations } from "../../../../../../../react/editing/use-petrinaut-mutations";
+import { usePetrinautPresentation } from "../../../../../../presentation/presentation-context";
+import { ColorSelect } from "../../../../../../shared/color-select";
+import { SectionList } from "../../../../../../shared/section";
+import { UI_MESSAGES } from "../../../../shared/ui-messages";
+import { DescriptionField } from "../../description-field";
+import { DraftFieldInput } from "../../draft-field-input";
+import { fieldsSectionStyle } from "../../styles";
 import { useTypePropertiesContext } from "../context";
 import { DimensionsTable } from "./dimensions-table";
 
-import type { SubView } from "../../../../../../components/sub-view/types";
-
-const fieldsSectionStyle = css({
-  paddingY: "3",
-});
-
-const TypeMainContent: React.FC = () => {
-  const { type, updateType } = useTypePropertiesContext();
+export const TypeMainContent: React.FC = () => {
+  const { type } = useTypePropertiesContext();
+  const { updateType } = usePetrinautMutations();
   const isDisabled = useIsReadOnly();
   const presentation = usePetrinautPresentation();
 
@@ -38,8 +33,6 @@ const TypeMainContent: React.FC = () => {
               update: { name },
             })
           }
-          disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <DescriptionField
@@ -51,8 +44,6 @@ const TypeMainContent: React.FC = () => {
               update: { description },
             })
           }
-          disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
 
         <Form.Field label="Color" size="sm" disabled={isDisabled}>
@@ -89,12 +80,4 @@ const TypeMainContent: React.FC = () => {
       </Form.Section>
     </SectionList>
   );
-};
-
-export const typeMainContentSubView: SubView = {
-  id: "type-main-content",
-  title: "Type",
-  icon: TokenTypeIcon,
-  main: true,
-  component: TypeMainContent,
 };

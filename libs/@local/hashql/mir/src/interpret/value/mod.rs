@@ -392,7 +392,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// ```
     /// # extern crate alloc;
     /// # use alloc::alloc::Global;
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # use hashql_mir::intern::Interner;
     /// use hashql_mir::interpret::value::{StructBuilder, Value};
     ///
@@ -400,7 +400,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// let interner = Interner::new(&heap);
     ///
     /// let mut builder = StructBuilder::<'_, Global, 1>::new();
-    /// let name = heap.intern_symbol("x");
+    /// let name = heap.alloc_symbol("x");
     /// builder.push(name, Value::Integer(42.into()));
     /// let s = Value::Struct(builder.finish(&interner.symbols, Global));
     ///
@@ -408,7 +408,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// assert_eq!(field, &Value::Integer(42.into()));
     ///
     /// // Unknown field returns an error
-    /// let unknown = heap.intern_symbol("z");
+    /// let unknown = heap.alloc_symbol("z");
     /// assert!(s.project_by_name::<()>(unknown).is_err());
     /// ```
     pub fn project_by_name<'this, E>(

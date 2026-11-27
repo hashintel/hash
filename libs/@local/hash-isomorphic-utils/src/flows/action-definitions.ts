@@ -116,12 +116,14 @@ const aiFlowActionDefinitionsAsConst = {
         description: "The user's visualization goal",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "refinementInstruction",
         required: false,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -134,6 +136,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "refinementScope",
         required: false,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -141,6 +144,7 @@ const aiFlowActionDefinitionsAsConst = {
         description: "Optional target chart type",
         required: false,
         array: false,
+        size: "short",
       },
     ],
     outputs: [
@@ -186,6 +190,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "prompt",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -196,6 +201,7 @@ const aiFlowActionDefinitionsAsConst = {
           kind: "Text",
           value: "gpt-4-turbo" satisfies InferenceModelName,
         },
+        size: "short",
       },
     ],
     outputs: [
@@ -220,6 +226,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "query",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Number"],
@@ -253,6 +260,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "url",
         required: true,
         array: false,
+        size: "short",
       },
     ],
     outputs: [
@@ -315,6 +323,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "content",
         required: true,
         array: false,
+        size: "long",
       },
       {
         oneOfPayloadKinds: ["VersionedUrl"],
@@ -331,12 +340,14 @@ const aiFlowActionDefinitionsAsConst = {
           value: "gpt-4-turbo" satisfies InferenceModelName,
         },
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "relevantEntitiesPrompt",
         required: false,
         array: false,
+        size: "medium",
       },
     ],
     outputs: [
@@ -466,18 +477,21 @@ const aiFlowActionDefinitionsAsConst = {
         name: "url",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "description",
         required: false,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "displayName",
         required: false,
         array: false,
+        size: "short",
       },
     ],
     outputs: [
@@ -507,6 +521,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "prompt",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -555,6 +570,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "url",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -565,6 +581,7 @@ const aiFlowActionDefinitionsAsConst = {
           kind: "Text",
           value: "claude-3-haiku" satisfies InferenceModelName,
         },
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Number"],
@@ -605,6 +622,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "question",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -673,6 +691,7 @@ const aiFlowActionDefinitionsAsConst = {
         description: "The type of chart to configure",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -680,12 +699,14 @@ const aiFlowActionDefinitionsAsConst = {
         description: "The user's visualization goal",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "refinementInstruction",
         required: false,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -698,6 +719,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "refinementScope",
         required: false,
         array: false,
+        size: "short",
       },
     ],
     outputs: [
@@ -731,12 +753,14 @@ const aiFlowActionDefinitionsAsConst = {
         description: "The user's visualization goal in natural language",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "refinementInstruction",
         required: false,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -749,12 +773,14 @@ const aiFlowActionDefinitionsAsConst = {
         name: "existingChartType",
         required: false,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "refinementScope",
         required: false,
         array: false,
+        size: "short",
       },
     ],
     outputs: [
@@ -794,12 +820,14 @@ const aiFlowActionDefinitionsAsConst = {
         name: "userGoal",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "refinementInstruction",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -818,6 +846,7 @@ const aiFlowActionDefinitionsAsConst = {
         name: "existingChartType",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -1217,6 +1246,7 @@ const aiFlowActionDefinitionsAsConst = {
           "What the message should say, who it's for, and its tone, e.g. 'Thank the customer for their order and confirm the delivery date'.",
         required: true,
         array: false,
+        size: "medium",
       },
       {
         oneOfPayloadKinds: ["Text"],
@@ -1342,6 +1372,7 @@ const integrationFlowActionDefinitionsAsConst = {
           "The ICAO code of the airport (e.g. 'EGLL' for London Heathrow)",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Date"],
@@ -1412,6 +1443,7 @@ const integrationFlowActionDefinitionsAsConst = {
           "The ICAO code of the airport (e.g. 'EGLL' for London Heathrow)",
         required: true,
         array: false,
+        size: "short",
       },
       {
         oneOfPayloadKinds: ["Date"],
@@ -1596,23 +1628,22 @@ type InputValueOf<Definition extends ActionDefinitionTypes, Kinds, InputName> =
         array: infer IsArray extends boolean;
         required: infer IsRequired extends boolean;
       }
-      ?
-          | (Input extends { kindFrom: infer SourceName }
-              ? PayloadWithKind<GivenKind<Kinds, SourceName>, IsArray>
-              : InputName extends KindSourceNameOf<Definition>
-                ? PayloadWithKind<GivenKind<Kinds, InputName>, IsArray>
-                : IsUnion<
-                      AcceptedKinds<InputDefinitionOf<Definition>, Input>
-                    > extends true
-                  ? PayloadOfEachKind<
-                      AcceptedKinds<InputDefinitionOf<Definition>, Input>,
-                      IsArray
-                    >
-                  : PayloadValue<
-                      AcceptedKinds<InputDefinitionOf<Definition>, Input>,
-                      IsArray
-                    >)
-          | (IsRequired extends true ? never : undefined)
+      ? | (Input extends { kindFrom: infer SourceName }
+            ? PayloadWithKind<GivenKind<Kinds, SourceName>, IsArray>
+            : InputName extends KindSourceNameOf<Definition>
+              ? PayloadWithKind<GivenKind<Kinds, InputName>, IsArray>
+              : IsUnion<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>
+                  > extends true
+                ? PayloadOfEachKind<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                    IsArray
+                  >
+                : PayloadValue<
+                    AcceptedKinds<InputDefinitionOf<Definition>, Input>,
+                    IsArray
+                  >)
+        | (IsRequired extends true ? never : undefined)
       : never
     : never;
 

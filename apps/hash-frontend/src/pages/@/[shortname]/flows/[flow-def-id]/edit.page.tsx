@@ -1,6 +1,12 @@
 import { ApolloError, useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   entityIdFromComponents,
@@ -25,14 +31,24 @@ import {
   flowDefinitionsQuery,
   useFlowDefinitionToEdit,
 } from "../../../../shared/use-flow-definitions";
+import { useFlowSchedules } from "../../../../shared/use-flow-schedules";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
 import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
 import { LogsView } from "./edit.page/logs-view";
-import { generateRunViewPath, parseRunParam } from "./edit.page/run-path";
+import { CanvasNotices, NetSwitch } from "./edit.page/net-switch";
+import { EditorNetView } from "./edit.page/net-view";
+import {
+  generateRunViewPath,
+  parseAsParam,
+  parseRunParam,
+  withAsParam,
+} from "./edit.page/run-path";
 import { RunView } from "./edit.page/run-view";
 import { findStep } from "./edit.page/shared/find-step";
+import { toScheduleTriggerRow } from "./edit.page/shared/flow-triggers";
+import { editorRunDataSources } from "./edit.page/shared/run-form";
 import { sidePanelWidth } from "./edit.page/shared/side-panel";
 import { useFlowRuns } from "./edit.page/shared/use-flow-runs";
 import { StepPanel } from "./edit.page/step-panel";
@@ -53,32 +69,19 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../../../../shared/layout";
 import type { FlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
-import type { CanvasHandle } from "./edit.page/canvas";
+import type { CanvasHandle, CanvasSelection } from "./edit.page/canvas";
+import type { FlowShape } from "./edit.page/run-path";
+import type { FlowSchedules } from "./edit.page/shared/flow-triggers";
 import type { StepPanelSubject } from "./edit.page/step-panel";
 import type { FlowEditorView } from "./edit.page/top-bar";
 import type { JsonObject } from "@blockprotocol/core";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
-import type {
-  FlowDataSources,
-  FlowInputValues,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const editorHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 const editorBody = css({ display: "flex", flex: "1", minHeight: "0" });
 const canvasArea = css({ position: "relative", flex: "1" });
-const notices = css({
-  position: "absolute",
-  zIndex: "docked",
-  top: "4",
-  left: "4",
-  right: "4",
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  maxWidth: "[560px]",
-  mx: "auto",
-});
 
 /**
  * Collapses the app sidebar while the editor is open, and opens it again on leaving if it was open before. The
@@ -101,18 +104,6 @@ const useCollapsedSidebar = () => {
   }, []);
 };
 
-/**
- * The API requires data sources to run a flow with an AI action. Nothing in the editor picks files or turns on internet
- * access, so a run from it has neither.
- */
-const editorRunDataSources: FlowDataSources = {
-  files: { fileEntityIds: [] },
-  internetAccess: {
-    enabled: false,
-    browserPlugin: { enabled: false, domains: [] },
-  },
-};
-
 const isConflictError = (error: unknown) =>
   error instanceof ApolloError &&
   error.graphQLErrors.some(({ extensions }) => extensions.code === "CONFLICT");
@@ -124,6 +115,12 @@ const getRefusalReason = (error: unknown) =>
         ({ extensions }) => extensions.code === "BAD_REQUEST",
       )?.message
     : undefined;
+
+const noSelection: CanvasSelection = {
+  stepIds: [],
+  start: false,
+  trigger: null,
+};
 
 const FlowEditor = ({
   flowDefinitionEntityId,
@@ -204,6 +201,22 @@ const FlowEditor = ({
   const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
   const { flowDefinition } = editorState;
 
+  const {
+    schedulesByEntityUuid,
+    loaded: schedulesLoaded,
+    error: schedulesError,
+  } = useFlowSchedules({ flowDefinitionEntityId });
+  /* A flow isn't shown as having no schedules before that's known. */
+  const schedules = useMemo(
+    (): FlowSchedules =>
+      schedulesLoaded
+        ? Array.from(schedulesByEntityUuid.values(), toScheduleTriggerRow)
+        : schedulesError
+          ? "unavailable"
+          : "loading",
+    [schedulesByEntityUuid, schedulesLoaded, schedulesError],
+  );
+
   /*
    * Replacing the editor after a conflict remounts the run form and the canvas, e.g. closing a run form filled in for
    * the flow as it was, and clears the selection.
@@ -211,53 +224,42 @@ const FlowEditor = ({
   const [session, setSession] = useState<{
     editor: typeof editor;
     key: number;
-    selectedStepIds: string[];
-    startSelected: boolean;
+    selection: CanvasSelection;
     focusRequest: { stepId: string } | null;
-  }>({
-    editor,
-    key: 0,
-    selectedStepIds: [],
-    startSelected: false,
-    focusRequest: null,
-  });
+  }>({ editor, key: 0, selection: noSelection, focusRequest: null });
 
   if (session.editor !== editor) {
     setSession({
       editor,
       key: session.key + 1,
-      selectedStepIds: [],
-      startSelected: false,
+      selection: noSelection,
       focusRequest: null,
     });
   }
 
-  const { selectedStepIds, startSelected, focusRequest } = session;
+  const { selection, focusRequest } = session;
   const canvasRef = useRef<CanvasHandle>(null);
-  const setSelection = ({
-    stepIds,
-    start,
-  }: {
-    stepIds: string[];
-    start: boolean;
-  }) =>
-    setSession((current) => ({
-      ...current,
-      selectedStepIds: stepIds,
-      startSelected: start,
-    }));
+  const setSelection = (nextSelection: CanvasSelection) =>
+    setSession((current) => ({ ...current, selection: nextSelection }));
 
-  const [selectedStepId] = selectedStepIds;
+  const [selectedStepId] = selection.stepIds;
+  const selectedCount =
+    selection.stepIds.length +
+    (selection.start ? 1 : 0) +
+    (selection.trigger === null ? 0 : 1);
+  /* Only one thing selected opens a panel. */
   const panelSubject: StepPanelSubject | null =
-    startSelected && selectedStepIds.length === 0
-      ? { start: true }
-      : /* A selection can briefly outlive its step, e.g. one just deleted: no panel then. */
-        !startSelected &&
-          selectedStepId !== undefined &&
-          selectedStepIds.length === 1 &&
-          findStep(flowDefinition.steps, selectedStepId)
-        ? { stepId: selectedStepId }
-        : null;
+    selectedCount !== 1
+      ? null
+      : selection.trigger !== null
+        ? { triggers: true }
+        : selection.start
+          ? { start: true }
+          : /* A selection can briefly outlive its step, e.g. one just deleted: no panel then. */
+            selectedStepId !== undefined &&
+              findStep(flowDefinition.steps, selectedStepId)
+            ? { stepId: selectedStepId }
+            : null;
 
   /* For-each steps collapsed in the Steps tab and on the canvas. */
   const [collapsedStepIds, setCollapsedStepIds] = useState(
@@ -274,14 +276,54 @@ const FlowEditor = ({
       return next;
     });
 
+  /* Selects one step and brings it into view on the canvas. A step in a collapsed for-each step isn't drawn, so the
+   * for-each step is expanded first. */
+  const selectAndFocusStep = (stepId: string) => {
+    const collapsedParent = flowDefinition.steps.find(
+      (step) =>
+        step.kind === "for-each" &&
+        collapsedStepIds.has(step.stepId) &&
+        findStep(step.steps, stepId),
+    );
+
+    if (collapsedParent) {
+      toggleCollapsed(collapsedParent.stepId);
+    }
+
+    setSession((current) => ({
+      ...current,
+      selection: { ...noSelection, stepIds: [stepId] },
+      focusRequest: { stepId },
+    }));
+  };
+
   /* The web the flow is in, which the editor's path names. */
   const webId = extractWebIdFromEntityId(flowDefinitionEntityId);
   const getRunPath = (flowRunEntityId: EntityId) =>
     generateRunViewPath({ shortname, flowDefinitionEntityId, flowRunEntityId });
 
-  /* As a run in Logs opens, so Back returns to the run shown before. */
-  const openRun = (flowRunEntityId: EntityId) => {
-    void router.push(getRunPath(flowRunEntityId), undefined, { shallow: true });
+  /* In the URL, so a view or a run can be linked to and Back returns to the one before. */
+  const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
+  const flowRunEntityId =
+    view === "logs"
+      ? parseRunParam(router.query.run, flowDefinitionEntityId)
+      : null;
+  /* The flow's steps or its net. Going between Editor and Logs shows the steps. */
+  const shape = parseAsParam(router.query.as);
+  const showShape = (nextShape: FlowShape) => {
+    const path = flowRunEntityId
+      ? getRunPath(flowRunEntityId)
+      : generateFlowEditorPath({ shortname, flowDefinitionEntityId });
+
+    void router.push(withAsParam(path, nextShape), undefined, {
+      shallow: true,
+    });
+  };
+  /* As a run in Logs opens, so Back returns to the run shown before. It keeps the shape, e.g. to compare runs' nets. */
+  const openRun = (runEntityId: EntityId) => {
+    void router.push(withAsParam(getRunPath(runEntityId), shape), undefined, {
+      shallow: true,
+    });
   };
 
   /* A run starts the flow as saved, so the edits not saved yet are saved first. */
@@ -303,9 +345,9 @@ const FlowEditor = ({
       throw new Error("The run didn't start.");
     }
 
-    await router.push(getRunPath(data.startFlow), undefined, {
-      shallow: true,
-    });
+    /* A run started from the net opens on the net. */
+    const runPath = withAsParam(getRunPath(data.startFlow), shape);
+    await router.push(runPath, undefined, { shallow: true });
   };
 
   const archiveFlow = async () => {
@@ -335,12 +377,34 @@ const FlowEditor = ({
     return true;
   };
 
-  /* In the URL, so a view or a run can be linked to and Back returns to the one before. */
-  const view: FlowEditorView = router.query.view === "logs" ? "logs" : "editor";
-  const flowRunEntityId =
-    view === "logs"
-      ? parseRunParam(router.query.run, flowDefinitionEntityId)
-      : null;
+  /* Shown over the flow and the net alike, as an autosave can be refused or overwritten in either. */
+  const saveBanners = (saveRefusedReason !== null || changedElsewhere) && (
+    <>
+      {saveRefusedReason !== null && (
+        <Banner tone="error">
+          <Banner.Title>Your latest edits can't be saved</Banner.Title>
+          <Banner.Description as="div">
+            {saveRefusedReason.split("\n").map((line) => (
+              <div key={line}>{line}</div>
+            ))}
+          </Banner.Description>
+        </Banner>
+      )}
+      {changedElsewhere && (
+        <Banner
+          tone="warning"
+          dismissible={{ onDismiss: dismissChangedElsewhere }}
+        >
+          <Banner.Title>This flow changed elsewhere</Banner.Title>
+          <Banner.Description>
+            It was saved from somewhere else, so it now shows the latest
+            version. Your latest edits weren't saved.
+          </Banner.Description>
+        </Banner>
+      )}
+    </>
+  );
+
   /* One read of the flow's runs for the Logs table and the run switcher, so they agree. */
   const { flowRuns, retry: retryFlowRuns } = useFlowRuns(
     view === "logs" ? flowDefinitionEntityId : null,
@@ -370,6 +434,7 @@ const FlowEditor = ({
       <TopBar
         editorKey={session.key}
         webId={webId}
+        shortname={shortname}
         editorState={editorState}
         flowDefinitionEntityId={flowDefinitionEntityId}
         view={view}
@@ -395,6 +460,9 @@ const FlowEditor = ({
             flowRunEntityId={flowRunEntityId}
             flowDefinitionEntityId={flowDefinitionEntityId}
             currentDefinition={flowDefinition}
+            schedules={schedules}
+            shape={shape}
+            onShapeChange={showShape}
             onBackToLogs={() => showView("logs")}
           />
         ) : (
@@ -402,21 +470,31 @@ const FlowEditor = ({
             flowRuns={flowRuns}
             onRetry={retryFlowRuns}
             getRunPath={getRunPath}
+            runner={{
+              webId,
+              editorState,
+              saveRefusedReason,
+              onRun: runFlow,
+            }}
           />
         )
+      ) : shape === "net" ? (
+        <EditorNetView
+          editorState={editorState}
+          notices={saveBanners}
+          flowDefinitionEntityId={flowDefinitionEntityId}
+          onShapeChange={showShape}
+          onShowStep={(stepId) => {
+            showShape("flow");
+            selectAndFocusStep(stepId);
+          }}
+        />
       ) : (
         <div className={editorBody}>
           <LeftPanel
-            steps={flowDefinition.steps}
-            selectedStepIds={selectedStepIds}
-            onStepClick={(stepId) =>
-              setSession((current) => ({
-                ...current,
-                selectedStepIds: [stepId],
-                startSelected: false,
-                focusRequest: { stepId },
-              }))
-            }
+            flowDefinition={flowDefinition}
+            selectedStepIds={selection.stepIds}
+            onStepClick={selectAndFocusStep}
             collapsedGroupIds={collapsedStepIds}
             onToggleGroup={toggleCollapsed}
             onCollapseAll={(stepIds) => setCollapsedStepIds(new Set(stepIds))}
@@ -425,56 +503,34 @@ const FlowEditor = ({
             }
           />
           <div className={canvasArea}>
-            {(saveRefusedReason !== null || changedElsewhere) && (
-              <div
-                className={notices}
-                style={
-                  panelSubject ? { right: sidePanelWidth + 16 } : undefined
-                }
-              >
-                {saveRefusedReason !== null && (
-                  <Banner tone="error">
-                    <Banner.Title>
-                      Your latest edits can't be saved
-                    </Banner.Title>
-                    <Banner.Description as="div">
-                      {saveRefusedReason.split("\n").map((line) => (
-                        <div key={line}>{line}</div>
-                      ))}
-                    </Banner.Description>
-                  </Banner>
-                )}
-                {changedElsewhere && (
-                  <Banner
-                    tone="warning"
-                    dismissible={{ onDismiss: dismissChangedElsewhere }}
-                  >
-                    <Banner.Title>This flow changed elsewhere</Banner.Title>
-                    <Banner.Description>
-                      It was saved from somewhere else, so it now shows the
-                      latest version. Your latest edits weren't saved.
-                    </Banner.Description>
-                  </Banner>
-                )}
-              </div>
-            )}
+            <CanvasNotices coveredRight={panelSubject ? sidePanelWidth : 0}>
+              {saveBanners}
+            </CanvasNotices>
             <Canvas
               key={session.key}
               ref={canvasRef}
               editor={editor}
-              selectedStepIds={selectedStepIds}
-              startSelected={startSelected}
+              selectedStepIds={selection.stepIds}
+              startSelected={selection.start}
+              selectedTrigger={selection.trigger}
               onSelectionChange={setSelection}
               focusRequest={focusRequest}
               collapsedStepIds={collapsedStepIds}
               onToggleCollapsed={toggleCollapsed}
               coveredRight={panelSubject ? sidePanelWidth : 0}
+              schedules={schedules}
             />
+            <NetSwitch shape="flow" onShapeChange={showShape} />
             {panelSubject && (
               <StepPanel
                 editor={editor}
+                flowDefinitionEntityId={flowDefinitionEntityId}
                 subject={panelSubject}
-                onSelectStart={() => setSelection({ stepIds: [], start: true })}
+                schedules={schedules}
+                onSelectStart={() =>
+                  setSelection({ ...noSelection, start: true })
+                }
+                onSelectStep={selectAndFocusStep}
               />
             )}
           </div>

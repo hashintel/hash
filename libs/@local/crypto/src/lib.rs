@@ -5,6 +5,7 @@
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(clone_to_uninit, clone_from_ref, impl_restriction, ptr_metadata)]
+#![expect(uncommon_codepoints, reason = "used by the zerocopy derive")]
 #![cfg_attr(feature = "clap", feature(impl_trait_in_assoc_type))]
 
 extern crate alloc;

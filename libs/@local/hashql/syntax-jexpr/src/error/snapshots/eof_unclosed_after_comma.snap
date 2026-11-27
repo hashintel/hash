@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"f\", \"x\", // more"
+---
+error[jexpr::lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ ["f", "x", // more
+  │ ┬                 ━ unexpected end of input, expected `]`
+  │ │
+  │ unclosed `[` opened here
+  ╰╴
+help: add the missing `]`
+  ╭╴
+1 - ["f", "x", // more
+1 + ["f", "x"] // more
+  ╰╴

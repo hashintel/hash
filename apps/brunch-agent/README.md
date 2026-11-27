@@ -12,7 +12,7 @@ The first step builds the Petrinaut libraries the panel imports (`dist/` and des
 
 Native Stock remains a separate assistant choice; `VITE_PETRINAUT_DEFAULT_ASSISTANT` selects native Stock or Brunch.
 
-For browser-visible persona testing, use the [persona launcher and operator guide](evals/petrinaut/persona/README.md):
+For browser-visible persona testing, use the [persona launcher and operator guide](evals/persona/README.md):
 
 ```sh
 yarn brunch:persona --list-cases

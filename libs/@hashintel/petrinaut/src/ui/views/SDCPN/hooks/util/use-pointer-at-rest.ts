@@ -18,6 +18,12 @@ const REST_DELAY_MS = 150;
  * pointer passes through. Movement elsewhere on the page is not this
  * element's business, and a pointer that leaves it comes to rest like any
  * other pointer that has stopped arriving.
+ *
+ * The release of a button counts as a move: it ends a gesture where the
+ * pointer may have held still for a while, and what follows the pointer
+ * waits from there as it does for a pointer that has just arrived. A release
+ * is heard on its way down to its target, so the pointer is moving by the
+ * time a handler of that release sets what follows it.
  */
 export const usePointerAtRest = (
   ref: React.RefObject<HTMLElement | null>,
@@ -39,17 +45,7 @@ export const usePointerAtRest = (
       setAtRest(true);
     };
 
-    const onPointerMove = (event: PointerEvent) => {
-      if (
-        lastCounted !== null &&
-        Math.hypot(
-          event.clientX - lastCounted.x,
-          event.clientY - lastCounted.y,
-        ) <= MOVEMENT_THRESHOLD_PX
-      ) {
-        return;
-      }
-
+    const countMove = (event: PointerEvent) => {
       lastCounted = { x: event.clientX, y: event.clientY };
 
       // Only the transitions reach React: a move fires far too often to
@@ -63,10 +59,27 @@ export const usePointerAtRest = (
       restTimer = setTimeout(settle, REST_DELAY_MS);
     };
 
+    const onPointerMove = (event: PointerEvent) => {
+      if (
+        lastCounted === null ||
+        Math.hypot(
+          event.clientX - lastCounted.x,
+          event.clientY - lastCounted.y,
+        ) > MOVEMENT_THRESHOLD_PX
+      ) {
+        countMove(event);
+      }
+    };
+
     element.addEventListener("pointermove", onPointerMove, { passive: true });
+    element.addEventListener("pointerup", countMove, {
+      capture: true,
+      passive: true,
+    });
 
     return () => {
       element.removeEventListener("pointermove", onPointerMove);
+      element.removeEventListener("pointerup", countMove, { capture: true });
       clearTimeout(restTimer);
     };
   }, [ref]);

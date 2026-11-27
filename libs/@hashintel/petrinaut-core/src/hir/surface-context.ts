@@ -1,3 +1,4 @@
+import { resolveComponent } from "../composition/interfaces";
 /**
  * Surface contexts describe the model-derived environment a piece of user
  * code executes in: which parameters exist, which places deliver tokens (and
@@ -27,14 +28,14 @@
  * `input.<name>.count`. Counts are passed per arc, in `transition.inputArcs`
  * order, which matches the engine's `CompiledTransition.inputPlaces`.
  */
-import { getArcEndpoint } from "../arc-endpoints";
+import { getArcEndpoint } from "../document/arc-endpoints";
 import {
   createArcPlaceResolver,
   DEFAULT_PETRINAUT_EXTENSIONS,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 
 import type {
   Color,
@@ -50,7 +51,7 @@ import type {
   Transition,
 } from "../types/sdcpn";
 
-/** The net a transition/differential equation belongs to (root or subnet). */
+/** The net a transition/differential equation belongs to (root or component). */
 export type HirNetScope = {
   places: Place[];
   parameters: Parameter[];
@@ -264,10 +265,10 @@ function getArcPlaceDisplayName(
   const instance = net.componentInstances?.find(
     (inst) => inst.id === endpoint.componentInstanceId,
   );
-  const subnet = instance
-    ? sdcpn.subnets?.find((sn) => sn.id === instance.subnetId)
+  const component = instance
+    ? resolveComponent(sdcpn, instance.component)
     : undefined;
-  const portPlace = subnet?.places.find(
+  const portPlace = component?.places.find(
     (pl) => pl.id === endpoint.portPlaceId && pl.isPort,
   );
 
@@ -294,7 +295,7 @@ function collectArcs(
   options: { includeZeroElementColors: boolean },
 ): ArcCollection {
   const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
-    componentPortsEnabled: extensions.subnets,
+    componentPortsEnabled: extensions.components,
   });
   const bindings = new Map<string, HirPlaceBinding>();
   const slots: HirArcSlot[] = [];
@@ -356,7 +357,7 @@ function collectInputCounts(
   extensions: PetrinautExtensionSettings,
 ): HirInputPlaceCount[] {
   const resolveArcPlace = createArcPlaceResolver(sdcpn, net, {
-    componentPortsEnabled: extensions.subnets,
+    componentPortsEnabled: extensions.components,
   });
   const byName = new Map<string, HirInputPlaceCount>();
   for (const [arcIndex, arc] of arcs.entries()) {
@@ -377,7 +378,7 @@ function collectColors(
   const allColors = extensions.colors
     ? [
         ...sdcpn.types,
-        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+        ...(sdcpn.components ?? []).flatMap((component) => component.types),
       ]
     : [];
   return new Map(allColors.map((color) => [color.id, color]));
@@ -386,7 +387,7 @@ function collectColors(
 /**
  * Builds the context for a differential equation: its colour's attributes
  * and its arity. `null` when the equation has no colour or the colour does
- * not exist. Pass `net` when the equation belongs to a subnet (its
+ * not exist. Pass `net` when the equation belongs to a component (its
  * parameters apply).
  */
 export function buildDynamicsContext(
@@ -439,7 +440,7 @@ export function buildVisualizerContext(
 
 /**
  * Builds the context for a transition's lambda. Pass `net` when the
- * transition belongs to a subnet.
+ * transition belongs to a component.
  */
 export function buildLambdaContext(
   sdcpn: SDCPN,
@@ -571,7 +572,7 @@ export function buildScenarioCodeContext(
 
 /**
  * Builds the context for a transition's kernel. Pass `net` when the
- * transition belongs to a subnet.
+ * transition belongs to a component.
  */
 export function buildKernelContext(
   sdcpn: SDCPN,

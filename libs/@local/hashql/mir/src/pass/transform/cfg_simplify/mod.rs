@@ -43,12 +43,12 @@
 #[cfg(test)]
 mod tests;
 
-use core::{iter::ExactSizeIterator as _, mem};
+use core::{alloc::Allocator, iter::ExactSizeIterator as _, mem};
 
 use hashql_core::{
     collections::{WorkQueue, fast_hash_set_with_capacity_in},
     graph::Predecessors as _,
-    heap::{BumpAllocator, Scratch, TransferInto as _},
+    heap::{PhaseAllocator, ScopeAllocator, TransferInto as _},
 };
 
 use super::{DeadBlockElimination, error::unreachable_switch_arm, ssa_repair::SsaRepair};
@@ -382,12 +382,15 @@ fn simplify_switch_int<'heap>(
 ///
 /// After a successful simplification, marks any newly unreachable blocks as dead.
 /// Returns `true` if any simplification was applied.
-fn simplify<'heap, A: BumpAllocator>(
+fn simplify<'heap, 'alloc, A>(
     context: &mut MirContext<'_, 'heap>,
     body: &mut Body<'heap>,
     id: BasicBlockId,
-    alloc: &A,
-) -> bool {
+    alloc: A,
+) -> bool
+where
+    A: PhaseAllocator<'alloc>,
+{
     let kind = &body.basic_blocks[id].terminator.kind;
     match kind {
         &TerminatorKind::Goto(_) | TerminatorKind::SwitchInt(_) => {}
@@ -424,10 +427,10 @@ fn simplify<'heap, A: BumpAllocator>(
 ///
 /// This enables cascading optimizations: marking a block dead removes it from predecessor
 /// counts, potentially allowing previously blocked merges to proceed.
-fn mark_dead_blocks<A: BumpAllocator>(
+fn mark_dead_blocks<A: Allocator>(
     body: &mut Body<'_>,
     previous_reverse_postorder: &[BasicBlockId],
-    alloc: &A,
+    alloc: A,
 ) {
     let mut reverse_postorder = fast_hash_set_with_capacity_in(body.basic_blocks.len(), alloc);
 
@@ -451,26 +454,24 @@ fn mark_dead_blocks<A: BumpAllocator>(
 /// Control-flow graph simplification pass.
 ///
 /// Simplifies the CFG by merging blocks, constant-folding switches, and eliminating dead blocks.
-pub struct CfgSimplify<A: BumpAllocator = Scratch> {
-    alloc: A,
+pub struct CfgSimplify<S> {
+    alloc: S,
 }
 
-impl CfgSimplify {
+impl<S> CfgSimplify<S> {
     /// Creates a new instance of the control-flow graph simplification pass.
+    ///
+    /// The pass opens its scopes on `alloc`.
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            alloc: Scratch::new(),
-        }
-    }
-}
-
-impl<A: BumpAllocator> CfgSimplify<A> {
-    #[must_use]
-    pub const fn new_in(alloc: A) -> Self {
+    pub const fn new_in(alloc: S) -> Self {
         Self { alloc }
     }
+}
 
+impl<'alloc, S> CfgSimplify<S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     fn simplify<'heap>(
         &mut self,
         context: &mut MirContext<'_, 'heap>,
@@ -478,18 +479,14 @@ impl<A: BumpAllocator> CfgSimplify<A> {
         id: BasicBlockId,
     ) -> bool {
         self.alloc
-            .scoped_mut(|alloc| simplify(context, body, id, &alloc))
+            .scoped(|alloc| simplify(context, body, id, &alloc))
     }
 }
 
-impl Default for CfgSimplify {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A> {
+impl<'env, 'heap, 'alloc, S> TransformPass<'env, 'heap> for CfgSimplify<S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     /// Runs the CFG simplification pass on the given body.
     ///
     /// Uses a worklist algorithm that processes blocks in reverse postorder and re-enqueues
@@ -536,12 +533,12 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A
         // Unreachable blocks will be dead, therefore must be removed
         let _: Changed = self
             .alloc
-            .scoped_mut(|alloc| DeadBlockElimination::new_in(alloc).run(context, body));
+            .scoped(|alloc| DeadBlockElimination::new_in(&alloc).run(context, body));
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
         let _: Changed = self
             .alloc
-            .scoped_mut(|alloc| SsaRepair::new_in(alloc).run(context, body));
+            .scoped(|alloc| SsaRepair::new_in(&alloc).run(context, body));
 
         // We ignore the changed of the sub-passes above, because we **know** that we already
         // modified, if they don't doesn't matter.

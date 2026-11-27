@@ -1,4 +1,4 @@
-import { use, useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import {
   getBoundsOfCenteredBoxes,
@@ -6,20 +6,24 @@ import {
   type Size,
 } from "@hashintel/petrinaut-core";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import { useEditorState } from "../../../../react/state/editor-context";
 import { usePanelTarget } from "../../../../react/state/use-selection";
+import { watch } from "../../../shared/readings";
 import {
   BOTTOM_BAR_GAP,
   BOTTOM_BAR_HEIGHT,
   VIEWPORT_CONTROLS_CLEARANCE,
-} from "../../../constants/ui";
+} from "../../../shared/ui-constants";
+import {
+  sameInsets,
+  type CanvasInsets,
+} from "../../../shared/use-canvas-insets";
 import {
   isScenePointInView,
   revealBounds,
   type CanvasViewportInsets,
 } from "../canvas-viewport";
 
-import type { CanvasInsets } from "../../../hooks/use-canvas-insets";
 import type { CanvasController } from "../canvas-renderer";
 import type { CanvasScene } from "../canvas-scene";
 
@@ -50,15 +54,18 @@ const clearanceOf = (insets: CanvasInsets): CanvasViewportInsets => ({
 
 /**
  * The nodes a selection stands for on the canvas: the selected nodes, and both
- * ends of a selected arc, which has no geometry of its own.
+ * ends of a selected arc or of a selected fusion's links, which have no
+ * geometry of their own.
  */
 const selectedNodesOf = (scene: CanvasScene, selection: SelectionMap) => {
   const ids = new Set(selection.keys());
-  for (const arc of scene.arcs) {
-    if (selection.has(arc.id)) {
-      ids.add(arc.sourceId);
-      ids.add(arc.targetId);
-    }
+  const selectedLinks = [
+    ...scene.arcs.filter((arc) => selection.has(arc.id)),
+    ...scene.fusions.filter((link) => selection.has(link.fusionId)),
+  ];
+  for (const link of selectedLinks) {
+    ids.add(link.sourceId);
+    ids.add(link.targetId);
   }
   return scene.nodes.filter((node) => ids.has(node.id));
 };
@@ -84,23 +91,22 @@ export const useKeepSelectionInView = ({
   controller,
   scene,
   containerSize: { width, height },
-  insets: { left, right, bottom },
+  insets,
   minZoom,
 }: {
   controller: CanvasController;
   scene: CanvasScene;
   containerSize: Size;
-  insets: CanvasInsets;
+  /** A reading of the panel sizes, so a panel drag moves the camera without rendering the canvas. */
+  insets: () => CanvasInsets;
   minZoom: number;
 }) => {
-  const { selection } = use(EditorContext);
+  const selection = useEditorState((editor) => editor.selection);
   const target = usePanelTarget();
   const soleSelectedId = target.kind === "single" ? target.item.id : undefined;
 
-  const frame: Frame = { width, height, left, right, bottom };
-
   /** `visibleIn` limits the move to a selection in view within that frame. */
-  const reveal = useEffectEvent((visibleIn?: Frame) => {
+  const reveal = useEffectEvent((frame: Frame, visibleIn?: Frame) => {
     const bounds = getBoundsOfCenteredBoxes(selectedNodesOf(scene, selection));
     if (!bounds) {
       return;
@@ -128,19 +134,36 @@ export const useKeepSelectionInView = ({
     }
   });
 
-  // Starts from what the canvas opened with: the saved viewport already
-  // frames that selection as the user left it.
-  const lastRef = useRef({ soleSelectedId, frame });
-  useEffect(() => {
+  const lastRef = useRef<{
+    soleSelectedId: string | undefined;
+    frame: Frame;
+  } | null>(null);
+
+  /** Moves the camera for what changed since the last look. */
+  const follow = useEffectEvent(() => {
     const last = lastRef.current;
-    const current = { width, height, left, right, bottom };
-    lastRef.current = { soleSelectedId, frame: current };
+    const frame: Frame = { width, height, ...insets() };
+    lastRef.current = { soleSelectedId, frame };
+    // What the canvas opened with stays put: the saved viewport already
+    // frames that selection as the user left it.
+    if (last === null) {
+      return;
+    }
     if (soleSelectedId !== last.soleSelectedId) {
       if (soleSelectedId !== undefined) {
-        reveal();
+        reveal(frame);
       }
-    } else if (!sameFrame(current, last.frame)) {
-      reveal(last.frame);
+    } else if (!sameFrame(frame, last.frame)) {
+      reveal(frame, last.frame);
     }
-  }, [soleSelectedId, width, height, left, right, bottom]);
+  });
+
+  // A change React renders: the selection, the canvas size, or which panels
+  // are open, which gives a new insets function.
+  useEffect(() => {
+    follow();
+  }, [soleSelectedId, width, height, insets]);
+
+  // A panel drag: the insets change and nothing renders.
+  useEffect(() => watch(insets, () => follow(), sameInsets), [insets]);
 };

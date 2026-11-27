@@ -122,6 +122,55 @@ describe("assertExperimentInput", () => {
   });
 });
 
+describe("buildSweepAxes", () => {
+  const realAndInteger = {
+    id: "scenario",
+    name: "Scenario",
+    scenarioParameters: [
+      { type: "real" as const, identifier: "beta", default: 0.5 },
+      { type: "integer" as const, identifier: "count", default: 10 },
+    ],
+    parameterOverrides: {},
+    initialState: { type: "per_place" as const, content: {} },
+  };
+
+  it("splits fixed values from sweep axes", () => {
+    const { fixedValues, axes } = buildSweepAxes(realAndInteger, {
+      beta: { mode: "range", min: 0, max: 1 },
+      count: { mode: "fixed", value: "12" },
+    });
+
+    expect(fixedValues).toEqual({ count: "12" });
+    expect(axes).toEqual([
+      { identifier: "beta", min: 0, max: 1, stepCount: 50, integer: false },
+    ]);
+  });
+
+  it("gives integer parameters one step per integer on narrow intervals", () => {
+    const { axes } = buildSweepAxes(realAndInteger, {
+      count: { mode: "range", min: 0, max: 20 },
+    });
+    expect(axes).toEqual([
+      { identifier: "count", min: 0, max: 20, stepCount: 20, integer: true },
+    ]);
+  });
+
+  it("rejects an invalid range with the parameter named", () => {
+    expect(() =>
+      buildSweepAxes(realAndInteger, {
+        beta: { mode: "range", min: 1, max: 0 },
+      }),
+    ).toThrow("beta");
+  });
+
+  it("ignores inputs for parameters the scenario does not declare", () => {
+    const { axes } = buildSweepAxes(realAndInteger, {
+      ghost: { mode: "range", min: 0, max: 1 },
+    });
+    expect(axes).toEqual([]);
+  });
+});
+
 /** A one-place net for the ad-hoc definitions below. */
 const queueSdcpn: SDCPN = {
   places: [
@@ -225,6 +274,31 @@ describe("compileExperimentScenario", () => {
     expect(compiled.scenario?.id).toBe(toPetrinautId("adhoc-scenario"));
     expect(compiled.scenario?.scenarioParameters).toEqual([]);
     expect(compiled.axes).toEqual([]);
+  });
+
+  it("sweeps each selection as a generated parameter with the value's label", async () => {
+    const compiled = await compileAdHoc(true);
+    expect(compiled.axes).toEqual([
+      {
+        identifier: "adhoc_count_Queue",
+        label: "Queue › count",
+        min: 2,
+        max: 8,
+        stepCount: 6,
+        integer: true,
+      },
+    ]);
+    expect(
+      compiled.sweptCompiler?.compileForValues({ adhoc_count_Queue: 5 }).result
+        .initialState["place-queue"],
+    ).toBe(5);
+  });
+
+  it("runs the definition at its fixed values when sweeps are off", async () => {
+    const compiled = await compileAdHoc(false);
+    expect(compiled.axes).toEqual([]);
+    expect(compiled.sweptCompiler).toBeNull();
+    expect(compiled.initialMarking["place-queue"]).toBe(4);
   });
 
   it("surfaces no values for an experiment without a scenario", async () => {

@@ -14,6 +14,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 
 import { queryEntitiesQuery } from "../../../../../../../../graphql/queries/knowledge/entity.queries";
 import { getFileProperties } from "../../../../../../../shared/get-file-properties";
+import { getFileIcon, getFileMeta } from "./file-display";
 
 import type {
   QueryEntitiesQuery,
@@ -43,7 +44,7 @@ export const isFileEntity = (entity: HashEntity | undefined) =>
 export const getTypeKey = (entity: HashEntity) =>
   [...entity.metadata.entityTypeIds].sort().join(" ");
 
-/** A file by its name, with a thumbnail if it's an image, and any other entity by its label. */
+/** A file by its name, type and size, with a thumbnail if it's an image, and any other entity by its label and type. */
 export const getEntityDisplay = (
   entity: HashEntity | undefined,
   typesMap: ClosedMultiEntityTypesRootMap | undefined,
@@ -71,7 +72,6 @@ export const getEntityDisplay = (
     typesMap,
     entity.metadata.entityTypeIds,
   );
-  const typeTitle = closedType.allOf.map(({ title }) => title).join(", ");
   const { displayName, fileName, fileUrl, isImage } = getFileProperties(
     entity.properties,
   );
@@ -79,15 +79,15 @@ export const getEntityDisplay = (
   if (fileUrl) {
     return {
       title: displayName ?? fileName ?? generateEntityLabel(closedType, entity),
-      meta: typeTitle,
-      icon: "file",
+      meta: getFileMeta(entity.properties),
+      icon: getFileIcon(entity.properties),
       imageUrl: isImage ? fileUrl : undefined,
     };
   }
 
   return {
     title: generateEntityLabel(closedType, entity),
-    meta: typeTitle,
+    meta: closedType.allOf.map(({ title }) => title).join(", "),
     icon: "cube",
   };
 };

@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"add\", {\"#literal\": 1}"
+---
+error[jexpr::lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ ["add", {"#literal": 1}
+  │ ┬                      ━ unexpected end of input, expected `]`
+  │ │
+  │ unclosed `[` opened here
+  ╰╴
+help: add the missing `]`
+  ╭╴
+1 │ ["add", {"#literal": 1}]
+  ╰╴                       +

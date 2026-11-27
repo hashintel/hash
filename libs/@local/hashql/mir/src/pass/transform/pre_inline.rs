@@ -3,9 +3,7 @@
 //! This module contains the [`PreInline`] pass, a thin wrapper around [`Canonicalization`] that
 //! runs with settings tuned for pre-inlining optimization.
 
-use core::alloc::Allocator;
-
-use hashql_core::heap::BumpAllocator;
+use hashql_core::heap::ScopeAllocator;
 
 use super::{Canonicalization, CanonicalizationConfig};
 use crate::{
@@ -25,16 +23,16 @@ use crate::{
 /// - The overall MIR size is reduced before the potential code explosion from inlining
 ///
 /// See [`Canonicalization`] for details on the pass ordering and implementation.
-pub struct PreInline<A: Allocator> {
-    canonicalization: Canonicalization<A>,
+pub struct PreInline<S> {
+    canonicalization: Canonicalization<S>,
 }
 
-impl<A: BumpAllocator> PreInline<A> {
+impl<S> PreInline<S> {
     /// Creates a new pre-inlining pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
     /// between pass invocations.
-    pub const fn new_in(alloc: A) -> Self {
+    pub const fn new_in(alloc: S) -> Self {
         Self {
             canonicalization: Canonicalization::new_in(
                 CanonicalizationConfig { max_iterations: 8 },
@@ -44,7 +42,10 @@ impl<A: BumpAllocator> PreInline<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PreInline<A> {
+impl<'env, 'heap, 'alloc, S> GlobalTransformPass<'env, 'heap> for PreInline<S>
+where
+    S: ScopeAllocator<'alloc>,
+{
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,

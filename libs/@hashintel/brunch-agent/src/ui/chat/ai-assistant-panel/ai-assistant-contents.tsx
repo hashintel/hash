@@ -20,10 +20,12 @@ import {
   useVoiceSessionWarningMessage,
 } from "../voice-session/use-voice-session";
 import { AiAssistantIcon } from "./ai-assistant-contents/ai-assistant-icon";
+import { useAnswerDock } from "./ai-assistant-contents/answer-dock";
 import { BrunchResponseStatus } from "./ai-assistant-contents/brunch-response-status";
 import { BrunchTranscript } from "./ai-assistant-contents/brunch-transcript";
 import { ChatTabMark } from "./ai-assistant-contents/chat-tab-mark";
 import { AiAssistantComposer } from "./ai-assistant-contents/composer";
+import { ComposerSelection } from "./ai-assistant-contents/composer-selection";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { HorizontalTabsHeader } from "./ai-assistant-contents/horizontal-tabs-container";
 import {
@@ -33,6 +35,7 @@ import {
 import { errorNotification } from "./ai-assistant-contents/shared/error-notification";
 import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
 import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
+import { VoiceQuestions } from "./ai-assistant-contents/voice-questions";
 import { useAiAssistantEditorApi } from "./editor-api";
 import { getInteractiveTool } from "./interactive-tools/registry";
 
@@ -83,6 +86,8 @@ export type AiAssistantContentsProps = {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
+  /** Sends the answers to Brunch's questions as the next message. */
+  onSendAnswer?: (answer: string) => void;
   onRetryPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
@@ -163,7 +168,11 @@ const composerWrapStyle = css({
   padding: "3",
   borderTop: "[1px solid {colors.neutral.bd.subtle}]",
   backgroundColor: "neutral.s00",
-  flexShrink: 0,
+  // A tall question dock scrolls inside a capped footer, so the composer and
+  // its buttons stay on screen in a short panel.
+  flexShrink: 1,
+  maxHeight: "[60%]",
+  "& > :not([data-answer-dock])": { flexShrink: 0 },
   boxSizing: "border-box",
   minHeight: `[${aiFooterMinHeight}px]`,
   animationName: "[petrinautVoiceSwap]",
@@ -266,6 +275,7 @@ export const AiAssistantContents = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
+  onSendAnswer,
   onRetryPrompt,
   onStop,
   onSubmit,
@@ -440,6 +450,20 @@ export const AiAssistantContents = ({
       .join("\n\n");
     if (prompt) onRetryPrompt?.(prompt);
   };
+  const answerDock = useAnswerDock({
+    messages,
+    enabled:
+      onSendAnswer !== undefined &&
+      inputMode !== "voice" &&
+      !isBusy &&
+      !stopped &&
+      !voiceHandoffPending &&
+      !reviewingHostTab,
+    input,
+    inputRef,
+    onInputChange,
+    onSend: (text) => onSendAnswer?.(text),
+  });
   // Stable container for the per-render callbacks so the memoised transcript
   // messages don't see identity churn from the panel's inline arrow functions
   // on every render. The ref itself is stable across renders, so memoised
@@ -633,6 +657,12 @@ export const AiAssistantContents = ({
           <BrunchResponseStatus busy={isBusy} workingLabel={workingLabel} />
         )}
 
+        {inputMode === "voice" &&
+          !isBusy &&
+          !stopped &&
+          !voiceHandoffPending &&
+          !reviewingHostTab && <VoiceQuestions messages={messages} />}
+
         {voiceMode && (
           <div className={voiceModeStyle} data-testid="ai-voice-mode">
             {voiceMode}
@@ -642,6 +672,7 @@ export const AiAssistantContents = ({
         {composerStatus}
         {isVoiceSessionLive ? (
           <div ref={voiceDockRef}>
+            <ComposerSelection />
             <LiveVoiceDock
               assistantBusy={isBusy}
               composerControl={composerControl}
@@ -676,6 +707,8 @@ export const AiAssistantContents = ({
                   />
                 </div>
               )}
+              {!reviewingHostTab && <ComposerSelection />}
+              {answerDock?.dock}
               <AiAssistantComposer
                 busy={isBusy}
                 control={composerControl}
@@ -687,7 +720,9 @@ export const AiAssistantContents = ({
                 onInputChange={onInputChange}
                 onInputModeChange={onInputModeChange}
                 onStop={onStop}
-                onSubmit={onSubmit}
+                onSubmit={answerDock?.onSubmit ?? onSubmit}
+                sendable={answerDock?.sendable}
+                submitLabel={answerDock?.submitLabel}
                 textEntry={!reviewingHostTab}
                 voiceModeAvailable={voiceModeAvailable}
               />

@@ -10,7 +10,8 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@hashintel/ds-icons#build"
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "env": [
@@ -32,12 +33,16 @@
     },
     "dev": {
       "dependsOn": [
-        "@hashintel/ds-icons#build"
+        "@hashintel/ds-icons#build",
+        "@hashintel/petrinaut-core#build"
       ],
       "cache": false,
       "persistent": true,
       "env": [
         "PORT"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "doc:architecture": {
@@ -71,6 +76,17 @@
         "@apps/petrinaut-website#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
       ],
       "affectedBy": [
         "petrinaut-optimizer-core"

@@ -1,53 +1,33 @@
-import { use, useCallback, useMemo, useState } from "react";
+import { use } from "react";
 
-import { Banner, Icon } from "@hashintel/ds-components";
+import { Banner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { useCodeNavigation } from "../../../../../monaco/code-navigation";
-import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+import { useEditorActions } from "../../../../../../react/state/editor-context";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation-context";
+import { useKeptState } from "../../../../../shared/use-kept-state";
+import { useCompositionProblems } from "../../../shared/use-composition-problems";
+import { CompositionDiagnostics } from "./diagnostics/composition-diagnostics";
+import { countOf } from "./diagnostics/count-of";
+import { DiagnosticsGroup } from "./diagnostics/diagnostics-group";
+import {
+  groupDiagnosticsByEntity,
+  type EntityDiagnostics,
+} from "./diagnostics/group-diagnostics";
 import { NetClassSummary } from "./diagnostics/net-class-summary";
-
-import type { SubView } from "../../../../../components/sub-view/types";
-import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
+import {
+  bulletStyle,
+  diagnosticButtonStyle,
+  diagnosticItemStyle,
+  diagnosticsListStyle,
+} from "./diagnostics/styles";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
   fontStyle: "italic",
-});
-
-const entityGroupStyle = css({
-  marginBottom: "[8px]",
-});
-
-const entityButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  width: "[100%]",
-  padding: "[4px 0]",
-  border: "none",
-  cursor: "pointer",
-  textAlign: "left",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s115",
-  _hover: {
-    color: "neutral.s120",
-  },
-});
-
-const errorCountStyle = css({
-  color: "[#dc2626]",
-  fontWeight: "normal",
-});
-
-const expandedContentStyle = css({
-  paddingLeft: "[16px]",
-  marginTop: "[4px]",
 });
 
 const itemGroupStyle = css({
@@ -59,39 +39,6 @@ const subTypeStyle = css({
   fontWeight: "medium",
   color: "neutral.s105",
   marginBottom: "[2px]",
-});
-
-const diagnosticsListStyle = css({
-  margin: "[0]",
-  paddingLeft: "[12px]",
-  listStyle: "none",
-});
-
-const diagnosticItemStyle = css({
-  marginBottom: "[4px]",
-});
-
-const diagnosticButtonStyle = css({
-  marginLeft: "[8px]",
-  padding: "[2px 4px]",
-  fontSize: "[11px]",
-  fontFamily: "mono",
-  color: "[#dc2626]",
-  lineHeight: "[1.5]",
-  cursor: "pointer",
-  borderRadius: "sm",
-  transition: "[background-color 0.15s]",
-  backgroundColor: "[transparent]",
-  border: "none",
-  textAlign: "left",
-  width: "[100%]",
-  _hover: {
-    backgroundColor: "[rgba(220, 38, 38, 0.08)]",
-  },
-});
-
-const bulletStyle = css({
-  marginRight: "[4px]",
 });
 
 const positionStyle = css({
@@ -110,41 +57,6 @@ const simulationErrorTextStyle = css({
   cursor: "text",
 });
 
-type EntityType = "transition" | "differential-equation" | "place";
-
-type SubType = "lambda" | "kernel" | "visualizer" | null;
-
-const SUB_TYPE_LABELS: Record<NonNullable<SubType>, string> = {
-  lambda: "Lambda",
-  kernel: "Kernel",
-  visualizer: "Visualizer",
-};
-
-const ENTITY_LABELS: Record<EntityType, string> = {
-  transition: "Transition",
-  "differential-equation": "Differential Equation",
-  place: "Place",
-};
-
-const SELECTION_TYPES: Record<EntityType, SelectionItemType> = {
-  transition: "transition",
-  "differential-equation": "differentialEquation",
-  place: "place",
-};
-
-interface GroupedDiagnostics {
-  entityType: EntityType;
-  entityId: string;
-  entityName: string;
-  errorCount: number;
-  items: Array<{
-    subType: SubType;
-    /** The document the diagnostics belong to. */
-    uri: string;
-    diagnostics: Diagnostic[];
-  }>;
-}
-
 /**
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
@@ -152,93 +64,41 @@ const DiagnosticsContent: React.FC = () => {
   const { diagnosticsByUri, totalDiagnosticsCount } = use(
     LanguageClientContext,
   );
-  const { petriNetDefinition, getItemType } = use(SDCPNContext);
-  const { navigateTo, selectItem } = use(EditorContext);
+  const petriNetDefinition = useSDCPNState(
+    (document) => document.petriNetDefinition,
+  );
+  const getItemType = useSDCPNState((document) => document.getItemType);
+  const { navigateTo, selectItem } = useEditorActions();
   const codeNavigation = useCodeNavigation();
   const {
     state: simulationState,
     error: simulationError,
     errorItemId,
   } = use(SimulationContext);
-  // Track collapsed entities (all expanded by default)
-  const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
+  const compositionProblems = useCompositionProblems();
+  // The collapsed entities: none at first, and kept while the tab is
+  // unmounted.
+  const [collapsedEntities, setCollapsedEntities] = useKeptState<Set<string>>(
+    "collapsed-diagnostics",
     new Set(),
   );
 
+  const entities = groupDiagnosticsByEntity(
+    diagnosticsByUri,
+    petriNetDefinition,
+  );
+  const hasSimulationError = simulationState === "Error" && !!simulationError;
+
   // Clicking a diagnostic selects its entity. A visualizer's section is
   // collapsed by default, so its diagnostics also open that section.
-  const handleSelectEntity = useCallback(
-    (entityId: string, entityType: EntityType, uri: string) => {
-      selectItem({ type: SELECTION_TYPES[entityType], id: entityId });
-      if (entityType === "place") {
-        codeNavigation.open(uri);
-      }
-    },
-    [codeNavigation, selectItem],
-  );
-
-  // Group diagnostics by entity (transition or differential equation)
-  const groupedDiagnostics = useMemo(() => {
-    const groups = new Map<string, GroupedDiagnostics>();
-
-    for (const [uri, diagnostics] of diagnosticsByUri) {
-      const parsed = parseDocumentUri(uri);
-      if (!parsed) {
-        continue;
-      }
-
-      const entityId = parsed.itemId;
-      let entityType: EntityType;
-      let entityName: string;
-      let subType: SubType;
-
-      if (parsed.itemType === "differential-equation") {
-        entityType = "differential-equation";
-        const de = petriNetDefinition.differentialEquations.find(
-          (deItem) => deItem.id === entityId,
-        );
-        entityName = de?.name ?? entityId;
-        subType = null;
-      } else if (parsed.itemType === "place-visualizer") {
-        entityType = "place";
-        const place = petriNetDefinition.places.find(
-          (placeItem) => placeItem.id === entityId,
-        );
-        entityName = place?.name ?? entityId;
-        subType = "visualizer";
-      } else {
-        entityType = "transition";
-        const transition = petriNetDefinition.transitions.find(
-          (tr) => tr.id === entityId,
-        );
-        entityName = transition?.name ?? entityId;
-        subType = parsed.itemType === "transition-lambda" ? "lambda" : "kernel";
-      }
-
-      const key = `${entityType}:${entityId}`;
-      if (!groups.has(key)) {
-        groups.set(key, {
-          entityType,
-          entityId,
-          entityName,
-          errorCount: 0,
-          items: [],
-        });
-      }
-
-      const group = groups.get(key)!;
-      group.errorCount += diagnostics.length;
-      group.items.push({
-        subType,
-        uri,
-        diagnostics,
-      });
+  const revealDiagnostic = (entity: EntityDiagnostics, uri: string) => {
+    selectItem({ type: entity.entityType, id: entity.entityId });
+    if (entity.entityType === "place") {
+      codeNavigation.open(uri);
     }
+  };
 
-    return Array.from(groups.values());
-  }, [diagnosticsByUri, petriNetDefinition]);
-
-  const toggleEntity = useCallback((entityKey: string) => {
+  const toggleEntity = (entityKey: string) => {
     setCollapsedEntities((prev) => {
       const next = new Set(prev);
       if (next.has(entityKey)) {
@@ -248,11 +108,13 @@ const DiagnosticsContent: React.FC = () => {
       }
       return next;
     });
-  }, []);
+  };
 
-  const hasSimulationError = simulationState === "Error" && !!simulationError;
-
-  if (totalDiagnosticsCount === 0 && !hasSimulationError) {
+  if (
+    totalDiagnosticsCount === 0 &&
+    !hasSimulationError &&
+    compositionProblems.length === 0
+  ) {
     return (
       <div className={emptyMessageStyle}>No errors detected in your model</div>
     );
@@ -260,6 +122,9 @@ const DiagnosticsContent: React.FC = () => {
 
   return (
     <>
+      {compositionProblems.length > 0 && (
+        <CompositionDiagnostics problems={compositionProblems} />
+      )}
       {/* Simulation runtime error */}
       {hasSimulationError && (
         <Banner tone="error" className={simulationBannerStyle}>
@@ -294,79 +159,50 @@ const DiagnosticsContent: React.FC = () => {
         </Banner>
       )}
 
-      {groupedDiagnostics.map((group) => {
-        const entityKey = `${group.entityType}:${group.entityId}`;
-        const isExpanded = !collapsedEntities.has(entityKey);
-        const entityLabel = `${ENTITY_LABELS[group.entityType]}: ${group.entityName}`;
+      {entities.map((entity) => {
+        const entityKey = `${entity.entityType}:${entity.entityId}`;
 
         return (
-          <div key={entityKey} className={entityGroupStyle}>
-            {/* Collapsible entity header */}
-            <button
-              type="button"
-              onClick={() => toggleEntity(entityKey)}
-              className={entityButtonStyle}
-            >
-              {isExpanded ? (
-                <Icon name="chevronDown" size="xs" />
-              ) : (
-                <Icon name="chevronRight" size="xs" />
-              )}
-              <span>{entityLabel}</span>
-              <span className={errorCountStyle}>
-                ({group.errorCount} error
-                {group.errorCount !== 1 ? "s" : ""})
-              </span>
-            </button>
+          <DiagnosticsGroup
+            key={entityKey}
+            label={entity.label}
+            count={countOf(entity.errorCount, "error")}
+            hasErrors
+            expanded={!collapsedEntities.has(entityKey)}
+            onToggle={() => toggleEntity(entityKey)}
+          >
+            {entity.documents.map((codeDocument) => (
+              <div key={codeDocument.uri} className={itemGroupStyle}>
+                {codeDocument.part && (
+                  <div className={subTypeStyle}>{codeDocument.part}</div>
+                )}
 
-            {/* Expanded diagnostics */}
-            {isExpanded && (
-              <div className={expandedContentStyle}>
-                {group.items.map((itemGroup) => (
-                  <div
-                    key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
-                    className={itemGroupStyle}
-                  >
-                    {/* Show sub-type for transitions and places */}
-                    {itemGroup.subType && (
-                      <div className={subTypeStyle}>
-                        {SUB_TYPE_LABELS[itemGroup.subType]}
-                      </div>
-                    )}
-
-                    {/* Diagnostics list */}
-                    <ul className={diagnosticsListStyle}>
-                      {itemGroup.diagnostics.map((diagnostic) => (
-                        <li
-                          key={`${group.entityId}-${itemGroup.subType}-${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
-                          className={diagnosticItemStyle}
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleSelectEntity(
-                                group.entityId,
-                                group.entityType,
-                                itemGroup.uri,
-                              )
-                            }
-                            className={diagnosticButtonStyle}
-                          >
-                            <span className={bulletStyle}>•</span>
-                            {diagnostic.message}
-                            <span className={positionStyle}>
-                              (Ln {diagnostic.range.start.line + 1}, Col{" "}
-                              {diagnostic.range.start.character + 1})
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                <ul className={diagnosticsListStyle}>
+                  {codeDocument.diagnostics.map((diagnostic) => (
+                    <li
+                      key={`${diagnostic.range.start.line}:${diagnostic.range.start.character}-${diagnostic.code}`}
+                      className={diagnosticItemStyle}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          revealDiagnostic(entity, codeDocument.uri)
+                        }
+                        className={diagnosticButtonStyle}
+                      >
+                        <span className={bulletStyle}>•</span>
+                        {diagnostic.message}
+                        <span className={positionStyle}>
+                          (Ln {diagnostic.range.start.line + 1}, Col{" "}
+                          {diagnostic.range.start.character + 1})
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
-          </div>
+            ))}
+          </DiagnosticsGroup>
         );
       })}
     </>
@@ -374,20 +210,9 @@ const DiagnosticsContent: React.FC = () => {
 };
 
 /** The Diagnostics tab: the class of the net, then the problems in it. */
-const DiagnosticsPanel: React.FC = () => (
+export const DiagnosticsPanel: React.FC = () => (
   <>
     <NetClassSummary />
     <DiagnosticsContent />
   </>
 );
-
-/**
- * SubView definition for Diagnostics.
- */
-export const diagnosticsSubView: SubView = {
-  id: "diagnostics",
-  title: "Diagnostics",
-  tooltip:
-    "View the class of your net, and the errors and warnings in its code.",
-  component: DiagnosticsPanel,
-};

@@ -1,0 +1,228 @@
+---
+title: Event worker protocol and demand
+description: The messages between a host and the event simulation worker, the demand by time that bounds how far the worker computes, and when a batch of events leaves the worker.
+sidebar_order: 10
+---
+
+import { Sequence } from "@diagrams/sequence";
+
+The event simulation worker advances one run and posts the events it records.
+The editor's Quick Simulation runs in it. `messages.ts` in this folder defines
+every message, `event-simulation.worker.ts` is the worker's end, and
+`createEventSimulation` in `../runtime.ts` is the host's end. The host bounds
+the worker by time: it demands the time the trace is to cover, and the worker
+computes until its trace covers that time, then waits.
+
+A time is in the unit of the run's clock: simulated seconds for a timed net,
+steps for an untimed one. `clock` of the `EventSimulation` handle says which.
+
+## Messages
+
+**Host to worker**, the type `ToEventWorkerMessage`:
+
+| Type     | Payload                                                                                                    | Effect                                                                                                                                                  |
+| -------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init`   | `sdcpn`, `extensions`, `initialMarking`, `parameterValues`, `seed`, `maxTime`, `hirArtifacts`, `simulator` | Builds the stepper of the selected simulator and a trace recorder over it, posts `events` with the initial event, then `ready`. Resets the demand to 0. |
+| `start`  | none                                                                                                       | Starts the compute loop. Ignored while the loop runs and after `complete` or `error`. Answered with `error` when nothing is initialized.                |
+| `pause`  | none                                                                                                       | Stops the loop, posts what is pending as `events`, then `paused`. The run and its trace recorder stay.                                                  |
+| `stop`   | none                                                                                                       | Discards the run. A later `start` is answered with `error`.                                                                                             |
+| `demand` | `time`                                                                                                     | Sets the time the worker may compute to. The latest demand stands, a lower one included.                                                                |
+
+**Worker to host**, the type `ToEventMainMessage`:
+
+| Type       | Payload                 | What the host does with it                                                                                       |
+| ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ready`    | none                    | Sets the status to `Ready` and resolves the promise of `createEventSimulation`.                                  |
+| `events`   | `events`, `coveredTime` | Appends the events to the trace store and publishes `eventCount`, `coveredTime` and the latest event in `trace`. |
+| `paused`   | `time`                  | Sets the status to `Paused`.                                                                                     |
+| `complete` | `reason`, `time`        | Sets the status to `Complete` and emits the reason, `deadlock` or `maxTime`, on the handle's `events` stream.    |
+| `error`    | `message`, `itemId`     | Sets the status to `Error` and emits it. Before `ready` it also rejects the promise and disposes the handle.     |
+
+`events` may be empty: `coveredTime` then says the worker advanced through a
+stretch in which nothing fired. `itemId` names the SDCPN item an error of
+`init` blames, where the thrown error carries one, and is `null` for an error
+of the loop.
+
+An event is a `TraceEvent` of `../trace.ts`: its index, its time, its kind
+(`initial`, `firing` or `reference`), the transitions that fired, the state as
+a frame buffer, and the derivative of every token of a place with dynamics.
+The string pool of the run stays in the worker, so an event carries the
+strings interned since the event before it as `newStrings`, and the trace
+store applies them in order.
+
+## One run, end to end
+
+<Sequence
+  title="Host and event simulation worker, in order"
+  actors={["Host", "Event simulation worker"]}
+  rows={[
+    {
+      direction: "right",
+      label: "`init`",
+      note: "Builds the stepper and the trace recorder",
+    },
+    {
+      direction: "left",
+      label: "`events`",
+      note: "The initial event, with `coveredTime` 0",
+    },
+    {
+      direction: "left",
+      label: "`ready`",
+      note: "The promise resolves; the status becomes `Ready`",
+    },
+    {
+      direction: "right",
+      label: "`start`",
+      note: "The host sets `Running` and the loop starts",
+    },
+    {
+      phase:
+        "The loop waits: the demand is 0, and the recorder is already at time 0.",
+    },
+    {
+      direction: "right",
+      label: "`demand(t)`",
+      note: "The viewed time plus the lead of the play mode",
+    },
+    {
+      direction: "left",
+      label: "`events`",
+      note: "One batch per flush, until the trace covers `t`",
+    },
+    {
+      direction: "right",
+      label: "`demand(t')`",
+      note: "Sent again as the viewed time moves on",
+    },
+    {
+      direction: "left",
+      label: "`events`",
+      note: "The last batch, posted before the run is reported over",
+    },
+    {
+      direction: "left",
+      label: "`complete`",
+      note: "Deadlock, or `maxTime` reached",
+    },
+  ]}
+/>
+
+The last batch leaves before `complete`: the loop flushes what is pending and
+then posts the message that ends the run. A host that stops listening on
+`complete` has every event.
+
+## Demand by time
+
+The worker computes nothing past the latest demand. `computeLoop` in
+`event-simulation.worker.ts` reads `demandedTime` before every slice of work:
+
+```js
+while (isRunning) {
+  if (recorder.time >= demandedTime) {
+    flushIfDue(false);
+    await delay(10); // wait for a demand
+    continue;
+  }
+  // advance until the batch is full, the demand is met or the slice is over
+  flushIfDue(stopped);
+  if (stopped) return; // after posting `complete` or `error`
+  await delay(0); // let pause, stop and demand in
+}
+```
+
+- After `init` the demand is 0, so a started worker waits until the first
+  `demand`. Starting a run is two steps, `start` and a `demand`.
+- The demand bounds the loop, and an advance is never cut short to meet it. A
+  stepper that draws random numbers per span has to take the same spans
+  whenever it is asked, so the last advance may carry the run past the demand.
+- A lower demand does not rewind: what is computed stays, and the worker
+  waits. The test "computes no further than the latest demand, even a lower
+  one" in `event-simulation.worker.test.ts` holds this point. No test holds
+  the one before it.
+- One slice of advances lasts at most `COMPUTE_SLICE_MS`, 12 ms. The loop then
+  yields, so a `pause` or a new `demand` is read within that time.
+
+In the editor, `EventPlaybackProvider` of
+[event playback](layer:react.event-playback) sends the demands. Its target is
+the viewed time plus the lead of the play mode, from `EVENT_PLAY_MODE_LEAD`
+in [playback](layer:core.playback):
+
+| Play mode       | Lead              | Demand                                                                                   |
+| --------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| `viewOnly`      | none              | Never sent: the trace is viewed as far as it is computed.                                |
+| `computeBuffer` | 2                 | Sent again once the target has moved by a sixtieth of a unit.                            |
+| `computeMax`    | positive infinity | Sent with every change of the playback state: the worker computes to the end of the run. |
+
+A change to a compute mode sends a demand afresh. That takes the worker's
+target back down when the mode goes from `computeMax` to `computeBuffer`. A
+change to `viewOnly` sends none: the provider pauses the run, and the worker
+keeps its last target for the next `start`.
+
+## When a batch leaves
+
+The worker collects advances and events and posts them as one `events`
+message. `shouldFlush` in `flush-policy.ts` decides when:
+
+| A batch leaves when                                           | Constant            | Reason                                                                                        |
+| ------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------- |
+| It holds 2,000 advances                                       | `FLUSH_ADVANCES`    | That many advances are worth a message, with or without an event among them.                  |
+| It holds 256 events                                           | `FLUSH_EVENTS`      | A burst of firings streams and does not arrive as one large message.                          |
+| It holds an advance and 100 ms have passed since the last one | `FLUSH_INTERVAL_MS` | A worker that keeps up with a demand that rises every frame would otherwise post every frame. |
+| The run stops, by completion or by an error                   | none                | The host has every event before it hears that the run is over.                                |
+
+`pause` flushes whatever is pending without asking the policy. Each post makes
+the host's stores publish and their readers render, so the interval bounds
+the host's work per second while the worker keeps up with playback.
+`flush-policy.test.ts` holds the rows of the table.
+
+## Lifecycle
+
+The handle's `status` store holds the host's state:
+
+```text
+Initializing ──ready──▶ Ready ──run()──▶ Running ──paused──▶ Paused
+                                    ▲                    │
+                                    └────── run() ───────┘
+                          Running ──complete──▶ Complete
+                          any     ──error─────▶ Error
+```
+
+`run()` sets `Running` and sends `start` without waiting for the worker. The
+worker keeps a smaller status of its own, in which `complete` and `error` are
+final: a `start` after either is ignored, and the host's `Running` would then
+name a run the worker no longer advances. The editor does not call `run()` on
+such a run: `EventPlaybackProvider` holds the play mode at `viewOnly` once
+the status is `Complete` or `Error`.
+
+`dispose()` sends `stop` and terminates the transport. An abort of the
+`signal` given to `createEventSimulation` disposes the handle, and rejects the
+promise with an `AbortError` when it comes before `ready`.
+
+A `start` that follows a `pause` starts a new loop. Each loop has a number,
+and a loop that wakes from a wait to find a newer one stops, so two loops
+never advance one recorder.
+
+## What the host's end does
+
+`createEventSimulation` does this around the messages:
+
+- **Prepares the net.** It removes what the disabled extensions cover and
+  sends that net in `init`. It flattens the component instances for the trace
+  store only, so the store's frame layout matches the one the worker builds
+  after flattening.
+- **Queues until the worker boots.** `createWorkerTransport` in
+  `../../worker-transport.ts` holds the messages sent before the worker
+  exists. The config takes a `transport` in place of `createWorker`, so that
+  a test can read and answer the messages. No test calls
+  `createEventSimulation` yet: `event-simulation.worker.test.ts` drives the
+  worker's end alone, so no test holds what the host does with a message.
+- **Keeps every event.** `createInMemoryEventTraceStore` in
+  `../trace-store.ts` refuses an event whose index is not the next one, and a
+  string delta whose base is not the size of its pool.
+- **Publishes.** `status` and `trace` are stores and `events` is a stream, as
+  [the store block](layer:core.store) defines them.
+
+[The life of a run](doc:react.simulation/simulation-session) describes how the
+React layer starts a run on this runtime and reads the state at the viewed
+time.

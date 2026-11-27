@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/path.rs
+description: Empty generic arguments
+expression: Vec<>
+info:
+  kind: Err
+---
+Vec<>
+     ^
+invalid path
+expected `>`

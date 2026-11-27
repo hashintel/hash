@@ -21,12 +21,12 @@ use super::Value;
 ///
 /// ```
 /// use hashql_mir::interpret::value::{Opaque, Value};
-/// # use hashql_core::heap::Heap;
+/// # use hashql_core::heap::{Heap, SymbolAllocator as _};
 /// # extern crate alloc;
 /// # use alloc::rc::Rc;
 ///
 /// let heap = Heap::new();
-/// let name = heap.intern_symbol("UserId");
+/// let name = heap.alloc_symbol("UserId");
 /// let inner = Rc::new(Value::Integer(42.into()));
 ///
 /// let opaque = Opaque::new(name, inner);
@@ -46,13 +46,13 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::{Opaque, Value};
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # extern crate alloc;
     /// # use alloc::rc::Rc;
     ///
     /// let heap = Heap::new();
     /// let opaque = Opaque::new(
-    ///     heap.intern_symbol("Meters"),
+    ///     heap.alloc_symbol("Meters"),
     ///     Rc::new(Value::Integer(100.into())),
     /// );
     /// assert_eq!(opaque.name().as_str(), "Meters");
@@ -72,13 +72,13 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::{Opaque, Value};
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # extern crate alloc;
     /// # use alloc::rc::Rc;
     ///
     /// let heap = Heap::new();
     /// let opaque = Opaque::new(
-    ///     heap.intern_symbol("UserId"),
+    ///     heap.alloc_symbol("UserId"),
     ///     Rc::new(Value::Integer(1.into())),
     /// );
     /// assert_eq!(opaque.name().as_str(), "UserId");
@@ -95,15 +95,12 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::{Opaque, Value};
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # extern crate alloc;
     /// # use alloc::rc::Rc;
     ///
     /// let heap = Heap::new();
-    /// let opaque = Opaque::new(
-    ///     heap.intern_symbol("Tag"),
-    ///     Rc::new(Value::Integer(42.into())),
-    /// );
+    /// let opaque = Opaque::new(heap.alloc_symbol("Tag"), Rc::new(Value::Integer(42.into())));
     /// assert_eq!(opaque.value(), &Value::Integer(42.into()));
     /// ```
     #[inline]
@@ -118,12 +115,12 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::{Opaque, Value};
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # extern crate alloc;
     /// # use alloc::rc::Rc;
     ///
     /// let heap = Heap::new();
-    /// let name = heap.intern_symbol("Counter");
+    /// let name = heap.alloc_symbol("Counter");
     /// let mut opaque = Opaque::new(name, Rc::new(Value::Integer(0.into())));
     ///
     /// *opaque.value_mut() = Value::Integer(42.into());
@@ -143,12 +140,12 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::{Opaque, Value};
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # extern crate alloc;
     /// # use alloc::rc::Rc;
     ///
     /// let heap = Heap::new();
-    /// let name = heap.intern_symbol("UserId");
+    /// let name = heap.alloc_symbol("UserId");
     /// let opaque = Opaque::new(name, Rc::new(Value::Integer(42.into())));
     ///
     /// let inner = opaque.into_value();
@@ -171,12 +168,12 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     ///
     /// ```
     /// use hashql_mir::interpret::value::{Opaque, Value};
-    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::heap::{Heap, SymbolAllocator as _};
     /// # extern crate alloc;
     /// # use alloc::rc::Rc;
     ///
     /// let heap = Heap::new();
-    /// let name = heap.intern_symbol("UserId");
+    /// let name = heap.alloc_symbol("UserId");
     /// let opaque = Opaque::new(name, Rc::new(Value::Integer(42.into())));
     /// assert_eq!(opaque.type_name().to_string(), "UserId(Integer)");
     /// ```

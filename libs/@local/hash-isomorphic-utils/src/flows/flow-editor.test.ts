@@ -560,6 +560,286 @@ describe("createFlowEditor", () => {
     });
   });
 
+  describe("paths", () => {
+    /** `first` → If `check`, whose Yes leads to `yes`. */
+    const loadWithIf = () => {
+      const editor = loadFlow();
+      const check = editor.addStep("if", { after: "first" });
+      const yes = editor.addStep("answerQuestion", {
+        after: check,
+        outputName: "true",
+      });
+
+      return { editor, check, yes };
+    };
+
+    it("removes a connection only on the path named, and puts a step on one path at most", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      editor.removeConnection({ from: check, to: yes });
+      editor.removeConnection({ from: check, to: yes, outputName: "false" });
+      editor.addConnection({ from: check, to: yes, outputName: "false" });
+
+      expect(stepOf(editor, yes)?.runAfter).toEqual([
+        { stepId: check, outputName: "true" },
+      ]);
+    });
+
+    it("sets the one step a path leads to, moving a step from the step's other path, and ends a path", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      editor.setPathTarget(check, "false", "second");
+      expect(stepOf(editor, "second")?.runAfter).toEqual([
+        { stepId: "first" },
+        { stepId: check, outputName: "false" },
+      ]);
+      expect(stepOf(editor, yes)?.runAfter).toEqual([
+        { stepId: check, outputName: "true" },
+      ]);
+
+      editor.setPathTarget(check, "true", "second");
+      expect(stepOf(editor, "second")?.runAfter).toEqual([
+        { stepId: "first" },
+        { stepId: check, outputName: "true" },
+      ]);
+      expect(stepOf(editor, yes)).not.toHaveProperty("runAfter");
+
+      editor.setPathTarget(check, "true", null);
+      expect(stepOf(editor, "second")?.runAfter).toEqual([{ stepId: "first" }]);
+    });
+
+    it("inserts a step into a path, which then leads to the new step", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      const added = editor.addStep("answerQuestion", {
+        into: { from: check, to: yes, outputName: "true" },
+      });
+
+      expect(stepOf(editor, added)?.runAfter).toEqual([
+        { stepId: check, outputName: "true" },
+      ]);
+      expect(stepOf(editor, yes)?.runAfter).toEqual([{ stepId: added }]);
+    });
+
+    it("lists a path the step doesn't have as a problem of the step following it", () => {
+      const { editor, check, yes } = loadWithIf();
+
+      editor.removeConnection({ from: check, to: yes, outputName: "true" });
+      editor.addConnection({ from: check, to: yes, outputName: "maybe" });
+
+      expect(problemCodesOf(editor, yes)).toContain("unknownStepOutput");
+    });
+  });
+
+  describe("for-each steps", () => {
+    const innerStepIdsOf = (editor: FlowEditor, stepId: string) => {
+      const step = stepOf(editor, stepId);
+
+      return step?.kind === "for-each"
+        ? step.steps.map((inner) => inner.stepId)
+        : undefined;
+    };
+
+    it("builds one from nothing, listing what it's missing until its list, a step inside using its item, and what it collects are set", () => {
+      const editor = createFlowEditor({
+        name: "Emails",
+        description: "",
+        inputs: [
+          {
+            name: "companies",
+            payloadKind: "EntityId",
+            array: true,
+            required: true,
+          },
+        ],
+        steps: [],
+        outputs: [],
+      });
+
+      const each = editor.addForEach({ position: { x: 0, y: 0 } });
+
+      expect(problemCodesOf(editor, each)).toEqual([
+        "missingOver",
+        "missingCollect",
+      ]);
+
+      editor.setForEachList(each, {
+        kind: "flow-input",
+        inputName: "companies",
+      });
+      const draft = editor.addStep("draftMessage", {
+        position: { x: 16, y: 40 },
+        inside: each,
+      });
+      /* After a step inside, a step goes inside too. */
+      const extra = editor.addStep("answerQuestion", { after: draft });
+
+      expect(innerStepIdsOf(editor, each)).toEqual([draft, extra]);
+
+      editor.removeStep(extra);
+      editor.setInputSource(draft, "instructions", {
+        kind: "constant",
+        payload: { kind: "Text", value: "Introduce us" },
+      });
+      editor.setInputSource(draft, "entities", { kind: "item", wrap: true });
+
+      expect(problemCodesOf(editor, each)).toEqual(["missingCollect"]);
+
+      editor.setForEachCollect(each, { stepId: draft, outputName: "body" });
+      editor.markFlowOutput(each, "collectedBody");
+
+      expect(stepOf(editor, each)).toStrictEqual({
+        kind: "for-each",
+        stepId: "forEach",
+        description: "",
+        position: { x: 0, y: 0 },
+        over: { kind: "flow-input", inputName: "companies" },
+        steps: [
+          {
+            kind: "action",
+            stepId: "draftMessage",
+            actionDefinitionId: "draftMessage",
+            description: "",
+            position: { x: 16, y: 40 },
+            inputs: {
+              instructions: {
+                kind: "constant",
+                payload: { kind: "Text", value: "Introduce us" },
+              },
+              entities: { kind: "item", wrap: true },
+            },
+          },
+        ],
+        collect: {
+          stepId: "draftMessage",
+          outputName: "body",
+          as: "collectedBody",
+        },
+      });
+      expect(editor.getState().problemsByStepId).toEqual(new Map());
+      expect(editor.getState().flowProblems).toEqual([]);
+    });
+
+    it("points what read its output to the output it collects instead, keeping the flow output's name and how each reads it", () => {
+      const editor = loadFlow();
+      const filter = editor.addStep("filterList", {
+        after: "each",
+        outputName: "explanations",
+      });
+      editor.setInputSource(filter, "items", {
+        kind: "step-output",
+        stepId: "each",
+        outputName: "explanations",
+        whenMissing: "skip",
+      });
+
+      editor.setForEachCollect("each", {
+        stepId: "answer",
+        outputName: "confidence",
+      });
+
+      expect(stepOf(editor, "each")).toMatchObject({
+        collect: {
+          stepId: "answer",
+          outputName: "confidence",
+          as: "collectedConfidence",
+        },
+      });
+      expect(stepOf(editor, filter)).toMatchObject({
+        runAfter: [{ stepId: "each", outputName: "collectedConfidence" }],
+        inputs: {
+          items: {
+            kind: "step-output",
+            stepId: "each",
+            outputName: "collectedConfidence",
+            whenMissing: "skip",
+          },
+        },
+      });
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        {
+          name: "explanations",
+          stepId: "each",
+          outputName: "collectedConfidence",
+        },
+      ]);
+    });
+
+    it("leaves what read its output as problems while it collects nothing, until it collects an output again", () => {
+      const editor = loadFlow();
+
+      editor.setForEachCollect("each", null);
+
+      expect(stepOf(editor, "each")).not.toHaveProperty("collect");
+      expect(problemCodesOf(editor, "each")).toEqual(["missingCollect"]);
+      expect(editor.getState().flowProblems).toMatchObject([
+        { code: "unknownStepOutput", path: ["outputs", 0] },
+      ]);
+
+      editor.setForEachCollect("each", {
+        stepId: "answer",
+        outputName: "explanation",
+      });
+
+      expect(editor.getState().flowDefinition.outputs).toStrictEqual([
+        {
+          name: "explanations",
+          stepId: "each",
+          outputName: "collectedExplanation",
+        },
+      ]);
+      expect(editor.getState().problemsByStepId).toEqual(new Map());
+      expect(editor.getState().flowProblems).toEqual([]);
+    });
+
+    it("collects nothing once the step it collects from is removed, leaving what read its output as problems", () => {
+      const editor = loadFlow();
+
+      editor.removeStep("answer");
+
+      expect(innerStepIdsOf(editor, "each")).toEqual(["answerQuestion"]);
+      expect(stepOf(editor, "each")).not.toHaveProperty("collect");
+      expect(problemCodesOf(editor, "each")).toEqual(["missingCollect"]);
+      expect(editor.getState().flowProblems).toMatchObject([
+        { code: "unknownStepOutput" },
+      ]);
+    });
+
+    it("edits the steps inside it as it does top-level steps, keeping them inside", () => {
+      const editor = loadFlow();
+
+      editor.addConnection({ from: "answer", to: "answerQuestion" });
+      const inserted = editor.addStep("answerQuestion", {
+        into: { from: "answer", to: "answerQuestion" },
+      });
+      editor.moveStep(inserted, { x: 240, y: 40 });
+      editor.setStepDescription(inserted, "Check the answer");
+      editor.setInputSource(inserted, "question", { kind: "item" });
+
+      expect(
+        editor.getState().flowDefinition.steps.map(({ stepId }) => stepId),
+      ).toEqual(["first", "second", "each"]);
+      expect(innerStepIdsOf(editor, "each")).toEqual([
+        "answer",
+        "answerQuestion",
+        inserted,
+      ]);
+      expect(stepOf(editor, "each")).toMatchObject({
+        steps: [
+          {},
+          { runAfter: [{ stepId: inserted }] },
+          {
+            description: "Check the answer",
+            position: { x: 240, y: 40 },
+            inputs: { question: { kind: "item" } },
+            runAfter: [{ stepId: "answer" }],
+          },
+        ],
+      });
+      expect(editor.getState().problemsByStepId).toEqual(new Map());
+    });
+  });
+
   it("disconnects a for-each step from the steps inside it too", () => {
     const definition = structuredClone(flowDefinition);
     const [, , each] = definition.steps;
@@ -579,23 +859,29 @@ describe("createFlowEditor", () => {
     expect(stepOf(editor, "each")).not.toHaveProperty("runAfter");
   });
 
-  it("rejects edits naming a step that isn't a top-level step, a connection or flow input that doesn't exist, or a for-each step's inputs", () => {
+  it("rejects edits naming a step, a connection or a flow input that doesn't exist, a for-each step's inputs, or a flow output inside a for-each step", () => {
     const editor = loadFlow();
 
-    expect(() => editor.moveStep("answerQuestion", { x: 0, y: 0 })).toThrow(
-      'The flow has no top-level step "answerQuestion"',
+    expect(() => editor.moveStep("missing", { x: 0, y: 0 })).toThrow(
+      'The flow has no step "missing"',
     );
-    expect(() =>
-      editor.setStepDescription("answer", "Answer one question"),
-    ).toThrow('The flow has no top-level step "answer"');
     expect(() =>
       editor.addStep("webSearch", { into: { from: "second", to: "first" } }),
     ).toThrow('Step "first" doesn\'t run after step "second"');
     expect(() =>
+      editor.addStep("webSearch", {
+        position: { x: 0, y: 0 },
+        inside: "first",
+      }),
+    ).toThrow('Step "first" isn\'t a for-each step');
+    expect(() =>
       editor.setInputSource("each", "over", explanationOf("first")),
-    ).toThrow('Step "each" is a for-each step, with no inputs');
+    ).toThrow('Step "each" is a for-each step: set its list instead');
+    expect(() => editor.setForEachList("first", null)).toThrow(
+      'Step "first" isn\'t a for-each step',
+    );
     expect(() => editor.markFlowOutput("answer", "explanation")).toThrow(
-      'The flow has no top-level step "answer"',
+      'Step "answer" is inside a for-each step, so its outputs can\'t be flow outputs',
     );
     expect(() =>
       editor.updateFlowInput("Question", { label: "Question" }),
@@ -603,9 +889,7 @@ describe("createFlowEditor", () => {
     expect(() => editor.removeFlowInput("deadline")).toThrow(
       'The flow has no input "deadline"',
     );
-    expect(editor.getState().flowDefinition.inputs).toStrictEqual(
-      flowDefinition.inputs,
-    );
+    expect(editor.getState().flowDefinition).toStrictEqual(flowDefinition);
   });
 
   it("tells subscribers about each edit until they unsubscribe", () => {
@@ -643,7 +927,7 @@ describe("createFlowEditor", () => {
     });
   });
 
-  it("rejects placing a step that isn't a top-level step, leaving every step where it was", () => {
+  it("rejects placing a step that doesn't exist, leaving every step where it was", () => {
     const editor = loadFlow();
     const loaded = editor.getState();
 
@@ -651,10 +935,10 @@ describe("createFlowEditor", () => {
       editor.placeSteps(
         new Map([
           ["first", { x: 10, y: 10 }],
-          ["answerQuestion", { x: 0, y: 0 }],
+          ["missing", { x: 0, y: 0 }],
         ]),
       ),
-    ).toThrow('The flow has no top-level step "answerQuestion"');
+    ).toThrow('The flow has no step "missing"');
     expect(editor.getState()).toBe(loaded);
   });
 });

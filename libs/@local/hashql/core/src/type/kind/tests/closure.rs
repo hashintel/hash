@@ -4,7 +4,7 @@ use rstest::rstest;
 
 use super::ty;
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -737,7 +737,7 @@ fn collect_constraints_with_generic_args() {
         closure!(env, [param1], param1),
         [GenericArgument {
             id: arg1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -747,7 +747,7 @@ fn collect_constraints_with_generic_args() {
         closure!(env, [param2], param2),
         [GenericArgument {
             id: arg2,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1041,7 +1041,7 @@ fn instantiate_closure() {
         closure!(env, [param], param),
         [GenericArgument {
             id: argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1098,7 +1098,7 @@ fn projection() {
 
     let result = lattice.projection(
         closure!(env, [], primitive!(env, PrimitiveType::String)),
-        Ident::synthetic(heap.intern_symbol("foo")),
+        Ident::synthetic(heap.alloc_symbol("foo")),
     );
     assert_eq!(result, Projection::Error);
 

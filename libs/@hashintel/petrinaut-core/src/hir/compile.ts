@@ -2,7 +2,7 @@
  * Compilation of user code through the HIR pipeline.
  *
  * `compileHirArtifacts` batch-compiles a whole SDCPN (root net and all
- * subnets) into serializable artifact sources (`HirArtifacts`) — the only
+ * components) into serializable artifact sources (`HirArtifacts`) — the only
  * runtime compilation path. Per item it produces:
  *
  * - a buffer-ABI program (`emit-buffer-js.ts`) when the code typechecks cleanly
@@ -20,7 +20,7 @@ import {
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 import { createUserKeyedRecord } from "../validation/record-keys";
 import { analyzeHir } from "./analyze";
 import { fingerprintHirCompilationInput } from "./artifact-fingerprint";
@@ -40,7 +40,7 @@ import {
 } from "./surface-context";
 import { typecheckHir } from "./typecheck";
 
-import type { SDCPN, Subnet } from "../types/sdcpn";
+import type { Component, SDCPN } from "../types/sdcpn";
 import type { HirDiagnostic, HirFunction, HirFunctionSurfaceKind } from "./hir";
 import type { HirArtifacts } from "./instantiate";
 import type { HirFunctionContext, HirNetScope } from "./surface-context";
@@ -102,7 +102,7 @@ export function lowerAndCheck(
 
 /**
  * Batch-compiles all dynamics/lambda/kernel code of an SDCPN (root and
- * subnets) to buffer programs — the simulator's only compilation path.
+ * components) to buffer programs — the simulator's only compilation path.
  * Items whose code cannot be lowered, fails the schema typecheck, or does
  * not scalarize to a buffer program are reported in `failures` (mirrored by
  * the LSP as error diagnostics); such items cannot simulate.
@@ -144,20 +144,25 @@ export function compileHirArtifacts(
   const colorById = new Map(
     [
       ...sanitized.types,
-      ...(sanitized.subnets ?? []).flatMap((subnet) => subnet.types),
+      ...(sanitized.components ?? []).flatMap((component) => component.types),
     ].map((color) => [color.id, color]),
   );
 
-  const nets: { net: HirNetScope; subnet: Subnet | null }[] = [
-    { net: sanitized, subnet: null },
-    ...(sanitized.subnets ?? []).map((subnet) => ({ net: subnet, subnet })),
+  const nets: { net: HirNetScope; component: Component | null }[] = [
+    { net: sanitized, component: null },
+    ...(sanitized.components ?? []).map((component) => ({
+      net: component,
+      component,
+    })),
   ];
 
-  for (const { net, subnet } of nets) {
-    const differentialEquations = subnet
-      ? subnet.differentialEquations
+  for (const { net, component } of nets) {
+    const differentialEquations = component
+      ? component.differentialEquations
       : sanitized.differentialEquations;
-    const transitions = subnet ? subnet.transitions : sanitized.transitions;
+    const transitions = component
+      ? component.transitions
+      : sanitized.transitions;
 
     for (const de of differentialEquations) {
       const color = de.colorId ? colorById.get(de.colorId) : undefined;

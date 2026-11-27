@@ -33,6 +33,15 @@
       ]
     },
     "test:unit:bless": {
+      "dependsOn": [
+        "test:unit:ui:bless"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros"
+      ]
+    },
+    "test:unit:ui:bless": {
       "dependsOn": [],
       "cache": false,
       "affectedBy": [

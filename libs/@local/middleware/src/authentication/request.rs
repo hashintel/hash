@@ -544,8 +544,9 @@ mod tests {
         let outcome: Result<ActorId, _> =
             resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
-        assert!(
-            matches!(outcome, Ok(resolved) if resolved == actor_id),
+        assert_matches!(
+            outcome,
+            Ok(resolved) if resolved == actor_id,
             "a verified credential should authenticate its actor"
         );
     }
@@ -597,8 +598,9 @@ mod tests {
         let outcome: Result<Option<ActorId>, _> =
             resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
-        assert!(
-            matches!(outcome, Ok(None)),
+        assert_matches!(
+            outcome,
+            Ok(None),
             "an expired credential should read as anonymous where the chain serves anonymous \
              callers"
         );
@@ -611,14 +613,12 @@ mod tests {
         let outcome: Result<Option<ActorId>, _> =
             resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
-        assert!(
-            matches!(
-                outcome
-                    .expect_err("an unverifiable credential should fail the request")
-                    .current_context()
-                    .kind,
-                AuthenticationErrorKind::ProviderUnreachable
-            ),
+        assert_matches!(
+            outcome
+                .expect_err("an unverifiable credential should fail the request")
+                .current_context()
+                .kind,
+            AuthenticationErrorKind::ProviderUnreachable,
             "the rejection should carry the verification failure"
         );
     }
@@ -634,21 +634,20 @@ mod tests {
 
         let anonymous: Result<Option<ActorId>, _> =
             resolve_request_actor(&chain, &HeaderMap::new(), &test_metrics()).await;
-        assert!(
-            matches!(anonymous, Ok(None)),
+        assert_matches!(
+            anonymous,
+            Ok(None),
             "the expired credential should degrade to anonymous, not to the second credential"
         );
 
         let required: Result<ActorId, _> =
             resolve_request_actor(&chain, &HeaderMap::new(), &test_metrics()).await;
-        assert!(
-            matches!(
-                required
-                    .expect_err("the expired credential should fail where an actor is required")
-                    .current_context()
-                    .kind,
-                AuthenticationErrorKind::InvalidSession
-            ),
+        assert_matches!(
+            required
+                .expect_err("the expired credential should fail where an actor is required")
+                .current_context()
+                .kind,
+            AuthenticationErrorKind::InvalidSession,
             "the rejection should carry the expired credential's reason"
         );
     }

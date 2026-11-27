@@ -16,15 +16,30 @@ export type StepState =
   | "failed"
   | "skipped";
 
+/** A step done with failures reads as done: how many items failed is counted beside it. */
 export const stepStateLabels: Record<StepState, string> = {
-  notReached: "Not reached",
+  notReached: "Waiting",
   running: "Running",
   needsReview: "Needs review",
   done: "Done",
-  doneWithFailures: "Done with failures",
+  doneWithFailures: "Done",
   failed: "Failed",
   skipped: "Skipped",
 };
+
+/**
+ * The state a step shows as. Once its run has ended, a step not reached never will be, so it shows as skipped rather
+ * than waiting. Its card's status bar still draws it as not reached.
+ */
+export const getShownState = (state: StepState, live: boolean): StepState =>
+  !live && state === "notReached" ? "skipped" : state;
+
+/**
+ * A step's state as its card names it for screen readers. Nothing on a card counts its failures, so a step done with
+ * failures says so rather than reading as done.
+ */
+export const getCardStateText = (state: StepState) =>
+  state === "doneWithFailures" ? "Done with failures" : stepStateLabels[state];
 
 /** The state of one item of a for-each step, or of a step inside one for one item. */
 export type ItemState = Exclude<StepState, "doneWithFailures">;

@@ -6,11 +6,7 @@ use core::{
     cmp, fmt,
 };
 
-use hashql_core::{
-    heap::{FromIn as _, TryCloneIn},
-    symbol::Symbol,
-    value::String,
-};
+use hashql_core::{heap::CloneIn, symbol::Symbol, value::String};
 
 /// Internal storage for string values.
 enum StrInner<'heap, A: Allocator> {
@@ -226,13 +222,44 @@ impl<A: Allocator> Ord for Str<'_, A> {
     }
 }
 
-impl<'heap, A: Allocator, B: Allocator> TryCloneIn<B> for Str<'heap, A> {
+impl<'heap, A: Allocator, B: Allocator> CloneIn<B> for Str<'heap, A> {
     type Cloned = Str<'heap, B>;
 
-    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
+    fn try_clone_in(&self, alloc: B) -> Result<Self::Cloned, AllocError> {
         match &self.inner {
-            StrInner::Owned(value) => Ok(Str::from(Rc::from_in(&**value, allocator))),
+            StrInner::Owned(value) => Rc::try_clone_from_ref_in(&**value, alloc).map(Str::from),
             &StrInner::Interned(symbol) => Ok(Str::from(symbol)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::rc::Rc;
+    use core::{alloc::AllocError, assert_matches};
+
+    use hashql_core::heap::{CloneIn as _, ScopeAllocator as _, Scratch};
+
+    use super::Str;
+
+    #[test]
+    fn clone_owned_in() {
+        let scratch = Scratch::new();
+        let owned = Str::from(Rc::<str>::from("abc"));
+
+        let cloned = owned.clone_in(&scratch);
+
+        assert_eq!(cloned.as_str(), "abc");
+    }
+
+    #[test]
+    fn clone_owned_in_claimed_arena() {
+        let scratch = Scratch::new();
+        let arena = scratch.as_scope();
+        let owned = Str::from(Rc::<str>::from("abc"));
+
+        arena.scoped_ref(|_| {
+            assert_matches!(owned.try_clone_in(arena), Err(AllocError));
+        });
     }
 }

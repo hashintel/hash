@@ -75,7 +75,7 @@ const placeNamed = (id: string, name: string) => ({
   x: 0,
   y: 0,
 });
-const place = { ...placeNamed("queue", "Queue"), targetSubnetId: null };
+const place = { ...placeNamed("queue", "Queue"), targetComponentId: null };
 /** Two places and a transition taking one token from the first. */
 const servedNet: SDCPN = {
   ...emptyNet,
@@ -337,7 +337,7 @@ test("a HASH remove waits on the destructive-edit card, which offers Always allo
   const input = { editor_id: hashProcessEditorId, placeId: "queue" };
   const { outcome } = await runIssuedCall("petrinaut_remove_place", input, {
     initial: servedNet,
-    admit: createBrunchMutationAdmission(coordinator),
+    admit: createBrunchMutationAdmission(coordinator, () => undefined),
   });
   await vi.waitFor(() => expect(coordinator.hasPending("call")).toBe(true));
   const Card = createBrunchMutationApprovalWidget(

@@ -2,11 +2,14 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { Button, Form, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { generateFlowTriggersPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { findStep } from "./shared/find-step";
+import { useItemNames } from "./shared/item-name";
 import { getOutputLabel } from "./shared/name-label";
+import { getRunBlocker } from "./shared/run-form";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
   getActionDefinition,
@@ -14,16 +17,28 @@ import {
   startDisplay,
 } from "./shared/step-display";
 import { StepIconTile } from "./shared/step-icon-tile";
+import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
-import { getFieldProblems } from "./step-panel/field-problems";
+import { AggregationField } from "./step-panel/aggregation-field";
+import { ConditionField } from "./step-panel/condition-field";
+import {
+  getFieldProblems,
+  getForEachFieldProblems,
+} from "./step-panel/field-problems";
 import { FlowInputCard } from "./step-panel/flow-input-card";
+import { CollectField, ListField } from "./step-panel/for-each-fields";
 import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
+import { OutputField } from "./step-panel/output-field";
+import { PathsField } from "./step-panel/paths-field";
 import { QueryField } from "./step-panel/query-field";
-import { UsedByField } from "./step-panel/used-by-field";
+import { SortKeyField } from "./step-panel/sort-key-field";
+import { TriggersPanelBody } from "./step-panel/triggers-panel";
 
+import type { FlowSchedules } from "./shared/flow-triggers";
 import type { StepTone } from "./shared/step-display";
-import type { FlowValue } from "./shared/value-uses";
+import type { FlowValue, ValueUse } from "./shared/value-uses";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { IconName } from "@hashintel/ds-components";
 import type { ConnectionTarget } from "@local/hash-isomorphic-utils/flows/can-connect";
 import type {
@@ -33,18 +48,33 @@ import type {
 import type {
   FlowDefinition,
   InputDefinition,
+  PayloadKind,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
 
-type StepsUsing = (value: FlowValue) => StepDefinition<string>[];
+type UsesOf = (value: FlowValue) => ValueUse[];
 
-const takesEntityQuery = (input: InputDefinition) =>
-  "oneOfPayloadKinds" in input &&
-  input.oneOfPayloadKinds.includes("EntityQuery");
+const takesKind = (input: InputDefinition, kind: PayloadKind) =>
+  "oneOfPayloadKinds" in input && input.oneOfPayloadKinds.includes(kind);
 
-/** What the panel shows: the start step, or one step at any depth. */
-export type StepPanelSubject = { start: true } | { stepId: string };
+/** The field for an input: a builder for a query, a condition, a sort or an aggregation, otherwise a menu of values. */
+const getFieldFor = (input: InputDefinition) =>
+  takesKind(input, "EntityQuery")
+    ? QueryField
+    : takesKind(input, "FilterCondition")
+      ? ConditionField
+      : takesKind(input, "SortKey")
+        ? SortKeyField
+        : takesKind(input, "Aggregation")
+          ? AggregationField
+          : InputField;
+
+/** What the panel shows: the flow's triggers, the start step, or one step at any depth. */
+export type StepPanelSubject =
+  | { triggers: true }
+  | { start: true }
+  | { stepId: string };
 
 const header = css({ display: "flex", alignItems: "center", gap: "3" });
 const headerText = css({
@@ -61,8 +91,13 @@ const headerSubtitle = css({
 });
 const headerGroup = css({ flexShrink: "0", whiteSpace: "pre" });
 const headerDescription = css({ flex: "1", minWidth: "0" });
+/* A for-each's derived name is what the step is called, so it reads as a description would, not as a hint. */
+const derivedDescription = css({
+  "& input::placeholder": { color: "[inherit]" },
+});
 const empty = css({ textStyle: "sm", color: "fg.subtle" });
 const addInputButton = css({ alignSelf: "flex-start" });
+const triggerLinks = css({ display: "flex", gap: "2" });
 
 /** The step's tile in its hue, then its type, then "Group · description" with the description given as `children`. */
 const PanelHeader = ({
@@ -100,14 +135,66 @@ const newInputTarget: ConnectionTarget = {
   required: true,
 };
 
+const TriggersPanel = ({
+  flowDefinitionEntityId,
+  schedules,
+  addBlocker,
+}: {
+  flowDefinitionEntityId: EntityId;
+  schedules: FlowSchedules;
+  /** Why a trigger can't be added, as a flow that can't run can't be scheduled, or `null` if it can. */
+  addBlocker: string | null;
+}) => {
+  /* The panel is inert under the sheet "Show all" opens, so Tab and Esc stay in the sheet. */
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  return (
+    <SidePanel label="Triggers" inert={sheetOpen}>
+      <PanelHeader icon="lightning" tone="neutral" title="Triggers">
+        What can start this flow
+      </PanelHeader>
+      <TriggersPanelBody
+        schedules={schedules}
+        sheetOpen={sheetOpen}
+        onSheetOpenChange={setSheetOpen}
+      />
+      <div className={triggerLinks}>
+        <Button
+          variant="ghost"
+          tone="neutral"
+          size="sm"
+          href={generateFlowTriggersPath({ flowDefinitionEntityId, add: true })}
+          iconName="plus"
+          disabled={addBlocker !== null}
+          tooltip={addBlocker ?? undefined}
+        >
+          Add trigger
+        </Button>
+        <Button
+          variant="subtle"
+          tone="neutral"
+          size="sm"
+          href={generateFlowTriggersPath({ flowDefinitionEntityId })}
+          iconName="arrowRight"
+          iconPosition="right"
+        >
+          Edit flow triggers
+        </Button>
+      </div>
+    </SidePanel>
+  );
+};
+
 const StartPanel = ({
   editor,
   flowDefinition,
-  stepsUsing,
+  usesOf,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
-  stepsUsing: StepsUsing;
+  usesOf: UsesOf;
+  onSelectStep: (stepId: string) => void;
 }) => {
   /* The input "Add input" added last, whose label is ready to type in. */
   const [addedName, setAddedName] = useState<string | null>(null);
@@ -154,8 +241,9 @@ const StartPanel = ({
             key={key}
             editor={editor}
             input={input}
-            usedBy={stepsUsing({ kind: "flow-input", inputName: input.name })}
+            valueUses={usesOf({ kind: "flow-input", inputName: input.name })}
             autoFocus={input.name === addedName}
+            onSelectStep={onSelectStep}
           />
         ))}
         <Button
@@ -176,21 +264,22 @@ const SelectedStepPanel = ({
   editor,
   flowDefinition,
   problemsByStepId,
-  stepsUsing,
+  usesOf,
   step,
-  inner,
   onSelectStart,
+  onSelectStep,
 }: {
   editor: FlowEditor;
   flowDefinition: FlowDefinition<string>;
   problemsByStepId: FlowEditorState["problemsByStepId"];
-  stepsUsing: StepsUsing;
+  usesOf: UsesOf;
   step: StepDefinition<string>;
-  /** Inside a for-each step, so read-only (FE-1915). */
-  inner: boolean;
   onSelectStart: () => void;
+  onSelectStep: (stepId: string) => void;
 }) => {
   const { title, icon, tone, group } = getStepDisplay(step);
+  const getItemName = useItemNames(flowDefinition);
+  const paths = getStepPaths(step);
   const actionDefinition =
     step.kind === "action"
       ? getActionDefinition(step.actionDefinitionId)
@@ -201,7 +290,9 @@ const SelectedStepPanel = ({
   const { outputNames, availableToFlow } = useMemo(() => {
     const names =
       step.kind === "for-each"
-        ? [step.collect.as]
+        ? step.collect
+          ? [step.collect.as]
+          : []
         : (actionDefinition?.outputs.map(({ name }) => name) ?? []);
 
     return {
@@ -214,10 +305,42 @@ const SelectedStepPanel = ({
     };
   }, [actionDefinition, flowDefinition, step]);
 
-  const { byInputName, stepProblems } = getFieldProblems(
-    problemsByStepId.get(step.stepId) ?? [],
+  const problems = problemsByStepId.get(step.stepId) ?? [];
+  const { byInputName, stepProblems: otherProblems } = getFieldProblems(
+    problems,
     actionDefinition?.inputs.map(({ name }) => name) ?? [],
   );
+  const { listProblems, collectProblems, stepProblems } =
+    getForEachFieldProblems(otherProblems);
+
+  /* A step that branches on its condition, as If does, sets it on the path it's for, not with its inputs. */
+  const pathConditionInput = paths.some(({ showsCondition }) => showsCondition)
+    ? actionDefinition?.inputs.find((input) =>
+        takesKind(input, "FilterCondition"),
+      )
+    : undefined;
+
+  const renderField = (input: InputDefinition) => {
+    if (!actionDefinition) {
+      return null;
+    }
+
+    const Field = getFieldFor(input);
+
+    return (
+      <Field
+        key={input.name}
+        editor={editor}
+        flowDefinition={flowDefinition}
+        stepId={step.stepId}
+        input={input}
+        actionDefinition={actionDefinition}
+        source={step.kind === "action" ? step.inputs[input.name] : undefined}
+        problems={byInputName.get(input.name) ?? []}
+        onSelectStart={onSelectStart}
+      />
+    );
+  };
 
   return (
     <SidePanel label={title}>
@@ -226,9 +349,14 @@ const SelectedStepPanel = ({
           variant="subtle"
           size="sm"
           value={step.description}
-          placeholder="Add a description…"
+          placeholder={
+            /* With no description, a for-each is named after its list, as on the canvas. */
+            step.kind === "for-each"
+              ? `For each ${getItemName(step.stepId)}`
+              : "Add a description…"
+          }
+          className={step.kind === "for-each" ? derivedDescription : undefined}
           aria-label="Description"
-          readonly={inner}
           onChange={(description) =>
             editor.setStepDescription(step.stepId, description)
           }
@@ -243,30 +371,46 @@ const SelectedStepPanel = ({
       {step.kind === "action" && actionDefinition && (
         <PanelSection title="Inputs">
           <Form.Section>
-            {actionDefinition.inputs.map((input) => {
-              const Field = takesEntityQuery(input) ? QueryField : InputField;
-
-              return (
-                <Field
-                  key={input.name}
-                  editor={editor}
-                  flowDefinition={flowDefinition}
-                  stepId={step.stepId}
-                  input={input}
-                  actionDefinition={actionDefinition}
-                  source={step.inputs[input.name]}
-                  problems={byInputName.get(input.name) ?? []}
-                  readOnly={inner}
-                  onSelectStart={onSelectStart}
-                />
-              );
-            })}
+            {actionDefinition.inputs
+              .filter((input) => input !== pathConditionInput)
+              .map(renderField)}
           </Form.Section>
         </PanelSection>
       )}
-      {/* TODO(FE-1915): edit a for-each step's list and what it collects */}
-      {outputNames.length > 0 && (
+      {paths.length > 0 && (
+        <PanelSection title="Paths">
+          <PathsField
+            editor={editor}
+            flowDefinition={flowDefinition}
+            step={step}
+            paths={paths}
+            condition={pathConditionInput && renderField(pathConditionInput)}
+          />
+        </PanelSection>
+      )}
+      {step.kind === "for-each" && (
+        <PanelSection title="Inputs">
+          <Form.Section>
+            <ListField
+              editor={editor}
+              flowDefinition={flowDefinition}
+              step={step}
+              problems={listProblems}
+            />
+          </Form.Section>
+        </PanelSection>
+      )}
+      {(outputNames.length > 0 || step.kind === "for-each") && (
         <PanelSection title="Outputs">
+          {step.kind === "for-each" && (
+            <Form.Section>
+              <CollectField
+                editor={editor}
+                step={step}
+                problems={collectProblems}
+              />
+            </Form.Section>
+          )}
           <Form.Section>
             {outputNames.map((outputName) => {
               const marked = flowDefinition.outputs.some(
@@ -276,14 +420,14 @@ const SelectedStepPanel = ({
               );
 
               return (
-                <UsedByField
+                <OutputField
                   key={outputName}
                   name={getOutputLabel(
                     actionDefinition?.actionDefinitionId,
                     outputName,
                   )}
                   shape={shapes.getStepOutputShape(step.stepId, outputName)}
-                  usedBy={stepsUsing({
+                  valueUses={usesOf({
                     kind: "step-output",
                     stepId: step.stepId,
                     outputName,
@@ -300,6 +444,7 @@ const SelectedStepPanel = ({
                         }
                       : undefined
                   }
+                  onSelectStep={onSelectStep}
                 />
               );
             })}
@@ -313,29 +458,44 @@ const SelectedStepPanel = ({
 /** The panel beside the canvas for the selected step: its description, the values it takes and those it gives. */
 export const StepPanel = ({
   editor,
+  flowDefinitionEntityId,
   subject,
+  schedules,
   onSelectStart,
+  onSelectStep,
 }: {
   editor: FlowEditor;
+  flowDefinitionEntityId: EntityId;
   subject: StepPanelSubject;
+  schedules: FlowSchedules;
   onSelectStart: () => void;
+  /** Selects a step that uses a value, picked from "Used in". */
+  onSelectStep: (stepId: string) => void;
 }) => {
-  const { flowDefinition, problemsByStepId } = useSyncExternalStore(
-    editor.subscribe,
-    editor.getState,
+  const editorState = useSyncExternalStore(editor.subscribe, editor.getState);
+  const { flowDefinition, problemsByStepId } = editorState;
+  const usesOf = useMemo(
+    () => indexValueUses(flowDefinition.steps),
+    [flowDefinition.steps],
   );
-  const stepsUsing = useMemo<StepsUsing>(() => {
-    const usesOf = indexValueUses(flowDefinition.steps);
 
-    return (value) => usesOf(value).map(({ step }) => step);
-  }, [flowDefinition.steps]);
+  if ("triggers" in subject) {
+    return (
+      <TriggersPanel
+        flowDefinitionEntityId={flowDefinitionEntityId}
+        schedules={schedules}
+        addBlocker={getRunBlocker(editorState)}
+      />
+    );
+  }
 
   if ("start" in subject) {
     return (
       <StartPanel
         editor={editor}
         flowDefinition={flowDefinition}
-        stepsUsing={stepsUsing}
+        usesOf={usesOf}
+        onSelectStep={onSelectStep}
       />
     );
   }
@@ -349,10 +509,10 @@ export const StepPanel = ({
       editor={editor}
       flowDefinition={flowDefinition}
       problemsByStepId={problemsByStepId}
-      stepsUsing={stepsUsing}
+      usesOf={usesOf}
       step={found.step}
-      inner={found.inner}
       onSelectStart={onSelectStart}
+      onSelectStep={onSelectStep}
     />
   ) : null;
 };

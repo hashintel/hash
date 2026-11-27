@@ -1,4 +1,6 @@
 import { stepNoun } from "../shared/step-display";
+import { connectFromNewStep } from "../shared/step-paths";
+import { addPickedStep } from "./canvas-actions";
 
 import type { MenuItem } from "@hashintel/ds-components";
 import type {
@@ -10,28 +12,39 @@ import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 export type ContextTarget =
   | { kind: "step"; stepId: string }
-  | { kind: "port"; stepId: string; side: "input" | "output" }
+  | {
+      kind: "port";
+      stepId: string;
+      side: "input" | "output";
+      /** The path an output port is for, on a step that branches. */
+      outputName?: string;
+    }
   | { kind: "connection"; connection: FlowConnection }
   | { kind: "start-line"; stepId: string }
   | { kind: "selection"; stepIds: string[] };
 
-export type AddStepAt = (
-  actionDefinitionId: string,
-  position: StepPosition,
-) => void;
+/** Adds what was picked (see `addPickedStep`) at `position`, relative to the box it goes in, if any. */
+export type AddStepAt = (addId: string, position: StepPosition) => void;
 
 export const getContextMenuItems = ({
   target,
   editor,
-  topLevelSteps,
+  steps,
   openAddMenu,
   selectStep,
 }: {
   target: ContextTarget | null;
   editor: FlowEditor;
-  topLevelSteps: Map<string, StepDefinition<string>>;
-  /** Opens the "+" list where the menu was opened, and adds the picked action with `addStep`. */
-  openAddMenu: (addStep: AddStepAt) => void;
+  /** Every step at any depth, by id, and the for-each step it's directly inside, if any. */
+  steps: Map<
+    string,
+    { step: StepDefinition<string>; parentStepId: string | null }
+  >;
+  /**
+   * Opens the "+" list where the menu was opened, and adds the picked step with `addStep`, inside `parentStepId` if
+   * it's given.
+   */
+  openAddMenu: (addStep: AddStepAt, parentStepId: string | null) => void;
   selectStep: (stepId: string) => void;
 }): MenuItem[] => {
   const disconnectAll = (
@@ -48,11 +61,14 @@ export const getContextMenuItems = ({
       }
     },
   });
-  const insertStepHere = (addStep: AddStepAt): MenuItem => ({
+  const insertStepHere = (
+    addStep: AddStepAt,
+    parentStepId: string | null = null,
+  ): MenuItem => ({
     id: "insert-step",
     text: `Insert ${stepNoun.singular} here`,
     icon: "plus",
-    onClick: () => openAddMenu(addStep),
+    onClick: () => openAddMenu(addStep, parentStepId),
   });
   const removeConnections = (connections: FlowConnection[]) => {
     for (const connection of connections) {
@@ -61,14 +77,15 @@ export const getContextMenuItems = ({
   };
 
   const getConnections = (stepId: string) => ({
-    incoming: (topLevelSteps.get(stepId)?.runAfter ?? []).map(
-      ({ stepId: from }) => ({ from, to: stepId }),
+    incoming: (steps.get(stepId)?.step.runAfter ?? []).map(
+      ({ stepId: from, outputName }) => ({ from, to: stepId, outputName }),
     ),
-    outgoing: [...topLevelSteps.values()]
-      .filter(({ runAfter }) =>
-        runAfter?.some(({ stepId: from }) => from === stepId),
-      )
-      .map(({ stepId: to }) => ({ from: stepId, to })),
+    outgoing: [...steps.values()].flatMap(
+      ({ step: { stepId: to, runAfter } }) =>
+        (runAfter ?? [])
+          .filter(({ stepId: from }) => from === stepId)
+          .map(({ outputName }) => ({ from: stepId, to, outputName })),
+    ),
   });
 
   switch (target?.kind) {
@@ -90,7 +107,12 @@ export const getContextMenuItems = ({
     }
     case "port": {
       const { incoming, outgoing } = getConnections(target.stepId);
-      const atPort = target.side === "input" ? incoming : outgoing;
+      const atPort =
+        target.side === "input"
+          ? incoming
+          : outgoing.filter(
+              ({ outputName }) => outputName === target.outputName,
+            );
 
       return [
         {
@@ -115,14 +137,20 @@ export const getContextMenuItems = ({
           icon: "plug",
           onClick: () => editor.removeConnection(connection),
         },
-        insertStepHere((actionDefinitionId, position) =>
-          selectStep(
-            editor.addStep(actionDefinitionId, {
-              into: connection,
-              position,
-            }),
-          ),
-        ),
+        insertStepHere((addId, position) => {
+          const stepId = addPickedStep(editor, addId, {
+            into: connection,
+            position,
+          });
+
+          /* `into` puts the step that followed on no path of the new step. */
+          connectFromNewStep(
+            editor,
+            { stepId, actionDefinitionId: addId },
+            connection.to,
+          );
+          selectStep(stepId);
+        }, steps.get(connection.to)?.parentStepId),
       ];
     }
     case "start-line": {
@@ -130,10 +158,10 @@ export const getContextMenuItems = ({
 
       /* A Start line isn't stored, so the new step just goes before its target. */
       return [
-        insertStepHere((actionDefinitionId, position) => {
-          const stepId = editor.addStep(actionDefinitionId, { position });
+        insertStepHere((addId, position) => {
+          const stepId = addPickedStep(editor, addId, { position });
 
-          editor.addConnection({ from: stepId, to });
+          connectFromNewStep(editor, { stepId, actionDefinitionId: addId }, to);
           selectStep(stepId);
         }),
       ];

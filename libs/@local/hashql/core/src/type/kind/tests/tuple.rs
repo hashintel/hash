@@ -1,7 +1,7 @@
 use core::assert_matches;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -501,8 +501,9 @@ fn simplify_tuple_with_never() {
 
     // The result should be a Never type
     let result_type = env.r#type(result);
-    assert!(
-        matches!(result_type.kind, TypeKind::Never),
+    assert_matches!(
+        result_type.kind,
+        TypeKind::Never,
         "Expected Never, got {:?}",
         result_type.kind
     );
@@ -601,8 +602,9 @@ fn tuple_with_disjoint_field_types() {
 
     // The result should be a Never type
     let result_type = env.r#type(result);
-    assert!(
-        matches!(result_type.kind, TypeKind::Never),
+    assert_matches!(
+        result_type.kind,
+        TypeKind::Never,
         "Expected Never, got {:?}",
         result_type.kind
     );
@@ -897,7 +899,7 @@ fn collect_constraints_generic_params() {
         tuple!(env, [param1]),
         [GenericArgument {
             id: arg1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -907,7 +909,7 @@ fn collect_constraints_generic_params() {
         tuple!(env, [param2]),
         [GenericArgument {
             id: arg2,
-            name: heap.intern_symbol("U"),
+            name: heap.alloc_symbol("U"),
             constraint: None
         }]
     );
@@ -1030,7 +1032,7 @@ fn instantiate_tuple() {
         tuple!(env, [instantiate_param(&env, argument)]),
         [GenericArgument {
             id: argument,
-            name: env.heap.intern_symbol("T"),
+            name: env.heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1069,7 +1071,7 @@ fn projection() {
     let value = tuple!(env, [string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("0")));
+    let projection = lattice.projection(value, Ident::synthetic(heap.alloc_symbol("0")));
 
     assert_eq!(projection, Projection::Resolved(string));
 }
@@ -1084,7 +1086,7 @@ fn projection_out_of_bounds() {
     let value = tuple!(env, [string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("1")));
+    let projection = lattice.projection(value, Ident::synthetic(heap.alloc_symbol("1")));
     assert_eq!(projection, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics().into_vec();
@@ -1105,7 +1107,7 @@ fn projection_not_a_number() {
     let value = tuple!(env, [string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("a")));
+    let projection = lattice.projection(value, Ident::synthetic(heap.alloc_symbol("a")));
     assert_eq!(projection, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics().into_vec();

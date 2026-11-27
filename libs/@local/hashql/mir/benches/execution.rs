@@ -101,7 +101,7 @@ fn execution_analysis(criterion: &mut Criterion) {
 
             let analysis = hashql_mir::pass::execution::ExecutionAnalysis {
                 footprints: &footprints,
-                scratch: &mut *scratch,
+                scratch: &*scratch,
             };
 
             let _result = core::hint::black_box(analysis.run_in(context, body, context.heap));
@@ -120,7 +120,7 @@ fn execution_analysis(criterion: &mut Criterion) {
 
                 let analysis = hashql_mir::pass::execution::ExecutionAnalysis {
                     footprints: &footprints,
-                    scratch: &mut *scratch,
+                    scratch: &*scratch,
                 };
 
                 let _result = core::hint::black_box(analysis.run_in(context, body, context.heap));
@@ -137,7 +137,7 @@ fn execution_analysis(criterion: &mut Criterion) {
 
             let analysis = hashql_mir::pass::execution::ExecutionAnalysis {
                 footprints: &footprints,
-                scratch: &mut *scratch,
+                scratch: &*scratch,
             };
 
             let _result = core::hint::black_box(analysis.run_in(context, body, context.heap));

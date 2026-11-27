@@ -1,0 +1,17 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 7c702ab2ce1232b0ffaabd3b10fa0b1b67e15106..c50b77b0326e41df6ba954053f34cf02be040384 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -1078,7 +1078,11 @@ var FlueExecutionError = class extends Error {
+ * failed/aborted reject with {@link FlueExecutionError}.
+ */
+ async function waitForAgentSubmission(http, admission, options = {}) {
+-	const url = new URL(admission.streamUrl);
++	// Brunch patch (FE-2348): follow this client's own conversation URL when the
++	// admission names the same conversation. The server builds `streamUrl` from
++	// the request it received, so behind a proxy that ends TLS it is `http://`;
++	// an HTTPS page then can't read it, and the settlement never arrives.
++	const url = new URL(pathnameOf(admission.streamUrl) === pathnameOf(http.url("")) ? http.url("") : admission.streamUrl);
+ 	url.searchParams.set("view", "updates");
+ 	let baseOffset = admission.offset;
+ 	let authFailureStreak = 0;

@@ -2,7 +2,7 @@ import { Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { PluginBoundary } from "./plugin-boundary";
-import { useRunningPlugins } from "./plugins-provider";
+import { useRunningPlugins } from "./running-plugins";
 
 import type {
   PluginSettingSpec,

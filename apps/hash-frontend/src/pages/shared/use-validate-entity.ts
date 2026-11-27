@@ -15,7 +15,7 @@ import type {
   PropertyObjectWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { ArrayItemNumberMismatch } from "@local/hash-graph-client/api";
+import type { ArrayItemNumberMismatch } from "@local/hash-graph-client";
 import type {
   EntityValidationReport,
   ObjectValidationReport,

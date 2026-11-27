@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createPetrinaut } from "../../instance";
-import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
+import { isPetrinautId, toPetrinautId } from "../../document/petrinaut-id";
+import { createPetrinaut } from "../../instance/instance";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
 
@@ -224,6 +224,77 @@ describe("createJsonDocHandle", () => {
       dynamicsEnabled: false,
     });
   });
+
+  const kernelCode = "export default TransitionKernel(() => ({}));";
+  const transitionTo = (placeId: string): SDCPN["transitions"][number] => ({
+    id: "tr1",
+    name: "Transition 1",
+    inputArcs: [],
+    outputArcs: [{ placeId, weight: 1 }],
+    lambdaType: "predicate",
+    lambdaCode: "",
+    transitionKernelCode: kernelCode,
+    x: 0,
+    y: 0,
+  });
+
+  // The pass after a change cannot be left out when no extension is
+  // disabled: it is also what removes code a transition cannot have.
+  it("drops the kernel a direct change writes on a transition with no coloured output place, with every extension enabled", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p1",
+        name: "Place 1",
+        colorId: null,
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions.push(transitionTo("p1"));
+    });
+
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe("");
+  });
+
+  it("settles the transitions of a direct change against the places that change leaves", () => {
+    const handle = createJsonDocHandle({ initial: coloured() });
+
+    // A coloured place arrives with the arc that reaches it.
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p2",
+        name: "Place 2",
+        colorId: "t1",
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions.push(transitionTo("p2"));
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe(kernelCode);
+
+    // The place leaves and the arc stays.
+    handle.change((draft) => {
+      draft.places.pop();
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe("");
+
+    // It comes back with a kernel for the transition, in one change.
+    handle.change((draft) => {
+      draft.places.push({
+        id: "p2",
+        name: "Place 2",
+        colorId: "t1",
+        dynamicsEnabled: false,
+        x: 0,
+        y: 0,
+      });
+      draft.transitions[0]!.transitionKernelCode = kernelCode;
+    });
+    expect(handle.doc()?.transitions[0]?.transitionKernelCode).toBe(kernelCode);
+  });
 });
 
 describe("createPetrinaut", () => {
@@ -329,7 +400,7 @@ describe("createPetrinaut", () => {
       stochasticity: false,
       dynamics: false,
       parameters: false,
-      subnets: true,
+      components: true,
     });
   });
 
@@ -351,7 +422,7 @@ describe("createPetrinaut", () => {
       stochasticity: true,
       dynamics: false,
       parameters: true,
-      subnets: true,
+      components: true,
     });
   });
 
@@ -485,6 +556,23 @@ describe("PetrinautDocHandle history", () => {
 
     expect(events).toHaveLength(3);
     expect(events.every((n) => n > 0)).toBe(true);
+  });
+
+  it("names the history entry an undo, a redo or a jump put the document at, and none on an edit", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    const restored: (number | undefined)[] = [];
+    handle.subscribe((event) => restored.push(event.restored?.index));
+
+    handle.change(addType("c1"));
+    handle.change(addType("c2"));
+    handle.history?.undo();
+    handle.history?.undo();
+    handle.history?.redo();
+    handle.history?.goToIndex(2);
+    handle.change(addType("c3"));
+
+    expect(restored).toEqual([undefined, undefined, 1, 0, 1, 2, undefined]);
+    expect(handle.history?.currentIndex.get()).toBe(3);
   });
 
   it("supports goToIndex jumping forward and backward", () => {

@@ -57,7 +57,7 @@ export type ReadItemPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type SupplyChainUserPreferences = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/v/1",
+    "https://hash.ai/@h/types/entity-type/supply-chain-user-preferences/v/2",
   ];
   properties: SupplyChainUserPreferencesProperties;
   propertiesWithMetadata: SupplyChainUserPreferencesPropertiesWithMetadata;

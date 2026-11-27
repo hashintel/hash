@@ -5,7 +5,7 @@
 //! the result. Compilation errors are reported as structured diagnostics with
 //! source spans.
 
-use alloc::sync::Arc;
+use alloc::{alloc::Global, sync::Arc};
 use core::num::NonZero;
 use std::thread::available_parallelism;
 
@@ -18,7 +18,7 @@ use hash_graph_postgres_store::store::postgres::PostgresClient;
 use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_temporal_client::TemporalClient;
 use hashql_core::{
-    heap::{HeapPool, ResetAllocator as _, ScratchPool},
+    heap::{Heap, Pool, ResetAllocator as _, Scratch},
     span::{SpanId, SpanTable},
 };
 use hashql_diagnostics::{IntoStatus as _, Source, Sources, Status, StatusExt as _, Success};
@@ -28,7 +28,7 @@ use hashql_eval::{
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
 use hashql_mir::interpret::Inputs;
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{JsonPointers, span::Span};
 use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
@@ -50,8 +50,8 @@ mod value;
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
 pub struct CompilerContext {
-    pub scratches: ScratchPool,
-    pub heaps: HeapPool,
+    pub scratches: Pool<Scratch, Global>,
+    pub heaps: Pool<Heap, Global>,
     pub pool: LocalPoolHandle,
 }
 
@@ -61,8 +61,8 @@ impl CompilerContext {
     /// `memory_pool_size` bounds the heap and scratch pools; `None` leaves them unbounded.
     /// `exec_pool_size` sets the thread count; `None` uses the number of available CPU cores.
     pub fn new(memory_pool_size: Option<usize>, exec_pool_size: Option<NonZero<usize>>) -> Self {
-        let scratches = memory_pool_size.map_or_else(ScratchPool::new, ScratchPool::bounded);
-        let heaps = memory_pool_size.map_or_else(HeapPool::new, HeapPool::bounded);
+        let scratches = memory_pool_size.map_or_else(Pool::new, Pool::bounded);
+        let heaps = memory_pool_size.map_or_else(Pool::new, Pool::bounded);
 
         let thread_count = exec_pool_size.unwrap_or_else(|| {
             available_parallelism().unwrap_or(const { NonZero::new(4).unwrap() })
@@ -99,8 +99,11 @@ async fn query_local_impl<S>(
     ctx: Arc<CompilerContext>,
     exec: ExecutionContext<S>,
     spans: &mut SpanTable<Span>,
-    query: &[u8],
-) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId>
+    source: &str,
+) -> (
+    Status<OwnedValue, HashQlDiagnosticCategory, SpanId>,
+    JsonPointers,
+)
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
 {
@@ -112,61 +115,69 @@ where
 
     let inputs = Inputs::new(); // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
 
-    let Success {
-        value: mut compilation,
-        advisories,
-    } = Compilation::compile(&heap, &mut scratch, spans, query)?;
+    let (compiled, pointers) = Compilation::compile(&heap, &mut scratch, spans, source);
+    let status = async {
+        let Success {
+            value: mut compilation,
+            advisories,
+        } = compiled?;
 
-    let Success {
-        value: store,
-        advisories,
-    } = exec
-        .store
-        .acquire(exec.temporal.clone())
-        .await
-        .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
-        .into_status()
-        .with_diagnostics(advisories)?;
+        let Success {
+            value: store,
+            advisories,
+        } = exec
+            .store
+            .acquire(exec.temporal.clone())
+            .await
+            .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
+            .into_status()
+            .with_diagnostics(advisories)?;
 
-    let mut policy_components = PolicyComponents::builder(&store, Some(exec.actor_id));
-    policy_components.add_actions(
-        compilation.permissions.actions.iter().copied(),
-        MergePolicies::Yes,
-    );
-    let Success {
-        value: policy_components,
-        advisories,
-    } = policy_components
-        .await
-        .map_err(|report| error::authorization_context_diagnostic(&report, compilation.root_span))
-        .into_status()
-        .with_diagnostics(advisories)?;
-    let property = &*exec.filter_protection;
+        let mut policy_components = PolicyComponents::builder(&store, Some(exec.actor_id));
+        policy_components.add_actions(
+            compilation.permissions.actions.iter().copied(),
+            MergePolicies::Yes,
+        );
+        let Success {
+            value: policy_components,
+            advisories,
+        } = policy_components
+            .await
+            .map_err(|report| {
+                error::authorization_context_diagnostic(&report, compilation.root_span)
+            })
+            .into_status()
+            .with_diagnostics(advisories)?;
+        let property = &*exec.filter_protection;
 
-    let patch = AuthorizationPatch::new(&policy_components, property);
+        let patch = AuthorizationPatch::new(&policy_components, property);
 
-    // TODO: in the future when we cache queries, this will have to clone them, but because this is
-    // oneshot, we can just ignore that for now.
-    for query in compilation.artifact.postgres.iter_mut() {
-        PreparedQueryPatch::new()
-            .layer(&patch)
-            .apply(query, &mut *scratch);
+        // TODO: in the future when we cache queries, this will have to clone them, but because this
+        // is oneshot, we can just ignore that for now.
+        for query in compilation.artifact.postgres.iter_mut() {
+            PreparedQueryPatch::new()
+                .layer(&patch)
+                .apply(query, &mut *scratch);
 
-        scratch.reset();
+            scratch.reset();
+        }
+        drop(scratch);
+
+        let context = compilation.context();
+        let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
+        orchestrator
+            .run(&inputs, compilation.entrypoint, [])
+            .await
+            .into_status()
+            .map_category(|category| {
+                HashQlDiagnosticCategory::Eval(EvalDiagnosticCategory::Orchestrator(category))
+            })
+            .with_diagnostics(advisories)
+            .map_value(OwnedValue::from)
     }
-    drop(scratch);
+    .await;
 
-    let context = compilation.context();
-    let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
-    orchestrator
-        .run(&inputs, compilation.entrypoint, [])
-        .await
-        .into_status()
-        .map_category(|category| {
-            HashQlDiagnosticCategory::Eval(EvalDiagnosticCategory::Orchestrator(category))
-        })
-        .with_diagnostics(advisories)
-        .map_value(OwnedValue::from)
+    (status, pointers)
 }
 
 #[expect(clippy::future_not_send)]
@@ -184,8 +195,8 @@ where
 
     let mut spans = SpanTable::new(source_id);
 
-    let status = query_local_impl(ctx, exec, &mut spans, query.get().as_bytes()).await;
-    status_to_response(status, &sources, &spans, &options)
+    let (status, pointers) = query_local_impl(ctx, exec, &mut spans, query.get()).await;
+    status_to_response(status, &sources, &spans, &pointers, &options)
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.
@@ -256,8 +267,8 @@ pub(crate) struct HashQlRequest {
     request_body = HashQlRequest,
     tag = "HashQL",
     params(
-        ("Interactive" = Option<bool>, Header, description = "When true, error responses are rendered as HTML instead of JSON"),
-        ("Json-Compat" = Option<bool>, Header, description = "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers"),
+        ("Interactive" = Option<String>, Header, nullable = false, description = "When true, error responses are rendered as HTML instead of JSON"),
+        ("Json-Compat" = Option<String>, Header, nullable = false, description = "When true, serializes the result as plain JSON values, stripping HashQL-specific type wrappers"),
     ),
     responses(
         (status = 200, content_type = "application/json", description = "Query executed successfully"),

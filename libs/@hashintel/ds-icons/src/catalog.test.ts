@@ -84,6 +84,20 @@ describe("icon catalog metadata", () => {
   );
 
   it.each([
+    "logicAnd",
+    "logicOr",
+    "logicNot",
+    "logicImplies",
+    "logicEquivalent",
+    "logicForAll",
+    "logicExists",
+    "logicNext",
+    "logicUntil",
+    "logicBranching",
+    "logicInvariant",
+    "logicCounterexample",
+    "logicConstraint",
+    "logicRobustness",
     "logicSignalBounded",
     "logicSignalThreshold",
     "logicSignalClock",

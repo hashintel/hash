@@ -102,6 +102,7 @@ export const LiveConversationControl = ({
   inputMode,
   isAiAssistantOpen,
   isDisclosureAcknowledged,
+  readSelection,
   registerVoiceModeSessionControls,
   reportVoiceSessionState,
   setVoiceActive,
@@ -161,6 +162,7 @@ export const LiveConversationControl = ({
   const bridge = useRef<LiveBrunchBridge | null>(null);
   const latest = useRef({
     submit,
+    readSelection,
     messages,
     toolApprovalState,
     chat: {
@@ -198,6 +200,7 @@ export const LiveConversationControl = ({
     );
     latest.current = {
       submit,
+      readSelection,
       messages,
       toolApprovalState,
       chat: {
@@ -213,6 +216,7 @@ export const LiveConversationControl = ({
     bridge.current?.update(latest.current.chat);
   }, [
     submit,
+    readSelection,
     messages,
     status,
     stopped,
@@ -381,6 +385,7 @@ export const LiveConversationControl = ({
       },
       interviewBudgetLevel,
       readWords,
+      () => latest.current.readSelection(),
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);

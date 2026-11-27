@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createReusableWorkerFactory } from "./reusable-worker-factory";
 
-import type { WorkerLike } from "../../../environment";
+import type { WorkerLike } from "../../../environment/environment";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,

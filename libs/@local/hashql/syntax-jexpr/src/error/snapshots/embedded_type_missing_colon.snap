@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1, \"#type\": \"(name: String, age Int)\"}"
+---
+error[jexpr::parser::string::invalid-type]: Invalid type annotation
+  ╭▸ 
+1 │ {"#literal": 1, "#type": "(name: String, age Int)"}
+  │                 ┬──────                      ━ expected `:`, found `I`
+  │                 │
+  │                 in this `#type` annotation
+  │
+  ╰ note: types support paths (`Int`, `List<T>`), tuples (`(A, B)`), structs (`(a: A)`), unions (`A | B`), intersections (`A & B`), and `_`

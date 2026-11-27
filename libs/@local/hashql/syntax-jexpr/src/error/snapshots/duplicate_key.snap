@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1, \"#literal\": 2}"
+---
+error[jexpr::parser::object::duplicate-key]: Duplicate key in object
+  ╭▸ 
+1 │ {"#literal": 1, "#literal": 2}
+  │  ┬─────────     ━━━━━━━━━━ duplicate key `#literal`
+  │  │
+  │  first occurrence of `#literal` here
+  │
+  ├ help: remove one of the duplicate `#literal` entries
+  ╰ note: object keys must be unique within the same object

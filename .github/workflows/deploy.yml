@@ -37,10 +37,11 @@ jobs:
   # Only the top of a stack runs this workflow: it contains every layer below
   # it. The two root jobs carry the condition; every other job needs them.
   setup:
+    name: Setup
     if: >-
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -227,10 +228,11 @@ jobs:
           echo "backend-manifests=$MANIFEST_MATRIX" | tee -a "$GITHUB_OUTPUT"
 
   sccache-credentials:
+    name: Sccache credentials
     if: >-
       github.event.pull_request.stack == null
       || github.event.pull_request.stack.position == github.event.pull_request.stack.size
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       id-token: write
@@ -258,7 +260,7 @@ jobs:
     # Fork-only check applies to PRs — the Vault role for SENTRY_AUTH_TOKEN
     # isn't reachable from forks.
     if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # The environment lands in the OIDC token as a claim the Vault role binds,
     # and `main` only accepts the main branch. Picking the tier here is
     # therefore not self-asserted.
@@ -321,7 +323,7 @@ jobs:
 
   build:
     name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
-    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     needs: [setup]
     if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
     # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
@@ -335,7 +337,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
       # Tag-list assembly. The dynamic matrix already filtered the (service,
       # arch) entries to what should build, so this step only decides whether
@@ -445,7 +448,7 @@ jobs:
 
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [setup, build]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
     # Serialize the `:latest` multi-arch manifest per service so a newer push's
@@ -460,7 +463,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6.0.2
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
         with:
           # tag-if-newer (the :latest guard) needs full history.
           fetch-depth: 0
@@ -519,7 +523,7 @@ jobs:
   # run, which reports its own outcome.
   promote:
     name: Promote to staging
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [setup, build]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-images).include[0] != null
     # The Vault role binds this environment, which accepts only the main branch.
@@ -550,7 +554,7 @@ jobs:
     name: Deployments passed
     needs: [setup, sccache-credentials, sourcemaps, build, manifest, promote]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check setup
         run: |

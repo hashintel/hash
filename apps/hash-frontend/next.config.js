@@ -1,5 +1,5 @@
 import bundleAnalyzer from "@next/bundle-analyzer";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { config } from "dotenv-flow";
 import webpack from "webpack";
 
@@ -14,10 +14,9 @@ const withBundleAnalyzer = bundleAnalyzer({
 config({ silent: true, path: "../.." });
 
 /**
- * @type {import('@sentry/nextjs').SentryBuildOptions}
+ * @type {import('@sentry/nextjs/config').SentryBuildOptions}
  */
 const sentryWebpackPluginOptions = {
-  disableLogger: true,
   reactComponentAnnotation: {
     enabled: true,
   },
@@ -25,6 +24,11 @@ const sentryWebpackPluginOptions = {
     name: buildStamp,
   },
   silent: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
   widenClientFileUpload: true,
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
@@ -90,6 +94,11 @@ export default withSentryConfig(
           {
             source: "/@:shortname/types",
             destination: "/@/:shortname?tab=Types",
+          },
+          {
+            source:
+              "/@:shortname/types/:typeKind(data-type|entity-type|property-type|link-type)s",
+            destination: "/@/:shortname?tab=Types&typeKind=:typeKind",
           },
           {
             source: "/@:shortname/:path*",

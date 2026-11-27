@@ -17,6 +17,7 @@ import {
 import {
   fileFlowDefinition,
   forEachFlowDefinition,
+  ifPathsFlowDefinition,
 } from "./testing/flow-definitions.js";
 
 import type { FlowRunReplay } from "./replay-flow-run-events.js";
@@ -427,6 +428,113 @@ describe("replayFlowRunEvents", () => {
 
     expect(replay.problems).toEqual([]);
     expect(replay.skippedStepRuns).toEqual([getStepRun]);
+  });
+
+  describe("a run of a flow with an if", () => {
+    const stepRun = (stepId: string) => ({ stepId, itemPath: [] });
+
+    const succeeded = (
+      stepId: string,
+      stepType: string,
+      outputName: string,
+    ): UnplacedEvent[] => [
+      { kind: "stepStarted", stepRun: stepRun(stepId), stepType, inputs: [] },
+      { kind: "attemptStarted", stepRun: stepRun(stepId), attempt: 1 },
+      {
+        kind: "attemptSucceeded",
+        stepRun: stepRun(stepId),
+        attempt: 1,
+        outputs: [
+          { outputName, payload: { kind: "Text", value: "https://a.com" } },
+        ],
+      },
+    ];
+
+    const skipped = (stepId: string): UnplacedEvent => ({
+      kind: "stepSkipped",
+      stepRun: stepRun(stepId),
+      stepType: "getFileFromUrl",
+    });
+
+    const started: UnplacedEvent = {
+      kind: "runStarted",
+      flowInputs: {
+        url: { kind: "Text", value: "https://a.com" },
+        urls: { kind: "Text", value: [] },
+      },
+    };
+
+    const emptyForEach: UnplacedEvent = {
+      kind: "forEachStarted",
+      stepRun: stepRun("each"),
+      itemCount: 0,
+    };
+
+    it("replays the path the if took, and records the steps on the other skipped", async () => {
+      const net = await compileFlowDefinition(ifPathsFlowDefinition);
+
+      const replay = replayFlowRunEvents(
+        net,
+        placed([
+          started,
+          emptyForEach,
+          ...succeeded("check", "if", "false"),
+          skipped("yes"),
+          skipped("afterYes"),
+          ...succeeded("no", "getFileFromUrl", "fileEntity"),
+        ]),
+      );
+
+      expect(replay.problems).toEqual([]);
+      expect(replay.skippedStepRuns).toEqual([
+        stepRun("yes"),
+        stepRun("afterYes"),
+      ]);
+      expect(
+        replay.firings
+          .filter(({ role }) => role === "startStep")
+          .map(({ stepRun: { stepId } }) => stepId),
+      ).toEqual(["check", "no"]);
+      expect(replay.held).toEqual([]);
+    });
+
+    it("holds no start for a step on the path the if didn't take", async () => {
+      const net = await compileFlowDefinition(ifPathsFlowDefinition);
+
+      const replay = replayFlowRunEvents(
+        net,
+        placed([
+          started,
+          emptyForEach,
+          ...succeeded("check", "if", "true"),
+          ...succeeded("yes", "getFileFromUrl", "fileEntity"),
+          ...succeeded("afterYes", "getFileFromUrl", "fileEntity"),
+          skipped("no"),
+        ]),
+      );
+
+      expect(replay.problems).toEqual([]);
+      expect(replay.held).toEqual([]);
+    });
+
+    it("replays a run whose if was skipped", async () => {
+      const net = await compileFlowDefinition(ifPathsFlowDefinition);
+
+      const replay = replayFlowRunEvents(
+        net,
+        placed([
+          started,
+          emptyForEach,
+          ...["check", "yes", "no", "afterYes", "rejoin"].map(skipped),
+        ]),
+      );
+
+      expect(replay.problems).toEqual([]);
+      /* The net has no transition to skip a step, so it still holds the if's start, but nothing on its paths. */
+      expect(replay.held).toEqual([
+        { role: "startStep", stepRun: stepRun("check") },
+      ]);
+    });
   });
 
   it("is empty until the run starts", async () => {

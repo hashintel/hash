@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"a\\0b\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "a\0b"}
+  │                ━━ unknown escape sequence `\0`
+  │
+  ╰ note: valid JSON escapes are `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, and `\uXXXX`
+help: use `\u0000` for the null character
+  ╭╴
+1 │ {"#literal": "a\u0000b"}
+  ╰╴                ++++

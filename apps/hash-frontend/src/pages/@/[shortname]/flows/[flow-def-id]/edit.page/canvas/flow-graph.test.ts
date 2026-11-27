@@ -1,22 +1,30 @@
 import { describe, expect, it } from "vitest";
 
 import { actionStep, flowWith } from "../shared/step-fixtures";
-import { getFlowGraph, getStepNodeId, startNodeId } from "./flow-graph";
+import {
+  getFlowGraph,
+  getStepNodeId,
+  getTriggerNodeId,
+  startNodeId,
+} from "./flow-graph";
 import { collapsedForEachSize } from "./sizes";
 
-import type { ForEachLayout } from "./flow-graph";
+import type { ForEachLayout, TriggerCard } from "./flow-graph";
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const graphOf = (
   steps: StepDefinition<string>[],
   forEachLayouts = new Map<string, ForEachLayout>(),
   collapsedStepIds = new Set<string>(),
+  triggers: TriggerCard[] = [],
 ) =>
   getFlowGraph({
     flowDefinition: flowWith(steps),
     problemsByStepId: new Map(),
     forEachLayouts,
     collapsedStepIds,
+    getItemName: () => "item",
+    triggers,
   });
 
 const linesOf = (graph: ReturnType<typeof graphOf>) =>
@@ -57,7 +65,7 @@ describe("getFlowGraph", () => {
     ).toMatchObject({ deletable: false, selectable: false });
   });
 
-  it("draws a for-each step as a box with its steps inside, which can't be edited, at their laid-out places", () => {
+  it("draws a for-each step as a box sized to the steps inside it, at their saved places, else their laid-out ones", () => {
     const steps: StepDefinition<string>[] = [
       actionStep("list", { position: { x: 0, y: 0 } }),
       {
@@ -70,7 +78,10 @@ describe("getFlowGraph", () => {
           actionStep("inner1", {
             inputs: { entity: { kind: "item" } },
           }),
-          actionStep("inner2", { runAfter: [{ stepId: "inner1" }] }),
+          actionStep("inner2", {
+            runAfter: [{ stepId: "inner1" }],
+            position: { x: 300, y: 60 },
+          }),
         ],
         collect: { stepId: "inner2", outputName: "entities", as: "results" },
       },
@@ -92,20 +103,23 @@ describe("getFlowGraph", () => {
     const box = graph.nodes.find(({ id }) => id === getStepNodeId("forEach"));
     const inner2 = graph.nodes.find(({ id }) => id === getStepNodeId("inner2"));
 
+    /* A card is 200 by 59, with 16 of padding to its right and below: `inner2` reaches furthest both ways. */
     expect(box).toMatchObject({
       type: "forEach",
       position: { x: 300, y: 0 },
-      width: 500,
-      height: 120,
+      width: 300 + 200 + 16,
+      height: 60 + 59 + 16,
     });
-    expect(inner2).toMatchObject({
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("inner1"))?.position,
+    ).toEqual({ x: 16, y: 40 });
+    /* Inside a box, a step is edited as any other, and can be dragged out of it to grow it. */
+    expect(inner2).toEqual({
+      id: getStepNodeId("inner2"),
+      type: "step",
       parentId: getStepNodeId("forEach"),
-      extent: "parent",
-      position: { x: 280, y: 40 },
-      draggable: false,
-      deletable: false,
-      connectable: false,
-      data: { inner: true },
+      position: { x: 300, y: 60 },
+      data: expect.objectContaining({ inner: true }),
     });
     /* A box is drawn before the steps inside it, as React Flow needs. */
     expect(graph.nodes.indexOf(box!)).toBeLessThan(
@@ -116,7 +130,7 @@ describe("getFlowGraph", () => {
       {
         source: getStepNodeId("inner1"),
         target: getStepNodeId("inner2"),
-        kind: "inner",
+        kind: "connection",
       },
       /* The for-each step takes its list from `list`, so runs after it, and no line from Start goes to it. */
       { source: startNodeId, target: getStepNodeId("list"), kind: "start" },
@@ -154,7 +168,7 @@ describe("getFlowGraph", () => {
       {
         source: getStepNodeId("first"),
         target: getStepNodeId("inner"),
-        kind: "inner",
+        kind: "connection",
       },
       { source: startNodeId, target: getStepNodeId("first"), kind: "start" },
     ]);
@@ -166,6 +180,81 @@ describe("getFlowGraph", () => {
       },
       { source: startNodeId, target: getStepNodeId("first"), kind: "start" },
     ]);
+  });
+
+  it("draws a line from the port of the path a step follows, also into a collapsed box that follows another path", () => {
+    const steps: StepDefinition<string>[] = [
+      actionStep("check", {
+        actionDefinitionId: "if",
+        pathNames: { true: "Over budget", false: "Ignored" },
+      }),
+      {
+        kind: "for-each",
+        stepId: "forEach",
+        description: "",
+        runAfter: [{ stepId: "check", outputName: "true" }],
+        over: { kind: "flow-input", inputName: "suppliers" },
+        steps: [
+          actionStep("inner", {
+            runAfter: [{ stepId: "check", outputName: "false" }],
+          }),
+        ],
+        collect: { stepId: "inner", outputName: "entities", as: "results" },
+      },
+    ];
+
+    const graph = graphOf(steps, new Map(), new Set(["forEach"]));
+
+    expect(
+      graph.edges
+        .filter(({ data }) => data?.kind !== "start")
+        .map(({ source, sourceHandle, target, data }) => ({
+          source,
+          sourceHandle,
+          target,
+          kind: data?.kind,
+        })),
+    ).toEqual([
+      {
+        source: getStepNodeId("check"),
+        sourceHandle: "false",
+        target: getStepNodeId("forEach"),
+        kind: "inner",
+      },
+      {
+        source: getStepNodeId("check"),
+        sourceHandle: "true",
+        target: getStepNodeId("forEach"),
+        kind: "connection",
+      },
+    ]);
+    /* Yes takes its new name; No, the catch-all, keeps its own. */
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("check"))?.data,
+    ).toMatchObject({
+      paths: [
+        { outputName: "true", name: "Over budget", connected: true },
+        { outputName: "false", name: "No", connected: true },
+      ],
+      lineFromStep: false,
+    });
+  });
+
+  it("marks a line from a step with paths that leaves none of them, so it isn't drawn from a path's port", () => {
+    const graph = graphOf([
+      actionStep("check", { actionDefinitionId: "if" }),
+      actionStep("either", { runAfter: [{ stepId: "check" }] }),
+    ]);
+
+    expect(
+      graph.nodes.find(({ id }) => id === getStepNodeId("check"))?.data,
+    ).toMatchObject({
+      paths: [
+        { outputName: "true", connected: false },
+        { outputName: "false", connected: false },
+      ],
+      lineFromStep: true,
+    });
   });
 
   it("puts Start a gap to the left of the leftmost step with nothing before it", () => {
@@ -182,5 +271,80 @@ describe("getFlowGraph", () => {
       x: 100 - 200 - 64,
       y: 80,
     });
+  });
+
+  it("stacks the triggers left of Start, centred on it and leading into it, fixed in place", () => {
+    const triggers: TriggerCard[] = [
+      { kind: "manual", line: "On", on: true },
+      { kind: "schedule", line: "1 paused", on: false },
+    ];
+    const graph = graphOf(
+      [actionStep("first", { position: { x: 500, y: 100 } })],
+      new Map(),
+      new Set(),
+      triggers,
+    );
+
+    /* Start is at (236, 100); a card is 200 by 59, with a gap of 64 across and 16 down between triggers. */
+    expect(graph.nodes.slice(0, 2)).toEqual([
+      {
+        id: getTriggerNodeId("manual"),
+        type: "trigger",
+        position: { x: 236 - 200 - 64, y: 100 - (59 + 16) / 2 },
+        data: triggers[0],
+        draggable: false,
+        deletable: false,
+        connectable: false,
+      },
+      {
+        id: getTriggerNodeId("schedule"),
+        type: "trigger",
+        position: { x: 236 - 200 - 64, y: 100 + (59 + 16) / 2 },
+        data: triggers[1],
+        draggable: false,
+        deletable: false,
+        connectable: false,
+      },
+    ]);
+    expect(
+      graph.edges.filter(({ target }) => target === startNodeId),
+    ).toMatchObject([
+      {
+        source: getTriggerNodeId("manual"),
+        data: { kind: "trigger", ghost: true },
+        deletable: false,
+        selectable: false,
+      },
+      {
+        source: getTriggerNodeId("schedule"),
+        data: { kind: "trigger", ghost: true },
+        deletable: false,
+        selectable: false,
+      },
+    ]);
+  });
+
+  it("draws the trigger that started a run with a solid line into Start", () => {
+    const graph = graphOf(
+      [actionStep("first", { position: { x: 500, y: 100 } })],
+      new Map(),
+      new Set(),
+      [
+        {
+          kind: "schedule",
+          line: "Monthly review",
+          on: true,
+          run: {
+            mark: { state: "done", items: null },
+            featured: false,
+            live: false,
+          },
+        },
+      ],
+    );
+
+    expect(
+      graph.edges.find(({ target }) => target === startNodeId)?.data,
+    ).toEqual({ kind: "trigger", ghost: false });
   });
 });

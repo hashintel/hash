@@ -76,7 +76,6 @@ export type ViewportAnimatorOptions = {
   write: (viewport: CanvasViewport) => void;
   /** Whether to ease at all; when not, every move jumps. */
   animated?: () => boolean;
-  omega?: number;
   requestFrame?: (callback: (time: number) => void) => number;
   cancelFrame?: (handle: number) => void;
 };
@@ -85,7 +84,6 @@ export const createViewportAnimator = ({
   read,
   write,
   animated = () => true,
-  omega = defaultOmega,
   requestFrame = (callback) => requestAnimationFrame(callback),
   cancelFrame = (handle) => cancelAnimationFrame(handle),
 }: ViewportAnimatorOptions): ViewportAnimator => {
@@ -121,12 +119,12 @@ export const createViewportAnimator = ({
         : Math.min(maxFrameSeconds, (time - lastTime) / 1_000);
     lastTime = time;
     const next: CameraState = {
-      x: stepCriticalSpring(state.x, target.x, omega, dt),
-      y: stepCriticalSpring(state.y, target.y, omega, dt),
+      x: stepCriticalSpring(state.x, target.x, defaultOmega, dt),
+      y: stepCriticalSpring(state.y, target.y, defaultOmega, dt),
       logZoom: stepCriticalSpring(
         state.logZoom,
         Math.log(target.zoom),
-        omega,
+        defaultOmega,
         dt,
       ),
     };

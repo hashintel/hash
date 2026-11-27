@@ -1,18 +1,19 @@
 /**
  * Structural shorthand for HashQL types and values.
  *
- * {@link type} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link input} accepts the same type shorthand.
+ * {@link "type"} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link @local/hashql#Program.Expression.input | `Expression.input`} accepts the same type shorthand.
  *
  * {@link value} accepts a structural value only when its semantic descriptor matches the requested type. Value construction combines input requirements from every possible host-side alternative. Nested host arrays denote tuples and records denote structs. Construct a nested list or dictionary explicitly before placing it inside another value.
  *
+ * @since 0.1.0
  * @module
  */
 // oxlint-disable max-lines -- type and value shorthand share one definition vocabulary with its guards and normalization
 import { Predicate, Result, Struct, Tuple, pipe } from "effect";
 
+import * as Expression from "../internal/expression.js";
 import * as StructuralSyntax from "../internal/structural.js";
 import * as AST from "./AST/index.js";
-import * as Expression from "./Expression.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Relocation from "../internal/relocation.js";
@@ -27,7 +28,10 @@ interface Fields extends Record.ReadonlyRecord<string, Definition> {}
 /**
  * A type handle, a supported host primitive constructor, a tuple of definitions or a record of field definitions.
  *
- * `BigInt`, `Number`, `String` and `Boolean` denote their HashQL primitive types. Arrays denote tuples, not lists. Use a declared generic type constructor for lists and dictionaries. See {@link type} for normalization.
+ * `BigInt`, `Number`, `String` and `Boolean` denote their HashQL primitive types. Arrays denote tuples, not lists. Use a declared generic type constructor for lists and dictionaries. See {@link "type"} for normalization.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Definition =
   | TypeExpression.TypeExpression.Any
@@ -77,6 +81,9 @@ type TupleValues<T extends readonly Type.Any[]> = {
  * A value accepted for descriptor `T`, including recursive record and tuple shorthand.
  *
  * Nominal descriptors require a matching handle rather than their underlying host representation. Lists and dictionaries likewise require expressions. A host array always denotes a tuple.
+ *
+ * @category Models
+ * @since 0.1.0
  */
 export type Value<T extends Type.Any> =
   | Expression.Value<T>
@@ -93,11 +100,11 @@ export declare namespace Value {
   /**
    * Retains the input requirements of every possible host value.
    *
-   * A TypeScript union represents a host-side choice between values. Both arms may have the same HashQL type while carrying different inputs. Construction can choose either arm, so the resulting expression must require the inputs of both arms. Tuple and record recursion also includes inputs hidden inside structural values.
+   * A TypeScript union represents a host-side choice between values. Both arms may have the same HashQL type while carrying different inputs. Construction can choose either arm, so the resulting expression must require the inputs of both arms. Tuple and record recursion also includes inputs hidden inside structural values. {@link Any} itself cannot show which inputs its values need, so its requirements are {@link Inputs.Erased}.
    */
-  export type Requirements<V extends Any> = Inputs.Conservative<
-    RequirementAlternatives<V>
-  >;
+  export type Requirements<V extends Any> = [Any] extends [V]
+    ? Inputs.Erased
+    : Inputs.Conservative<RequirementAlternatives<V>>;
 
   /** The semantic descriptor of a structural host value, without implicit widening. */
   export type Type<V extends Any> = V extends Expression.Value.Any
@@ -117,9 +124,36 @@ export declare namespace Value {
       ? V
       : never
     : never;
+
+  /**
+   * Accepts a structural value when every array in it has a statically known length.
+   *
+   * A tuple's descriptor has one type per position. A host array such as `readonly string[]` has no positions to describe. `FixedLength` evaluates to `unknown`, which leaves an intersection unchanged, when every array in `V` is a tuple, at any depth and in every host-side alternative. Otherwise it evaluates to `never`, which rejects the value it constrains. It accepts {@link Any} itself, which cannot show the arrays its values hold.
+   */
+  export type FixedLength<V extends Any> = [OpenArray<V>] extends [false]
+    ? // oxlint-disable-next-line typescript/no-restricted-types -- unknown is the identity of an accepted intersection constraint
+      unknown
+    : never;
 }
 
 interface FieldValues extends Record.ReadonlyRecord<string, Value.Any> {}
+
+/** Whether `V` holds an array whose length TypeScript does not know, in any host-side alternative and at any depth. */
+type OpenArray<V extends Value.Any> = [Value.Any] extends [V]
+  ? false
+  : V extends Expression.Value.Any
+    ? false
+    : V extends readonly Value.Any[]
+      ? number extends V["length"]
+        ? true
+        : OpenArrays<V>[number]
+      : V extends FieldValues
+        ? { readonly [K in keyof V]: OpenArray<V[K]> }[keyof V]
+        : false;
+
+type OpenArrays<V extends readonly Value.Any[]> = {
+  readonly [K in keyof V]: OpenArray<V[K]>;
+};
 
 type RequirementAlternatives<V extends Value.Any> =
   V extends Expression.Value.Any
@@ -144,30 +178,12 @@ type RequirementAlternatives<V extends Value.Any> =
           : Inputs.Empty;
 
 /**
- * Accepts arrays and objects whose prototype is `Object.prototype` or `null`.
- *
- * Records compile from their enumerable own string keys. A `Map` or `Date` keeps its contents outside those keys and would compile to an empty struct.
- */
-// oxlint-disable-next-line typescript/no-restricted-types -- the dispatch checks pass arbitrary host values, and `Object.values` reads any object
-const isTupleOrRecord = (value: unknown): value is object => {
-  if (Array.isArray(value)) {
-    return true;
-  }
-
-  if (!Predicate.isObject(value)) {
-    return false;
-  }
-
-  return (
-    Object.getPrototypeOf(value) === Object.prototype ||
-    Object.getPrototypeOf(value) === null
-  );
-};
-
-/**
  * Recognizes recursive type shorthand without confusing primitive values with constructors.
  *
  * This dispatch check examines enumerable own string-keyed values and the SDK type marker. It does not validate field names or stored type syntax. Empty records and arrays qualify, and other objects such as a `Map` do not. Host objects must be acyclic.
+ *
+ * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isDefinition = (value: unknown): value is Definition => {
@@ -184,7 +200,7 @@ export const isDefinition = (value: unknown): value is Definition => {
     return true;
   }
 
-  if (!isTupleOrRecord(value)) {
+  if (!StructuralSyntax.isTupleOrRecord(value)) {
     return false;
   }
 
@@ -195,6 +211,9 @@ export const isDefinition = (value: unknown): value is Definition => {
  * Recognizes structural value arguments, including expressions with type capabilities too.
  *
  * This dispatch check traverses enumerable own string-keyed values without validating field names or stored syntax. Arrays and records qualify, and other objects such as a `Map` do not. Non-finite numbers pass this check too. Validation belongs to {@link value} or {@link toJExpr}. Host objects must be acyclic.
+ *
+ * @category Guards
+ * @since 0.1.0
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isValue = (value: unknown): value is Value.Any => {
@@ -217,7 +236,7 @@ export const isValue = (value: unknown): value is Value.Any => {
     return true;
   }
 
-  if (!isTupleOrRecord(value)) {
+  if (!StructuralSyntax.isTupleOrRecord(value)) {
     return false;
   }
 
@@ -245,6 +264,9 @@ export const isValue = (value: unknown): value is Value.Any => {
  *   '["::kernel::special_form::input","account",{"#struct":{"name":"::kernel::type::String","location":{"#tuple":["::kernel::type::Number","::kernel::type::Number"]}}}]',
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const type = <const D extends Definition>(
   definition: D,
@@ -287,7 +309,12 @@ type ArgumentTypes<A extends readonly Definition[]> = {
   readonly [K in keyof A]: Definition.Type<A[K]>;
 };
 
-/** A named generic type accepting the same shorthand as a local alias. */
+/**
+ * A named generic type accepting the same shorthand as a local alias.
+ *
+ * @category Models
+ * @since 0.1.0
+ */
 export interface Constructor<F extends Type.TypeConstructor>
   extends TypeExpression.Constructor.Any {
   readonly [Relocation.Relocate]: Relocation.Relocatable<
@@ -303,6 +330,9 @@ export interface Constructor<F extends Type.TypeConstructor>
  * Adapts a generic type declaration to accept {@link Definition} shorthand at each argument position.
  *
  * The original constructor still checks arity and retains failed type arguments. Relocation rebuilds the adapter around the new declaration path. Apply the returned constructor before using it as a type.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const constructor = <F extends Type.TypeConstructor>(
   declaration: TypeExpression.Constructor<F>,
@@ -346,6 +376,9 @@ type ValueTypes<V extends readonly Value.Any[]> = {
  *   "#struct": { name: { "#literal": "Ada" }, active: { "#literal": true } },
  * });
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const value =
   <T extends Type.Any>() =>
@@ -355,23 +388,21 @@ export const value =
     pipe(
       input,
       StructuralSyntax.valueNode,
-      StructuralSyntax.fromNode<T, Value.Requirements<V>>,
+      Expression.fromResult<T, Value.Requirements<V>>,
     );
 
 /**
  * Converts structural host values to validated J-Expr syntax without assigning a semantic descriptor.
  *
  * Arrays encode tuples and records encode enumerable own string keys, as in {@link value}. Invalid nested syntax returns a construction failure. Existing handles contribute their stored failures unchanged. Use {@link value} when the result needs a typed expression handle.
+ *
+ * @category Conversions
+ * @since 0.1.0
  */
 export const toJExpr = (
   value: Value.Any,
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
-  pipe(
-    value,
-    StructuralSyntax.valueNode,
-    Result.flatMap(AST.validate),
-    Result.map(AST.compile),
-  );
+  pipe(value, StructuralSyntax.valueNode, Result.map(AST.compile));
 
 /** The arguments after the value, as a tuple so that {@link Annotated} knows whether the call passes an annotation. */
 type Annotation = readonly [] | readonly [type: Definition];
@@ -386,9 +417,9 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
 /**
  * Infers a struct's field descriptors and combines their input requirements.
  *
- * Nested records and arrays follow {@link value}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
+ * Nested records and arrays follow {@link value}, and every array needs a statically known length, as in {@link tuple}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
  *
- * Pass `type`, a type expression or structural shorthand as {@link type} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with `Expression.assume`, and the HashQL compiler does.
+ * Pass `type`, a type expression or structural shorthand as {@link "type"} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with {@link Expression.assume}, and the HashQL compiler does.
  *
  * @example <caption>Infer a record's fields and project one of them.</caption>
  * ```ts
@@ -403,33 +434,39 @@ type Annotated<V extends Value.Any, A extends Annotation> = A extends readonly [
  *   '["::kernel::special_form::access",{"#struct":{"name":{"#literal":"Ada"},"active":{"#literal":true}}},"active"]',
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const struct = <const V extends FieldValues, const A extends Annotation>(
-  fields: V,
+  fields: V & Value.FixedLength<V>,
   ...[type]: A
 ): Expression.Expression<Annotated<V, A>, Value.Requirements<V>> =>
   pipe(
     StructuralSyntax.annotation(type),
     Result.flatMap((type) => StructuralSyntax.structNode(fields, type)),
-    StructuralSyntax.fromNode<Annotated<V, A>, Value.Requirements<V>>,
+    Expression.fromResult<Annotated<V, A>, Value.Requirements<V>>,
   );
 
 /**
  * Infers a fixed-length tuple without merging its positional descriptors.
  *
- * The argument must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}. A `type` annotates the tuple as it does a {@link struct}.
+ * The argument and every array nested in it must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}. A `type` annotates the tuple as it does a {@link struct}.
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 export const tuple = <
   const V extends readonly Value.Any[],
   const A extends Annotation,
 >(
-  members: V & { readonly length: number extends V["length"] ? never : number },
+  members: V & Value.FixedLength<V>,
   ...[type]: A
 ): Expression.Expression<Annotated<V, A>, Value.Requirements<V>> =>
   pipe(
     StructuralSyntax.annotation(type),
     Result.flatMap((type) => StructuralSyntax.tupleNode(members, type)),
-    StructuralSyntax.fromNode<Annotated<V, A>, Value.Requirements<V>>,
+    Expression.fromResult<Annotated<V, A>, Value.Requirements<V>>,
   );
 
 /**
@@ -455,6 +492,9 @@ export const tuple = <
  *   '{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}',
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from its type definition and members
 export const list = <
@@ -474,10 +514,7 @@ export const list = <
     },
     Result.all,
     Result.map(({ type, members }) => new AST.List(members, type)),
-    StructuralSyntax.fromNode<
-      Type.List<Definition.Type<D>>,
-      Value.Requirements<V>
-    >,
+    Expression.fromResult<Type.List<Definition.Type<D>>, Value.Requirements<V>>,
   );
 
 /**
@@ -503,6 +540,9 @@ export const list = <
  *   '{"#dict":[[{"#literal":1},{"#literal":"first"}]],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}',
  * );
  * ```
+ *
+ * @category Constructors
+ * @since 0.1.0
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from independent key and value definitions and entries
 export const dict = <
@@ -529,71 +569,8 @@ export const dict = <
     },
     Result.all,
     Result.map(({ type, entries }) => new AST.Dict(entries, type)),
-    StructuralSyntax.fromNode<
+    Expression.fromResult<
       Type.Dict<Definition.Type<K>, Definition.Type<D>>,
       Value.Requirements<E>
-    >,
-  );
-
-type InputArguments =
-  | readonly []
-  | readonly [defaultValue: Value.Any | undefined];
-
-/** Checks each defined alternative without rejecting an explicitly absent default. */
-type ExactDefault<T extends Type.Any, V> = V extends undefined
-  ? V
-  : V extends Value.Any
-    ? Value.Exact<T, V>
-    : never;
-
-type ExactDefaults<T extends Type.Any, D extends InputArguments> = {
-  readonly [K in keyof D]: ExactDefault<T, D[K]>;
-};
-
-type InputRequirements<
-  Name extends string,
-  T extends Type.Any,
-  D extends InputArguments,
-> = [D[0]] extends [undefined]
-  ? Readonly<Record<Name, T>>
-  : Inputs.Merge<
-      undefined extends D[0]
-        ? Readonly<Record<Name, T>>
-        : Readonly<Partial<Record<Name, T>>>,
-      Value.Requirements<Exclude<D[0], undefined>>
-    >;
-
-/**
- * Declares an input using type shorthand and an optional structural default.
- *
- * A definitely present default makes this occurrence optional and contributes its own requirements. An omitted or possibly undefined default keeps the input required. Defaults must match the definition exactly, including nested fields and tuple positions. Use constructed expressions for list, dictionary and nominal defaults. Failure handling follows {@link value}.
- */
-export const input = <
-  const Name extends string,
-  const D extends Definition,
-  const Defaults extends InputArguments,
->(
-  name: Name,
-  definition: D,
-  ...defaults: Defaults & ExactDefaults<NoInfer<Definition.Type<D>>, Defaults>
-): Expression.Expression<
-  Definition.Type<D>,
-  InputRequirements<Name, Definition.Type<D>, Defaults>
-> =>
-  Result.gen(function* () {
-    const ident = yield* AST.decodeInputName(name);
-    const type = yield* StructuralSyntax.typeNode(definition);
-    const [defaultValue] = defaults;
-
-    if (defaultValue === undefined) {
-      return new AST.Input(ident, type, undefined);
-    }
-
-    const fallback = yield* StructuralSyntax.valueNode(defaultValue);
-    return new AST.Input(ident, type, fallback);
-  }).pipe(
-    StructuralSyntax.fromNode<
-      Definition.Type<D>,
-      InputRequirements<Name, Definition.Type<D>, Defaults>
     >,
   );

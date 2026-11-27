@@ -10,7 +10,8 @@
  * the manifest declares, and returns the contributions it declares.
  */
 
-import type { PetrinautSettingsSection } from "../../react/navigation";
+import type { PetrinautSettingsSection } from "../../react/navigation/navigation";
+import type { PluginBottomPanelTab } from "../../react/state/editor-context";
 import type { AccessApi, PluginAccess } from "./plugin-access";
 import type { ReactNode, Ref } from "react";
 
@@ -85,6 +86,16 @@ export const pluginCommandId = (pluginId: string, key: string): string =>
   `${pluginId}.${key}`;
 
 /**
+ * The id of a declared bottom panel view's tab: the plugin's id, a dot, the
+ * key. View keys contain no dot and no tab of the editor's own has one in its
+ * id, so the id names one tab.
+ */
+export const pluginBottomPanelViewId = (
+  pluginId: string,
+  key: string,
+): PluginBottomPanelTab => `${pluginId}.${key}`;
+
+/**
  * The keys of the commands a manifest declares, or `never`. A conditional
  * type rather than `keyof NonNullable<M["commands"]>`: `keyof never` is every
  * key, which would let a plugin without commands name any `command`.
@@ -127,6 +138,14 @@ export interface PluginTopBarItemSpec {
   readonly place: PluginTopBarPlace;
 }
 
+/** A tab in the bottom panel the plugin declares; what it shows comes from the hook under the same key. */
+export interface PluginBottomPanelViewSpec {
+  /** The tab's title. */
+  readonly title: string;
+  /** A sentence the help mark beside the title shows. */
+  readonly tooltip?: string;
+}
+
 /** What a plugin declares, as plain data Petrinaut reads before running the plugin. */
 export interface PetrinautPluginManifest {
   /**
@@ -159,6 +178,13 @@ export interface PetrinautPluginManifest {
   readonly buttons?: Readonly<Record<string, PluginButtonSpec>>;
   /** Content in the top bar; the hook returns each item's node under the same key. */
   readonly topBarItems?: Readonly<Record<string, PluginTopBarItemSpec>>;
+  /**
+   * Tabs in the bottom panel, after the editor's own; the hook returns what
+   * each one shows under the same key.
+   */
+  readonly bottomPanelViews?: Readonly<
+    Record<string, PluginBottomPanelViewSpec>
+  >;
   /**
    * A button on the notice that explains a blocked edit on a document the
    * host made read-only, such as one that saves an editable copy. The hook
@@ -258,6 +284,16 @@ export type PluginButton<CommandKey extends string = string> =
         }
     );
 
+/** What a declared bottom panel view shows; its title and tooltip come from the manifest. */
+export interface PluginBottomPanelView {
+  /** Fills the panel behind the plugin's error boundary while the tab is the active one. */
+  readonly content: ReactNode;
+  /** Controls at the right of the tab bar while the tab is the active one, such as a filter or a copy button. */
+  readonly headerAction?: ReactNode;
+  /** The tab shows while `true`; defaults to `true`. */
+  readonly when?: boolean;
+}
+
 /** What the read-only notice's button does; its label comes from the manifest. */
 export interface PluginReadOnlyAction {
   /** Runs on click; the notice then closes. */
@@ -296,6 +332,11 @@ interface ContributionTable<M extends PetrinautPluginManifest> {
   };
   topBarItems: {
     readonly [K in keyof NonNullable<M["topBarItems"]>]: ReactNode;
+  };
+  bottomPanelViews: {
+    readonly [
+      K in keyof NonNullable<M["bottomPanelViews"]>
+    ]: PluginBottomPanelView;
   };
   readOnlyAction: PluginReadOnlyAction;
   provides: ServiceOf<M>;
@@ -348,6 +389,7 @@ export interface AnyPluginContributions {
   readonly commands?: Readonly<Record<string, PluginCommand>>;
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;
+  readonly bottomPanelViews?: Readonly<Record<string, PluginBottomPanelView>>;
   readonly readOnlyAction?: PluginReadOnlyAction;
   readonly provides?: unknown;
 }
@@ -427,6 +469,26 @@ type EntryChecks<
   : unknown;
 
 /**
+ * `never` for every entry key with a dot. A contribution's id is its
+ * plugin's id, a dot and its key, which names one contribution only while
+ * keys hold no dot.
+ */
+type RejectDottedKeys<
+  M,
+  Key extends keyof PetrinautPluginManifest,
+> = M extends { readonly [K in Key]: infer Specs }
+  ? {
+      readonly [K in Key]: {
+        readonly [
+          Entry in keyof Specs as Entry extends `${string}.${string}`
+            ? Entry
+            : never
+        ]: never;
+      };
+    }
+  : unknown;
+
+/**
  * Checks a manifest gets on top of its type. TypeScript skips its
  * excess-property check on an inferred type parameter, so without them a
  * misspelt key, such as `comands` or a button's `tooltp`, compiles.
@@ -444,15 +506,8 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
   (M extends { readonly id: ReservedPluginId }
     ? { readonly id: never }
     : unknown) &
-  (M extends { readonly commands: infer Specs }
-    ? {
-        readonly commands: {
-          readonly [
-            K in keyof Specs as K extends `${string}.${string}` ? K : never
-          ]: never;
-        };
-      }
-    : unknown) &
+  RejectDottedKeys<M, "commands"> &
+  RejectDottedKeys<M, "bottomPanelViews"> &
   (M extends { readonly access: infer A }
     ? { readonly access: RejectUnknownKeys<A, keyof PluginAccess> }
     : unknown) &
@@ -465,7 +520,8 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
     ? { readonly readOnlyAction: RejectUnknownKeys<Spec, "label"> }
     : unknown) &
   EntryChecks<M, "buttons", keyof PluginButtonSpec> &
-  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec>;
+  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec> &
+  EntryChecks<M, "bottomPanelViews", keyof PluginBottomPanelViewSpec>;
 
 /** A plugin's implementation, whatever its manifest. */
 type AnyImplementation = PluginRuntime["hook"] | AnyPluginContributions;
@@ -476,6 +532,7 @@ let nextSerial = 0;
 const assertValidManifest = ({
   id,
   commands,
+  bottomPanelViews,
   settings,
 }: PetrinautPluginManifest) => {
   if (id === "petrinaut" || id.startsWith("petrinaut.")) {
@@ -483,11 +540,16 @@ const assertValidManifest = ({
       `Plugin id "${id}" is reserved. Ids starting "petrinaut." name the editor's own commands.`,
     );
   }
-  for (const key of Object.keys(commands ?? {})) {
-    if (key.includes(".")) {
-      throw new Error(
-        `Plugin "${id}" command "${key}" contains a dot. Command keys contain no dot.`,
-      );
+  for (const [kind, specs] of [
+    ["command", commands],
+    ["bottom panel view", bottomPanelViews],
+  ] as const) {
+    for (const key of Object.keys(specs ?? {})) {
+      if (key.includes(".")) {
+        throw new Error(
+          `Plugin "${id}" ${kind} "${key}" contains a dot. Its id is the plugin's id, a dot and the key.`,
+        );
+      }
     }
   }
   for (const [key, spec] of Object.entries(settings ?? {})) {

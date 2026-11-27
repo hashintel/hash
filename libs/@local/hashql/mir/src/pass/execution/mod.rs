@@ -21,7 +21,7 @@ mod vertex;
 
 use core::{alloc::Allocator, assert_matches, fmt};
 
-use hashql_core::heap::{BumpAllocator, Heap};
+use hashql_core::heap::{Heap, PhaseAllocator};
 
 use self::{
     cost::BasicBlockCostAnalysis,
@@ -71,7 +71,10 @@ pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
     pub scratch: S,
 }
 
-impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
+impl<'heap, 'alloc, S> ExecutionAnalysis<'_, 'heap, S>
+where
+    S: PhaseAllocator<'alloc>,
+{
     pub fn run_in<A: Allocator + Clone>(
         &self,
         context: &mut MirContext<'_, 'heap>,
@@ -89,9 +92,9 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         let mut terminator_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
         for target in TargetId::all() {
-            let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
+            let mut statement = TargetPlacementStatement::new_in(target, self.scratch);
             let (statement_cost, terminator_cost) =
-                statement.statement_placement_in(context, body, vertex, &self.scratch);
+                statement.statement_placement_in(context, body, vertex, self.scratch);
 
             statement_costs[target] = Some(statement_cost);
             terminator_costs[target] = Some(terminator_cost);
@@ -102,31 +105,31 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         let mut terminator_costs =
             terminator_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 
-        let mut assignments = BasicBlockSplitting::new_in(&self.scratch).split_in(
+        let mut assignments = BasicBlockSplitting::new_in(self.scratch).split_in(
             context,
             body,
             &mut statement_costs,
             &mut terminator_costs,
-            &self.scratch,
+            self.scratch,
         );
 
         let terminators = TerminatorPlacement::new_in(
             TransferCostConfig::new(InformationRange::full()),
-            &self.scratch,
+            self.scratch,
         );
         let mut transition_costs = terminators.terminator_placement_in(
             body,
             vertex,
             &self.footprints[body.id],
             &assignments,
-            &self.scratch,
+            self.scratch,
         );
 
         ArcConsistency {
             blocks: &mut assignments,
             terminators: &mut transition_costs,
         }
-        .run_in(body, &self.scratch);
+        .run_in(body, self.scratch);
 
         let block_costs = BasicBlockCostAnalysis {
             vertex,
@@ -137,23 +140,23 @@ impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
         .analyze_in(
             &TransferCostConfig::new(InformationRange::full()),
             &body.basic_blocks,
-            &self.scratch,
+            self.scratch,
         );
 
         let mut solver = PlacementSolverContext {
             blocks: &block_costs,
             terminators: &transition_costs,
         }
-        .build_in(body, &self.scratch);
+        .build_in(body, self.scratch);
 
         let mut assignment = solver.run_in(context, body, alloc.clone());
 
-        let fusion = BasicBlockFusion::new_in(&self.scratch);
+        let fusion = BasicBlockFusion::new_in(self.scratch);
         fusion.fuse(body, &mut assignment);
 
         let islands =
-            IslandPlacement::new_in(&self.scratch).run_in(body, vertex, &assignment, &self.scratch);
-        let islands = IslandGraph::new_in(body, vertex, islands, &self.scratch, alloc);
+            IslandPlacement::new_in(self.scratch).run_in(body, vertex, &assignment, self.scratch);
+        let islands = IslandGraph::new_in(body, vertex, islands, self.scratch, alloc);
 
         ExecutionAnalysisResidual {
             assignment,

@@ -1,60 +1,52 @@
-import { use, useEffect, useRef } from "react";
+/**
+ * @layerRoot ui.views.editor.bottom-panel
+ * @role Shows diagnostics, compilation, simulation settings and the timeline of a run or a recording as tabs under the canvas
+ *
+ * The Timeline tabs are a layer of their own in `subviews/timeline/`, which
+ * the preview imports too.
+ */
+
+import { use, useEffect } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { ActualModeContext } from "../../../../../react/actual-mode-context";
-import { SimulationContext } from "../../../../../react/simulation/context";
+import { useComposesOnly } from "../../../../../react/document/use-composes-only";
+import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
+import {
+  SimulationContext,
+  type SimulationState,
+} from "../../../../../react/simulation/context";
 import {
   type BottomPanelTab,
-  EditorContext,
+  EditorPublishedContext,
+  useEditorActions,
+  useEditorFields,
 } from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { GlassPanel } from "../../../../components/glass-panel";
-import {
-  HorizontalTabsContent,
-  HorizontalTabsHeader,
-  HorizontalTabsHeaderAction,
-} from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
-import {
-  MAX_BOTTOM_PANEL_HEIGHT,
-  MIN_BOTTOM_PANEL_HEIGHT,
-  PANEL_MARGIN,
-} from "../../../../constants/ui";
-import {
-  ACTUAL_BOTTOM_PANEL_SUBVIEWS,
-  BOTTOM_PANEL_SUBVIEWS,
-  COMPILATION_SUBVIEWS,
-  SIMULATION_ONLY_SUBVIEWS,
-} from "../../../../constants/ui-subviews";
+import { usePanelPresence } from "../../../../../react/state/panel-presence-context";
+import { usePanelSizes } from "../../../../../react/state/panel-sizes-context";
+import { useUserSettings } from "../../../../../react/state/user-settings-context";
+import { usePluginBottomPanelViews } from "../../../../plugins/use-plugin-bottom-panel-views";
+import { KeptState } from "../../../../shared/kept-state";
+import { PANEL_MARGIN } from "../../../../shared/ui-constants";
+import { DockedPanel } from "../../shared/docked-panel";
 import { fallbackBottomPanelTab } from "./fallback-tab";
+import {
+  actualEventsSubView,
+  actualTimelineSubView,
+  compilationSubView,
+  diagnosticsSubView,
+  eventTimelineSubView,
+  simulationSettingsSubView,
+} from "./sub-views";
+import { HorizontalTabPanel, HorizontalTabsHeader } from "./tabs";
+import { useOpenTimelineOnRunStart } from "./use-open-timeline-on-run-start";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
   zIndex: "[calc(var(--z-index-sticky) - 2)]",
   borderTopWidth: "thin",
   boxSizing: "border-box",
-});
-
-const panelStyle = cva({
-  base: {},
-  variants: {
-    open: {
-      true: {},
-      false: {
-        transform: "translateY(100%)",
-        pointerEvents: "none",
-      },
-    },
-    animating: {
-      true: {
-        transitionProperty:
-          "[width, opacity, height, top, left, right, bottom, transform]",
-        transitionDuration: "[150ms]",
-        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
-      },
-    },
-  },
 });
 
 const panelContainerStyle = css({
@@ -92,25 +84,36 @@ const headerRightStyle = css({
   flexShrink: "[10]",
 });
 
+/** A run with a timeline to show: one that is going, paused or finished. */
+const runExists = (state: SimulationState) =>
+  state === "Running" || state === "Paused" || state === "Complete";
+
 const getBottomPanelSubViews = ({
+  composesOnly,
   isActualMode,
-  isSimulationActive,
+  hasRun,
   showCompilationOutput,
 }: {
+  composesOnly: boolean;
   isActualMode: boolean;
-  isSimulationActive: boolean;
+  hasRun: boolean;
   showCompilationOutput: boolean;
 }) =>
-  isActualMode
-    ? ACTUAL_BOTTOM_PANEL_SUBVIEWS
-    : [
-        ...BOTTOM_PANEL_SUBVIEWS,
-        ...(isSimulationActive ? SIMULATION_ONLY_SUBVIEWS : []),
-        ...(showCompilationOutput ? COMPILATION_SUBVIEWS : []),
-      ];
+  // An editor that only composes has problems to show and nothing to run.
+  composesOnly
+    ? [diagnosticsSubView]
+    : isActualMode
+      ? [actualTimelineSubView, actualEventsSubView]
+      : [
+          diagnosticsSubView,
+          simulationSettingsSubView,
+          ...(hasRun ? [eventTimelineSubView] : []),
+          ...(showCompilationOutput ? [compilationSubView] : []),
+        ];
 
 /**
- * BottomPanel shows tabs for Diagnostics and Simulation Settings.
+ * BottomPanel shows tabs for Diagnostics and Simulation Settings, then the
+ * tabs plugins add.
  * Positioned at the bottom of the viewport.
  * When LeftSideBar is visible, positioned to its right. Otherwise full-width.
  * Resizable from the top edge.
@@ -118,178 +121,126 @@ const getBottomPanelSubViews = ({
 export const BottomPanel: React.FC = () => {
   const {
     isBottomPanelOpen: isOpen,
-    setBottomPanelOpen,
-    isLeftSidebarOpen,
-    isSearchOpen,
-    leftSidebarWidth,
-    bottomPanelHeight: panelHeight,
-    setBottomPanelHeight,
     activeBottomPanelTab: activeTab,
-    setActiveBottomPanelTab: setActiveTab,
-    toggleBottomPanel,
-    isPanelAnimating,
     globalMode,
-  } = use(EditorContext);
+  } = useEditorFields(
+    "isBottomPanelOpen",
+    "activeBottomPanelTab",
+    "globalMode",
+  );
+  const { setActiveBottomPanelTab: setActiveTab, toggleBottomPanel } =
+    useEditorActions();
+  const publishedEditor = use(EditorPublishedContext);
+  const { shown } = usePanelPresence();
+  const showCompilationOutput = useUserSettings(
+    (settings) => settings.showCompilationOutput,
+  );
+  const composesOnly = useComposesOnly();
+  const pluginViews = usePluginBottomPanelViews();
+  const { leftSidebarWidth } = usePanelSizes();
 
-  const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
-
-  // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
   const actualMode = use(ActualModeContext);
   const isActualMode = globalMode === "actual";
-  const isSimulationActive =
-    !isActualMode &&
-    (simulationState === "Running" ||
-      simulationState === "Paused" ||
-      simulationState === "Complete");
+  const hasRun = !isActualMode && runExists(simulationState);
   const isActualTimelineActive =
     isActualMode &&
     actualMode.available &&
     actualMode.initialState !== null &&
     (actualMode.status === "streaming" || actualMode.status === "complete");
 
-  // Track previous run states to detect when a timeline becomes available.
-  const prevSimulationActiveRef = useRef(false);
-  const prevActualTimelineActiveRef = useRef(false);
+  useOpenTimelineOnRunStart(
+    isActualTimelineActive
+      ? "actual-timeline"
+      : hasRun
+        ? "simulation-timeline"
+        : null,
+  );
 
-  // Dynamically compute subviews based on available execution modes.
   const subViews = getBottomPanelSubViews({
+    composesOnly,
     isActualMode,
-    isSimulationActive,
+    hasRun,
     showCompilationOutput,
   });
-
-  // Automatically open bottom panel and switch to the relevant timeline when a
-  // run starts. The effect below picks the tab to show when one disappears.
-  useEffect(() => {
-    const wasSimulationActive = prevSimulationActiveRef.current;
-    const wasActualTimelineActive = prevActualTimelineActiveRef.current;
-    prevSimulationActiveRef.current = isSimulationActive;
-    prevActualTimelineActiveRef.current = isActualTimelineActive;
-
-    if (isActualTimelineActive && !wasActualTimelineActive) {
-      setBottomPanelOpen(true);
-      setActiveTab("actual-timeline");
-    } else if (!isActualMode && isSimulationActive && !wasSimulationActive) {
-      setBottomPanelOpen(true);
-      setActiveTab("simulation-timeline");
-    }
-
-    if (
-      !isActualMode &&
-      !isActualTimelineActive &&
-      wasActualTimelineActive &&
-      activeTab === "actual-timeline"
-    ) {
-      // Only fall back to diagnostics when leaving Actual mode entirely; while
-      // still in Actual mode the timeline tab stays valid even without data.
-      setActiveTab("diagnostics");
-    }
-  }, [
-    activeTab,
-    isActualMode,
-    isActualTimelineActive,
-    isSimulationActive,
-    setActiveTab,
-    setBottomPanelOpen,
-  ]);
-
-  useEffect(() => {
-    const availableSubViews = getBottomPanelSubViews({
-      isActualMode,
-      isSimulationActive,
-      showCompilationOutput,
-    });
-
-    const fallbackTab = fallbackBottomPanelTab(
-      activeTab,
-      availableSubViews.map((subView) => subView.id as BottomPanelTab),
-    );
-    if (fallbackTab !== null) {
-      setActiveTab(fallbackTab);
-    }
-  }, [
-    activeTab,
-    isActualMode,
-    isSimulationActive,
-    setActiveTab,
-    showCompilationOutput,
-  ]);
+  const tabs = [...subViews, ...pluginViews];
 
   // The tab drawn is already the fallback on the render that loses the
-  // active one; the effect above then stores it.
+  // active one; the effect below then stores it.
   const renderedActiveTab =
     fallbackBottomPanelTab(
       activeTab,
-      subViews.map((subView) => subView.id as BottomPanelTab),
+      tabs.map((tab) => tab.id as BottomPanelTab),
     ) ?? activeTab;
+  const activePluginView = pluginViews.find(
+    (view) => view.id === renderedActiveTab,
+  );
+  const activeSubView = subViews.find((view) => view.id === renderedActiveTab);
+  const HeaderAction = activeSubView?.headerAction;
+  const Content = activeSubView?.component;
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId as BottomPanelTab);
-  };
-
-  // Calculate left position based on left sidebar visibility.
-  // The sidebar is visible when explicitly opened OR when search is active.
-  const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
-  const leftOffset = isSidebarVisible
-    ? leftSidebarWidth + PANEL_MARGIN * 2
-    : PANEL_MARGIN;
-
-  if (!isOpen && !isPanelAnimating && !keepPanelsMounted) {
-    return null;
-  }
+  useEffect(() => {
+    // A render caused by another context reads the editor's state of the
+    // commit before. A tab picked in that update is stored by now, and stays.
+    const storedTab = publishedEditor?.get().activeBottomPanelTab ?? activeTab;
+    if (renderedActiveTab !== activeTab && storedTab === activeTab) {
+      setActiveTab(renderedActiveTab);
+    }
+  }, [activeTab, publishedEditor, renderedActiveTab, setActiveTab]);
 
   return (
-    <GlassPanel
-      className={cx(
-        glassPanelBaseStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
-      )}
-      style={{
-        bottom: PANEL_MARGIN,
-        left: leftOffset,
-        right: PANEL_MARGIN,
-        height: panelHeight,
-      }}
-      contentClassName={panelContainerStyle}
-      resizable={{
-        edge: "top",
-        size: panelHeight,
-        onResize: setBottomPanelHeight,
-        minSize: MIN_BOTTOM_PANEL_HEIGHT,
-        maxSize: MAX_BOTTOM_PANEL_HEIGHT,
-      }}
-    >
-      {/* Tab Header */}
-      <div className={headerStyle}>
-        <HorizontalTabsHeader
-          subViews={subViews}
-          activeTabId={renderedActiveTab}
-          onTabChange={handleTabChange}
-        />
-        <div className={headerRightStyle}>
-          <HorizontalTabsHeaderAction
-            subViews={subViews}
+    // Above the panel, which unmounts when it closes: what the tab holds is
+    // there when the panel opens again. A tab starts afresh each time it is
+    // picked.
+    <KeptState scope={renderedActiveTab}>
+      <DockedPanel
+        panel="bottomPanel"
+        isOpen={isOpen}
+        className={glassPanelBaseStyle}
+        contentClassName={panelContainerStyle}
+        style={{ bottom: PANEL_MARGIN, right: PANEL_MARGIN }}
+        // The panel starts beside the left sidebar, as far as that is in view.
+        boundStyle={{
+          left: () =>
+            PANEL_MARGIN +
+            shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
+        }}
+      >
+        {/* Tab Header */}
+        <div className={headerStyle}>
+          <HorizontalTabsHeader
+            subViews={tabs}
             activeTabId={renderedActiveTab}
+            onTabChange={(tabId) => setActiveTab(tabId as BottomPanelTab)}
           />
-          {!isActualMode && (
-            <Button
-              size="xxs"
-              variant="ghost"
-              onClick={toggleBottomPanel}
-              aria-label="Close panel"
-              tooltip="Close panel"
-              iconName="close"
-            />
-          )}
+          <div className={headerRightStyle}>
+            {activePluginView?.headerAction}
+            {HeaderAction && <HeaderAction />}
+            {!isActualMode && (
+              <Button
+                size="xxs"
+                variant="ghost"
+                onClick={toggleBottomPanel}
+                aria-label="Close panel"
+                tooltip="Close panel"
+                iconName="close"
+              />
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Scrollable content */}
-      <HorizontalTabsContent
-        subViews={subViews}
-        activeTabId={renderedActiveTab}
-      />
-    </GlassPanel>
+        {/* Scrollable content: a plugin's, or the component of an own tab */}
+        <HorizontalTabPanel
+          // A new element between a plugin's tab and an own one, so the
+          // scroll offset of the one does not carry over to the other.
+          key={activePluginView ? "plugin" : "own"}
+          tabId={renderedActiveTab}
+          padded={!activeSubView?.noPadding}
+        >
+          {activePluginView?.content}
+          {Content && <Content />}
+        </HorizontalTabPanel>
+      </DockedPanel>
+    </KeptState>
   );
 };

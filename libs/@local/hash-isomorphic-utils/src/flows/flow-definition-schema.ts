@@ -53,7 +53,14 @@ const stepInputSourceSchema = z.discriminatedUnion("kind", [
 const stepDefinitionBaseShape = {
   stepId: stepIdSchema,
   position: z.strictObject({ x: z.number(), y: z.number() }).optional(),
-  runAfter: z.array(z.strictObject({ stepId: stepIdSchema })).optional(),
+  runAfter: z
+    .array(
+      z.strictObject({
+        stepId: stepIdSchema,
+        outputName: z.string().optional(),
+      }),
+    )
+    .optional(),
 };
 
 /*
@@ -69,18 +76,22 @@ const stepDefinitionSchema: z.ZodType<StepDefinition<string>> = z.lazy(() =>
       description: z.string(),
       inputs: z.record(z.string(), stepInputSourceSchema),
       retryCount: z.int().nonnegative().optional(),
+      pathNames: z.record(z.string(), z.string()).optional(),
     }),
     z.strictObject({
       kind: z.literal("for-each"),
       ...stepDefinitionBaseShape,
       description: z.string(),
-      over: stepInputSourceSchema,
+      /* Optional so that a for-each step just added saves: `validateFlowDefinition` reports them missing. */
+      over: stepInputSourceSchema.optional(),
       steps: z.array(stepDefinitionSchema),
-      collect: z.strictObject({
-        stepId: stepIdSchema,
-        outputName: z.string(),
-        as: z.string(),
-      }),
+      collect: z
+        .strictObject({
+          stepId: stepIdSchema,
+          outputName: z.string(),
+          as: z.string(),
+        })
+        .optional(),
     }),
   ]),
 );

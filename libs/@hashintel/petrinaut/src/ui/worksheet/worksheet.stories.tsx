@@ -194,7 +194,6 @@ const GridCell = ({
     ref={grid.register(row, column)}
     tabIndex={grid.tabIndexFor(row, column)}
     onKeyDown={grid.onKeyDown(row, column)}
-    onFocus={() => grid.onFocusCell(row, column)}
     className={cellStyle()}
   >
     {label}
@@ -239,7 +238,7 @@ const DemoGrid = ({
 // -- Meta -----------------------------------------------------------------
 
 const meta = {
-  title: "worksheet/FocusStack",
+  title: "Components/Keyboard focus",
   component: FocusStack,
   parameters: {
     layout: "padded",

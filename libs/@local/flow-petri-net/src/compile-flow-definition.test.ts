@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canonicalizePetrinautIds,
+  getArcEndpoint,
   parseSDCPNFile,
   serializeSDCPN,
   toPetrinautId,
@@ -32,9 +33,12 @@ import {
   generateStepTransitionKey,
   generateValuePlaceKey,
 } from "./flow-net-keys.js";
-import { hardcodedFlowDefinitions } from "./testing/flow-definitions.js";
+import {
+  hardcodedFlowDefinitions,
+  ifPathsFlowDefinition,
+} from "./testing/flow-definitions.js";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { ArcEndpoint, SDCPN } from "@hashintel/petrinaut-core";
 import type {
   ActionStepDefinition,
   FlowDefinition,
@@ -85,7 +89,9 @@ const colorAt = (
   const instance = sdcpn.componentInstances?.find(
     ({ id }) => id === endpoint.componentInstanceId,
   );
-  const subnet = sdcpn.subnets?.find(({ id }) => id === instance?.subnetId);
+  const subnet = sdcpn.components?.find(
+    ({ id }) => id === instance?.component.id,
+  );
   const port = subnet?.places.find(({ id }) => id === endpoint.portPlaceId);
 
   return subnet?.types.find(({ id }) => id === port?.colorId);
@@ -96,7 +102,9 @@ const inputPortColor = (sdcpn: SDCPN, stepId: string, inputName: string) => {
   const instance = sdcpn.componentInstances?.find(
     byKey(generateInstanceKey(stepId)),
   );
-  const subnet = sdcpn.subnets?.find(({ id }) => id === instance?.subnetId);
+  const subnet = sdcpn.components?.find(
+    ({ id }) => id === instance?.component.id,
+  );
   const port = subnet?.places.find(
     ({ isPort, name }) => isPort && name === inputName,
   );
@@ -502,6 +510,79 @@ describe("compileFlowDefinition", () => {
           generateValuePlaceKey(generateInputValueKey("url")),
         ),
       },
+    });
+  });
+
+  it("waits for a step on a path on that path's output, and for a step after the if on its first", async () => {
+    const sdcpn = await compileFlowDefinition({
+      ...ifPathsFlowDefinition,
+      steps: [
+        ...ifPathsFlowDefinition.steps,
+        {
+          kind: "action",
+          stepId: "afterCheck",
+          actionDefinitionId: "getFileFromUrl",
+          description: "",
+          inputs: { url: { kind: "flow-input", inputName: "url" } },
+          runAfter: [{ stepId: "check" }],
+        },
+      ],
+    });
+
+    const startOf = (stepId: string) =>
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("startStep", stepId)),
+      );
+    /** What an endpoint holds: a flow input, or an output of `check`'s instance, by name. */
+    const holderOf = (endpoint: ReturnType<typeof getArcEndpoint>) => {
+      if (endpoint.kind === "place") {
+        return sdcpn.places.find(({ id }) => id === endpoint.placeId)?.name;
+      }
+
+      const instance = sdcpn.componentInstances?.find(
+        ({ id }) => id === endpoint.componentInstanceId,
+      );
+      const port = sdcpn.components
+        ?.find(({ id }) => id === instance?.component.id)
+        ?.places.find(({ id }) => id === endpoint.portPlaceId);
+
+      return `${instance?.name.split(":")[0]}.${port?.name}`;
+    };
+    const readsOf = (stepId: string) =>
+      startOf(stepId)
+        ?.inputArcs.filter(({ type }) => type === "read")
+        .map((arc) => holderOf(getArcEndpoint(arc)));
+    const metadataOf = (stepId: string) => {
+      const metadata = startOf(stepId)?.metadata as
+        | { runAfter?: ArcEndpoint[]; paths?: ArcEndpoint[] }
+        | undefined;
+
+      return {
+        runAfter: metadata?.runAfter?.map(holderOf),
+        paths: metadata?.paths?.map(holderOf),
+      };
+    };
+    const url = generateInputValueKey("url");
+
+    /* No reads its path's output, and lists it as a path. */
+    expect(readsOf("no")).toEqual([url, "check.false"]);
+    expect(metadataOf("no")).toEqual({
+      runAfter: ["check.false"],
+      paths: ["check.false"],
+    });
+
+    /* Yes also takes its value from its path's output, through the same arc, which is still a path. */
+    expect(readsOf("yes")).toEqual(["check.true"]);
+    expect(metadataOf("yes")).toEqual({
+      runAfter: undefined,
+      paths: ["check.true"],
+    });
+
+    /* A step after the if, on neither path, reads its first output, where an absent token still means it finished. */
+    expect(readsOf("afterCheck")).toEqual([url, "check.true"]);
+    expect(metadataOf("afterCheck")).toEqual({
+      runAfter: ["check.true"],
+      paths: undefined,
     });
   });
 

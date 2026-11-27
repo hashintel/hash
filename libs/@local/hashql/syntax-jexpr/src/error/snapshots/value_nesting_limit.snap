@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#list\": [{\"#list\": [{\"#list\": [{\"#literal\": 1}]}]}]}"
+---
+error[jexpr::parser::nesting-limit]: Nesting limit exceeded
+  ╭▸ 
+1 │ {"#list": [{"#list": [{"#list": [{"#literal": 1}]}]}]}
+  │                                  ━ nested more than 3 levels deep
+  │
+  ├ help: flatten or simplify the nested structure to at most 3 levels
+  ╰ note: a J-Expr value nests at most 3 levels deep

@@ -3,14 +3,14 @@ import {
   getTransitionLogicAvailability,
   sanitizeSDCPNForExtensions,
   type PetrinautExtensionSettings,
-} from "../extensions";
+} from "../extensions/extensions";
 import {
   hasTimedTransition,
   netColoringOf,
   netTimeOf,
   type NetChance,
   type NetClass,
-} from "../net-class";
+} from "../extensions/net-class";
 import { analyzeHir } from "./analyze";
 import { lowerAndCheck } from "./compile";
 import {
@@ -49,7 +49,7 @@ const chanceOf = (
     return "stochastic";
   }
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
-  const nets = [sanitized, ...(sanitized.subnets ?? [])];
+  const nets = [sanitized, ...(sanitized.components ?? [])];
   const types = nets.flatMap((net) => net.types);
 
   const drawn = nets.flatMap((net) => [

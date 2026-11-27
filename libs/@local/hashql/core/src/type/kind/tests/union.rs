@@ -1,7 +1,7 @@
 use core::assert_matches;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -891,10 +891,10 @@ fn simplify_with_bottom() {
     let result_type = env.r#type(result);
 
     // Result should be just Number, not a union
-    assert!(matches!(
+    assert_matches!(
         *result_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
 }
 
 #[test]
@@ -919,7 +919,7 @@ fn simplify_with_top() {
     let result_type = env.r#type(result);
 
     // Result should be Unknown
-    assert!(matches!(*result_type.kind, TypeKind::Unknown));
+    assert_matches!(*result_type.kind, TypeKind::Unknown);
 }
 
 #[test]
@@ -936,7 +936,7 @@ fn simplify_empty_union() {
     let result = union_type.simplify(&mut simplify_env);
     let result_type = env.r#type(result);
 
-    assert!(matches!(*result_type.kind, TypeKind::Never));
+    assert_matches!(*result_type.kind, TypeKind::Never);
 }
 
 #[test]
@@ -956,10 +956,10 @@ fn simplify_with_subtypes() {
     let result_type = env.r#type(result);
 
     // Result should be just Number
-    assert!(matches!(
+    assert_matches!(
         *result_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
 }
 
 #[test]
@@ -1048,10 +1048,10 @@ fn complex_union_relationships() {
     let mut simplify_env = SimplifyEnvironment::new(&env);
     let simplified = number_integer.simplify(&mut simplify_env);
     let simplified_type = env.r#type(simplified);
-    assert!(matches!(
+    assert_matches!(
         *simplified_type.kind,
         TypeKind::Primitive(PrimitiveType::Number)
-    ));
+    );
 }
 
 #[test]
@@ -1567,7 +1567,7 @@ fn instantiate_union() {
         opaque!(env, "A", param1),
         [GenericArgument {
             id: argument1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1576,7 +1576,7 @@ fn instantiate_union() {
         opaque!(env, "A", param2),
         [GenericArgument {
             id: argument2,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1627,7 +1627,7 @@ fn projection_empty() {
     let union = union!(env, []);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(union, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(union, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(projection, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics().into_vec();
@@ -1648,7 +1648,7 @@ fn projection_single_variant() {
     let union = union!(env, [r#struct!(env, [struct_field!(env, "foo", string)])]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(union, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(union, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 0);
 
     assert_eq!(projection, Projection::Resolved(string));
@@ -1665,7 +1665,7 @@ fn projection_propagate_error() {
     let union = union!(env, [integer, string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(union, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(union, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 2);
     assert_eq!(projection, Projection::Error);
 }
@@ -1681,7 +1681,7 @@ fn projection_propagate_pending() {
     let union = union!(env, [instantiate_infer(&env, hole), string]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(union, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(union, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 1);
     assert_eq!(projection, Projection::Pending);
 }
@@ -1703,7 +1703,7 @@ fn projection_union_values() {
     );
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(union, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(union, Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(lattice.diagnostics.len(), 0);
     let Projection::Resolved(id) = projection else {
         panic!("expected resolved projection")

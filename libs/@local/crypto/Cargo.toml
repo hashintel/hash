@@ -24,12 +24,16 @@ derive_more    = { workspace = true, features = ["display"] }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-clap     = { workspace = true, features = ["derive", "env"] }
-rstest   = { workspace = true }
-trybuild = { workspace = true }
+clap    = { workspace = true, features = ["derive", "env"] }
+rstest  = { workspace = true }
+ui_test = { workspace = true, features = ["rustc", "gha"] }
 
 [features]
 clap = ["dep:clap_builder"]
 
 [lints]
 workspace = true
+
+[[test]]
+harness = false
+name    = "compiletest"

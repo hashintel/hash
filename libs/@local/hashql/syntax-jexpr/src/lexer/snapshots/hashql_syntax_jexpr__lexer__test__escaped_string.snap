@@ -1,6 +1,0 @@
----
-source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
-description: String with escaped quotes
-expression: "\"hello \\\"world\\\"\""
----
-"hello \"world\""

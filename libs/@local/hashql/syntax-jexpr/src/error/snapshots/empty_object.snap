@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{}"
+---
+error[jexpr::parser::object::empty]: Empty object not allowed
+  ╭▸ 
+1 │ {}
+  │ ━━ empty objects are not allowed as expressions
+  │
+  ├ help: specify a constructor key such as `{"#literal": 42}`, `{"#struct": {}}`, or `{"#dict": {}}`
+  ╰ note: J-Expr objects must contain a constructor key:
+          - `{"#literal": value}` for primitive literals
+          - `{"#struct": {...}}` for structs with named fields
+          - `{"#dict": {...}}` or `{"#dict": [[k, v], ...]}` for dictionaries
+          - `{"#tuple": [...]}` for fixed-size tuples
+          - `{"#list": [...]}` for lists
+          each construct also accepts an optional `"#type"` annotation

@@ -2,7 +2,7 @@
 use rstest::rstest;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     symbol::Ident,
     r#type::{
         environment::{
@@ -372,7 +372,7 @@ fn projection() {
 
     let result = lattice.projection(
         primitive!(env, PrimitiveType::String),
-        Ident::synthetic(heap.intern_symbol("foo")),
+        Ident::synthetic(heap.alloc_symbol("foo")),
     );
     assert_eq!(result, Projection::Error);
 

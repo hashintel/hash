@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#dict\": {\"a\": , \"b\": {\"#literal\": 1}}}"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ {"#dict": {"a": , "b": {"#literal": 1}}}
+  │            ┬──  ━ expected string, `{`, or `[`, found `,`
+  │            │
+  │            after this key
+  │
+  ╰ help: add a value for this field

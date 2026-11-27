@@ -263,6 +263,7 @@ describe("controlled voice preview", () => {
       }),
     );
     const bridge = new RealtimeBrunchBridge({
+      readSelection: () => [],
       session,
       submitInterviewAnswer,
     });

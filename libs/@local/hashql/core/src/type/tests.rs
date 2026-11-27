@@ -9,6 +9,7 @@ use super::{
     kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::assert_equiv},
 };
 use crate::{
+    heap::SymbolAllocator as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -73,10 +74,8 @@ pub(crate) fn instantiate_infer(
 macro_rules! scaffold {
     ($heap:ident, $env:ident, $builder:ident $(,[$($extra:tt)*])?) => {
         let $heap = crate::heap::Heap::new();
-        #[expect(clippy::allow_attributes)]
         #[allow(unused_mut)]
         let mut $env = crate::r#type::environment::Environment::new(&$heap);
-        #[expect(clippy::allow_attributes)]
         #[allow(unused_mut)]
         let mut $builder = crate::r#type::TypeBuilder::synthetic(&$env);
 
@@ -473,7 +472,7 @@ fn recursive_simplify() {
 fn never_projection() {
     scaffold!(heap, env, builder, [lattice: lattice]);
 
-    let result = lattice.projection(builder.never(), Ident::synthetic(heap.intern_symbol("foo")));
+    let result = lattice.projection(builder.never(), Ident::synthetic(heap.alloc_symbol("foo")));
     assert_eq!(result, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics();
@@ -503,7 +502,7 @@ fn unknown_projection() {
 
     let result = lattice.projection(
         builder.unknown(),
-        Ident::synthetic(heap.intern_symbol("foo")),
+        Ident::synthetic(heap.alloc_symbol("foo")),
     );
     assert_eq!(result, Projection::Error);
 
