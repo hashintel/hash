@@ -11,7 +11,6 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
 import {
-  atLeastOne,
   extractBaseUrl,
   extractVersion,
   isBaseUrl,
@@ -29,6 +28,7 @@ import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
+import { getPathFromAsPath } from "../lib/routes";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../shared/generate-link-parameters";
@@ -40,6 +40,7 @@ import { PlusRegularIcon } from "../shared/icons/plus-regular";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
 import { CreateDashboard } from "./entities.page/create-dashboard";
+import { usePageEntityTypeIds } from "./entities.page/use-page-entity-type-ids";
 import { CreateButton } from "./shared/create-button";
 import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { largePageMaxWidthCss } from "./shared/page-width";
@@ -177,36 +178,14 @@ export const CreateButtons: FunctionComponent<{
 
 const EntitiesPage: NextPageWithLayout = () => {
   const router = useRouter();
-  const enabledFeatureFlags = useEnabledFeatureFlags();
   const enabledSections = useEnabledSections();
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const { hashInstance } = useHashInstance();
-  const { entityTypes } = useEntityTypesContextRequired();
 
-  const isPagesRoute = router.asPath.split(/[?#]/)[0] === "/pages";
-  const pageEntityTypeIds = useMemo(
-    () =>
-      atLeastOne(
-        entityTypes?.flatMap(({ schema }) => {
-          const baseUrl = extractBaseUrl(schema.$id);
-          const isEnabledPageType =
-            (baseUrl === systemEntityTypes.page.entityTypeBaseUrl &&
-              enabledFeatureFlags.pages &&
-              hashInstance?.properties.pagesAreEnabled) ||
-            (baseUrl === systemEntityTypes.dashboard.entityTypeBaseUrl &&
-              enabledSections.dashboards);
-
-          return isEnabledPageType ? [schema.$id] : [];
-        }) ?? [],
-      ),
-    [
-      entityTypes,
-      enabledFeatureFlags.pages,
-      enabledSections.dashboards,
-      hashInstance?.properties.pagesAreEnabled,
-    ],
-  );
+  const isPagesRoute = getPathFromAsPath(router.asPath) === "/pages";
+  const { pageEntityTypeIds, loading: pageEntityTypesLoading } =
+    usePageEntityTypeIds();
 
   const { entityTypeId, entityTypeBaseUrl } = useMemo(() => {
     if (router.isReady) {
@@ -392,7 +371,7 @@ const EntitiesPage: NextPageWithLayout = () => {
       <Container sx={{ ...largePageMaxWidthCss, pt: 2, pb: 5 }}>
         {isPagesRoute && !pageEntityTypeIds ? (
           <Typography>
-            {entityTypes === null ? "Loading pages…" : "No pages to display."}
+            {pageEntityTypesLoading ? "Loading pages…" : "No pages to display."}
           </Typography>
         ) : (
           <EntitiesVisualizer

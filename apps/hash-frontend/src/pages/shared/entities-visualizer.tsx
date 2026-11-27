@@ -155,7 +155,15 @@ export const EntitiesVisualizer: FunctionComponent<{
    * Limit the entities displayed to only those matching this exact type version
    */
   entityTypeId?: VersionedUrl;
+  /**
+   * Limit the entities displayed to only those matching any of these exact
+   * type versions. Takes precedence over `entityTypeId`.
+   */
   entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
+  /**
+   * Whether every entity displayed is a page (a block page or a dashboard), so
+   * that clicking a row opens the page itself rather than its entity.
+   */
   isViewingPages?: boolean;
   /**
    * Hide specific columns from the table

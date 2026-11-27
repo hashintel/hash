@@ -15,6 +15,7 @@ import {
   createEntityMutation,
   querySidebarDashboardsQuery,
 } from "../../graphql/queries/knowledge/entity.queries";
+import { constructDashboardRelativeUrl } from "../../lib/routes";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
 import { Button } from "../../shared/ui/button";
 import { Modal } from "../../shared/ui/modal";
@@ -41,14 +42,17 @@ export const CreateDashboard = ({ webId }: { webId: WebId }) => {
     CreateEntityMutationVariables
   >(createEntityMutation, { refetchQueries: [querySidebarDashboardsQuery] });
 
-  const close = () => {
-    if (loading) {
-      return;
-    }
+  const closeAndClearForm = () => {
     setOpen(false);
     setTitle("");
     setDescription("");
     setError(false);
+  };
+
+  const close = () => {
+    if (!loading) {
+      closeAndClearForm();
+    }
   };
 
   const createDashboard = async () => {
@@ -84,11 +88,13 @@ export const CreateDashboard = ({ webId }: { webId: WebId }) => {
       }
 
       const entity = new HashEntity(data.createEntity);
-      setOpen(false);
-      setTitle("");
-      setDescription("");
+      closeAndClearForm();
       void router.push(
-        `/dashboard/${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`,
+        constructDashboardRelativeUrl({
+          dashboardEntityUuid: extractEntityUuidFromEntityId(
+            entity.metadata.recordId.entityId,
+          ),
+        }),
       );
     } catch {
       setError(true);

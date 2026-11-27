@@ -4,7 +4,10 @@ import {
 } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { constructPageRelativeUrl } from "../../../../lib/routes";
+import {
+  constructDashboardRelativeUrl,
+  constructPageRelativeUrl,
+} from "../../../../lib/routes";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
@@ -26,7 +29,9 @@ export const getPageHref = ({
         systemEntityTypes.dashboard.entityTypeBaseUrl,
     )
   ) {
-    return `/dashboard/${pageEntityUuid}`;
+    return constructDashboardRelativeUrl({
+      dashboardEntityUuid: pageEntityUuid,
+    });
   }
 
   return webShortname

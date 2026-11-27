@@ -12,6 +12,10 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { querySidebarDashboardsQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import {
+  constructDashboardRelativeUrl,
+  getPathFromAsPath,
+} from "../../../../../lib/routes";
 import { Button } from "../../../../ui/button";
 import { TopNavLink } from "../top-nav-link";
 
@@ -26,7 +30,7 @@ const dashboardNameBaseUrl =
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/" satisfies keyof Dashboard["properties"];
 
 export const DashboardList = ({ webId }: { webId: WebId }) => {
-  const router = useRouter();
+  const currentPath = getPathFromAsPath(useRouter().asPath);
   const { data, loading, error, refetch } = useQuery<
     QuerySidebarDashboardsQuery,
     QuerySidebarDashboardsQueryVariables
@@ -106,7 +110,9 @@ export const DashboardList = ({ webId }: { webId: WebId }) => {
         </Box>
       )}
       {dashboards.map(({ entityId, title }) => {
-        const href = `/dashboard/${extractEntityUuidFromEntityId(entityId)}`;
+        const href = constructDashboardRelativeUrl({
+          dashboardEntityUuid: extractEntityUuidFromEntityId(entityId),
+        });
 
         return (
           <TopNavLink
@@ -114,7 +120,7 @@ export const DashboardList = ({ webId }: { webId: WebId }) => {
             title={title}
             href={href}
             icon={<FontAwesomeIcon icon={faChartColumn} />}
-            active={router.asPath.split(/[?#]/)[0] === href}
+            active={currentPath === href}
             tooltipTitle={title}
           />
         );

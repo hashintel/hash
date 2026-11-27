@@ -10,6 +10,7 @@ import {
   ShapesRegularIcon,
 } from "@hashintel/design-system";
 
+import { getPathFromAsPath } from "../../../lib/routes";
 import { useEnabledSections } from "../../../pages/shared/use-enabled-sections";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntitiesCount } from "../../draft-entities-count-context";
@@ -52,7 +53,7 @@ const isNavLinkActive = ({
   definition: NavLinkDefinition;
   currentPath: string;
 }): boolean =>
-  definition.path === currentPath.split(/[?#]/)[0] ||
+  definition.path === getPathFromAsPath(currentPath) ||
   (definition.activeIfPathMatches &&
     !!currentPath.match(definition.activeIfPathMatches)) ||
   !!definition.children?.some((child) =>

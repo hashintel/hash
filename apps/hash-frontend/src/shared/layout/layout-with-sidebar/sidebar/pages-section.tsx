@@ -1,8 +1,6 @@
 import { Box, Typography } from "@mui/material";
 
-import { useHashInstance } from "../../../../components/hooks/use-hash-instance";
-import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
-import { useEnabledSections } from "../../../../pages/shared/use-enabled-sections";
+import { useEnabledPageKinds } from "../../../../pages/shared/use-enabled-page-kinds";
 import { useRoutePageInfo } from "../../../routing";
 import { AccountPageList } from "./account-page-list";
 import { DashboardList } from "./pages-section/dashboard-list";
@@ -11,15 +9,11 @@ import { ViewAllLink } from "./shared/view-all-link";
 import type { WebId } from "@blockprotocol/type-system";
 
 export const PagesSection = ({ webId }: { webId: WebId }) => {
-  const enabledFeatureFlags = useEnabledFeatureFlags();
-  const enabledSections = useEnabledSections();
-  const { hashInstance } = useHashInstance();
+  const enabledPageKinds = useEnabledPageKinds();
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
-  const showBlockPages =
-    enabledFeatureFlags.pages && hashInstance?.properties.pagesAreEnabled;
 
-  if (!enabledSections.dashboards && !showBlockPages) {
+  if (!enabledPageKinds.dashboards && !enabledPageKinds.blockPages) {
     return null;
   }
 
@@ -32,8 +26,8 @@ export const PagesSection = ({ webId }: { webId: WebId }) => {
       >
         Pages
       </Typography>
-      {enabledSections.dashboards && <DashboardList webId={webId} />}
-      {showBlockPages && (
+      {enabledPageKinds.dashboards && <DashboardList webId={webId} />}
+      {enabledPageKinds.blockPages && (
         <AccountPageList
           currentPageEntityUuid={routePageEntityUuid}
           webId={webId}
