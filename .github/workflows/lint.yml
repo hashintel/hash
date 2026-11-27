@@ -8,7 +8,6 @@ on:
   merge_group:
 
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
 
@@ -16,10 +15,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -54,10 +60,14 @@ jobs:
 
   sccache-credentials:
     name: Sccache credentials
+    environment:
+      name: Sccache
+      deployment: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Vault JWT login that fetches the sccache credentials
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
@@ -68,22 +78,28 @@ jobs:
         id: mint
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   package:
     name: Package
+    environment:
+      name: Sccache
+      deployment: false
     permissions:
       contents: read
-      security-events: write
+      security-events: write # uploads the clippy SARIF to code scanning
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
-    if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
+    if: ${{ needs.setup.outputs.packages != '{"name":[],"include":[]}' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Show selection reason
         env:
@@ -114,125 +130,150 @@ jobs:
 
       - name: Find lint steps to run
         id: lints
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "$PACKAGE_PATH/Cargo.toml" || "$PACKAGE_PATH" = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
           # Generated files can change without affecting codegen. The drift check needs command discovery rather than affected-task selection.
           set -o pipefail
-          HAS_CODEGEN=$(turbo run codegen --filter "${{ matrix.name }}" --dry=json | jq --arg package "${{ matrix.name }}" 'any(.tasks[]; .package == $package and .task == "codegen" and .command != "<NONEXISTENT>")')
+          HAS_CODEGEN=$(turbo run codegen --filter "$PACKAGE_NAME" --dry=json | jq --arg package "$PACKAGE_NAME" 'any(.tasks[]; .package == $package and .task == "codegen" and .command != "<NONEXISTENT>")')
           echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
       - name: Install Python workspace for Python lint
-        if: matrix['lint:ruff'] != null || matrix['format:ruff'] != null || matrix['check:ty'] != null || matrix['lint:tach'] != null || matrix['lint:deptry'] != null
+        if: ${{ matrix['lint:ruff'] != null || matrix['format:ruff'] != null || matrix['check:ty'] != null || matrix['lint:tach'] != null || matrix['lint:deptry'] != null }}
         run: uv sync --locked --all-packages
 
       - name: Show disk usage
         run: df -h
 
       - name: Run codegen
-        if: always() && steps.lints.outputs.has-codegen == 'true'
+        if: ${{ always() && steps.lints.outputs.has-codegen == 'true' }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
           set -o pipefail
-          turbo run codegen --force --filter "${{ matrix.name }}"
+          turbo run codegen --force --filter "$PACKAGE_NAME"
           while IFS= read -r line; do
             if [[ -n "$line" ]]; then
-              echo "Checking diff of ${{ matrix.path }}/$line"
-              git --no-pager diff --exit-code --color -- "${{ matrix.path }}/$line"
+              echo "Checking diff of $PACKAGE_PATH/$line"
+              git --no-pager diff --exit-code --color -- "$PACKAGE_PATH/$line"
             fi
-          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.tasks.codegen.outputs | if . == null then "." else .[] end')"
+          done <<< "$(grep -v '^ *//' "$PACKAGE_PATH/turbo.json" | jq -r '.tasks.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Show disk usage
         run: df -h
 
       - name: Run ESLint
-        if: always() && matrix['lint:eslint'] != null
-        run: turbo run lint:eslint --filter "${{ matrix.name }}"
+        if: ${{ always() && matrix['lint:eslint'] != null }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run lint:eslint --filter "$PACKAGE_NAME"
 
       - name: Run Oxlint
-        if: always() && matrix['lint:oxlint'] != null
-        run: turbo run lint:oxlint --filter "${{ matrix.name }}"
+        if: ${{ always() && matrix['lint:oxlint'] != null }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run lint:oxlint --filter "$PACKAGE_NAME"
 
       - name: Run TSC
-        if: always() && matrix['lint:tsc'] != null
-        run: turbo run lint:tsc --filter "${{ matrix.name }}"
+        if: ${{ always() && matrix['lint:tsc'] != null }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run lint:tsc --filter "$PACKAGE_NAME"
 
       - name: Run Ruff
-        if: always() && matrix['lint:ruff'] != null
-        run: turbo run lint:ruff --filter "${{ matrix.name }}"
+        if: ${{ always() && matrix['lint:ruff'] != null }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run lint:ruff --filter "$PACKAGE_NAME"
 
       - name: Check Ruff formatting
-        if: always() && matrix['format:ruff'] != null
-        run: turbo run format:ruff --filter "${{ matrix.name }}" -- --check
+        if: ${{ always() && matrix['format:ruff'] != null }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run format:ruff --filter "$PACKAGE_NAME" -- --check
 
       - name: Run ty
-        if: always() && matrix['check:ty'] != null
-        run: turbo run check:ty --filter "${{ matrix.name }}"
+        if: ${{ always() && matrix['check:ty'] != null }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run check:ty --filter "$PACKAGE_NAME"
 
       - name: Run Python dependency and architecture checks
-        if: always() && (matrix['lint:tach'] != null || matrix['lint:deptry'] != null)
-        run: turbo run lint:tach lint:deptry --continue=always --filter "${{ matrix.name }}"
+        if: ${{ always() && (matrix['lint:tach'] != null || matrix['lint:deptry'] != null) }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run lint:tach lint:deptry --continue=always --filter "$PACKAGE_NAME"
 
       - name: Run rustfmt
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: ${{ always() && steps.lints.outputs.has-rust == 'true' }}
         working-directory: ${{ matrix.path }}
         run: just format --check
 
       - name: Run clippy
-        if: always() && matrix['lint:clippy'] != null
+        if: ${{ always() && matrix['lint:clippy'] != null }}
         shell: bash
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
-          pushd ${{ matrix.path }}
+          pushd "$PACKAGE_PATH"
           CLIPPY_EXIT=0
-          turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
+          turbo run lint:clippy --filter "$PACKAGE_NAME" -- --message-format=json \
             > clippy-output.log || CLIPPY_EXIT=$?
           clippy-sarif < clippy-output.log \
-            | jq --arg path "${{ matrix.path }}" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
+            | jq --arg path "$PACKAGE_PATH" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
-          sarif-fmt < ${{ matrix.path }}/clippy.sarif
+          sarif-fmt < "$PACKAGE_PATH/clippy.sarif"
 
           # The SARIF above keeps only this crate's spanned diagnostics; a failed build also needs
           # errors from dependencies and span-less errors such as "could not compile".
           if [[ $CLIPPY_EXIT -ne 0 ]]; then
             jq -Rr '(fromjson? // .) | if type == "object" then select(.reason == "compiler-message") | .message.rendered else . end' \
-              ${{ matrix.path }}/clippy-output.log
+              "$PACKAGE_PATH/clippy-output.log"
             exit "$CLIPPY_EXIT"
           fi
 
-          jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif > /dev/null
+          jq -e '.runs[].results == []' "$PACKAGE_PATH/clippy.sarif" > /dev/null
 
           # Cargo's manifest lints (e.g. `cargo::unused_dependencies`) are plain text, not compiler
           # JSON, so they bypass the SARIF gate above and were consumed by the pipeline. Re-print
           # the human-readable output (dropping JSON) and fail on the package-level lint. The
           # workspace-level variant is ignored: it false-positives in the pruned per-package repo.
-          if grep -qF "warning: unused dependency" ${{ matrix.path }}/clippy-output.log; then
-            grep -vF '{"reason":' ${{ matrix.path }}/clippy-output.log
+          if grep -qF "warning: unused dependency" "$PACKAGE_PATH/clippy-output.log"; then
+            grep -vF '{"reason":' "$PACKAGE_PATH/clippy-output.log"
             exit 1
           fi
 
       - name: Print clippy errors to summary
-        if: failure() && matrix['lint:clippy'] != null
+        if: ${{ failure() && matrix['lint:clippy'] != null }}
+        env:
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
           {
             echo '```'
-            sarif-fmt < ${{ matrix.path }}/clippy.sarif
+            sarif-fmt < "$PACKAGE_PATH/clippy.sarif"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v4.32.2
-        if: always() && matrix['lint:clippy'] != null
+        if: ${{ always() && matrix['lint:clippy'] != null }}
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
           category: ${{ matrix.name }}
 
       - name: Check public documentation
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: ${{ always() && steps.lints.outputs.has-rust == 'true' }}
         working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
@@ -241,7 +282,7 @@ jobs:
           cargo doc --all-features --no-deps -Zrustdoc-scrape-examples ${TARGET:+--target "$TARGET"}
 
       - name: Check private documentation
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: ${{ always() && steps.lints.outputs.has-rust == 'true' }}
         working-directory: ${{ matrix.path }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
@@ -254,12 +295,17 @@ jobs:
 
   global:
     name: Global
+    environment:
+      name: Sccache
+      deployment: false
     permissions:
       contents: read
-      checks: write
-      pull-requests: write
+      checks: write # the Annotate step creates a check run with the SQLFluff annotations
     needs: [sccache-credentials]
     runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
@@ -434,12 +480,12 @@ jobs:
           fi
 
       - name: Create SQLFluff annotations
-        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ failure() && github.event.pull_request.head.repo.full_name == github.repository }}
         run: sqlfluff lint --warn-unused-ignores --format github-annotation --write-output annotations.json --annotation-level failure --nofail
 
       - name: Annotate
         uses: yuzutech/annotations-action@v0.5.0
-        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ failure() && github.event.pull_request.head.repo.full_name == github.repository }}
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           title: "SQLFluff Lint"
@@ -447,22 +493,34 @@ jobs:
 
   passed:
     name: Linting passed
+    environment:
+      name: Slack
+      deployment: false
     needs: [setup, sccache-credentials, package, global]
-    if: always()
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     steps:
       - name: Check setup script
+        env:
+          SETUP_RESULT: ${{ needs.setup.result }}
         run: |
-          [[ ${{ needs.setup.result }} = success ]]
+          [[ "$SETUP_RESULT" = success ]]
       - name: Check sccache credentials
+        env:
+          SCCACHE_CREDENTIALS_RESULT: ${{ needs.sccache-credentials.result }}
         run: |
-          [[ ${{ needs.sccache-credentials.result }} = success ]]
+          [[ "$SCCACHE_CREDENTIALS_RESULT" = success ]]
       - name: Check package results
+        env:
+          PACKAGE_RESULT: ${{ needs.package.result }}
         run: |
-          [[ ${{ needs.package.result }} =~ success|skipped ]]
+          [[ "$PACKAGE_RESULT" =~ success|skipped ]]
       - name: Check global results
+        env:
+          GLOBAL_RESULT: ${{ needs.global.result }}
         run: |
-          [[ ${{ needs.global.result }} =~ success|skipped ]]
+          [[ "$GLOBAL_RESULT" =~ success|skipped ]]
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@v2.4.0

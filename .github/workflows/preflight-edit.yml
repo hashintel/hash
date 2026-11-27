@@ -1,0 +1,47 @@
+name: Preflight
+
+on:
+  pull_request:
+    # `edited` matters: the todo-comments scan and the PR title check read the PR title.
+    types: [opened, synchronize, reopened, edited]
+  merge_group:
+
+# A called workflow reads the caller's `github.workflow`, so its group is `Preflight-preflight-<check>-…`.
+# This group must match neither those nor the group of `preflight.yml`, which has the same name.
+concurrency:
+  group: preflight-edit-caller-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  todo-comments:
+    name: Todo comments
+    permissions:
+      contents: read
+    uses: hashintel/actions/.github/workflows/preflight-todo-comments.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
+
+  labeler:
+    name: Labeler
+    # A fork's pull request gets a read-only token, which cannot set labels.
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # adds and removes the labels of the pull request
+    steps:
+      - name: Apply labels
+        uses: actions/labeler@v6.0.1
+        with:
+          sync-labels: true
+
+  pr-title:
+    name: PR title
+    permissions:
+      contents: read
+    uses: hashintel/actions/.github/workflows/preflight-pr-title.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main

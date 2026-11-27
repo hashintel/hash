@@ -8,25 +8,30 @@ on:
   merge_group:
 
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
   NEXTEST_PROFILE: ci
+
+permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
-      system-tests: ${{ steps.packages.outputs.system-tests }}
       publish-rust: ${{ steps.packages.outputs.publish-rust }}
     steps:
       - name: Checkout source code
@@ -64,7 +69,7 @@ jobs:
                 fi
               fi
 
-              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              OLD_VERSION=$({ git show HEAD^:"$file" || true; } | yq '.package.version' -p toml)
               if [[ "$OLD_VERSION" == "null" ]]; then
                 continue
               fi
@@ -83,10 +88,14 @@ jobs:
 
   sccache-credentials:
     name: Sccache credentials
+    environment:
+      name: Sccache
+      deployment: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Vault JWT login that fetches the sccache credentials
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
@@ -97,21 +106,27 @@ jobs:
         id: mint
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   unit-tests:
     name: Unit
+    environment:
+      name: Sccache
+      deployment: false
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
+    if: ${{ needs.setup.outputs.unit-tests != '{"name":[],"include":[]}' }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 60
     permissions:
       contents: read
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Show selection reason
         env:
@@ -145,8 +160,10 @@ jobs:
 
       - name: Find test steps to run
         id: tests
+        env:
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "$PACKAGE_PATH/Cargo.toml" || "$PACKAGE_PATH" = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
           if [[ "$HAS_RUST" == "true" ]]; then
@@ -162,9 +179,10 @@ jobs:
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         env:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
+          PACKAGE_NAME: ${{ matrix.name }}
         run: |
-          turbo run test:unit --env-mode=loose --filter "${{ matrix.name }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
+          turbo run test:unit --env-mode=loose --filter "$PACKAGE_NAME"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
 
       - name: Show disk usage
         run: df -h
@@ -176,14 +194,16 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
       - name: Run miri
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: ${{ always() && steps.tests.outputs.has-rust == 'true' }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
         run: |
-          turbo run test:miri --filter "${{ matrix.name }}"
+          turbo run test:miri --filter "$PACKAGE_NAME"
 
       - name: Show sccache logs
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: ${{ always() && steps.tests.outputs.has-rust == 'true' }}
         run: |
-          grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
+          { grep "CannotCache" /tmp/sccache.log || true; } | while IFS= read -r line; do
             # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
             if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\):'; then
               reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\):.*/\1 (\2)/')
@@ -209,18 +229,24 @@ jobs:
 
   integration-tests:
     name: Integration
+    environment:
+      name: Sccache
+      deployment: false
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
     # Only the top of a stack runs integration tests: it contains every layer below it.
     if: >-
-      needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+      ${{ needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
       && (github.event.pull_request.stack == null
-      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size) }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 120
     permissions:
       contents: read
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Show selection reason
         env:
@@ -253,18 +279,20 @@ jobs:
 
       - name: Find test steps to run
         id: tests
+        env:
+          PACKAGE_PATH: ${{ matrix.path }}
         run: |
           HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
           echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a "$GITHUB_OUTPUT"
 
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          HAS_RUST=$([[ -f "$PACKAGE_PATH/Cargo.toml" || "$PACKAGE_PATH" = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
 
       - name: Install playwright
-        if: matrix.name == '@tests/hash-playwright'
+        if: ${{ matrix.name == '@tests/hash-playwright' }}
         uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 3
@@ -290,7 +318,7 @@ jobs:
 
       - name: Start background tasks
         id: background-tasks
-        if: steps.tests.outputs.has-background-tasks == 'true'
+        if: ${{ steps.tests.outputs.has-background-tasks == 'true' }}
         env:
           # Set terminal logging to WARN level and enable verbose file logging for CI
           HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
@@ -318,9 +346,11 @@ jobs:
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
         run: |
-          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
+          turbo run test:integration --env-mode=loose --filter "$PACKAGE_NAME"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "$PACKAGE_NAME" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
 
       - name: Show disk usage
         run: df -h
@@ -337,32 +367,39 @@ jobs:
         run: docker compose --profile dev logs --timestamps
 
       - name: Show background tasks logs
-        if: always() && steps.tests.outputs.has-background-tasks == 'true'
+        if: ${{ always() && steps.tests.outputs.has-background-tasks == 'true' }}
+        env:
+          BACKGROUND_TASKS_PID: ${{ steps.background-tasks.outputs.pid }}
         run: |
-          kill -15 ${{ steps.background-tasks.outputs.pid }} || true
+          kill -15 "$BACKGROUND_TASKS_PID" || true
           cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
-        if: matrix.name == '@tests/hash-playwright' && (success() || failure())
-        uses: actions/upload-artifact@v4.6.2
+        if: ${{ matrix.name == '@tests/hash-playwright' && (success() || failure()) }}
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
           path: tests/hash-playwright/playwright-report
+          if-no-files-found: warn
 
       - name: Upload logs
-        uses: actions/upload-artifact@v4.6.2
-        if: success() || failure()
+        uses: actions/upload-artifact@v7.0.2
+        if: ${{ success() || failure() }}
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
           path: |
             var/api
             var/logs
+          if-no-files-found: ignore
 
   publish-rust:
     name: Publish dry run (Rust)
     needs: [setup]
-    if: needs.setup.outputs.publish-rust != '[]' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+    if: ${{ needs.setup.outputs.publish-rust != '[]' && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6.0.2
@@ -381,30 +418,48 @@ jobs:
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
       - name: Publish (dry run)
-        run: cargo publish --all-features --dry-run --no-verify ${{ steps.flags.outputs.packages }}
+        env:
+          PUBLISH_PACKAGE_FLAGS: ${{ steps.flags.outputs.packages }}
+        run: |
+          read -ra PACKAGE_FLAGS <<< "$PUBLISH_PACKAGE_FLAGS"
+          cargo publish --all-features --dry-run --no-verify "${PACKAGE_FLAGS[@]}"
 
   passed:
     name: Tests passed
+    environment:
+      name: Slack
+      deployment: false
     needs:
       [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
-    if: always()
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     steps:
       - name: Check setup script
+        env:
+          SETUP_RESULT: ${{ needs.setup.result }}
         run: |
-          [[ ${{ needs.setup.result }} = success ]]
+          [[ "$SETUP_RESULT" = success ]]
       - name: Check sccache credentials
+        env:
+          SCCACHE_CREDENTIALS_RESULT: ${{ needs.sccache-credentials.result }}
         run: |
-          [[ ${{ needs.sccache-credentials.result }} = success ]]
+          [[ "$SCCACHE_CREDENTIALS_RESULT" = success ]]
       - name: Check unit tests
+        env:
+          UNIT_TESTS_RESULT: ${{ needs.unit-tests.result }}
         run: |
-          [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
+          [[ "$UNIT_TESTS_RESULT" =~ success|skipped ]]
       - name: Check integration tests
+        env:
+          INTEGRATION_TESTS_RESULT: ${{ needs.integration-tests.result }}
         run: |
-          [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
+          [[ "$INTEGRATION_TESTS_RESULT" =~ success|skipped ]]
       - name: Check publish results
+        env:
+          PUBLISH_RUST_RESULT: ${{ needs.publish-rust.result }}
         run: |
-          [[ ${{ needs.publish-rust.result }} =~ success|skipped ]]
+          [[ "$PUBLISH_RUST_RESULT" =~ success|skipped ]]
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@v2.4.0

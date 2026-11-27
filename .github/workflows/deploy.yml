@@ -9,7 +9,6 @@ on:
   merge_group:
 
 env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
 
@@ -31,7 +30,15 @@ env:
 # staging rollouts itself.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.run_id || github.ref }}
+  # Only pull request and merge-group runs cancel, and their `sourcemaps` job runs in `Sentry (staging)`, not `Sentry`.
+  # jactionlint ignore=concurrency-cancels-release
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   # Only the top of a stack runs this workflow: it contains every layer below
@@ -39,9 +46,10 @@ jobs:
   setup:
     name: Setup
     if: >-
-      github.event.pull_request.stack == null
-      || github.event.pull_request.stack.position == github.event.pull_request.stack.size
+      ${{ github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -60,182 +68,26 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           rust: false
 
-      # Service catalog: the single source of truth for build/manifest.
-      # App images are detected via turbo's affected-package query (`package`,
-      # dependency-aware — a shared-lib change rebuilds its dependents). Kratos
-      # and Hydra aren't JS packages so turbo can't see them; their image
-      # context is their own directory, so a git diff of `paths` is a complete
-      # change signal. `arches` lists what to build; it defaults to both for
-      # GHCR services (multi-arch manifest) and to arm64 otherwise.
-      # ECR holds one architecture per repository (Inspector does not scan
-      # manifest lists): the service's only arch when it builds one, else
-      # arm64, unless `ecr_arch` says otherwise.
       - name: Determine changed packages
         id: packages
         env:
           IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
           SKIP_AMD64: ${{ github.event_name == 'pull_request' }}
-        run: |
-          # Without pipefail a failing command piped into jq is masked by jq's
-          # exit 0 on empty input — yielding an empty matrix and a green run
-          # that silently builds/deploys nothing. Fail loud instead.
-          set -euo pipefail
-
-          SOURCEMAPS_PACKAGES=$(.github/scripts/affected-packages.sh sentry:sourcemaps)
-
-          echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a "$GITHUB_OUTPUT"
-
-          CATALOG=$(jq -nc '[
-            {
-              package:    "hash-graph",
-              service:    "graph",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/hash-graph/docker/Dockerfile",
-              context:    "."
-            },
-            {
-              package:    "@apps/hash-api",
-              service:    "api",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/hash-api/docker/Dockerfile",
-              context:    "."
-            },
-            {
-              package:    "@apps/hash-frontend",
-              service:    "frontend",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/hash-frontend/docker/Dockerfile",
-              context:    ".",
-              # TODO(FE-752): drop build_args once frontend is runtime-configurable.
-              build_args: "API_ORIGIN=http://localhost:5001\nFRONTEND_URL=http://localhost:3000\n"
-            },
-            {
-              package:    "@apps/brunch-agent",
-              service:    "brunch-agent",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/brunch-agent/docker/Dockerfile",
-              context:    "."
-            },
-            {
-              package:    "@apps/hash-ai-worker-ts",
-              service:    "ai-worker-ts",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/hash-ai-worker-ts/docker/Dockerfile",
-              context:    "."
-            },
-            {
-              package:    "@apps/hash-integration-worker",
-              service:    "integration-worker",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/hash-integration-worker/docker/Dockerfile",
-              context:    "."
-            },
-            {
-              package:    "hash-graph-atlas",
-              service:    "atlas-fit",
-              push:       ["ecr", "ghcr"],
-              # The fit runs on x86 GPU hosts, so this image is amd64 rather than
-              # the arm64 default; with one arch listed it is also the ECR arch.
-              arches:     ["amd64"],
-              dockerfile: "libs/@local/graph/atlas/docker/Dockerfile",
-              context:    "."
-            },
-            {
-              service:    "kratos",
-              push:       ["ecr"],
-              dockerfile: "infra/compose/kratos/Dockerfile",
-              context:    "infra/compose/kratos",
-              paths:      ["infra/compose/kratos"]
-            },
-            {
-              service:    "hydra",
-              push:       ["ecr"],
-              dockerfile: "infra/compose/hydra/Dockerfile",
-              context:    "infra/compose/hydra",
-              paths:      ["infra/compose/hydra"]
-            }
-          ]')
-
-          # workflow_dispatch rebuilds everything (manual re-trigger). Otherwise
-          # filter to the affected set: app packages via turbo (dependency
-          # aware), infra services via a git diff of their context dir.
-          if [[ "$IS_DISPATCH" == "true" ]]; then
-            AFFECTED_CATALOG=$(jq -c '.' <<<"$CATALOG")
-          else
-            # App images — turbo affected.
-            AFFECTED_PKGS=$(.github/scripts/affected-packages.sh build:docker | jq -c '[.include[].name]')
-
-            # Fail loudly if turbo flags a `build:docker` package the catalog
-            # doesn't know about — otherwise its image would silently never
-            # publish. (Infra services aren't turbo packages, so they never
-            # appear here.)
-            MISSING=$(jq -nc --argjson pkgs "$AFFECTED_PKGS" --argjson catalog "$CATALOG" \
-              '[$pkgs[] | select(. as $p | ($catalog | map(.package) | index($p)) | not)]')
-            if [[ "$(jq length <<<"$MISSING")" -gt 0 ]]; then
-              echo "::error ::affected build:docker packages missing from deploy catalog: $MISSING"
-              exit 1
-            fi
-
-            # Infra images — turbo is blind to them; a changed file under their
-            # context dir is a complete signal (the dir IS the build context).
-            # Write the path list to a file: on large PR merge checkouts
-            # `git diff HEAD^` is the whole PR, and `--argjson` hits ARG_MAX.
-            CHANGED_JSON="${RUNNER_TEMP:-$(mktemp -d)}/deploy-changed.json"
-            git diff --name-only HEAD^ HEAD | jq -Rsc 'split("\n") | map(select(length > 0))' > "$CHANGED_JSON"
-
-            AFFECTED_CATALOG=$(jq -c --argjson pkgs "$AFFECTED_PKGS" --slurpfile changed "$CHANGED_JSON" '
-              ($changed[0]) as $changed |
-              [.[] | select(
-                (.package != null and (.package as $p | $pkgs | index($p) != null))
-                or
-                ((.paths // []) as $paths | any($paths[]; . as $d | ($changed | any(.[]; startswith($d + "/")))))
-              )]' <<<"$CATALOG")
-          fi
-
-          # Resolve each entry's arches and ECR arch (see the catalog comment),
-          # then fail loudly if the ECR arch is not among the arches built —
-          # the ECR push would otherwise silently never happen.
-          RESOLVED_CATALOG=$(jq -c '
-            [.[]
-              | (.arches // (if (.push | index("ghcr")) then ["arm64", "amd64"] else ["arm64"] end)) as $arches
-              | (.ecr_arch // (if ($arches | length) == 1 then $arches[0] else "arm64" end)) as $ecr_arch
-              | . + {arches: $arches, ecr_arch: $ecr_arch}
-            ]' <<<"$AFFECTED_CATALOG")
-          BAD_ECR_ARCH=$(jq -c '[.[] | select((.push | index("ecr")) and ((.ecr_arch as $a | .arches | index($a)) | not)) | .service]' <<<"$RESOLVED_CATALOG")
-          if [[ "$(jq length <<<"$BAD_ECR_ARCH")" -gt 0 ]]; then
-            echo "::error ::ecr_arch is not among the arches built for: $BAD_ECR_ARCH"
-            exit 1
-          fi
-
-          # Build matrix: expand each entry to its arches. On PR events amd64 is
-          # skipped where arm64 covers the build (arch divergence in Rust/Node
-          # is rare; merge_group still validates amd64 before main), but never
-          # for a service whose only arch it is.
-          BUILD_MATRIX=$(jq -c --argjson skip_amd64 "$SKIP_AMD64" '
-            [.[] as $e
-              | $e.arches[]
-              | $e + {arch: .}
-              | select($skip_amd64 != true or .arch != "amd64" or ($e.arches | length) == 1)
-              | del(.package, .paths, .arches)
-            ] | { include: . }' <<<"$RESOLVED_CATALOG")
-
-          # Manifest matrix: services that publish multi-arch to GHCR.
-          MANIFEST_MATRIX=$(jq -c '
-            map(select(.push | index("ghcr"))) | { service: [.[].service] }
-          ' <<<"$AFFECTED_CATALOG")
-
-          echo "backend-images=$BUILD_MATRIX" | tee -a "$GITHUB_OUTPUT"
-          echo "backend-manifests=$MANIFEST_MATRIX" | tee -a "$GITHUB_OUTPUT"
+        run: .github/scripts/deploy-matrices.sh
 
   sccache-credentials:
     name: Sccache credentials
+    environment:
+      name: Sccache
+      deployment: false
     if: >-
-      github.event.pull_request.stack == null
-      || github.event.pull_request.stack.position == github.event.pull_request.stack.size
+      ${{ github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Vault JWT login that fetches the sccache credentials
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
@@ -246,9 +98,9 @@ jobs:
         id: mint
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   sourcemaps:
@@ -259,19 +111,24 @@ jobs:
       fail-fast: false
     # Fork-only check applies to PRs — the Vault role for SENTRY_AUTH_TOKEN
     # isn't reachable from forks.
-    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: ${{ needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 15
     # The environment lands in the OIDC token as a claim the Vault role binds,
-    # and `main` only accepts the main branch. Picking the tier here is
+    # and `Sentry` only accepts the main branch. Picking the tier here is
     # therefore not self-asserted.
     #
     # Keyed on the ref rather than the event, so a workflow_dispatch on main —
     # which this workflow treats as a publishing run elsewhere — gets the same
     # tier as a push, and a dispatch on any other branch does not.
-    environment: ${{ github.ref == 'refs/heads/main' && 'main' || 'pull-request' }}
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'Sentry' || 'Sentry (staging)' }}
+      deployment: false
     permissions:
-      id-token: write
+      id-token: write # vault-action signs in to Vault with the OIDC token
       contents: read
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - name: Show selection reason
         env:
@@ -282,18 +139,17 @@ jobs:
         id: secrets
         uses: hashicorp/vault-action@v3.4.0
         with:
-          # Named per tier so each value lives once, at the organization. The
-          # condition repeats the one on `environment` above, and a mismatch
-          # cannot reach the wrong tier: the role binds the environment claim,
-          # so credentials for one instance never authenticate against the
-          # other. Each instance holds only its own tier's token, so the role
-          # name and the path carry no tier — the instance is the tier.
-          url: ${{ github.ref == 'refs/heads/main' && vars.VAULT_PROD_ADDR || vars.VAULT_STAGE_ADDR }}
+          # Each environment holds the address and Cloudflare Access pair of its
+          # own tier's Vault, and the role binds the environment claim, so
+          # credentials for one instance never authenticate against the other.
+          # Each instance holds only its own tier's token, so the role name and
+          # the path carry no tier — the instance is the tier.
+          url: ${{ vars.VAULT_ADDR }}
           method: jwt
-          role: ci-hash-sentry
+          role: ci-hashintel-hash-sentry
           extraHeaders: |
-            CF-Access-Client-Id: ${{ github.ref == 'refs/heads/main' && vars.CF_ACCESS_PROD_CLIENT_ID || vars.CF_ACCESS_STAGE_CLIENT_ID }}
-            CF-Access-Client-Secret: ${{ github.ref == 'refs/heads/main' && secrets.CF_ACCESS_PROD_CLIENT_SECRET || secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+            CF-Access-Client-Id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           secrets: |
             ci/data/sentry/sourcemaps auth_token | SENTRY_AUTH_TOKEN
 
@@ -316,26 +172,33 @@ jobs:
         uses: $/.github/actions/warm-up-repo
 
       - name: Log in to Sentry
-        run: sentry-cli login --auth-token ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ steps.secrets.outputs.SENTRY_AUTH_TOKEN }}
+        run: sentry-cli login --auth-token "$SENTRY_AUTH_TOKEN"
 
       - name: Build sourcemaps
-        run: turbo run sentry:sourcemaps --env-mode=loose --filter "${{ matrix.name }}"
+        env:
+          SOURCEMAPS_PACKAGE: ${{ matrix.name }}
+        run: turbo run sentry:sourcemaps --env-mode=loose --filter "$SOURCEMAPS_PACKAGE"
 
   build:
     name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
+    timeout-minutes: 120
     needs: [setup]
-    if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
+    if: ${{ fromJSON(needs.setup.outputs.backend-images).include[0] != null }}
     # No concurrency: builds and their immutable pushes (GHCR by digest, ECR
     # :sha/:run) are idempotent, so parallel runs don't race — they run free.
     # Only the mutable :latest tag needs serialization, in the `manifest` job.
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.backend-images) }}
+    # The ECR push role trusts the OIDC subject of the main branch, which an
+    # `environment:` on this job would replace.
     permissions:
-      id-token: write
+      id-token: write # configure-aws-credentials assumes the ECR push role with the OIDC token
       contents: read
-      packages: write
+      packages: write # docker-build-push pushes the image and the build cache to GHCR
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -406,8 +269,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials (ECR push)
-        if: steps.targets.outputs.push_ecr == 'true'
-        uses: aws-actions/configure-aws-credentials@v4.3.1
+        if: ${{ steps.targets.outputs.push_ecr == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v6.0.0
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ECR_ACCOUNT_ID }}:role/${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -429,17 +292,19 @@ jobs:
       # GHCR was pushed by digest; stash the digest so the manifest job can
       # assemble the multi-arch tags from the exact images this run built.
       - name: Export GHCR digest
-        if: steps.targets.outputs.push_ghcr == 'true'
+        if: ${{ steps.targets.outputs.push_ghcr == 'true' }}
         shell: bash
         env:
           DIGEST: ${{ steps.build.outputs.ghcr-digest }}
+          SERVICE: ${{ matrix.service }}
+          ARCH: ${{ matrix.arch }}
         run: |
           mkdir -p "$RUNNER_TEMP/digests"
-          echo "$DIGEST" > "$RUNNER_TEMP/digests/${{ matrix.service }}-${{ matrix.arch }}"
+          echo "$DIGEST" > "$RUNNER_TEMP/digests/${SERVICE}-${ARCH}"
 
       - name: Upload GHCR digest
-        if: steps.targets.outputs.push_ghcr == 'true'
-        uses: actions/upload-artifact@v4.6.2
+        if: ${{ steps.targets.outputs.push_ghcr == 'true' }}
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: digest-${{ matrix.service }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/digests/*
@@ -449,8 +314,10 @@ jobs:
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
     runs-on: ubuntu-26.04
+    # Leaves room for a retry after a hung attempt of one of the retried steps.
+    timeout-minutes: 10
     needs: [setup, build]
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null }}
     # Serialize the `:latest` multi-arch manifest per service so a newer push's
     # manifest never interleaves with an older one. `queue: max` => no drops.
     concurrency:
@@ -461,7 +328,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.backend-manifests) }}
     permissions:
       contents: read
-      packages: write
+      packages: write # the manifest and the `latest` tag are pushed to GHCR
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -470,17 +337,17 @@ jobs:
           fetch-depth: 0
 
       - name: Login to GHCR
-        uses: docker/login-action@v3.6.0
+        uses: docker/login-action@v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.11.1
+        uses: docker/setup-buildx-action@v4.4.1
 
       - name: Download per-arch digests
-        uses: actions/download-artifact@v5.0.0
+        uses: actions/download-artifact@v8.0.2
         with:
           path: ${{ runner.temp }}/digests
           pattern: digest-${{ matrix.service }}-*
@@ -509,7 +376,7 @@ jobs:
       # dispatch would otherwise move :latest onto a commit no later main push
       # descends from, permanently blocking the guard from ever advancing it again.
       - name: Advance :latest if newer
-        if: github.ref == 'refs/heads/main'
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: $/.github/actions/tag-if-newer
         with:
           image: ghcr.io/${{ github.repository_owner }}/hash/${{ matrix.service }}
@@ -524,24 +391,27 @@ jobs:
   promote:
     name: Promote to staging
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     needs: [setup, build]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-images).include[0] != null
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-images).include[0] != null }}
     # The Vault role binds this environment, which accepts only the main branch.
-    environment: main
+    environment:
+      name: Deploy
+      deployment: false
     permissions:
-      id-token: write
+      id-token: write # dispatch-promotion signs in to Vault with the OIDC token
     steps:
       - name: Dispatch the staging promotion
         uses: hashintel/actions/.github/actions/dispatch-promotion@main
         with:
           project: hash
           target-environment: staging
-          vault-address: ${{ vars.VAULT_PROD_ADDR }}
-          vault-role: ci-hash-deploy
+          vault-address: ${{ vars.VAULT_ADDR }}
+          vault-role: ci-hashintel-hash-deploy
           app-id: "5695957"
           transit-key: github-app-hash-deploy
-          cf-access-client-id: ${{ vars.CF_ACCESS_PROD_CLIENT_ID }}
-          cf-access-client-secret: ${{ secrets.CF_ACCESS_PROD_CLIENT_SECRET }}
+          cf-access-client-id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf-access-client-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
 
   # Single gate suitable as a Required status check in branch protection. The
   # underlying matrix jobs change as services are added/removed; this job's
@@ -552,28 +422,44 @@ jobs:
   # `needs: promote` notifier would miss, since a skipped job is not a failure).
   passed:
     name: Deployments passed
+    environment:
+      name: Slack
+      deployment: false
     needs: [setup, sccache-credentials, sourcemaps, build, manifest, promote]
-    if: always()
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     steps:
       - name: Check setup
+        env:
+          JOB_RESULT: ${{ needs.setup.result }}
         run: |
-          [[ ${{ needs.setup.result }} =~ success|skipped ]]
+          [[ "$JOB_RESULT" =~ success|skipped ]]
       - name: Check sccache credentials
+        env:
+          JOB_RESULT: ${{ needs.sccache-credentials.result }}
         run: |
-          [[ ${{ needs.sccache-credentials.result }} =~ success|skipped ]]
+          [[ "$JOB_RESULT" =~ success|skipped ]]
       - name: Check sourcemaps
+        env:
+          JOB_RESULT: ${{ needs.sourcemaps.result }}
         run: |
-          [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
+          [[ "$JOB_RESULT" =~ success|skipped ]]
       - name: Check build
+        env:
+          JOB_RESULT: ${{ needs.build.result }}
         run: |
-          [[ ${{ needs.build.result }} =~ success|skipped ]]
+          [[ "$JOB_RESULT" =~ success|skipped ]]
       - name: Check manifest
+        env:
+          JOB_RESULT: ${{ needs.manifest.result }}
         run: |
-          [[ ${{ needs.manifest.result }} =~ success|skipped ]]
+          [[ "$JOB_RESULT" =~ success|skipped ]]
       - name: Check promote
+        env:
+          JOB_RESULT: ${{ needs.promote.result }}
         run: |
-          [[ ${{ needs.promote.result }} =~ success|skipped ]]
+          [[ "$JOB_RESULT" =~ success|skipped ]]
 
       - name: Notify Slack on main failure
         uses: rtCamp/action-slack-notify@v2.4.0

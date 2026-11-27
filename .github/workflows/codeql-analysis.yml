@@ -10,14 +10,25 @@ on:
   schedule:
     - cron: "42 10 * * 1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-26.04
+    timeout-minutes: 120
     permissions:
-      actions: read
+      actions: read # CodeQL reads the workflow run and lists its caches through the Actions API
       contents: read
-      security-events: write
+      security-events: write # uploads the CodeQL results to code scanning
 
     strategy:
       fail-fast: false

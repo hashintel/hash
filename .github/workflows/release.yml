@@ -7,18 +7,34 @@ on:
   push:
     branches:
       - main
+
+permissions: {}
+
+# `publish-rust` publishes only the crates whose version the pushed commit changes, so a
+# pending run must not be replaced by a newer one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+  queue: max
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   mint-token:
     name: Mint token
     runs-on: ubuntu-26.04
-    if: github.repository == 'hashintel/hash'
-    environment: main
+    timeout-minutes: 5
+    if: ${{ github.repository == 'hashintel/hash' }}
+    environment:
+      name: Release
+      deployment: false
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Vault JWT login that signs the GitHub App token
     outputs:
       encrypted-github-token: ${{ steps.encrypt.outputs.encrypted_value }}
-      encrypted-sccache-credentials: ${{ steps.mint-sccache.outputs.encrypted_credentials }}
 
     steps:
       - name: Checkout
@@ -28,13 +44,13 @@ jobs:
         id: app-token
         uses: hashintel/actions/.github/actions/github-app-token@main
         with:
-          vault-address: ${{ vars.VAULT_PROD_ADDR }}
-          vault-role: ci-hash-release
+          vault-address: ${{ vars.VAULT_ADDR }}
+          vault-role: ci-hashintel-hash-release
           app-id: "4497272"
           transit-key: github-app-hash-release
           repository: ${{ github.repository }}
-          cf-access-client-id: ${{ vars.CF_ACCESS_PROD_CLIENT_ID }}
-          cf-access-client-secret: ${{ secrets.CF_ACCESS_PROD_CLIENT_SECRET }}
+          cf-access-client-id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf-access-client-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
 
       # GitHub drops masked values from job outputs, so only ciphertext can cross.
       - name: Encrypt token
@@ -44,22 +60,42 @@ jobs:
           value: ${{ steps.app-token.outputs.token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
 
+  sccache-credentials:
+    name: Sccache credentials
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    if: ${{ github.repository == 'hashintel/hash' }}
+    environment:
+      name: Sccache
+      deployment: false
+    permissions:
+      contents: read
+      id-token: write # Vault JWT login that fetches the sccache credentials
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
       # Best-effort: on failure the output stays empty and the release builds uncached.
       - name: Mint sccache credentials
-        id: mint-sccache
+        id: mint
         continue-on-error: true
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   release:
     name: Release
     runs-on: ubuntu-26.04
-    needs: mint-token
-    environment: main
+    timeout-minutes: 90
+    needs: [mint-token, sccache-credentials]
+    environment:
+      name: Release
+      deployment: false
     permissions:
       contents: read
       id-token: write # npm trusted publishing
@@ -85,7 +121,7 @@ jobs:
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          encrypted_sccache_credentials: ${{ needs.mint-token.outputs.encrypted-sccache-credentials }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
           sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Warm up repository
@@ -183,13 +219,13 @@ jobs:
       # Yarn writes each lifecycle script's output to `<tmpdir>/xfs-*/<script>.log` and keeps
       # the file only when the script fails; the publish error names the path.
       - name: Print Yarn lifecycle script logs on failure
-        if: failure()
+        if: ${{ failure() }}
         run: |
           echo "🪵 Dumping Yarn lifecycle script logs..."
           find /tmp -maxdepth 2 -path '/tmp/xfs-*' -name '*.log' -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No Yarn lifecycle script logs found."
 
       - name: Print Turbo logs on failure
-        if: failure()
+        if: ${{ failure() }}
         run: |
           echo "🔍 Searching for turbo logs..."
           find . -type f -name "*.log" -path "*/.turbo/*" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
@@ -198,8 +234,8 @@ jobs:
           find /tmp -type f -name "*.log" -path "*/turbod-*" -exec echo "--- {} ---" \; -exec cat {} \; 2>/dev/null || echo "No turbo daemon logs found."
 
       - name: Upload debug logs
-        if: failure()
-        uses: actions/upload-artifact@v4.6.2
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: release-debug-logs
           path: |
@@ -209,11 +245,14 @@ jobs:
   publish-rust:
     name: Publish (Rust)
     runs-on: ubuntu-26.04
-    if: github.repository == 'hashintel/hash'
-    environment: main
+    timeout-minutes: 20
+    if: ${{ github.repository == 'hashintel/hash' }}
+    environment:
+      name: Release
+      deployment: false
     permissions:
       contents: read
-      id-token: write
+      id-token: write # crates.io trusted publishing
 
     steps:
       - name: Checkout
@@ -242,7 +281,7 @@ jobs:
                 fi
               fi
 
-              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              OLD_VERSION=$({ git show HEAD^:"$file" || true; } | yq '.package.version' -p toml)
               if [[ "$OLD_VERSION" == "null" ]]; then
                 continue
               fi
@@ -259,11 +298,14 @@ jobs:
 
       - name: Authenticate with crates.io
         id: auth
-        if: steps.crates.outputs.packages != ''
+        if: ${{ steps.crates.outputs.packages != '' }}
         uses: rust-lang/crates-io-auth-action@v1.0.5
 
       - name: Publish
-        if: steps.crates.outputs.packages != ''
+        if: ${{ steps.crates.outputs.packages != '' }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
-        run: cargo publish --all-features --no-verify ${{ steps.crates.outputs.packages }}
+          PUBLISH_PACKAGE_FLAGS: ${{ steps.crates.outputs.packages }}
+        run: |
+          read -ra PACKAGE_FLAGS <<< "$PUBLISH_PACKAGE_FLAGS"
+          cargo publish --all-features --no-verify "${PACKAGE_FLAGS[@]}"

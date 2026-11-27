@@ -8,7 +8,7 @@ inputs:
     description: Cloudflare Access service-token client ID for that Vault.
     required: true
   cf_access_client_secret:
-    description: Cloudflare Access service-token client secret for that Vault. Empty on fork pull requests, which is what skips the fetch there.
+    description: Cloudflare Access service-token client secret for that Vault. Empty on fork and Dependabot pull requests, which is what skips the fetch there; empty anywhere else fails the step.
     default: ""
   encryption_key:
     description: The symmetric key encrypting the credential bundle.
@@ -21,6 +21,14 @@ outputs:
 runs:
   using: composite
   steps:
+    # A value the job's environment lacks arrives empty and would otherwise turn sccache off silently.
+    - name: Check the CI environment
+      if: ${{ inputs.cf_access_client_secret == '' && !github.event.pull_request.head.repo.fork && github.actor != 'dependabot[bot]' }}
+      shell: bash
+      run: |
+        echo "::error title=sccache credentials::The Cloudflare Access client secret for the sccache Vault is empty; set it in the job's environment"
+        exit 1
+
     - name: Retrieve secrets
       id: secrets
       if: ${{ inputs.cf_access_client_secret != '' }}
@@ -29,7 +37,7 @@ runs:
       with:
         url: ${{ inputs.vault_address }}
         method: jwt
-        role: ci-hash-sccache
+        role: ci-hashintel-hash-sccache
         extraHeaders: |
           CF-Access-Client-Id: ${{ inputs.cf_access_client_id }}
           CF-Access-Client-Secret: ${{ inputs.cf_access_client_secret }}

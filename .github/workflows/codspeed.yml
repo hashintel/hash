@@ -9,13 +9,22 @@ on:
   # performance analysis in order to generate initial data.
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
+
+# Every push to `main` and every dispatch gets a run of its own; a pull request's newer run cancels its older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -41,10 +50,14 @@ jobs:
 
   sccache-credentials:
     name: Sccache credentials
+    environment:
+      name: Sccache
+      deployment: false
     runs-on: ubuntu-26.04
+    timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Vault JWT login that fetches the sccache credentials
     outputs:
       encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
     steps:
@@ -55,22 +68,26 @@ jobs:
         id: mint
         uses: $/.github/actions/mint-sccache-credentials
         with:
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          vault_address: ${{ vars.VAULT_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   benchmarks:
     name: Run benchmarks
+    environment:
+      name: Sccache
+      deployment: false
     needs: [setup, sccache-credentials]
     runs-on: ubuntu-26.04
+    timeout-minutes: 45
     permissions:
       contents: read
       id-token: write # for OpenID Connect authentication with CodSpeed
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
-    if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
+    if: ${{ needs.setup.outputs.packages != '{"name":[],"include":[]}' }}
     steps:
       - name: Show selection reason
         env:
@@ -104,7 +121,9 @@ jobs:
         uses: $/.github/actions/warm-up-repo
 
       - name: Build the benchmark target
-        run: turbo run build:codspeed --filter=${{ matrix.name }}
+        env:
+          PACKAGE_NAME: ${{ matrix.name }}
+        run: turbo run build:codspeed --filter="$PACKAGE_NAME"
 
       - name: Run the benchmark
         uses: CodSpeedHQ/action@v5.8.0

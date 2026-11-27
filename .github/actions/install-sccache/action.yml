@@ -55,8 +55,9 @@ runs:
         AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
         AWS_EC2_METADATA_DISABLED: "true"
+        START_SCCACHE: ${{ github.action_path }}/start-sccache.sh
       shell: bash
-      run: ${{ github.action_path }}/start-sccache.sh
+      run: '"$START_SCCACHE"'
 
     - name: Inject sccache variables into environment
       shell: bash

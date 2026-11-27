@@ -1,10 +1,6 @@
 name: Housekeeping
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/housekeeping.yml"
-      - ".github/renovate.json"
   schedule:
     - cron: "0 3 * * *"
   workflow_dispatch:
@@ -40,37 +36,31 @@ on:
           - lookup
           - full
 
+# A new run waits for the running one instead of cancelling it, so a Renovate
+# run on `main` always finishes.
+concurrency:
+  group: ${{ github.workflow }}-caller
+  cancel-in-progress: false
+
 permissions: {}
 
 jobs:
-  validate:
-    name: Validate
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
-
-      - name: Install Renovate
-        uses: hashintel/actions/.github/actions/install-renovate@main
-
-      - name: Validate Renovate config
-        run: renovate-config-validator --strict
-
   renovate:
     name: Dependencies
     permissions:
-      actions: read
+      actions: read # Renovate downloads its repository cache artifact
       contents: read
-      id-token: write
-    uses: hashintel/actions/.github/workflows/housekeeping-dependencies.yml@8ff7be6f2bd6cd402e416a3b462428b156b41498 # main
+      id-token: write # Vault JWT login that mints the Renovate installation token
+    uses: hashintel/actions/.github/workflows/housekeeping-dependencies.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
     with:
       repoCache: ${{ inputs.repoCache || 'enabled' }}
       logLevel: ${{ inputs.logLevel || 'info' }}
       overrideSchedule: ${{ inputs.overrideSchedule || false }}
       dryRun: ${{ inputs.dryRun || 'disabled' }}
     secrets:
-      CF_ACCESS_STAGE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+      # Only in the `Renovate` environment of the called jobs; a called workflow gets only the secrets its caller names.
+      # jactionlint ignore=secrets-outside-env
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      # Only in the `Renovate` environment of the called jobs; a called workflow gets only the secrets its caller names.
+      # jactionlint ignore=secrets-outside-env
       RENOVATE_TOKEN_ENC_KEY: ${{ secrets.RENOVATE_TOKEN_ENC_KEY }}

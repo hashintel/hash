@@ -2,21 +2,26 @@ name: Preflight
 
 on:
   pull_request:
-    # `edited` matters: the todo-comments scan derives its ticket IDs from the PR title.
-    types: [opened, synchronize, reopened, edited]
   merge_group:
+
+# A called workflow reads the caller's `github.workflow`, so its group is `Preflight-preflight-<check>-…`.
+# This group must match neither those nor the group of `preflight-edit.yml`, which has the same name.
+concurrency:
+  group: preflight-caller-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions: {}
 
 jobs:
-  todo-comments:
-    name: Todo comments
-    permissions:
-      contents: read
-    uses: hashintel/actions/.github/workflows/preflight-todo-comments.yml@8ff7be6f2bd6cd402e416a3b462428b156b41498 # main
-
   lint:
     name: Lint
     permissions:
       contents: read
-    uses: hashintel/actions/.github/workflows/preflight-lint.yml@8ff7be6f2bd6cd402e416a3b462428b156b41498 # main
+    uses: hashintel/actions/.github/workflows/preflight-lint.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
+
+  dependencies:
+    name: Dependencies
+    permissions:
+      contents: read
+      pull-requests: write # Dependency review comments its summary on the PR
+    uses: hashintel/actions/.github/workflows/preflight-dependencies.yml@731e604877081fb3f3da3bd15ed9e9979a03c6c2 # main
