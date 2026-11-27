@@ -806,7 +806,7 @@ test("a read asks for a page of the default size, or of the limit given, from th
 
 const malformedCursor = {
   error:
-    "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+    "The cursor is expired or wasn't issued by this read. Repeat the read without a cursor to start from the first page.",
 };
 
 /** A response like `response`, ending its page with `cursor` and page 1's resolved temporalAxes. */
@@ -1186,7 +1186,7 @@ test("a read given a cursor it didn't give settles with an error saying to start
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
   await expect(run(query, { cursor: "not-a-cursor" })).resolves.toEqual({
     error:
-      "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+      "The cursor is expired or wasn't issued by this read. Repeat the read without a cursor to start from the first page.",
   });
   expect(query).not.toHaveBeenCalled();
 });
@@ -2854,6 +2854,53 @@ test("entity type reads exceeding 12 MiB settle a structured oversized refusal, 
     payloadBytes: expect.any(Number),
     types: 1,
   });
+
+  // 1,000 types sharing one 600 KB property description refuse incrementally
+  // before building or JSON.stringify-ing ~600 MB of expanded metadata.
+  const sharedPropUrl = "https://hash.ai/@h/types/property-type/shared-notes/";
+  const sharedPropVersioned = `${sharedPropUrl}v/1`;
+  const sharedDesc = "s".repeat(600 * 1024);
+  const repeatedTypesResponse = {
+    queryEntityTypes: {
+      entityTypes: Array.from({ length: 1_000 }, (_, index) => ({
+        schema: {
+          $id: `https://hash.ai/@h/types/entity-type/t-${index}/v/1`,
+          title: `Type ${index}`,
+          properties: { [sharedPropUrl]: { $ref: sharedPropVersioned } },
+        },
+        metadata: { webId: "h-web" },
+      })),
+      closedEntityTypes: [],
+      definitions: {
+        dataTypes: {},
+        entityTypes: {},
+        propertyTypes: {
+          [sharedPropVersioned]: {
+            title: "Shared Notes",
+            description: sharedDesc,
+          },
+        },
+      },
+    },
+  } as unknown as QueryEntityTypesQuery;
+  const stringifySpy = vi.spyOn(JSON, "stringify");
+  try {
+    const repeatedOutput = await runTool(
+      createHashEntityTypeReadTool(
+        () => Promise.resolve(repeatedTypesResponse),
+        () => reader,
+      ),
+      {},
+    );
+    expect(repeatedOutput).toEqual({
+      refused: true,
+      payloadBytes: expect.any(Number),
+      types: 1_000,
+    });
+    expect(stringifySpy).not.toHaveBeenCalled();
+  } finally {
+    stringifySpy.mockRestore();
+  }
 
   // Plain count with prototype key in webIds returns 0 (never inherited Object.prototype method).
   const protoCount = await count(

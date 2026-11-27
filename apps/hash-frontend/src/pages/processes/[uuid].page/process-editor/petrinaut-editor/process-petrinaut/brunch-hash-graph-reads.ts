@@ -313,7 +313,7 @@ const createHashEntityReadCursorStore = ({
 
 const malformedCursor: HashReadFailure = {
   error:
-    "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+    "The cursor is expired or wasn't issued by this read. Repeat the read without a cursor to start from the first page.",
 };
 
 const malformedTypeCursor: HashReadFailure = {
@@ -597,8 +597,61 @@ export type QueryEntitySubgraph = (
   signal: AbortSignal,
 ) => Promise<QueryEntitySubgraphQuery>;
 
-const serializedPayloadBytes = (value: unknown) =>
-  new TextEncoder().encode(JSON.stringify(value)).length;
+const utf8ByteLength = (text: string) => new TextEncoder().encode(text).length;
+
+/**
+ * Lower-bound UTF-8 byte count of `value`'s JSON, stopping as soon as it
+ * passes `limit` so large or repeated strings (such as shared property
+ * descriptions across 1,000 entity types) don't allocate a huge JSON string
+ * before being refused.
+ */
+const jsonBytesAtMost = (value: unknown, limit: number): number => {
+  let bytes = 0;
+  const pending: unknown[] = [value];
+  while (pending.length > 0 && bytes <= limit) {
+    const here = pending.pop();
+    if (typeof here === "string") {
+      // Every UTF-16 code unit encodes to at least 1 UTF-8 byte, so check
+      // string length in O(1) before encoding.
+      if (bytes + here.length + 2 > limit) {
+        return bytes + here.length + 2;
+      }
+      bytes += utf8ByteLength(here) + 2;
+    } else if (Array.isArray(here)) {
+      bytes += here.length + 1;
+      if (bytes > limit) {
+        break;
+      }
+      for (const item of here) {
+        pending.push(item);
+      }
+    } else if (typeof here === "object" && here !== null) {
+      const entries = Object.entries(here as Record<string, unknown>);
+      bytes += 1 + entries.length * 4;
+      for (const [key, item] of entries) {
+        if (bytes + key.length > limit) {
+          return bytes + key.length;
+        }
+        bytes += utf8ByteLength(key);
+        pending.push(item);
+      }
+    } else {
+      bytes += 5;
+    }
+  }
+  return bytes;
+};
+
+const serializedPayloadBytes = (
+  value: unknown,
+  limit = hashEntityReadMaxPayloadBytes,
+) => {
+  const lowerBound = jsonBytesAtMost(value, limit);
+  if (lowerBound > limit) {
+    return lowerBound;
+  }
+  return utf8ByteLength(JSON.stringify(value));
+};
 
 /**
  * A read whose query failed settles with the failure's message, so the agent
@@ -826,58 +879,130 @@ export const hashEntityTypeReadRequest = (
 const hashEntityTypeReadResult = (
   response: QueryEntityTypesQuery,
   ownWebIds: ReadonlySet<WebId>,
-  { usesLatestFilter }: { readonly usesLatestFilter: boolean },
-): HashEntityTypeReadResult => {
+  {
+    usesLatestFilter,
+    maxPayloadBytes = hashEntityReadMaxPayloadBytes,
+  }: {
+    readonly usesLatestFilter: boolean;
+    readonly maxPayloadBytes?: number;
+  },
+): HashEntityTypeReadResult | HashEntityTypeReadOversized => {
   const { entityTypes, closedEntityTypes, definitions, cursor } =
     response.queryEntityTypes;
   const closedById = new Map(
     (closedEntityTypes ?? []).map((closed) => [closed.$id, closed]),
   );
-  return {
-    entityTypes: entityTypes.map(({ schema, metadata }) => {
-      const closed = closedById.get(schema.$id);
-      const properties = closed?.properties ?? schema.properties;
-      const links = closed?.links ?? schema.links ?? {};
-      const own =
-        isOwnedOntologyElementMetadata(metadata) &&
-        ownWebIds.has(metadata.webId as WebId);
+  // Track expanded UTF-8 bytes incrementally so shared descriptions repeated
+  // across up to 1,000 types stop immediately at `maxPayloadBytes` instead of
+  // materializing and serializing hundreds of megabytes first.
+  const propDefBytesCache = new Map<string, number>();
+  const propertyDefBytes = (
+    ref: string,
+    title: string | undefined,
+    description: string | undefined,
+  ) => {
+    const cached = propDefBytesCache.get(ref);
+    if (cached !== undefined) {
+      return cached;
+    }
+    let bytes = 0;
+    if (title !== undefined) {
+      bytes += title.length + 12;
+    }
+    if (description !== undefined) {
+      bytes += description.length + 18;
+    }
+    propDefBytesCache.set(ref, bytes);
+    return bytes;
+  };
+  let estimatedBytes = 32;
+  const projected: HashEntityTypeReadResult["entityTypes"] = [];
+  for (const { schema, metadata } of entityTypes) {
+    const closed = closedById.get(schema.$id);
+    const properties = closed?.properties ?? schema.properties;
+    const links = closed?.links ?? schema.links ?? {};
+    estimatedBytes +=
+      schema.$id.length +
+      schema.title.length +
+      (typeof schema.description === "string" ? schema.description.length : 0) +
+      96;
+    if (estimatedBytes > maxPayloadBytes) {
       return {
-        entityTypeId: schema.$id,
-        title: schema.title,
-        description: schema.description,
-        ...(own ? {} : { external: true as const }),
-        properties: Object.entries(properties).map(([baseUrl, value]) => {
-          const propertyDef =
-            definitions?.propertyTypes[
-              "items" in value ? value.items.$ref : value.$ref
-            ];
-          return {
-            baseUrl,
-            ...(propertyDef?.title === undefined
-              ? {}
-              : { title: propertyDef.title }),
-            ...(propertyDef?.description === undefined
-              ? {}
-              : { description: propertyDef.description }),
-          };
-        }),
-        links: Object.entries(links).map(([linkEntityTypeId, value]) => {
-          const title =
-            definitions?.entityTypes[linkEntityTypeId as VersionedUrl]?.title;
-          return {
-            linkEntityTypeId,
-            ...(title === undefined ? {} : { title }),
-            ...("oneOf" in value.items
-              ? {
-                  destinationEntityTypeIds: value.items.oneOf.map(
-                    ({ $ref }) => $ref,
-                  ),
-                }
-              : {}),
-          };
-        }),
+        refused: true as const,
+        payloadBytes: estimatedBytes,
+        types: entityTypes.length,
       };
-    }),
+    }
+    const projectedProperties: HashEntityTypeReadResult["entityTypes"][number]["properties"] =
+      [];
+    for (const [baseUrl, value] of Object.entries(properties)) {
+      const ref = "items" in value ? value.items.$ref : value.$ref;
+      const propertyDef = definitions?.propertyTypes[ref];
+      estimatedBytes +=
+        baseUrl.length +
+        24 +
+        propertyDefBytes(ref, propertyDef?.title, propertyDef?.description);
+      if (estimatedBytes > maxPayloadBytes) {
+        return {
+          refused: true as const,
+          payloadBytes: estimatedBytes,
+          types: entityTypes.length,
+        };
+      }
+      projectedProperties.push({
+        baseUrl,
+        ...(propertyDef?.title === undefined
+          ? {}
+          : { title: propertyDef.title }),
+        ...(propertyDef?.description === undefined
+          ? {}
+          : { description: propertyDef.description }),
+      });
+    }
+    const projectedLinks: HashEntityTypeReadResult["entityTypes"][number]["links"] =
+      [];
+    for (const [linkEntityTypeId, value] of Object.entries(links)) {
+      const title =
+        definitions?.entityTypes[linkEntityTypeId as VersionedUrl]?.title;
+      const destinations =
+        "oneOf" in value.items
+          ? value.items.oneOf.map(({ $ref }) => $ref)
+          : undefined;
+      const destinationsBytes =
+        destinations === undefined
+          ? 0
+          : destinations.reduce((sum, id) => sum + id.length + 3, 0);
+      estimatedBytes +=
+        linkEntityTypeId.length + (title?.length ?? 0) + destinationsBytes + 48;
+      if (estimatedBytes > maxPayloadBytes) {
+        return {
+          refused: true as const,
+          payloadBytes: estimatedBytes,
+          types: entityTypes.length,
+        };
+      }
+      projectedLinks.push({
+        linkEntityTypeId,
+        ...(title === undefined ? {} : { title }),
+        ...(destinations === undefined
+          ? {}
+          : { destinationEntityTypeIds: destinations }),
+      });
+    }
+    const own =
+      isOwnedOntologyElementMetadata(metadata) &&
+      ownWebIds.has(metadata.webId as WebId);
+    projected.push({
+      entityTypeId: schema.$id,
+      title: schema.title,
+      description: schema.description,
+      ...(own ? {} : { external: true as const }),
+      properties: projectedProperties,
+      links: projectedLinks,
+    });
+  }
+  return {
+    entityTypes: projected,
     ...(cursor === undefined
       ? {}
       : usesLatestFilter
@@ -926,6 +1051,9 @@ export const createHashEntityTypeReadTool = (
           ownWebIdsOf(currentUser()),
           { usesLatestFilter },
         );
+        if ("refused" in result) {
+          return result;
+        }
         const payloadBytes = serializedPayloadBytes(result);
         if (payloadBytes > hashEntityReadMaxPayloadBytes) {
           return {

@@ -1500,8 +1500,17 @@ export const hashEntityCountDescription = [
 const countFiltersLine = ({
   includeDrafts = false,
   includeArchived = false,
-}: Pick<HashEntityCountInput, "includeDrafts" | "includeArchived">) =>
-  `filters: drafts ${includeDrafts ? "included" : "excluded (pass includeDrafts: true)"}, archived ${includeArchived ? "included" : "excluded (pass includeArchived: true)"}`;
+  join = false,
+}: Pick<HashEntityCountInput, "includeDrafts" | "includeArchived"> & {
+  readonly join?: boolean;
+}) =>
+  `filters: drafts ${
+    includeDrafts
+      ? join
+        ? "included (deduplicated per entity)"
+        : "included (live and draft editions counted separately)"
+      : "excluded (pass includeDrafts: true)"
+  }, archived ${includeArchived ? "included" : "excluded (pass includeArchived: true)"}`;
 
 const entityCountEmptyNote = ({
   includeDrafts = false,
@@ -1707,7 +1716,11 @@ export const hashEntityCountJoinForModel = (
     result.webScope === "default"
       ? "webs counted: the user's own web and their organizations' webs (the default; links are read in these webs only, so links in other webs are not seen — name webIds to include others)"
       : "webs counted: the webIds named (links are read in these webs only, so links in other webs are not seen)";
-  const filtersLine = countFiltersLine({ includeDrafts, includeArchived });
+  const filtersLine = countFiltersLine({
+    includeDrafts,
+    includeArchived,
+    join: true,
+  });
   const anyExternal =
     result.examples.some(({ external }) => external === true) ||
     (result.groups ?? []).some(({ entity }) => entity?.external === true);

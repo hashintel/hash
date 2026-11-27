@@ -578,7 +578,9 @@ export const hashEntityCountInputSchema = v.strictObject({
   includeDrafts: v.optional(
     v.pipe(
       v.boolean(),
-      v.description("Whether to include draft entities. Defaults to false."),
+      v.description(
+        "Whether to include draft entities. Defaults to false. Plain counts count live and draft editions separately (as HASH summarizes them); counts with where or groupBy deduplicate by base entity ID (preferring the draft edition) so an entity with both live and draft editions is counted once.",
+      ),
     ),
   ),
   includeArchived: v.optional(

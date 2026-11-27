@@ -1345,6 +1345,46 @@ test("a count in named webs says so, names a web it doesn't know by id, and note
   ]);
 });
 
+test("includeDrafts notes live-and-draft edition counting on plain counts vs per-entity deduplication on link counts", () => {
+  const plain = hashEntityCountForModel(
+    {
+      count: 4,
+      webScope: "default",
+      entityTypes: [
+        { entityTypeId: salesOrderTypeId, title: "Sales Order", count: 4 },
+      ],
+      webs: [{ webId: "alice-web", kind: "user", count: 4 }],
+    },
+    { includeDrafts: true },
+  );
+  expect(plain).toContain(
+    "filters: drafts included (live and draft editions counted separately), archived excluded (pass includeArchived: true)",
+  );
+
+  const joined = hashEntityCountJoinForModel(
+    {
+      outcome: "counted",
+      webScope: "default",
+      ofType: 3,
+      count: 1,
+      examples: [],
+      reads: [{ role: "counted", entityTypes: ["Sales Order"], entities: 3 }],
+      requests: 2,
+    },
+    {
+      entityTypes: ["Sales Order"],
+      includeDrafts: true,
+      where: {
+        path: [{ linkType: "Has Customer", direction: "outgoing" }],
+        exists: false,
+      },
+    },
+  );
+  expect(joined).toContain(
+    "filters: drafts included (deduplicated per entity), archived excluded (pass includeArchived: true)",
+  );
+});
+
 test("a count of nothing says nothing matched that the user can see", () => {
   expect(
     hashEntityCountForModel({
