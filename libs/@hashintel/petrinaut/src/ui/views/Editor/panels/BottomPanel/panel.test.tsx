@@ -163,7 +163,12 @@ describe("BottomPanel", () => {
   it("shows a plugin's view as a tab after its own, with its content and header action", () => {
     renderPlugins([notesPlugin], view);
 
-    expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings", "Notes"]);
+    expect(tabNames()).toEqual([
+      "Diagnostics",
+      "Simulation Settings",
+      "Visualizer",
+      "Notes",
+    ]);
     expect(screen.queryByText("Nothing noted")).toBeNull();
     expect(screen.queryByRole("button", { name: "Clear notes" })).toBeNull();
 
@@ -191,7 +196,11 @@ describe("BottomPanel", () => {
 
     rerender([]);
 
-    expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings"]);
+    expect(tabNames()).toEqual([
+      "Diagnostics",
+      "Simulation Settings",
+      "Visualizer",
+    ]);
     expect(selectedTab()).toBe("Diagnostics");
     expect(screen.queryByText("Nothing noted")).toBeNull();
   });
@@ -204,7 +213,11 @@ describe("BottomPanel", () => {
       screen.getByRole("button", { name: "Stop and show Diagnostics" }),
     );
 
-    expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings"]);
+    expect(tabNames()).toEqual([
+      "Diagnostics",
+      "Simulation Settings",
+      "Visualizer",
+    ]);
     expect(selectedTab()).toBe("Diagnostics");
   });
 
@@ -221,6 +234,7 @@ describe("BottomPanel", () => {
       "Diagnostics",
       "Simulation Settings",
       "Timeline",
+      "Visualizer",
     ]);
     expect(selectedTab()).toBe("Timeline");
     expect(screen.getByRole("tabpanel").textContent).toBe(
@@ -249,7 +263,7 @@ describe("BottomPanel", () => {
     rerender([], panelWith("NotRun", streamingExecution));
 
     expect(panelState().textContent).toBe("open");
-    expect(tabNames()).toEqual(["Timeline", "Events"]);
+    expect(tabNames()).toEqual(["Timeline", "Events", "Visualizer"]);
     expect(selectedTab()).toBe("Timeline");
     expect(screen.getByRole("tabpanel").textContent).toBe(
       "Timeline of the execution",
@@ -263,7 +277,11 @@ describe("BottomPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Leave Actual mode" }));
 
-    expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings"]);
+    expect(tabNames()).toEqual([
+      "Diagnostics",
+      "Simulation Settings",
+      "Visualizer",
+    ]);
     expect(selectedTab()).toBe("Diagnostics");
   });
 });

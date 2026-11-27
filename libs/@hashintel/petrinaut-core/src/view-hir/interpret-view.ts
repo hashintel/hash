@@ -29,13 +29,27 @@ export class ViewElementValue {
  * one of those per array item. */
 export type ViewValue = HirValue | ViewElementValue | readonly ViewValue[];
 
-/** The component's props for one frame. */
+/** The tokens of one place for one frame, one record per token. */
+export type ViewTokens = readonly Readonly<Record<string, HirValue>>[];
+
+/**
+ * The places of a net for one frame, by display name: how many tokens each
+ * holds, and one record per token. Keyed by names a user chose: build it
+ * with no prototype (`createUserKeyedRecord`).
+ */
+export type ViewPlaces = Readonly<
+  Record<string, { count: number; tokens: Record<string, HirValue>[] }>
+>;
+
+/**
+ * The component's props for one frame: the tokens a place's visualizer
+ * draws, or the places a net's visualizer draws.
+ */
 export type ViewProps = {
   width: number;
   height: number;
-  tokens: readonly Readonly<Record<string, HirValue>>[];
   parameters: HirInterpretBindings["parameters"];
-};
+} & ({ tokens: ViewTokens } | { places: ViewPlaces });
 
 type Locals = ReadonlyMap<string, HirValue>;
 
@@ -115,9 +129,9 @@ class ViewInterpreter {
 
 /**
  * Draws one frame: evaluates a lowered (and, at the caller's responsibility,
- * checked) visualizer over the place's tokens and the net's parameters.
- * Throws `HirInterpretError`, positioned in the user source, on evaluation
- * failure.
+ * checked) visualizer over what it draws, a place's tokens or a net's
+ * places, and the net's parameters. Throws `HirInterpretError`, positioned
+ * in the user source, on evaluation failure.
  */
 export function interpretViewHir(view: ViewHir, props: ViewProps): ViewValue {
   const locals = new Map<string, HirValue>();
@@ -125,7 +139,9 @@ export function interpretViewHir(view: ViewHir, props: ViewProps): ViewValue {
     locals.set(view.props.name, {
       width: props.width,
       height: props.height,
-      tokens: props.tokens as HirValue,
+      ...("places" in props
+        ? { places: props.places }
+        : { tokens: props.tokens as HirValue }),
       parameters: props.parameters as HirValue,
     });
   }

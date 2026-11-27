@@ -265,7 +265,8 @@ function buildSnapshot(
         : param.diagnostics,
     );
     total += param.diagnostics.length;
-    if (parseDocumentUri(param.uri)?.itemType === "place-visualizer") {
+    const itemType = parseDocumentUri(param.uri)?.itemType;
+    if (itemType === "place-visualizer" || itemType === "net-visualizer") {
       continue;
     }
     for (const diagnostic of param.diagnostics) {

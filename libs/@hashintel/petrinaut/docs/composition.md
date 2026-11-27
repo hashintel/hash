@@ -16,6 +16,8 @@ A component can carry its own **icon** and **colour**. Open the options on its r
 
 A transition of the net can connect to a port with an arc, as to any place. The arc reaches the place inside the instance.
 
+A component can draw what goes on inside it. Give it a [net visualizer](petri-net-extensions.md#net-visualizers) and each of its instances shows that picture on its card, over the instance's own tokens.
+
 ## Ports and their direction
 
 A port can declare a **direction** in the place properties, under Component port:

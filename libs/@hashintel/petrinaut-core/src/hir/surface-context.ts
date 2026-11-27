@@ -214,11 +214,50 @@ export type HirScenarioCodeContext = {
  * attributes (`null` for an uncoloured place, whose tokens carry none and
  * can only be counted), and `parameters` the net's parameters.
  */
-export type HirVisualizerContext = {
+export type HirPlaceVisualizerContext = {
   surface: "visualizer";
+  subject?: "place";
   parameters: HirParameterInfo[];
   elements: HirTokenElementInfo[] | null;
 };
+
+/** One place of a net as the net's visualizer reads it (`places.<name>`). */
+export type HirVisualizerPlaceInfo = {
+  name: string;
+  /** The attributes of the place's tokens, `null` for an uncoloured place. */
+  elements: HirTokenElementInfo[] | null;
+};
+
+/**
+ * Context for a net's visualizer, the root net's or a component's: `places`
+ * carries every place of the net by display name (last name wins for
+ * duplicates), each with its `count` and its `tokens`, and `parameters` the
+ * net's parameters.
+ */
+export type HirNetVisualizerContext = {
+  surface: "visualizer";
+  subject: "net";
+  parameters: HirParameterInfo[];
+  places: HirVisualizerPlaceInfo[];
+};
+
+/** What a visualizer draws: the tokens of one place, or the state of a net. */
+export type HirVisualizerContext =
+  | HirPlaceVisualizerContext
+  | HirNetVisualizerContext;
+
+/**
+ * The names a visualizer's bare body reads without declaring them: what it
+ * draws, then the net's parameters and the size of its viewport.
+ */
+export const visualizerAmbientNames = (
+  context: Pick<HirVisualizerContext, "subject">,
+): readonly string[] => [
+  context.subject === "net" ? "places" : "tokens",
+  "parameters",
+  "width",
+  "height",
+];
 
 export type HirSurfaceContext =
   | HirDynamicsContext
@@ -422,7 +461,7 @@ export function buildVisualizerContext(
   place: Pick<Place, "colorId">,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
   net: HirNetScope = sdcpn,
-): HirVisualizerContext {
+): HirPlaceVisualizerContext {
   const color = place.colorId
     ? collectColors(sdcpn, extensions).get(place.colorId)
     : undefined;
@@ -435,6 +474,38 @@ export function buildVisualizerContext(
           type: element.type,
         }))
       : null,
+  };
+}
+
+/**
+ * Builds the context for a net's visualizer: every place of `net` by display
+ * name with its colour attributes, and the net's parameters. `net` is the
+ * root net or a component of `sdcpn`.
+ */
+export function buildNetVisualizerContext(
+  sdcpn: SDCPN,
+  net: HirNetScope = sdcpn,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): HirNetVisualizerContext {
+  const colorById = collectColors(sdcpn, extensions);
+  const placesByName = new Map<string, HirVisualizerPlaceInfo>();
+  for (const place of net.places) {
+    const color = place.colorId ? colorById.get(place.colorId) : undefined;
+    placesByName.set(place.name, {
+      name: place.name,
+      elements: color
+        ? color.elements.map((element) => ({
+            name: element.name,
+            type: element.type,
+          }))
+        : null,
+    });
+  }
+  return {
+    surface: "visualizer",
+    subject: "net",
+    parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
+    places: [...placesByName.values()],
   };
 }
 

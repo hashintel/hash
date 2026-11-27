@@ -126,8 +126,10 @@ export {
   buildLambdaContext,
   buildMetricContext,
   buildScenarioCodeContext,
+  buildNetVisualizerContext,
   buildScenarioExpressionContext,
   buildVisualizerContext,
+  visualizerAmbientNames,
   type HirDynamicsContext,
   type HirFunctionContext,
   type HirKernelContext,
@@ -141,8 +143,11 @@ export {
   type HirScenarioParameterInfo,
   type HirScenarioPlaceInfo,
   type HirSurfaceContext,
+  type HirNetVisualizerContext,
+  type HirPlaceVisualizerContext,
   type HirTokenElementInfo,
   type HirVisualizerContext,
+  type HirVisualizerPlaceInfo,
 } from "./hir/surface-context";
 export {
   createHirExpressionChecker,

@@ -53,6 +53,7 @@ export const nodes: CanvasNode[] = [
     foldable: false,
     unfolded: true,
     anchorOffset: 0,
+    visualizerHeight: 0,
   },
 ];
 

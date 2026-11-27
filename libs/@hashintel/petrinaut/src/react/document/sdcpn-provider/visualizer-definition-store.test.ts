@@ -129,6 +129,41 @@ it("coalesces component visualizers and flushes changes to other component field
   instance.dispose();
 });
 
+it("coalesces edits to a net's own visualizer, the root net's and a component's", () => {
+  const { instance, view, listener, unsubscribe } = setup({
+    ...initial,
+    visualizerCode: "root code",
+    components: [
+      {
+        ...initial,
+        id: "component",
+        name: "Component",
+        visualizerCode: "component code",
+      },
+    ],
+  });
+  const before = view.get();
+  const componentId = instance.definition.get().components![0]!.id;
+
+  instance.mutations.setNetVisualizer({ visualizerCode: "root draft" });
+  instance.mutations.setNetVisualizer({
+    visualizerCode: "component draft",
+    targetComponentId: componentId,
+  });
+  expect(instance.definition.get().visualizerCode).toBe("root draft");
+  expect(view.get()).toBe(before);
+  expect(listener).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(120);
+  expect(view.get()).toBe(instance.definition.get());
+  expect(listener).toHaveBeenCalledTimes(1);
+
+  // Turning a visualizer off is no edit to its code: it shows at once.
+  instance.mutations.setNetVisualizer({ visualizerCode: null });
+  expect(view.get()).toBe(instance.definition.get());
+  unsubscribe();
+  instance.dispose();
+});
+
 it.each([undefined, "remote"] as const)(
   "immediately publishes snapshots without local patches (%s)",
   (source) => {

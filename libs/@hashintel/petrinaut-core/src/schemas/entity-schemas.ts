@@ -639,6 +639,10 @@ export const componentSchema = z
       description:
         "Fusions among this component's places and the ports of the instances inside it.",
     }),
+    visualizerCode: z.string().optional().meta({
+      description:
+        "The component's visualizer: a JavaScript function body with JSX that returns one `<Visualizer.Svg>` picture of the state of one instance. `places` is in scope, every place of the component by name with its `count` and its `tokens`, with `parameters`, `width` and `height`. It is drawn on the cards of the component's instances.",
+    }),
   })
   .meta({
     description:

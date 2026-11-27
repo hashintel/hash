@@ -37,7 +37,21 @@ export type FlattenedSimulationDefinition = {
   transitionParameterValues: Map<ID, ParameterValues>;
   placeParameterValues: Map<ID, ParameterValues>;
   arcPlaceNameOverrides: Map<string, string>;
+  /**
+   * For each flat place a fusion merged away, the flat place that holds its
+   * tokens. A place that is not here holds its own.
+   */
+  fusedPlaceAliases: ReadonlyMap<ID, ID>;
+  /**
+   * The parameter values each component instance runs with, by the
+   * `instancePathKey` of the instances that lead to it from the root net.
+   */
+  instanceParameterValues: ReadonlyMap<string, ParameterValues>;
 };
+
+/** The key of one instance of a composition: its path of instance ids. */
+export const instancePathKey = (path: readonly ID[]): string =>
+  path.join(scopeSeparator);
 
 export const getArcPlaceNameOverrideKey = ({
   transitionId,
@@ -106,6 +120,7 @@ type FlattenContext = {
   flatIds: FlatIdSets;
   transitionParameterValues: Map<ID, ParameterValues>;
   placeParameterValues: Map<ID, ParameterValues>;
+  instanceParameterValues: Map<string, ParameterValues>;
   arcPlaceNameOverrides: Map<string, string>;
   /** Every fusion of every net, as flat place ids, applied once flattening is done. */
   fusionGroups: FusionGroup[];
@@ -517,17 +532,23 @@ const flattenNet = ({
           parameter.defaultValue,
       ]),
     );
+    const instancePath = [...path, instance.id];
+    const instanceParameterValues = ctx.parametersEnabled
+      ? deriveInstanceParameterValues(
+          running.parameters,
+          runningParameterValues,
+        )
+      : {};
+    ctx.instanceParameterValues.set(
+      instancePathKey(instancePath),
+      instanceParameterValues,
+    );
     flattenNet({
       ctx,
       net: running,
-      path: [...path, instance.id],
+      path: instancePath,
       activeComponentIds: [...activeComponentIds, running.id],
-      parameterValues: ctx.parametersEnabled
-        ? deriveInstanceParameterValues(
-            running.parameters,
-            runningParameterValues,
-          )
-        : {},
+      parameterValues: instanceParameterValues,
     });
   }
 
@@ -576,6 +597,8 @@ export const flattenComponentInstancesForSimulation = ({
         transitionParameterValues,
         placeParameterValues,
         arcPlaceNameOverrides: new Map(),
+        fusedPlaceAliases: new Map(),
+        instanceParameterValues: new Map(),
       };
     }
   }
@@ -606,6 +629,7 @@ export const flattenComponentInstancesForSimulation = ({
     },
     transitionParameterValues: new Map(),
     placeParameterValues: new Map(),
+    instanceParameterValues: new Map(),
     arcPlaceNameOverrides: new Map(),
     fusionGroups: [],
     equationKeys: new Map(),
@@ -656,5 +680,7 @@ export const flattenComponentInstancesForSimulation = ({
     transitionParameterValues: ctx.transitionParameterValues,
     placeParameterValues: ctx.placeParameterValues,
     arcPlaceNameOverrides: ctx.arcPlaceNameOverrides,
+    fusedPlaceAliases,
+    instanceParameterValues: ctx.instanceParameterValues,
   };
 };

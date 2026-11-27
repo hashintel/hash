@@ -2,7 +2,9 @@ import { use } from "react";
 
 import { Banner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { netVisualizerId } from "@hashintel/petrinaut-core";
 
+import { ActiveNetContext } from "../../../../../../react/document/active-net-context";
 import { useSDCPNState } from "../../../../../../react/document/sdcpn-context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
@@ -68,7 +70,9 @@ const DiagnosticsContent: React.FC = () => {
     (document) => document.petriNetDefinition,
   );
   const getItemType = useSDCPNState((document) => document.getItemType);
-  const { navigateTo, selectItem } = useEditorActions();
+  const { navigateTo, selectItem, setActiveBottomPanelTab } =
+    useEditorActions();
+  const { setActiveComponentId } = use(ActiveNetContext);
   const codeNavigation = useCodeNavigation();
   const {
     state: simulationState,
@@ -91,7 +95,16 @@ const DiagnosticsContent: React.FC = () => {
 
   // Clicking a diagnostic selects its entity. A visualizer's section is
   // collapsed by default, so its diagnostics also open that section.
+  // A net's own visualizer has a tab here in place of a section: the click
+  // opens the net, then that tab.
   const revealDiagnostic = (entity: EntityDiagnostics, uri: string) => {
+    if (entity.entityType === "net") {
+      setActiveComponentId(
+        entity.entityId === netVisualizerId(null) ? null : entity.entityId,
+      );
+      setActiveBottomPanelTab("net-visualizer");
+      return;
+    }
     selectItem({ type: entity.entityType, id: entity.entityId });
     if (entity.entityType === "place") {
       codeNavigation.open(uri);

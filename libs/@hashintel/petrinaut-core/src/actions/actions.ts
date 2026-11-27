@@ -108,6 +108,7 @@ type MutableNet = Pick<
 > & {
   componentInstances?: ComponentInstance[];
   fusions?: Fusion[];
+  visualizerCode?: string;
 };
 
 type TransitionTemplateArc = {
@@ -1673,6 +1674,18 @@ export function createPetrinautActions(
           const targetSdcpn = sdcpn;
           targetSdcpn.implementations ??= [];
           targetSdcpn.implementations.push({ interface: iface, component });
+        }
+      });
+    },
+    setNetVisualizer(input) {
+      const { visualizerCode, targetComponentId } =
+        mutationActionInputSchemas.setNetVisualizer.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        const net = resolveTargetNet(sdcpn, targetComponentId);
+        if (visualizerCode === null) {
+          delete net.visualizerCode;
+        } else {
+          net.visualizerCode = visualizerCode;
         }
       });
     },

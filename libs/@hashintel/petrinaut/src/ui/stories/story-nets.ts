@@ -333,6 +333,216 @@ export const fusedLineNet: SDCPN = {
   ],
 };
 
+/** A part on the visualized line: its size is the radius it is drawn with. */
+const partElements = [
+  { elementId: "size", name: "size", type: "real" as const },
+];
+
+/**
+ * A station that works one part at a time: a queue at its In port, the part
+ * being worked on, and what it has put out. Its visualizer draws all three,
+ * so each instance shows on its card what goes on inside it.
+ */
+const stationComponent: Component = {
+  id: "station",
+  name: "Station",
+  displayColor: "#16a34a",
+  places: [
+    place("station_in", "In", 80, 160, {
+      colorId: "station_part",
+      isPort: true,
+      portDirection: "in",
+    }),
+    place("station_working", "Working", 440, 160, {
+      colorId: "station_part",
+      capacity: 1,
+    }),
+    place("station_out", "Out", 800, 160, {
+      colorId: "station_part",
+      isPort: true,
+      portDirection: "out",
+    }),
+  ],
+  transitions: [
+    {
+      id: "station_start",
+      name: "Start",
+      inputArcs: [{ placeId: "station_in", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "station_working", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: `return 4;`,
+      transitionKernelCode: `return { Working: [{ size: input.In[0].size }] };`,
+      x: 260,
+      y: 160,
+    },
+    {
+      id: "station_finish",
+      name: "Finish",
+      inputArcs: [{ placeId: "station_working", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "station_out", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: `return parameters.rate;`,
+      transitionKernelCode: `return { Out: [{ size: input.Working[0].size }] };`,
+      x: 620,
+      y: 160,
+    },
+  ],
+  types: [
+    {
+      id: "station_part",
+      name: "Part",
+      iconSlug: "circle",
+      displayColor: "#2563eb",
+      elements: partElements,
+    },
+  ],
+  differentialEquations: [],
+  parameters: [
+    {
+      id: "station_rate",
+      name: "Rate",
+      variableName: "rate",
+      type: "real",
+      defaultValue: "1",
+    },
+  ],
+  visualizerCode: `// Draws one station: its queue, the part it works on and what it put out.
+// \`places\` holds every place of the component, for this instance alone.
+const queue = places.In.tokens;
+const working = places.Working.tokens;
+return (
+  <Visualizer.Svg viewBox="0 0 200 124">
+    <text x="12" y="18" fontSize="10" fill="#6b7280">QUEUE</text>
+    <text x="188" y="18" fontSize="10" textAnchor="end" fill="#111827">{queue.length}</text>
+    {queue.slice(0, 9).map((part, index) => (
+      <circle key={index} cx={20 + index * 20} cy={36} r={part.size / 2} fill="#bfdbfe" stroke="#2563eb" />
+    ))}
+    <rect x="12" y="54" width="176" height="38" rx="8"
+      fill={working.length > 0 ? "#dcfce7" : "#f3f4f6"}
+      stroke={working.length > 0 ? "#16a34a" : "#d1d5db"} />
+    {working.map((part, index) => (
+      <circle key={index} cx={100} cy={73} r={part.size} fill="#22c55e" />
+    ))}
+    {working.length === 0 && (
+      <text x="100" y="77" fontSize="10" textAnchor="middle" fill="#9ca3af">idle</text>
+    )}
+    <text x="12" y="112" fontSize="10" fill="#6b7280">{parameters.rate.toFixed(1)} / s</text>
+    <text x="188" y="112" fontSize="10" textAnchor="end" fill="#111827">{places.Out.count} out</text>
+  </Visualizer.Svg>
+);`,
+};
+
+/**
+ * A line of two stations of one component, with a visualizer at each level:
+ * the root net draws its three places as lanes, and the Station component
+ * draws its inside on the card of each of its instances. The stations run at
+ * different rates, so the two cards show different states of one picture.
+ */
+export const visualizedLineNet: SDCPN = {
+  places: [
+    place("parts", "Parts", 330, 220, { colorId: "part" }),
+    place("buffer", "Buffer", 790, 220, { colorId: "part" }),
+    place("finished", "Finished", 1250, 220, { colorId: "part" }),
+  ],
+  transitions: [
+    {
+      id: "arrive",
+      name: "Arrive",
+      inputArcs: [],
+      outputArcs: [{ placeId: "parts", weight: 1 }],
+      lambdaType: "stochastic",
+      lambdaCode: `return 1.2;`,
+      transitionKernelCode: `return { Parts: [{ size: Distribution.Uniform(4, 12) }] };`,
+      x: 100,
+      y: 220,
+    },
+  ],
+  types: [
+    {
+      id: "part",
+      name: "Part",
+      iconSlug: "circle",
+      displayColor: "#2563eb",
+      elements: partElements,
+    },
+  ],
+  parameters: [],
+  differentialEquations: [],
+  components: [stationComponent],
+  componentInstances: [
+    {
+      id: "cutter",
+      name: "Cutter",
+      component: { id: "station" },
+      parameterValues: { station_rate: "1.5" },
+      x: 560,
+      y: 220,
+    },
+    {
+      id: "drill",
+      name: "Drill",
+      component: { id: "station" },
+      parameterValues: { station_rate: "0.8" },
+      x: 1020,
+      y: 220,
+    },
+  ],
+  fusions: [
+    {
+      id: "fuse_parts",
+      name: "Parts",
+      members: [
+        { kind: "place", placeId: "parts" },
+        port("cutter", "station_in"),
+      ],
+    },
+    {
+      id: "fuse_buffer",
+      name: "Buffer",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("cutter", "station_out"),
+        port("drill", "station_in"),
+      ],
+    },
+    {
+      id: "fuse_finished",
+      name: "Finished",
+      members: [
+        { kind: "place", placeId: "finished" },
+        port("drill", "station_out"),
+      ],
+    },
+  ],
+  visualizerCode: `// Draws the whole line: one lane per place of the root net.
+// \`places\` holds every place by name, each with its \`count\` and its \`tokens\`.
+const lanes = [
+  { name: "Parts", tokens: places.Parts.tokens },
+  { name: "Buffer", tokens: places.Buffer.tokens },
+  { name: "Finished", tokens: places.Finished.tokens },
+];
+const laneWidth = width / lanes.length;
+const perRow = Math.max(1, Math.floor((laneWidth - 24) / 16));
+return (
+  <Visualizer.Svg>
+    {lanes.map((lane, index) => (
+      <g key={lane.name} transform={\`translate(\${index * laneWidth} 0)\`}>
+        <rect x="4" y="4" width={laneWidth - 8} height={height - 8} rx="8" fill="#f9fafb" stroke="#e5e7eb" />
+        <text x="14" y="22" fontSize="11" fill="#6b7280">{lane.name}</text>
+        <text x={laneWidth - 14} y="22" fontSize="11" textAnchor="end" fill="#111827">{lane.tokens.length}</text>
+        {lane.tokens.slice(0, perRow * 6).map((part, at) => (
+          <circle key={at}
+            cx={20 + (at % perRow) * 16}
+            cy={42 + Math.floor(at / perRow) * 16}
+            r={part.size / 2}
+            fill="#bfdbfe" stroke="#2563eb" />
+        ))}
+      </g>
+    ))}
+  </Visualizer.Svg>
+);`,
+};
+
 /** The stage as a signature alone: two ports, no transition. */
 const stageInterface: Component = {
   id: "stage_interface",

@@ -640,6 +640,18 @@ export const mutationActionInputSchemas = {
       description:
         "Set or clear the document's default implementation for an interface.",
     }),
+  setNetVisualizer: z
+    .strictObject({
+      visualizerCode: z.string().nullable().meta({
+        description:
+          "The visualizer's code, or null to remove it: a JavaScript function body with JSX that returns one `<Visualizer.Svg>`. `places` is in scope, every place of the net by name with its `count` and its `tokens`, with `parameters`, `width` and `height`.",
+      }),
+      targetComponentId: targetComponentIdSchema,
+    })
+    .meta({
+      description:
+        "Set or remove the visualizer of a net, a picture of its whole state: the root net's, or a component's, which is drawn on the cards of the component's instances.",
+    }),
   deleteItemsByIds: z
     .strictObject({
       items: z.array(itemTypeAndIdSchema).meta({

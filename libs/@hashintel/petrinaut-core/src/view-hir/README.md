@@ -1,12 +1,13 @@
 ---
 layer: core.view-hir
-role: Lowers place visualizers (JavaScript with JSX) to a view tree over HIR expressions, checks what it draws, and interprets it into element values
+role: Lowers visualizers of places and of nets (JavaScript with JSX) to a view tree over HIR expressions, checks what it draws, and interprets it into element values
 ---
 
 # Petrinaut view HIR
 
 A place visualizer is a JavaScript function body with JSX and ambient
 `tokens`, `parameters`, `width`, and `height`. Legacy `Visualization(...)` modules also work, with TypeScript deprecation hints.
+A net's visualizer, the root net's or a component's, is the same with `places` in place of `tokens`: see [What a visualizer draws](#what-a-visualizer-draws).
 Both forms lower to the view HIR: a tree of elements, and of the conditionals and
 comprehensions that choose or repeat them, whose every value is an
 expression of the expression HIR (`../hir`) under the `visualizer` surface.
@@ -40,6 +41,19 @@ visualizer's expressions follow are expression-level: conditions are judged
 by truthiness, `&&` and `||` return an operand, `+` joins text, an index
 past the end reads as `null`. Those rules are gated on the surface in the
 expression lowering, checker and interpreter, and apply to no other surface.
+
+## What a visualizer draws
+
+`HirVisualizerContext` has a `subject`. It decides one prop of the component and nothing else: the tree, the allowlists and the interpreter are the same for both.
+
+| Subject | Prop     | Its type                                                                               | Built by                    |
+| ------- | -------- | -------------------------------------------------------------------------------------- | --------------------------- |
+| `place` | `tokens` | One record per token of the place, or of unknown shape with no type                    | `buildVisualizerContext`    |
+| `net`   | `places` | Every place of the net by name, each `{ count, tokens }`, as a metric's `state.places` | `buildNetVisualizerContext` |
+
+`visualizerAmbientNames` gives the names a bare body reads for a subject, and `lowerVisualizerToHir` passes them to the lowering, so `places` in a place's visualizer stays a name the code may use for itself.
+
+A net's picture is drawn for one instance of the net. `interpretViewHir` takes the `places` of that instance as a record its caller builds, and `indexCompositionState` in `../composition/instance-state.ts` says which flat place of a run holds each place of an instance, fused ports included.
 
 ## Grammar
 
@@ -77,5 +91,7 @@ path to produce a single `Visualizer.Svg` element. This builtin root is distinct
 | `interpret-view.ts`           | Evaluates a view into `ViewElementValue` trees for the renderer.        |
 | `view-elements.ts`            | The elements, attributes and style properties a visualizer may draw.    |
 | `visualizer.ts`               | Lowers and checks one visualizer; the worker's `sdcpn/lowerVisualizer`. |
+
+`net-visualizer.test.ts` holds the tests of the `net` subject.
 
 `Visualizer.Svg` accepts `backgroundColor`, `origin`, `viewBox`, and `navigation`. An explicit viewBox and an origin are mutually exclusive. The editor fits fixed drawings proportionally and keeps a navigable scene's camera through frame and code updates.

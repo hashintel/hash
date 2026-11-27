@@ -11,6 +11,8 @@ Select a place, transition, or differential equation in the canvas or left sideb
 - **Differential Equation** contains the equation’s properties and code.
 - **Visualizer** contains a place’s visualization code. Focusing the editor opens a temporary preview on the Canvas.
 
+The code of a [net's own visualizer](petri-net-extensions.md#net-visualizers) is not in the properties panel: it has the **Visualizer** tab of the bottom panel, with its picture beside it.
+
 The item’s menu in the left sidebar opens its code directly. A Canvas visualizer’s **Edit visualizer code** button opens and focuses its expanded code section. For a place with dynamics, the arrow on each row of its **Dynamics** section opens that equation’s properties and code.
 
 Every code section, the Visualizer included, is checked as you type: type errors are underlined and listed in the Diagnostics tab, completion suggests the names in scope, and pointing at a name shows its type.

@@ -104,6 +104,12 @@ export type CanvasInstanceBinding =
 /** A component with more ports than this starts folded, its ports behind a toggle. */
 const foldThreshold = 4;
 
+/**
+ * How tall the panel is that draws a component's visualizer on the cards of
+ * its instances, under their ports.
+ */
+export const instanceVisualizerHeight = 124;
+
 export type CanvasComponentInstanceNode = CanvasNodeBase & {
   kind: "componentInstance";
   /** The name of what the instance points at: a component or an interface. */
@@ -121,9 +127,15 @@ export type CanvasComponentInstanceNode = CanvasNodeBase & {
   /**
    * How far the card's centre sits below the position the document holds for
    * it. A foldable card unfolds downward, its header staying where it is, so
-   * unfolding moves its centre by half of what it grew.
+   * unfolding moves its centre by half of what it grew. The panel of a
+   * visualizer hangs under the card the same way.
    */
   anchorOffset: number;
+  /**
+   * The height of the panel under the ports that draws the visualizer of
+   * the component the instance runs. 0 when that component has none.
+   */
+  visualizerHeight: number;
 };
 
 export type CanvasNode =
@@ -227,6 +239,8 @@ export type CanvasSceneInput = {
   activeVisualizerIds?: ReadonlySet<string>;
   /** The foldable instances whose ports are unfolded. */
   unfoldedInstanceIds: ReadonlySet<string>;
+  /** Whether the cards of instances draw their component's visualizer. */
+  instanceVisualizers: boolean;
 };
 
 const positionOf = (
@@ -326,6 +340,7 @@ export const buildCanvasScene = ({
   keptOpenVisualizerIds,
   activeVisualizerIds,
   unfoldedInstanceIds,
+  instanceVisualizers,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: selectedIds.has(id),
@@ -437,10 +452,22 @@ export const buildCanvasScene = ({
     const foldable = ports.length > foldThreshold;
     const unfolded = !foldable || unfoldedInstanceIds.has(instance.id);
     const foldedHeight = dimensions.componentInstance.height;
-    const height = unfolded
+    const portsHeight = unfolded
       ? getComponentInstanceHeight(dimensions, ports.length)
       : foldedHeight;
-    const anchorOffset = foldable ? (height - foldedHeight) / 2 : 0;
+    // The picture is of what runs: an implementation's, where one is bound.
+    const visualized =
+      resolved?.kind === "component" ? resolved.component : running;
+    const visualizerHeight =
+      instanceVisualizers &&
+      extensions.colors &&
+      visualized?.visualizerCode !== undefined
+        ? instanceVisualizerHeight
+        : 0;
+    const height = portsHeight + visualizerHeight;
+    // The card grows downward from its header, for its ports and its picture.
+    const anchorOffset =
+      (foldable ? (portsHeight - foldedHeight) / 2 : 0) + visualizerHeight / 2;
     const { position, dragging } = positionOf(instance, dragPreview);
     nodes.push({
       kind: "componentInstance",
@@ -466,6 +493,7 @@ export const buildCanvasScene = ({
       ports,
       foldable,
       unfolded,
+      visualizerHeight,
     });
   }
 

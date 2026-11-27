@@ -33,7 +33,7 @@ const render = (
     throw new Error(lowered.diagnostics.map((item) => item.message).join("; "));
   }
   return renderToStaticMarkup(
-    renderVisualizerHir(lowered.view, tokens, parameters, {
+    renderVisualizerHir(lowered.view, { tokens }, parameters, {
       width: 400,
       height: 240,
     }),
@@ -180,7 +180,12 @@ describe("renderVisualizerHir", () => {
         body: { ...lowered.view.body, children: [{ ...child, tag }] },
       };
       expect(() =>
-        renderVisualizerHir(view, [], {}, { width: 400, height: 200 }),
+        renderVisualizerHir(
+          view,
+          { tokens: [] },
+          {},
+          { width: 400, height: 200 },
+        ),
       ).toThrow(/cannot be drawn/u);
     },
   );
@@ -243,7 +248,7 @@ describe("renderVisualizerHir", () => {
       expect(() =>
         renderVisualizerHir(
           lowered.view,
-          [{ x: 731 }],
+          { tokens: [{ x: 731 }] },
           { secret: 42 },
           { width: 400, height: 240 },
         ),
@@ -268,7 +273,7 @@ describe("renderVisualizerHir", () => {
       expect(() =>
         renderVisualizerHir(
           lowered.view,
-          [{ x: 731 }],
+          { tokens: [{ x: 731 }] },
           { secret: 42 },
           { width: 400, height: 240 },
         ),
@@ -299,7 +304,7 @@ describe("renderVisualizerHir", () => {
         expect(() =>
           renderVisualizerHir(
             lowered.view,
-            [{ x: 731 }],
+            { tokens: [{ x: 731 }] },
             { secret: 42 },
             { width: 400, height: 240 },
           ),

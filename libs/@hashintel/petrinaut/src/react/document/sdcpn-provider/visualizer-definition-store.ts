@@ -6,18 +6,21 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
+/** An edit to the code of a visualizer: a place's, or a net's own. */
 const isVisualizerEdit = ({ op, path, value }: PetrinautPatch) => {
-  const placePath =
+  const netPath =
     path[0] === "components" && typeof path[1] === "number"
       ? path.slice(2)
       : path;
+  if (op !== "replace" || typeof value !== "string") {
+    return false;
+  }
   return (
-    op === "replace" &&
-    typeof value === "string" &&
-    placePath.length === 3 &&
-    placePath[0] === "places" &&
-    typeof placePath[1] === "number" &&
-    placePath[2] === "visualizerCode"
+    (netPath.length === 1 && netPath[0] === "visualizerCode") ||
+    (netPath.length === 3 &&
+      netPath[0] === "places" &&
+      typeof netPath[1] === "number" &&
+      netPath[2] === "visualizerCode")
   );
 };
 

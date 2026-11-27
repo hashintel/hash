@@ -5,8 +5,11 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { hashPetrinautTools, hashProcessEditorId } from "./petrinaut-tools";
 
-/** Catalogue operations the HASH agent drops for its per-kind tools. */
-const dropped = ["deleteItemsByIds", "commitNodePositions"];
+/**
+ * Catalogue operations the HASH agent drops: two for its per-kind tools, and
+ * a net's visualizer, which HASH's page has no tool for yet.
+ */
+const dropped = ["deleteItemsByIds", "commitNodePositions", "setNetVisualizer"];
 
 test("every catalogue operation is run by one of HASH's tools or dropped, so none stays canonical", () => {
   const mapped = Object.values(hashPetrinautTools).flatMap(

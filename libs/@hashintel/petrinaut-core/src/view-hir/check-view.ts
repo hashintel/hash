@@ -1,5 +1,5 @@
 /**
- * Checks a lowered visualizer against its place: the elements, attributes
+ * Checks a lowered visualizer against its place or its net: the elements, attributes
  * and style properties it draws are in the allowlists, their values are
  * text-like, literal values load no resource, and the picture itself
  * is an element. Every expression is typed by the expression HIR's checker
@@ -14,6 +14,7 @@ import {
 } from "../hir/hir";
 import {
   createHirExpressionChecker,
+  hirPlacesStateType,
   hirTokenRecordType,
   hirTypeOfAttribute,
   isTextualHirType,
@@ -40,9 +41,11 @@ import type { ViewElement, ViewHir, ViewNode } from "./view-hir";
 type Env = ReadonlyMap<string, HirType>;
 
 /**
- * The component's props include tokens, parameters, and viewport dimensions. An uncoloured place
- * carries black tokens with no attributes: its visualizer counts them and
- * draws one mark per token, so what a token holds stays unknown.
+ * The component's props: what it draws, parameters, and viewport dimensions.
+ * A place's visualizer draws `tokens`. An uncoloured place carries black
+ * tokens with no attributes: its visualizer counts them and draws one mark
+ * per token, so what a token holds stays unknown. A net's visualizer draws
+ * `places`, each place of the net with its count and its tokens.
  */
 function propsType(context: HirVisualizerContext): HirType {
   return {
@@ -50,15 +53,17 @@ function propsType(context: HirVisualizerContext): HirType {
     fields: [
       { name: "width", type: HIR_TYPE_REAL },
       { name: "height", type: HIR_TYPE_REAL },
-      {
-        name: "tokens",
-        type: {
-          kind: "array",
-          element: context.elements
-            ? hirTokenRecordType(context.elements)
-            : HIR_TYPE_UNKNOWN,
-        },
-      },
+      context.subject === "net"
+        ? { name: "places", type: hirPlacesStateType(context.places) }
+        : {
+            name: "tokens",
+            type: {
+              kind: "array",
+              element: context.elements
+                ? hirTokenRecordType(context.elements)
+                : HIR_TYPE_UNKNOWN,
+            },
+          },
       {
         name: "parameters",
         type: {
@@ -335,8 +340,9 @@ class ViewChecker {
   }
 }
 
-/** Checks a lowered visualizer against its place's colour and the net's
- * parameters, returning every diagnostic found. */
+/** Checks a lowered visualizer against what it draws, its place's colour or
+ * its net's places, and the net's parameters, returning every diagnostic
+ * found. */
 export function checkViewHir(
   view: ViewHir,
   context: HirVisualizerContext,

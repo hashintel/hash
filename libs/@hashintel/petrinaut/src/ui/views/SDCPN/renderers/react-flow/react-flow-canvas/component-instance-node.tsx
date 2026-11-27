@@ -7,6 +7,7 @@ import { componentInstanceHeaderHeight } from "@hashintel/petrinaut-core";
 import { useEditorActions } from "../../../../../../react/state/editor-context";
 import { ComponentGlyph } from "../../../../../shared/component-glyph";
 import { nodeFocusStyle } from "../../../styles/focus";
+import { InstanceVisualizer } from "./instance-visualizer";
 import {
   iconContainerBaseStyle,
   nodeContainerStyle,
@@ -336,57 +337,68 @@ export const ComponentInstanceNode: React.FC<
             {describeFoldedPorts(ports)}
           </div>
         ) : null}
+        {data.visualizerHeight > 0 ? (
+          <InstanceVisualizer
+            instanceId={data.id}
+            // Less the card's border on either side.
+            width={data.width - 2}
+            height={data.visualizerHeight}
+          />
+        ) : null}
       </div>
 
-      {pinLayout(ports, data.height, unfolded).map(({ port, ...tops }) => (
-        <div key={port.id}>
-          {pinSides.map((side) => {
-            // A side the port does not use keeps its pin, hidden, so a link
-            // that reaches the card from that side has somewhere to end.
-            // Nothing is drawn from it or dropped on it.
-            const shown = portOnSide(port.direction, side);
-            return (
-              <Handle
-                key={side}
-                // Both pins are source handles: a connection's source is then
-                // where the drag began, whichever pin that was.
-                type="source"
-                position={handles[side].position}
-                id={handles[side].idOf(port.id)}
-                title={shown ? port.name : undefined}
-                isConnectable={isConnectable}
-                isConnectableStart={shown}
-                isConnectableEnd={shown}
-                className={cx(
-                  pinStyle({
-                    size: unfolded ? "full" : "wireEnd",
-                    hidden: !shown,
-                  }),
-                  pinMotionStyle,
-                  foldMotionStyle,
-                  "node-cover",
-                  "node-border",
-                )}
-                style={{ top: tops[side], ...pinColorStyle(port.typeColor) }}
-              />
-            );
-          })}
-          <span
-            className={cx(
-              portLabelStyle,
-              foldMotionStyle,
-              unfolded ? undefined : fadedOutStyle,
-            )}
-            style={{
-              top: tops.left,
-              [port.direction === "out" ? "right" : "left"]: portLabelInset,
-            }}
-            aria-hidden={!unfolded}
-          >
-            {port.name}
-          </span>
-        </div>
-      ))}
+      {/* The pins keep to the ports' part of the card, above its picture. */}
+      {pinLayout(ports, data.height - data.visualizerHeight, unfolded).map(
+        ({ port, ...tops }) => (
+          <div key={port.id}>
+            {pinSides.map((side) => {
+              // A side the port does not use keeps its pin, hidden, so a link
+              // that reaches the card from that side has somewhere to end.
+              // Nothing is drawn from it or dropped on it.
+              const shown = portOnSide(port.direction, side);
+              return (
+                <Handle
+                  key={side}
+                  // Both pins are source handles: a connection's source is then
+                  // where the drag began, whichever pin that was.
+                  type="source"
+                  position={handles[side].position}
+                  id={handles[side].idOf(port.id)}
+                  title={shown ? port.name : undefined}
+                  isConnectable={isConnectable}
+                  isConnectableStart={shown}
+                  isConnectableEnd={shown}
+                  className={cx(
+                    pinStyle({
+                      size: unfolded ? "full" : "wireEnd",
+                      hidden: !shown,
+                    }),
+                    pinMotionStyle,
+                    foldMotionStyle,
+                    "node-cover",
+                    "node-border",
+                  )}
+                  style={{ top: tops[side], ...pinColorStyle(port.typeColor) }}
+                />
+              );
+            })}
+            <span
+              className={cx(
+                portLabelStyle,
+                foldMotionStyle,
+                unfolded ? undefined : fadedOutStyle,
+              )}
+              style={{
+                top: tops.left,
+                [port.direction === "out" ? "right" : "left"]: portLabelInset,
+              }}
+              aria-hidden={!unfolded}
+            >
+              {port.name}
+            </span>
+          </div>
+        ),
+      )}
     </div>
   );
 };

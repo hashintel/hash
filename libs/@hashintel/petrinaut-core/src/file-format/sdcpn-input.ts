@@ -59,6 +59,7 @@ export type SDCPNInput = {
   componentInstances?: ComponentInstance[];
   fusions?: Fusion[];
   implementations?: DefaultImplementation[];
+  visualizerCode?: string;
 };
 
 export type SDCPNPlaceInput = {
@@ -249,6 +250,9 @@ export function normalizeSDCPN(rawInput: SDCPNInput): SDCPN {
   }
   if (input.implementations !== undefined) {
     result.implementations = input.implementations;
+  }
+  if (input.visualizerCode !== undefined) {
+    result.visualizerCode = input.visualizerCode;
   }
 
   return canonicalizePetrinautIds(result);

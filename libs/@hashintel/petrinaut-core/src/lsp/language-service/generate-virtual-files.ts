@@ -27,7 +27,11 @@ import {
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../scenario/helpers";
 import { TYPE_POLICIES } from "../../tokens/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
-import { getItemFilePath, VISUALIZER_JSX_PACKAGE } from "./file-paths";
+import {
+  getItemFilePath,
+  netVisualizerId,
+  VISUALIZER_JSX_PACKAGE,
+} from "./file-paths";
 
 import type { ConstraintSpace } from "../../constraints/constraint";
 import type {
@@ -571,11 +575,67 @@ export function generateVirtualFiles(
   return files;
 }
 
+/** The type of the root element every visualizer returns. */
+const VISUALIZER_ROOT_TYPE = `export type Visualizer = { Svg: (props: import("${VISUALIZER_JSX_PACKAGE}/jsx-runtime").VisualizerSvgProps) => ReactElement };`;
+
+/**
+ * The code file of one visualizer, a place's or a net's, over the types its
+ * `defs.d.ts` declares. `subject` is the prop that carries what it draws:
+ * `tokens` or `places`.
+ *
+ * The defs module is imported without its extension: a JSDoc import type
+ * resolves it like a module specifier. `export {}` keeps an empty or
+ * export-less file a module, so its `Visualization` binding never collides
+ * with another visualizer's in the script scope.
+ */
+function visualizerCodeFile(options: {
+  content: string;
+  defsPath: string;
+  subject: "tokens" | "places";
+}): VirtualFile {
+  const defsModule = options.defsPath.replace(/\.d\.ts$/u, "");
+  const ambientPrefix = [
+    `const Visualizer = /** @type {import("${defsModule}").Visualizer} */ (/** @type {unknown} */ (undefined));`,
+    `/** @type {number} */ const width = 0;`,
+    `/** @type {number} */ const height = 0;`,
+  ];
+  return applyFormWrapper({
+    content: options.content,
+    formWrappers: {
+      scriptKind: ts.ScriptKind.TSX,
+      module: {
+        suffix: "",
+        prefix: [
+          `export {};`,
+          ...ambientPrefix,
+          `/** @deprecated Write the function body directly; ${options.subject}, parameters, width and height are already available. Remove export default Visualization(...) and keep its body. */`,
+          `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
+          `  /** @type {unknown} */ (undefined)`,
+          `);`,
+          ``,
+        ].join("\n"),
+      },
+      body: {
+        prefix: [
+          `export {};`,
+          ...ambientPrefix,
+          `/** @type {import("${defsModule}").VisualizerComponent} */`,
+          `const __visualizer = ({ ${options.subject}, parameters }) => {`,
+          ``,
+        ].join("\n"),
+        suffix: `\nreturn /** @type {never} */ (undefined);\n};`,
+      },
+    },
+  });
+}
+
 /**
  * Generates the virtual files of the visualizer language service: the
  * parameters and colour types the SDCPN service also has, and for every
  * root-net place with a visualizer a `defs.d.ts` declaring `Visualization`
- * over the place's token type and a `code.jsx` holding the user's code.
+ * over the place's token type and a `code.jsx` holding the user's code. A
+ * net with a visualizer of its own, the root net or a component, has the
+ * same pair over the places and parameters of that net.
  *
  * The user file is JavaScript: TypeScript checks it with `checkJs`, so the
  * types are inferred and any annotation is an error, and the injected
@@ -603,6 +663,8 @@ export function generateVisualizerVirtualFiles(
       colorDefsFile(color),
     );
   }
+  const colorImport = (color: Color): string =>
+    `import type { Color_${sanitizeColorId(color.id)} } from "${getItemFilePath("color-defs", { colorId: color.id })}";`;
 
   for (const place of sdcpn.places) {
     if (place.visualizerCode === undefined) {
@@ -618,57 +680,80 @@ export function generateVisualizerVirtualFiles(
       content: [
         `import type { ReactElement } from "${VISUALIZER_JSX_PACKAGE}";`,
         `import type { Parameters } from "${parametersDefsPath}";`,
-        color
-          ? `import type { Color_${sanitizedColorId} } from "${getItemFilePath("color-defs", { colorId: color.id })}";`
-          : "",
+        color ? colorImport(color) : "",
         ``,
         `export type Tokens = readonly ${sanitizedColorId ? `Color_${sanitizedColorId}` : "never"}[];`,
-        `export type Visualizer = { Svg: (props: import("${VISUALIZER_JSX_PACKAGE}/jsx-runtime").VisualizerSvgProps) => ReactElement };`,
+        VISUALIZER_ROOT_TYPE,
         `export type VisualizerProps = { tokens: Tokens; parameters: Parameters; width: number; height: number };`,
         `export type VisualizerComponent = (props: VisualizerProps) => ReactElement;`,
         `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
       ].join("\n"),
     });
-
-    // The defs module is imported without its extension: a JSDoc import
-    // type resolves it like a module specifier. `export {}` keeps an empty
-    // or export-less file a module, so its `Visualization` binding never
-    // collides with another place's in the script scope.
-    const defsModule = defsPath.replace(/\.d\.ts$/u, "");
-    const ambientPrefix = [
-      `const Visualizer = /** @type {import("${defsModule}").Visualizer} */ (/** @type {unknown} */ (undefined));`,
-      `/** @type {number} */ const width = 0;`,
-      `/** @type {number} */ const height = 0;`,
-    ];
     files.set(
       getItemFilePath("place-visualizer-code", { placeId: place.id }),
-      applyFormWrapper({
+      visualizerCodeFile({
         content: place.visualizerCode,
-        formWrappers: {
-          scriptKind: ts.ScriptKind.TSX,
-          module: {
-            suffix: "",
-            prefix: [
-              `export {};`,
-              ...ambientPrefix,
-              `/** @deprecated Write the function body directly; tokens, parameters, width and height are already available. Remove export default Visualization(...) and keep its body. */`,
-              `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
-              `  /** @type {unknown} */ (undefined)`,
-              `);`,
-              ``,
-            ].join("\n"),
-          },
-          body: {
-            prefix: [
-              `export {};`,
-              ...ambientPrefix,
-              `/** @type {import("${defsModule}").VisualizerComponent} */`,
-              `const __visualizer = ({ tokens, parameters }) => {`,
-              ``,
-            ].join("\n"),
-            suffix: `\nreturn /** @type {never} */ (undefined);\n};`,
-          },
-        },
+        defsPath,
+        subject: "tokens",
+      }),
+    );
+  }
+
+  // A net's own visualizer reads every place of that net by name, and the
+  // net's own parameters: a component's are not the root net's.
+  const visualizedNets = [
+    { netId: netVisualizerId(null), net: sdcpn },
+    ...(extensions.components ? (sdcpn.components ?? []) : []).map(
+      (component) => ({ netId: netVisualizerId(component.id), net: component }),
+    ),
+  ];
+  for (const { netId, net } of visualizedNets) {
+    if (net.visualizerCode === undefined) {
+      continue;
+    }
+    const defsPath = getItemFilePath("net-visualizer-defs", { netId });
+    const colorImports = new Set<string>();
+    // By display name: a later place of the same name wins, as it does when
+    // the picture is drawn.
+    const placeProperties = new Map<string, string>();
+    for (const place of net.places) {
+      const color = place.colorId ? colorById.get(place.colorId) : undefined;
+      if (color) {
+        colorImports.add(colorImport(color));
+      }
+      placeProperties.set(
+        place.name,
+        `  ${JSON.stringify(place.name)}: PlaceState<${color ? `Color_${sanitizeColorId(color.id)}` : "never"}>;`,
+      );
+    }
+    const parameterProperties = (
+      extensions.parameters ? net.parameters : []
+    ).map(
+      (parameter) =>
+        `  "${parameter.variableName}": ${toTsType(parameter.type)};`,
+    );
+
+    files.set(defsPath, {
+      content: [
+        `import type { ReactElement } from "${VISUALIZER_JSX_PACKAGE}";`,
+        ...colorImports,
+        ``,
+        `/** The state of one place: how many tokens it holds, and the tokens themselves. */`,
+        `export type PlaceState<Token> = { readonly count: number; readonly tokens: readonly Token[] };`,
+        `export type Places = {\n${[...placeProperties.values()].join("\n")}\n};`,
+        `export type Parameters = {\n${parameterProperties.join("\n")}\n};`,
+        VISUALIZER_ROOT_TYPE,
+        `export type VisualizerProps = { places: Places; parameters: Parameters; width: number; height: number };`,
+        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement;`,
+        `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
+      ].join("\n"),
+    });
+    files.set(
+      getItemFilePath("net-visualizer-code", { netId }),
+      visualizerCodeFile({
+        content: net.visualizerCode,
+        defsPath,
+        subject: "places",
       }),
     );
   }

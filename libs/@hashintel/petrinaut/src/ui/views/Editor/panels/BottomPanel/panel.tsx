@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.views.editor.bottom-panel
- * @role Shows diagnostics, compilation, simulation settings and the timeline of a run or a recording as tabs under the canvas
+ * @role Shows diagnostics, compilation, simulation settings, the open net's visualizer and the timeline of a run or a recording as tabs under the canvas
  *
  * The Timeline tabs are a layer of their own in `subviews/timeline/`, which
  * the preview imports too.
@@ -11,6 +11,7 @@ import { use, useEffect } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useSDCPNState } from "../../../../../react/document/sdcpn-context";
 import { useComposesOnly } from "../../../../../react/document/use-composes-only";
 import { ActualModeContext } from "../../../../../react/host/actual-mode-context";
 import {
@@ -37,6 +38,7 @@ import {
   compilationSubView,
   diagnosticsSubView,
   eventTimelineSubView,
+  netVisualizerSubView,
   simulationSettingsSubView,
 } from "./sub-views";
 import { HorizontalTabPanel, HorizontalTabsHeader } from "./tabs";
@@ -93,21 +95,28 @@ const getBottomPanelSubViews = ({
   isActualMode,
   hasRun,
   showCompilationOutput,
+  showNetVisualizer,
 }: {
   composesOnly: boolean;
   isActualMode: boolean;
   hasRun: boolean;
   showCompilationOutput: boolean;
+  showNetVisualizer: boolean;
 }) =>
   // An editor that only composes has problems to show and nothing to run.
   composesOnly
     ? [diagnosticsSubView]
     : isActualMode
-      ? [actualTimelineSubView, actualEventsSubView]
+      ? [
+          actualTimelineSubView,
+          actualEventsSubView,
+          ...(showNetVisualizer ? [netVisualizerSubView] : []),
+        ]
       : [
           diagnosticsSubView,
           simulationSettingsSubView,
           ...(hasRun ? [eventTimelineSubView] : []),
+          ...(showNetVisualizer ? [netVisualizerSubView] : []),
           ...(showCompilationOutput ? [compilationSubView] : []),
         ];
 
@@ -136,6 +145,10 @@ export const BottomPanel: React.FC = () => {
     (settings) => settings.showCompilationOutput,
   );
   const composesOnly = useComposesOnly();
+  // Visualizers belong to the token types extension, a net's as a place's.
+  const showNetVisualizer = useSDCPNState(
+    (document) => document.extensions.colors,
+  );
   const pluginViews = usePluginBottomPanelViews();
   const { leftSidebarWidth } = usePanelSizes();
 
@@ -162,6 +175,7 @@ export const BottomPanel: React.FC = () => {
     isActualMode,
     hasRun,
     showCompilationOutput,
+    showNetVisualizer,
   });
   const tabs = [...subViews, ...pluginViews];
 

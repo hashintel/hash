@@ -51,6 +51,51 @@ const callActionWithUnknownInput = <Input>(
 };
 
 describe("Petrinaut core actions", () => {
+  test("sets and removes the visualizer of the root net and of a component", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      components: [
+        {
+          id: idOf("station"),
+          name: "Station",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    });
+    const code = "return <Visualizer.Svg />;";
+
+    instance.mutations.setNetVisualizer({ visualizerCode: code });
+    expect(instance.definition.get().visualizerCode).toBe(code);
+    expect(
+      instance.definition.get().components?.[0]?.visualizerCode,
+    ).toBeUndefined();
+
+    instance.mutations.setNetVisualizer({
+      visualizerCode: `${code} // station`,
+      targetComponentId: idOf("station"),
+    });
+    expect(instance.definition.get().components?.[0]?.visualizerCode).toBe(
+      `${code} // station`,
+    );
+
+    instance.mutations.setNetVisualizer({ visualizerCode: null });
+    expect(instance.definition.get()).not.toHaveProperty("visualizerCode");
+    expect(instance.definition.get().components?.[0]?.visualizerCode).toBe(
+      `${code} // station`,
+    );
+
+    expect(() =>
+      instance.mutations.setNetVisualizer({
+        visualizerCode: code,
+        targetComponentId: idOf("missing"),
+      }),
+    ).toThrow("does not exist");
+  });
+
   test("adds and updates places", () => {
     const instance = createInstance();
 

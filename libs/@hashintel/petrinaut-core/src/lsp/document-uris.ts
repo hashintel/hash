@@ -1,4 +1,7 @@
-import { getItemFilePath } from "./language-service/file-paths";
+import {
+  getItemFilePath,
+  parseNetVisualizerCodeFilePath,
+} from "./language-service/file-paths";
 
 /**
  * Single source of truth for mapping between:
@@ -32,6 +35,8 @@ export function getDocumentUri(itemType: ItemType, itemId: string): string {
       return `inmemory://sdcpn/differential-equations/${itemId}.ts`;
     case "place-visualizer":
       return `inmemory://sdcpn/places/${itemId}/visualizer.jsx`;
+    case "net-visualizer":
+      return `inmemory://sdcpn/nets/${itemId}/visualizer.jsx`;
   }
 }
 
@@ -83,6 +88,8 @@ const TRANSITION_KERNEL_URI_RE =
 const DE_URI_RE = /^inmemory:\/\/sdcpn\/differential-equations\/([^/]+)\.ts$/;
 const PLACE_VISUALIZER_URI_RE =
   /^inmemory:\/\/sdcpn\/places\/([^/]+)\/visualizer\.jsx$/;
+const NET_VISUALIZER_URI_RE =
+  /^inmemory:\/\/sdcpn\/nets\/([^/]+)\/visualizer\.jsx$/;
 
 const SCENARIO_PARAM_OVERRIDE_URI_RE =
   /^inmemory:\/\/sdcpn\/_temp\/scenarios\/([^/]+)\/param-overrides\/([^/]+)\.ts$/;
@@ -148,6 +155,11 @@ export function parseDocumentUri(
   match = PLACE_VISUALIZER_URI_RE.exec(uri);
   if (match) {
     return { itemType: "place-visualizer", itemId: match[1]! };
+  }
+
+  match = NET_VISUALIZER_URI_RE.exec(uri);
+  if (match) {
+    return { itemType: "net-visualizer", itemId: match[1]! };
   }
 
   return null;
@@ -261,6 +273,10 @@ export function uriToFilePath(uri: string): string | null {
         return getItemFilePath("place-visualizer-code", {
           placeId: parsed.itemId,
         });
+      case "net-visualizer":
+        return getItemFilePath("net-visualizer-code", {
+          netId: parsed.itemId,
+        });
     }
   }
 
@@ -312,6 +328,11 @@ export function filePathToUri(filePath: string): string | null {
   match = PLACE_VISUALIZER_PATH_RE.exec(filePath);
   if (match) {
     return getDocumentUri("place-visualizer", match[1]!);
+  }
+
+  const netVisualizer = parseNetVisualizerCodeFilePath(filePath);
+  if (netVisualizer) {
+    return getDocumentUri("net-visualizer", netVisualizer.netId);
   }
 
   // Scenario file paths

@@ -486,6 +486,43 @@ describe("transition logic availability", () => {
     ).toMatchObject({ iconSvg, displayColor: "#3b82f6" });
   });
 
+  it("keeps a net's own visualizer with token types on, and strips it with them off", () => {
+    const sdcpn: SDCPN = {
+      ...createSDCPN(),
+      visualizerCode: "return <Visualizer.Svg />;",
+      components: [
+        {
+          id: "component-1",
+          name: "Component 1",
+          visualizerCode: "return <Visualizer.Svg>1</Visualizer.Svg>;",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    };
+
+    const kept = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+    expect(kept.visualizerCode).toBe("return <Visualizer.Svg />;");
+    expect(kept.components?.[0]?.visualizerCode).toBe(
+      "return <Visualizer.Svg>1</Visualizer.Svg>;",
+    );
+
+    // Visualizers belong to the token types extension, a net's as a place's.
+    const stripped = sanitizeSDCPNForExtensions(sdcpn, {
+      ...allEnabled,
+      colors: false,
+    });
+    expect(Object.hasOwn(stripped, "visualizerCode")).toBe(false);
+    expect(Object.hasOwn(stripped.components![0]!, "visualizerCode")).toBe(
+      false,
+    );
+    // The source keeps its own.
+    expect(sdcpn.visualizerCode).toBe("return <Visualizer.Svg />;");
+  });
+
   it("keeps the description and metadata of the net and its components", () => {
     const sdcpn: SDCPN = {
       ...createSDCPN(),

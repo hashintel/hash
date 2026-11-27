@@ -355,6 +355,49 @@ describe("serializeSDCPN", () => {
     ]);
   });
 
+  it("writes and reads the visualizer of the root net and of a component", () => {
+    const sdcpn = parseFixture();
+    const component = sdcpn.components![0]!;
+
+    const text = serializeSDCPN({
+      petriNetDefinition: {
+        ...sdcpn,
+        visualizerCode: "return <Visualizer.Svg />;",
+        components: [
+          {
+            ...component,
+            visualizerCode: "return <Visualizer.Svg>1</Visualizer.Svg>;",
+          },
+        ],
+      },
+      title: "Test Net",
+      format: "json",
+    });
+    const document = JSON.parse(text) as {
+      components: Record<string, unknown>[];
+    };
+
+    // After the places it reads, with the rest of the net's code.
+    const keys = Object.keys(document);
+    expect(keys.indexOf("visualizerCode")).toBe(
+      keys.indexOf("transitions") + 1,
+    );
+    const componentKeys = Object.keys(document.components[0]!);
+    expect(componentKeys.indexOf("visualizerCode")).toBe(
+      componentKeys.indexOf("transitions") + 1,
+    );
+
+    const parsed = parseSDCPNDocument(text);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.sdcpn.visualizerCode).toBe("return <Visualizer.Svg />;");
+    expect(parsed.sdcpn.components?.[0]?.visualizerCode).toBe(
+      "return <Visualizer.Svg>1</Visualizer.Svg>;",
+    );
+    // A net that has none carries no key for it.
+    expect(parseFixture()).not.toHaveProperty("visualizerCode");
+  });
+
   it("reads the document's bindings and an instance's choice as references, converting their ids", () => {
     const parsed = parseSDCPNFile({
       ...sourceDocument,

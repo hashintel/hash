@@ -482,6 +482,12 @@ export type Component = {
   componentInstances?: ComponentInstance[];
   /** Fusions among this component's places and its instances' ports. */
   fusions?: Fusion[];
+  /**
+   * The component's visualizer: a picture of the state of one instance, over
+   * every place of the component (see `SDCPN.visualizerCode`). It is drawn on
+   * the cards of the component's instances.
+   */
+  visualizerCode?: string;
 };
 
 export type SDCPN = {
@@ -506,6 +512,13 @@ export type SDCPN = {
    * instance chooses its own: one entry per interface.
    */
   implementations?: DefaultImplementation[];
+  /**
+   * The net's visualizer: a picture of its whole state. Written as a place's
+   * `visualizerCode` is, JavaScript with JSX returning one `Visualizer.Svg`,
+   * with `places` in scope in place of `tokens`: every place of the net by
+   * name, each with its `count` and its `tokens`.
+   */
+  visualizerCode?: string;
 };
 
 export type MinimalNetMetadata = {

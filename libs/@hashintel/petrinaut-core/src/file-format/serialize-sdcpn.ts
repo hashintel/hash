@@ -29,6 +29,7 @@ const DOCUMENT_KEY_ORDER = [
   "componentInstances",
   "fusions",
   "transitions",
+  "visualizerCode",
   "metrics",
   "scenarios",
 ] as const satisfies readonly SDCPNDocumentKey[];
@@ -47,6 +48,7 @@ const COMPONENT_KEY_ORDER = [
   "componentInstances",
   "fusions",
   "transitions",
+  "visualizerCode",
   "displayColor",
   "iconSvg",
 ] as const satisfies readonly (keyof Component)[];
