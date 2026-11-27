@@ -6,6 +6,8 @@ import {
   useCommands,
 } from "@hashintel/petrinaut/ui/plugin";
 
+import { hostFontFamily } from "../../../../../shared/host-font-family";
+
 import type { CSSProperties } from "react";
 
 const overlayStyle: CSSProperties = {
@@ -32,7 +34,7 @@ const paletteStyle: CSSProperties = {
   boxShadow: "0 16px 48px rgba(0, 0, 0, 0.25)",
   overflow: "hidden",
   fontSize: 14,
-  fontFamily: "'Inter Variable', system-ui, sans-serif",
+  fontFamily: hostFontFamily,
 };
 
 const inputStyle: CSSProperties = {

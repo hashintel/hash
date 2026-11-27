@@ -1,3 +1,5 @@
+import { hostFontFamily } from "../../../shared/host-font-family";
+
 /**
  * Host notice for a change the repository refused to save. Centred below
  * Petrinaut's 64px top bar and stacked above its side panels (z-index 1097)
@@ -9,7 +11,7 @@ export const UnsavedChangeNotice = ({ message }: { message: string }) => (
       alignItems: "center",
       display: "flex",
       flexDirection: "column",
-      fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+      fontFamily: hostFontFamily,
       fontSize: 14,
       gap: 8,
       left: "50%",

@@ -105,14 +105,7 @@ function generateTypographyTokens(): void {
   const parsed = typographySchema.parse(typography);
   const filePath = join(process.cwd(), OUTPUT_DIR, "typography.gen.ts");
 
-  // Font families
-  const fonts: Record<string, { value: string }> = {};
-  if (parsed.family) {
-    for (const [name, { value }] of Object.entries(parsed.family)) {
-      if (shouldSkipKey(name)) continue;
-      fonts[camelCase(name)] = { value };
-    }
-  }
+  // Font families are hand-written in `src/preset/tokens.ts`, not generated.
 
   // Font weights (filter out deprecated entries)
   const fontWeights: Record<string, { value: number }> = {};
@@ -147,8 +140,6 @@ function generateTypographyTokens(): void {
   }
 
   const content = `import { defineTokens } from "@pandacss/dev";
-
-export const fonts = defineTokens.fonts(${formatTokensForOutput(fonts)});
 
 export const fontWeights = defineTokens.fontWeights(${formatTokensForOutput(fontWeights)});
 

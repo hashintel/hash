@@ -1,0 +1,43 @@
+/*
+ * HASH Sans and HASH Mono, for this repository's own apps and Storybooks.
+ * Importing this file loads both fonts and points the design system's body
+ * and mono font variables at them. The system fonts cover the glyphs they
+ * lack, such as most Greek letters and the keyboard symbols.
+ */
+
+@font-face {
+  font-family: "HASH Sans";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./hash-sans/HASHSans-Variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "HASH Sans";
+  font-style: italic;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("./hash-sans/HASHSans-VariableItalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "HASH Mono";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./hash-sans/HASHMono-Variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "HASH Mono";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./hash-sans/HASHMono-VariableItalic.woff2") format("woff2");
+}
+
+:root {
+  --salt-font-body: "HASH Sans";
+  --salt-font-mono: "HASH Mono";
+}

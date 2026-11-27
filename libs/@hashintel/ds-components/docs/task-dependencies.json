@@ -2,6 +2,7 @@
   "package": "@hashintel/ds-components",
   "dependencies": [
     "@hashintel/ds-helpers",
+    "@local/brand-fonts",
     "@local/eslint",
     "@local/tsconfig"
   ],

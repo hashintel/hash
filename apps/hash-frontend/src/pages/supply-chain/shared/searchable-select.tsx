@@ -74,7 +74,7 @@ const triggerLgStyles = css({
 });
 
 const inputLgStyles = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "2xl",
   fontWeight: "medium",
   color: "fg.heading",

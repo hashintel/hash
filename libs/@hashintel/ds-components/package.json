@@ -65,7 +65,7 @@
     "build:lib": "npm-run-all build:lib:js build:lib:dts",
     "build:lib:dts": "tsc -p tsconfig.dts.json && tsx scripts/generate-flat-dts.ts",
     "build:lib:js": "tsup --config tsup.config.ts",
-    "build:pack": "node ../../../scripts/check-package-payload.mjs",
+    "build:pack": "node ../../../scripts/check-package-payload.mjs && node ../../@local/brand-fonts/check-package-fonts.mjs",
     "build:storybook": "storybook build -o .build/storybook",
     "codegen": "yarn run codegen:colors && yarn run codegen:tokens && yarn run codegen:panda && yarn run codegen:docgen",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
@@ -110,9 +110,7 @@
     "use-callback-ref": "1.3.3"
   },
   "devDependencies": {
-    "@fontsource-variable/geist-mono": "5.2.7",
-    "@fontsource-variable/inter": "5.2.8",
-    "@fontsource-variable/inter-tight": "5.2.7",
+    "@local/brand-fonts": "workspace:*",
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@mantine/hooks": "8.3.5",

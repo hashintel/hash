@@ -165,7 +165,6 @@ export const TypographyDemo = ({
 
       <VStack gap="4" css={{ alignItems: "flex-start", width: "[100%]" }}>
         <h2 className={sectionTitleStyles}>Font Families</h2>
-        <FontFamilyDemo name="display" tokenPath="fonts.display" />
         <FontFamilyDemo name="body" tokenPath="fonts.body" />
         <FontFamilyDemo name="mono" tokenPath="fonts.mono" />
       </VStack>

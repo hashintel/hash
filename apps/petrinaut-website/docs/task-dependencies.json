@@ -7,6 +7,7 @@
     "@hashintel/ds-icons",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
+    "@local/brand-fonts",
     "@local/flue-aisdk-transport",
     "@local/tsconfig"
   ],

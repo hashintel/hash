@@ -40,20 +40,15 @@ export default defineConfig({
   ...scopedConfig,
 
   /**
-   * The Petrinaut preset supplies the (namespaced) keyframes and token
-   * extensions that Petrinaut's build-info usage refers to, keeping this
-   * pipeline's theme contract identical to the one Petrinaut's own
-   * `dist/main.css` is generated from.
+   * The Petrinaut preset supplies the (namespaced) keyframes that Petrinaut's
+   * build-info usage refers to, keeping this pipeline's theme contract
+   * identical to the one Petrinaut's own `dist/main.css` is generated from.
    *
-   * It is listed *before* the ds-components preset so that on conflicting
-   * scalar theme values (currently only `fonts.mono`, which Petrinaut
-   * overrides for its own scope) the ds-components/panda definitions win and
-   * existing HASH surfaces are byte-for-byte unaffected. (Petrinaut's mono
-   * font still applies inside the process editor via the
-   * `.petrinaut-root`-scoped `--fonts-mono` variable in `dist/main.css`.)
-   * Keyframes cannot rely on ordering — Panda deep-merges same-name
-   * keyframes — which is why the Petrinaut preset namespaces all of its
-   * keyframes.
+   * It is listed *before* the ds-components preset so that if the two ever
+   * define the same scalar theme value, the ds-components/panda definition
+   * wins and existing HASH surfaces are unaffected. Keyframes cannot rely on
+   * ordering — Panda deep-merges same-name keyframes — which is why the
+   * Petrinaut preset namespaces all of its keyframes.
    */
   presets: [petrinautPandaPreset, ...scopedConfig.presets],
 

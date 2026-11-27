@@ -215,9 +215,9 @@ rectangle, and, in optimize mode, an Optimize bar below.
 34. A Variable name must be a plain identifier, not reserved, not
     `__adhoc`-prefixed, and not a dangerous record key (`__proto__` and
     kin): generated code stores values by that name on plain objects.
-35. Cell content renders in the code font (the `mono` token, the same face
-    Monaco uses). Labels around the grid (section titles, help) stay in the
-    UI face.
+35. Cell content renders in the `mono` token's font. The editor that opens
+    on a cell keeps Monaco's own font. Labels around the grid (section
+    titles, help) stay in the UI face.
 36. The Variables table reads one surface step lighter than the token table
     beneath it: plain container, `s05` gutter, and a hairline frame against
     the token table's raised container, `s10` gutter, `s15` headers, and

@@ -40,7 +40,7 @@ const labelStyle = css({
 
 const codeStyle = css({
   fontSize: "xs",
-  fontFamily: "['JetBrains Mono Variable', monospace]",
+  fontFamily: "mono",
   color: "neutral.s100",
   minWidth: "[0]",
   overflow: "hidden",

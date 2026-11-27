@@ -35,7 +35,7 @@ export const createPetrinautPandaConfig = (
     ...scopedConfig,
 
     /**
-     * Petrinaut's theme extension (keyframes, `fonts.mono`) lives in
+     * Petrinaut's theme extension (keyframes) lives in
      * `src/panda-preset.ts` — shipped as `@hashintel/petrinaut/panda-preset` —
      * so that hosts compiling Petrinaut's styles through their own Panda
      * pipeline (via `@hashintel/petrinaut/panda.buildinfo.json`) generate CSS

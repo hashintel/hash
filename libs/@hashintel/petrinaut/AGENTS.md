@@ -44,6 +44,7 @@ yarn test:unit        # Unit tests (vitest)
 - `use()` for context consumption (React 19), not `useContext()`
 - Styles via Panda CSS (`css()`, `cva()` from `@hashintel/ds-helpers/css`)
 - No `@local/*` imports: this is a published package
+- The interface font is the `body` token and monospaced text uses the `mono` token. They default to the system fonts and follow `--salt-font-body` and `--salt-font-mono`. The Monaco editor is the exception: it uses the bundled JetBrains Mono, named by `CODE_FONT_FAMILY` in `src/ui/shared/fonts.ts`. HASH's brand typefaces (`@local/brand-fonts`) are loaded by `.storybook/preview.tsx` and by `apps/petrinaut-website` only: their license forbids publishing them, and the library build embeds any font that `src` imports in `dist/main.css`
 - Prefix unused parameters with `_`
 
 ## User-facing docs

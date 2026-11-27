@@ -68,7 +68,6 @@ const aiCtaModalCopyStyle = css({
 const aiCtaModalTitleStyle = css({
   margin: "0",
   color: "neutral.s110",
-  fontFamily: "[Inter Tight, Inter, sans-serif]",
   fontSize: "[24px]",
   fontWeight: "semibold",
   lineHeight: "[30px]",

@@ -128,7 +128,7 @@ const eyebrowDot = css({
   bg: "fg.subtle",
 });
 const h1 = css({
-  fontFamily: "display",
+  fontFamily: "body",
   textStyle: "3xl",
   fontWeight: "medium",
   lineHeight: "[1.25]",

@@ -1,7 +1,5 @@
 import { dsIconsPandaPreset } from "@hashintel/ds-icons/panda-preset";
 
-import { CODE_FONT_FAMILY } from "./ui/shared/fonts";
-
 /**
  * Petrinaut's Panda CSS theme extension, shared between:
  *
@@ -10,7 +8,7 @@ import { CODE_FONT_FAMILY } from "./ui/shared/fonts";
  * - Host applications that compile Petrinaut's styles through their own Panda
  *   pipeline by including `@hashintel/petrinaut/panda.buildinfo.json` (e.g.
  *   the HASH frontend). Without this preset the host's Panda config would not
- *   know about Petrinaut's keyframes and token extensions, and the generated
+ *   know about Petrinaut's keyframes, and the generated
  *   CSS would silently diverge from what Petrinaut's components expect.
  *
  * Keeping the theme extension in a single importable preset guarantees both
@@ -34,13 +32,6 @@ export const petrinautPandaPreset = {
 
   theme: {
     extend: {
-      tokens: {
-        fonts: {
-          mono: {
-            value: CODE_FONT_FAMILY,
-          },
-        },
-      },
       keyframes: {
         ...dsIconsPandaPreset.theme.extend.keyframes,
         petrinautFadeIn: {

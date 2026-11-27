@@ -23,7 +23,7 @@ export const MIN_AI_ASSISTANT_WIDTH = 320;
 export const MAX_AI_ASSISTANT_WIDTH = 720;
 
 // Viewport controls — the button column at the bottom right of the canvas.
-// The width is one `xs` icon button, rounded up from its rendered 21px.
+// The width leaves room for one `xs` icon button, which renders 16px wide.
 export const VIEWPORT_CONTROLS_OFFSET = 12;
 const VIEWPORT_CONTROLS_WIDTH = 24;
 

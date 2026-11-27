@@ -96,13 +96,19 @@
   font-display: swap;
   src: url("/fonts/OpenSauceTwo-BoldItalic.ttf") format("truetype");
 }
-/* Latin subset, for run IDs (`shortRunIdFont`). */
+/* Latin subset, for run IDs (`shortRunIdFont`) and the design system's mono font. */
 @font-face {
   font-family: "JetBrains Mono";
   font-style: normal;
   font-weight: 100 800;
   font-display: swap;
   src: url("/fonts/JetBrainsMono-Variable.woff2") format("woff2");
+}
+
+/* The design system and Petrinaut use the system fonts unless these name others. */
+:root {
+  --salt-font-body: "Inter";
+  --salt-font-mono: "JetBrains Mono";
 }
 
 * {

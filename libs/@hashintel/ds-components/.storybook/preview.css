@@ -227,14 +227,9 @@
 }
 
 :root {
-  /* fonts - Fontsource variable fonts */
-  --font-inter: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-inter-tight:
-    "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-geist-mono:
-    "Geist Mono Variable", "Geist Mono", ui-monospace, SFMono-Regular, monospace;
-  --global-font-body: var(--font-inter);
-  --global-font-mono: var(--font-geist-mono);
+  /* The --salt-font-* variables come from @local/brand-fonts (see preview.tsx) */
+  --global-font-body: var(--fonts-body);
+  --global-font-mono: var(--fonts-mono);
 }
 
 /* Story canvas: default text color, background, and padding around stories */
