@@ -9,7 +9,9 @@ use alloc::{alloc::Global, sync::Arc};
 use core::num::NonZero;
 use std::thread::available_parallelism;
 
-use axum::{Extension, Router, response::IntoResponse as _, routing::post};
+use aide::transform::TransformOperation;
+use axum::extract::State;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::{
     MergePolicies, PolicyComponents,
     store::{PolicyStore, PrincipalStore},
@@ -21,25 +23,31 @@ use hashql_core::{
     heap::{Heap, Pool, ResetAllocator as _, Scratch},
     span::{SpanId, SpanTable},
 };
-use hashql_diagnostics::{IntoStatus as _, Source, Sources, Status, StatusExt as _, Success};
+use hashql_diagnostics::{IntoStatus as _, Source, Sources, StatusExt as _, Success};
 use hashql_eval::{
     error::EvalDiagnosticCategory,
     orchestrator::Orchestrator,
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
 use hashql_syntax_jexpr::{JsonPointers, span::Span};
-use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
 use type_system::principal::actor::ActorId;
 
 use self::{
     compile::Compilation,
-    error::{HashQlDiagnosticCategory, status_to_response},
+    error::{
+        HashQlDiagnosticCategory, QueryError, QueryFailure, QueryRejection, QueryResponse,
+        status_to_response,
+    },
     value::OwnedValue,
 };
-use crate::rest::legacy::{
-    AuthenticatedActorId, InteractiveHeader, JsonCompatHeader, status::BoxedResponse,
+use super::Credentials;
+use crate::rest::{
+    ApiState, FilterProtection,
+    credentials::Actor,
+    extract::{Header, Json},
+    routing::{self, Outcome, Route},
 };
 
 mod compile;
@@ -82,12 +90,17 @@ struct ExecutionContext<S> {
     filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
+#[derive(serde::Deserialize, schemars::JsonSchema)]
 pub(crate) struct CompilationOutputOptions {
+    /// Whether a query that fails is answered with its diagnostics as an HTML page.
+    #[serde(default, rename = "Interactive")]
     pub interactive: bool,
+    /// Whether the value is answered as plain JSON, without the HashQL kind of each value.
+    #[serde(default, rename = "Json-Compat")]
     pub json_compat: bool,
 }
 
-/// Compiles and executes a HashQL query, returning the result as a [`Status`].
+/// Compiles and executes a HashQL query, returning its value or the way it failed.
 #[expect(clippy::future_not_send)]
 async fn query_local_impl<S>(
     ctx: Arc<CompilerState>,
@@ -100,7 +113,7 @@ async fn query_local_impl<S>(
         filter_protection,
     }: ExecutionContext<S>,
 ) -> (
-    Status<OwnedValue, HashQlDiagnosticCategory, SpanId>,
+    Result<Success<OwnedValue, HashQlDiagnosticCategory, SpanId>, QueryFailure>,
     JsonPointers,
 )
 where
@@ -119,31 +132,19 @@ where
             advisories,
         } = compiled?;
 
-        let Success {
-            value: store,
-            advisories,
-        } = store
+        let store = store
             .acquire(temporal.clone())
             .await
-            .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
-            .into_status()
-            .with_diagnostics(advisories)?;
+            .change_context(QueryError::StoreUnavailable)?;
 
         let mut policy_components = PolicyComponents::builder(&store, Some(actor_id));
         policy_components.add_actions(
             compilation.permissions.actions.iter().copied(),
             MergePolicies::Yes,
         );
-        let Success {
-            value: policy_components,
-            advisories,
-        } = policy_components
+        let policy_components = policy_components
             .await
-            .map_err(|report| {
-                error::authorization_context_diagnostic(&report, compilation.root_span)
-            })
-            .into_status()
-            .with_diagnostics(advisories)?;
+            .change_context(QueryError::Authorization)?;
         let property = &*filter_protection;
 
         let patch = AuthorizationPatch::new(&policy_components, property);
@@ -170,6 +171,7 @@ where
             })
             .with_diagnostics(advisories)
             .map_value(OwnedValue::from)
+            .map_err(QueryFailure::Diagnostics)
     }
     .await;
 
@@ -182,7 +184,7 @@ async fn query_local<S>(
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
     exec: ExecutionContext<S>,
-) -> BoxedResponse
+) -> Result<Json<QueryResponse>, QueryRejection>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
 {
@@ -201,7 +203,7 @@ async fn run_query<S>(
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
     exec: ExecutionContext<S>,
-) -> BoxedResponse
+) -> Result<Json<QueryResponse>, QueryRejection>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
         + Send
@@ -217,51 +219,31 @@ where
         .await;
 
     result.unwrap_or_else(|error| {
-        tracing::error!(?error, "panicked while executing query");
-
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"fatal": "internal error: query execution failed"})),
-        )
-            .into_response()
-            .into()
+        Err(Report::new(error)
+            .change_context(QueryError::Panicked)
+            .into())
     })
 }
 
-fn deserialize_empty_inputs<'de, D>(deserializer: D) -> Result<Vec<()>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let inputs: Vec<()> = serde::Deserialize::<'de>::deserialize(deserializer)?;
-    if inputs.is_empty() {
-        return Ok(inputs);
-    }
-
-    Err(serde::de::Error::custom(
-        "`inputs` must be an empty array until input support ships",
-    ))
-}
-
-/// Request body for the `/hashql` endpoint.
+/// The query to run.
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct HashQlRequest {
+    /// The query, as a J-Expr.
     query: Arc<RawValue>,
-    inputs: Vec<Arc<RawValue>>,
 }
 
-pub(crate) async fn query_hashql<S>(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
-    Extension(store_pool): Extension<Arc<S>>,
-    Extension(compiler): Extension<Arc<CompilerState>>,
-    Extension(temporal): Extension<Option<Arc<TemporalClient>>>,
-    Extension(filter_protection): Extension<Arc<PropertyProtectionFilterConfig<'static>>>,
-    (InteractiveHeader(interactive), JsonCompatHeader(json_compat)): (
-        InteractiveHeader,
-        JsonCompatHeader,
-    ),
-    Json(request): Json<HashQlRequest>,
-) -> BoxedResponse
+impl Outcome for Result<Json<QueryResponse>, QueryRejection> {}
+
+async fn query_hashql<S>(
+    actor: Actor<Credentials>,
+    State(store): State<Arc<S>>,
+    State(compiler): State<Arc<CompilerState>>,
+    State(temporal): State<Option<Arc<TemporalClient>>>,
+    State(FilterProtection(filter_protection)): State<FilterProtection>,
+    Header(options): Header<CompilationOutputOptions>,
+    Json(HashQlRequest { query }): Json<HashQlRequest>,
+) -> Result<Json<QueryResponse>, QueryRejection>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
         + Send
@@ -270,15 +252,31 @@ where
 {
     let exec = ExecutionContext {
         temporal,
-        actor_id,
-        store: store_pool,
+        actor_id: actor.into(),
+        store,
         filter_protection,
     };
 
-    let options = CompilationOutputOptions {
-        interactive,
-        json_compat,
-    };
+    run_query(compiler, query, options, exec).await
+}
 
-    run_query(compiler, exec, request.query, options).await
+fn document_query_hashql(operation: TransformOperation<'_>) -> TransformOperation<'_> {
+    operation
+        .id("queryHashql")
+        .summary("Run a HashQL query")
+        .description(
+            "Compiles the query and evaluates it as the caller. Returns the value of the query \
+             with the diagnostics that did not fail it. A query that fails is answered with its \
+             diagnostics.",
+        )
+}
+
+pub(super) fn route<S>() -> Route<ApiState<S>>
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+        + Send
+        + Sync
+        + 'static,
+{
+    routing::post(query_hashql::<S>, document_query_hashql)
 }

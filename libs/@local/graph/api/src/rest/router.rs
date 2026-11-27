@@ -19,7 +19,7 @@ use tower::ServiceBuilder;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::{
-    ApiState, PublicApiConfig,
+    ApiState, CompilerState, PublicApiConfig,
     authentication::{self, api_token::ApiTokenRejection},
     cors::CorsConfig,
     documentation,
@@ -42,7 +42,7 @@ pub struct Dependencies<S> {
     pub rate_limit: rate_limit::RateLimitConfig,
     pub cors: CorsConfig,
     pub meter: Meter,
-    pub compiler: Arc<hashql::CompilerContext>,
+    pub compiler: Arc<CompilerState>,
     pub filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
     pub clustering: Arc<ClusteringContext>,
 }
@@ -95,7 +95,10 @@ where
         Arc::clone(&dependencies.store),
         dependencies.temporal_client.clone(),
         dependencies.public_api_config,
+        dependencies.compiler,
+        dependencies.filter_protection,
     );
+
     let apis = super::apis::<S>()
         .map(|api| api.with_state(state.clone()))
         .collect::<Vec<_>>();
@@ -110,8 +113,6 @@ where
         .layer(Extension(dependencies.domain_regex))
         .layer(Extension(dependencies.api_config))
         .layer(Extension(dependencies.api_tokens))
-        .layer(Extension(dependencies.compiler))
-        .layer(Extension(dependencies.filter_protection))
         .layer(Extension(dependencies.clustering));
     if let Some(query_logger) = dependencies.query_logger {
         legacy_routes = legacy_routes.layer(Extension(query_logger));

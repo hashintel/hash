@@ -8,6 +8,9 @@
 //! fails to compile. [`Routes`] accepts no other route, so a handler reaches an API only through
 //! [`get`] or [`post`].
 //!
+//! The query endpoint of HashQL implements [`Outcome`] for a rejection of its own, which answers
+//! the diagnostics of a query as an HTML page when the request asks for one.
+//!
 //! [`openapi::build`]: crate::rest::openapi::build
 
 use aide::{
@@ -52,6 +55,11 @@ impl<S: Clone + Send + Sync + 'static> Routes<S> {
     /// Serves `route` at `path`.
     pub(in crate::rest) fn route(self, path: &str, route: Route<S>) -> Self {
         Self(self.0.api_route(path, route.0))
+    }
+
+    /// Adds the routes of `other`, which keep their tags.
+    pub(in crate::rest) fn merge(self, other: Self) -> Self {
+        Self(self.0.merge(other.0))
     }
 
     /// Tags the operations of every route added before this call with `tag`.

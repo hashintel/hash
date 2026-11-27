@@ -10,8 +10,8 @@ use aide::{
     axum::ApiRouter,
     generate,
     openapi::{
-        Info, OpenApi, Operation, Parameter, ParameterData, ParameterSchemaOrContent, ReferenceOr,
-        Response, SchemaObject, StatusCode,
+        Info, MediaType, OpenApi, Operation, Parameter, ParameterData, ParameterSchemaOrContent,
+        ReferenceOr, Response, SchemaObject, StatusCode,
     },
     transform::TransformOpenApi,
     util::iter_operations_mut,
@@ -44,6 +44,8 @@ use super::{Api, credentials::Credentials, extract::MessagePart, middleware, rou
 ///   parameter.
 /// - The problem variants of an operation cannot be documented, such as when the status of a
 ///   variant already has a response that documents none.
+/// - An operation marks a status through [`mark_html_alternative`] that it documents no response
+///   for.
 /// - Two operations of the document share an `operationId`.
 /// - The document references a component schema it does not declare.
 ///
@@ -81,6 +83,7 @@ pub(super) fn build<C: Credentials, T: Clone + Send + Sync + 'static>(
             document
                 .with(transform)
                 .with(|document| middleware::document(document, C::CHALLENGE))
+                .with(document_html_alternatives)
                 .with(reference_responses)
         });
     assert_security_schemes_declared(&mut document);
@@ -95,6 +98,83 @@ pub(super) fn build<C: Credentials, T: Clone + Send + Sync + 'static>(
         router,
         document,
     }
+}
+
+/// The key of the extension that lists the statuses an operation marks through
+/// [`mark_html_alternative`], which [`build`] removes again.
+const HTML_ALTERNATIVE: &str = "x-hash-html-alternative";
+
+/// Marks that `operation` can answer each of `statuses` with an HTML page in place of the response
+/// it documents there.
+///
+/// [`build`] documents the page as `text/html` content of that response. It does so after the
+/// middleware documented its problem variants, as a response with content of another media type
+/// takes no further variant.
+pub(in crate::rest) fn mark_html_alternative(
+    operation: &mut Operation,
+    statuses: impl IntoIterator<Item = http::StatusCode>,
+) {
+    operation.extensions.insert(
+        HTML_ALTERNATIVE.to_owned(),
+        statuses
+            .into_iter()
+            .map(|status| Value::from(status.as_u16()))
+            .collect(),
+    );
+}
+
+/// Documents `text/html` content on every response marked through [`mark_html_alternative`], and
+/// removes the marks.
+fn document_html_alternatives(mut transform: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
+    let Some(paths) = &mut transform.inner_mut().paths else {
+        return transform;
+    };
+
+    for (path, item) in &mut paths.paths {
+        let Some(item) = item.as_item_mut() else {
+            continue;
+        };
+
+        for (method, operation) in iter_operations_mut(item) {
+            let Some(statuses) = operation.extensions.shift_remove(HTML_ALTERNATIVE) else {
+                continue;
+            };
+
+            for status in statuses.as_array().into_iter().flatten() {
+                let response = status
+                    .as_u64()
+                    .and_then(|status| u16::try_from(status).ok())
+                    .and_then(|status| {
+                        operation
+                            .responses
+                            .as_mut()?
+                            .responses
+                            .get_mut(&StatusCode::Code(status))?
+                            .as_item_mut()
+                    })
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "{method} {path} should document a response at {status}, which it \
+                             marks as one it can answer with an HTML page"
+                        )
+                    });
+
+                response.content.insert(
+                    "text/html".to_owned(),
+                    MediaType {
+                        schema: Some(SchemaObject {
+                            json_schema: schemars::json_schema!({"type": "string"}),
+                            example: None,
+                            external_docs: None,
+                        }),
+                        ..MediaType::default()
+                    },
+                );
+            }
+        }
+    }
+
+    transform
 }
 
 /// Checks that every security scheme an operation requires is declared in the document.

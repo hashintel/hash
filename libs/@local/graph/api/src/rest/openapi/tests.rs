@@ -74,6 +74,19 @@ fn response<'doc>(
         .expect("the route should document the response")
 }
 
+fn response_extensions<'doc>(document: &'doc OpenApi, path: &str) -> Vec<&'doc str> {
+    document
+        .paths
+        .as_ref()
+        .and_then(|paths| paths.paths.get(path))
+        .and_then(ReferenceOr::as_item)
+        .and_then(|item| item.get.as_ref())
+        .into_iter()
+        .flat_map(|operation| operation.extensions.keys())
+        .map(String::as_str)
+        .collect()
+}
+
 #[test]
 fn shared_response_component() {
     let mut document = OpenApi::default();
@@ -441,6 +454,57 @@ fn build_bytes_body() {
         },
         |document| document,
     );
+}
+
+fn build_with_html_alternative(status: http::StatusCode) -> Api {
+    openapi::build::<NoCredentials, _>(
+        "/test",
+        Info::default(),
+        move || {
+            Routes::new().route(
+                "/entities",
+                routing::get(
+                    async || Json::<_, 200>(true),
+                    move |mut operation| {
+                        openapi::mark_html_alternative(operation.inner_mut(), [status]);
+                        named(unsupported_query(operation))
+                    },
+                ),
+            )
+        },
+        |document| document,
+    )
+}
+
+#[test]
+fn build_html_alternative() {
+    let api = build_with_html_alternative(http::StatusCode::BAD_REQUEST);
+
+    let document = api.document();
+    let response = match response(document, "/test/entities", "get", 400) {
+        ReferenceOr::Item(response) => response,
+        ReferenceOr::Reference { .. } => document
+            .components
+            .as_ref()
+            .and_then(|components| components.responses.get("BadRequest"))
+            .and_then(ReferenceOr::as_item)
+            .expect("the document should declare the response it references"),
+    };
+    assert_eq!(
+        response.content.keys().collect::<Vec<_>>(),
+        ["application/problem+json", "text/html"],
+        "the marked response should document the page beside its problem variants"
+    );
+    assert!(
+        response_extensions(document, "/test/entities").is_empty(),
+        "the mark should not remain in the document"
+    );
+}
+
+#[test]
+#[should_panic(expected = "should document a response at 418")]
+fn build_html_alternative_undocumented() {
+    let _: Api = build_with_html_alternative(http::StatusCode::IM_A_TEAPOT);
 }
 
 fn build_with_parameter(parameter: Parameter) {

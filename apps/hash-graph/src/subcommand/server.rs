@@ -18,15 +18,12 @@ use hash_codec::bytes::JsonLinesEncoder;
 use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
-        self, CorsConfig, PublicApiConfig,
+        self, CompilerState, CorsConfig, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
         },
-        legacy::{
-            ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext,
-            hashql::CompilerContext,
-        },
+        legacy::{ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext},
         rate_limit::RateLimitConfig,
     },
     rpc::Dependencies,
@@ -677,7 +674,7 @@ pub(crate) struct AuthenticationSetup {
 /// Resources assembled for graph API startup.
 struct ServerResources<S> {
     pool: S,
-    compiler: Arc<CompilerContext>,
+    compiler: Arc<CompilerState>,
     query_logger: Option<QueryLogger>,
     meter: Meter,
     filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
@@ -861,7 +858,7 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
         None
     };
 
-    let compiler = Arc::new(CompilerContext::new(
+    let compiler = Arc::new(CompilerState::new(
         args.config.compiler.compiler_memory_pool_size.as_usize(),
         args.config.compiler.compiler_exec_pool_size.get(),
     ));

@@ -55,8 +55,6 @@ pub(crate) struct CodeExecutionPermissions<'heap> {
 pub(crate) struct Compilation<'heap> {
     pub heap: &'heap Heap,
 
-    pub root_span: SpanId,
-
     pub interner: hashql_eval::intern::Interner<'heap>,
     pub env: Environment<'heap>,
 
@@ -106,8 +104,6 @@ impl<'heap> Compilation<'heap> {
             value: (mut ast, inputs),
             advisories,
         } = Status::zip(parsed, inputs).map_category(HashQlDiagnosticCategory::JExpr)?;
-
-        let root_span = ast.span;
 
         let mut env = Environment::new(heap);
         let modules = ModuleRegistry::new(&env);
@@ -276,7 +272,6 @@ impl<'heap> Compilation<'heap> {
         Status::success(Self {
             heap,
 
-            root_span,
             env,
             interner,
             entrypoint,

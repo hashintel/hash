@@ -1,4 +1,6 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+#
+# Requires a running Kratos (public API on 4433, admin API on 4434) next to the Graph.
 
 ### Seed default policies
 GET http://127.0.0.1:4000/policies/seed
@@ -38,8 +40,64 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
   client.global.set("user_id", response.body.userId);
 %}
 
+### Create a Kratos identity provisioned for the account
+POST http://127.0.0.1:4434/admin/identities
+Content-Type: application/json
+
+{
+  "schema_id": "default",
+  "traits": {
+    "emails": ["hashql-{{$uuid}}@example.com"]
+  },
+  "metadata_public": {
+    "graph_actor_id": "{{user_id}}"
+  },
+  "credentials": {
+    "password": {
+      "config": {
+        "password": "hashql-test-pw!"
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 201, "Response status is not 201");
+  });
+  client.global.set("session_email", response.body.traits.emails[0]);
+%}
+
+### Create a login flow
+GET http://127.0.0.1:4433/self-service/login/api
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("login_flow_id", response.body.id);
+%}
+
+### Log in to obtain a session token
+POST http://127.0.0.1:4433/self-service/login?flow={{login_flow_id}}
+Content-Type: application/json
+
+{
+  "method": "password",
+  "identifier": "{{session_email}}",
+  "password": "hashql-test-pw!"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("session_token", response.body.session_token);
+%}
+
 ### HashQL without credentials is rejected
-POST http://127.0.0.1:4000/hashql
+POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json
 Authorization: <omit>
 
@@ -51,55 +109,11 @@ Authorization: <omit>
   });
 %}
 
-### HashQL: unknown actor is rejected by authentication
-POST http://127.0.0.1:4000/hashql
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: ffffffff-ffff-ffff-ffff-ffffffffffff
-
-{
-  "query": ["let", "axes",
-    ["::graph::temporal::PinnedTransactionTimeTemporalAxes",
-      {"#struct": {
-        "pinned": ["::graph::temporal::TransactionTime",
-          ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
-        ],
-        "variable": ["::graph::temporal::DecisionTime",
-          ["::graph::temporal::Interval", {"#struct": {
-            "start": ["::graph::temporal::UnboundedTemporalBound"],
-            "end": ["::graph::temporal::ExclusiveTemporalBound",
-              ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
-            ]
-          }}]
-        ]
-      }}
-    ],
-    ["::graph::tail::collect",
-      ["::graph::body::filter",
-        ["::graph::head::entities", "axes"],
-        ["fn", {"#tuple": []}, {"#struct": {"vertex": "_"}}, "_",
-          {"#literal": false}
-        ]
-      ]
-    ]
-  ],
-  "inputs": []
-}
-
-> {%
-  client.test("status", function() {
-    client.assert(response.status === 401, "Expected 401 for unknown actor");
-  });
-  client.test("has authentication problem", function() {
-    client.assert(response.body.title === "Unauthorized", "Expected authentication problem");
-    client.assert(response.body.detail === "credentials are not accepted",
-      "Expected authentication detail without actor information");
-  });
-%}
-
 ### HashQL: filter-false returns empty list
-POST http://127.0.0.1:4000/hashql
+POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
+Authorization: <omit>
+X-Session-Token: {{session_token}}
 
 {
   "query": ["let", "axes",
@@ -126,8 +140,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         ]
       ]
     ]
-  ],
-  "inputs": []
+  ]
 }
 
 > {%
@@ -143,49 +156,34 @@ X-Authenticated-User-Actor-Id: {{user_id}}
 %}
 
 ### HashQL: parse error returns 400 with diagnostics
-POST http://127.0.0.1:4000/hashql
+POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
+Authorization: <omit>
+X-Session-Token: {{session_token}}
 
 {
-  "query": {"not": "a valid query"},
-  "inputs": []
+  "query": {"not": "a valid query"}
 }
 
 > {%
   client.test("status", function() {
     client.assert(response.status === 400, "Expected 400 for invalid query");
   });
+  client.test("problem details", function() {
+    var contentType = response.headers.valueOf("content-type");
+    client.assert(contentType.includes("application/problem+json"), "Expected problem details, got: " + contentType);
+  });
   client.test("has diagnostic", function() {
-    client.assert(response.body.primary !== undefined, "Expected primary diagnostic");
-    client.assert(response.body.primary.category !== undefined, "Expected diagnostic category");
-  });
-%}
-
-### HashQL: missing inputs field returns 400
-POST http://127.0.0.1:4000/hashql
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-{
-  "query": {"#literal": 1}
-}
-
-> {%
-  client.test("status", function() {
-    client.assert(response.status === 400, "Expected 400 for missing inputs field");
-  });
-  client.test("error message mentions inputs", function() {
-    client.assert(response.body.message !== undefined, "Expected error message");
-    client.assert(response.body.contents[0].metadata.deserializationError.includes("inputs"),
-      "Expected error to mention missing 'inputs' field");
+    client.assert(Array.isArray(response.body.diagnostics), "Expected diagnostics");
+    client.assert(response.body.diagnostics[0].category !== undefined, "Expected diagnostic category");
   });
 %}
 
 ### HashQL: json-compat wraps result in envelope with advisories
-POST http://127.0.0.1:4000/hashql
+POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
+Authorization: <omit>
+X-Session-Token: {{session_token}}
 Json-Compat: true
 
 {
@@ -213,8 +211,7 @@ Json-Compat: true
         ]
       ]
     ]
-  ],
-  "inputs": []
+  ]
 }
 
 > {%
@@ -230,14 +227,14 @@ Json-Compat: true
 %}
 
 ### HashQL: interactive header returns HTML on error
-POST http://127.0.0.1:4000/hashql
+POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
+Authorization: <omit>
+X-Session-Token: {{session_token}}
 Interactive: true
 
 {
-  "query": {"not": "a valid query"},
-  "inputs": []
+  "query": {"not": "a valid query"}
 }
 
 > {%

@@ -17,6 +17,7 @@ use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
+use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
 use hash_middleware::authentication::Challenge;
 use http::Request;
 use serde_json::Value;
@@ -25,7 +26,7 @@ use tower::ServiceExt as _;
 pub(super) use self::authentication::{assert_anonymous_authentication, assert_authentication};
 pub(super) use super::caller::caller as echo_caller;
 use super::{
-    Api, ApiState, Audience, PublicApiConfig,
+    Api, ApiState, Audience, CompilerState, PublicApiConfig,
     credentials::Credentials,
     extract::Json,
     openapi,
@@ -52,15 +53,22 @@ pub(super) async fn response_json(response: Response) -> Value {
     serde_json::from_slice(&body).expect("the response body should be JSON")
 }
 
-/// The public and internal APIs, reading a store whose every `acquire` fails.
-pub(crate) fn apis() -> Vec<Api> {
-    let state = ApiState::new(
+/// A state whose store fails every `acquire`.
+pub(crate) fn state() -> ApiState<PostgresStorePool> {
+    ApiState::new(
         Arc::new(unconnected_store()),
         None,
         PublicApiConfig {
-            query_entity_limit: NonZero::new(100).expect("100 should not be zero"),
+            query_entity_limit: const { NonZero::new(100).unwrap() },
         },
-    );
+        Arc::new(CompilerState::new(None, NonZero::new(1))),
+        Arc::new(PropertyProtectionFilterConfig::new()),
+    )
+}
+
+/// The public and internal APIs, reading the store of [`state`].
+pub(crate) fn apis() -> Vec<Api> {
+    let state = state();
     super::apis::<PostgresStorePool>()
         .map(|api| api.with_state(state.clone()))
         .collect()

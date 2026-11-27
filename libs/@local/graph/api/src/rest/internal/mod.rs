@@ -2,15 +2,38 @@ mod credentials;
 mod hashql;
 
 use aide::{openapi::Info, transform::TransformOpenApi};
+use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
+use hash_graph_postgres_store::store::postgres::PostgresClient;
+use hash_graph_store::pool::StorePool;
 
 use self::credentials::Credentials;
-pub(super) use self::hashql::CompilerState;
-use super::{Api, caller, documentation, openapi};
+pub use self::hashql::CompilerState;
+use super::{Api, ApiState, caller, documentation, openapi, routing::Routes};
 
 /// The path the internal API, its documentation and the legacy document are served under.
 pub(super) const PREFIX: &str = "/_api";
 
-pub(super) fn api<T: Clone + Send + Sync + 'static>() -> Api<T> {
+fn routes<S>() -> Routes<ApiState<S>>
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+        + Send
+        + Sync
+        + 'static,
+{
+    caller::routes::<Credentials, _>().merge(
+        Routes::new()
+            .route("/hashql", hashql::route::<S>())
+            .tag("HashQL"),
+    )
+}
+
+pub(super) fn api<S>() -> Api<ApiState<S>>
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+        + Send
+        + Sync
+        + 'static,
+{
     openapi::build::<Credentials, _>(
         PREFIX,
         Info {
@@ -19,7 +42,7 @@ pub(super) fn api<T: Clone + Send + Sync + 'static>() -> Api<T> {
             description: Some(documentation::OVERVIEW.to_owned()),
             ..Info::default()
         },
-        caller::routes::<Credentials, T>,
+        routes::<S>,
         document,
     )
 }
