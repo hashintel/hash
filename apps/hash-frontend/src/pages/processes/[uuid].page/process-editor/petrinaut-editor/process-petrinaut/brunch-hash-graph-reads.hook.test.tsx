@@ -5,6 +5,7 @@ import { expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 
+import { summarizeEntitiesQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import {
   type HashWebReadUser,
@@ -70,13 +71,14 @@ const execute = (
       } as PetrinautAiAutomaticToolExecuteParams),
   );
 
-test("the page gives Brunch all three HASH reads, and keeps the list while the user is refetched", async () => {
+test("the page gives Brunch all four HASH reads, and keeps the list while the user is refetched", async () => {
   const { result, signIn } = renderTools(userWith("member", ["acme"]));
   const first = result.current;
   expect(first.map(({ toolName }) => toolName)).toEqual([
     brunchTools.hashQueryEntities,
     brunchTools.hashQueryEntityTypes,
     brunchTools.hashQueryWebs,
+    brunchTools.hashCountEntities,
   ]);
   await expect(execute(first, brunchTools.hashQueryWebs, {})).resolves.toEqual({
     webs: [
@@ -140,4 +142,145 @@ test("the type read asks the page's Apollo client for the graph's types now, and
   ).resolves.toEqual({
     error: "Response not successful: Received status code 500",
   });
+});
+
+test("the type read marks types outside the webs of the user signed in when it runs external", async () => {
+  const { result, signIn } = renderTools(userWith("member", ["acme"]));
+  signIn(userWith("member", []));
+  const typeIn = (name: string, webId: string) => ({
+    schema: {
+      $id: `https://hash.ai/@h/types/entity-type/${name}/v/1`,
+      title: name,
+      properties: {},
+      links: {},
+    },
+    metadata: { webId },
+  });
+  apollo.query.mockResolvedValueOnce({
+    data: {
+      queryEntityTypes: {
+        entityTypes: [typeIn("own", "member-web"), typeIn("left", "acme-web")],
+        closedEntityTypes: [],
+        definitions: { dataTypes: {}, propertyTypes: {}, entityTypes: {} },
+      },
+    },
+  });
+  await expect(
+    execute(result.current, brunchTools.hashQueryEntityTypes, {}),
+  ).resolves.toEqual({
+    entityTypes: [
+      {
+        entityTypeId: "https://hash.ai/@h/types/entity-type/own/v/1",
+        title: "own",
+        properties: [],
+        links: [],
+      },
+      {
+        entityTypeId: "https://hash.ai/@h/types/entity-type/left/v/1",
+        title: "left",
+        external: true,
+        properties: [],
+        links: [],
+      },
+    ],
+  });
+});
+
+test("the count asks the page's Apollo client for a summary now, in the webs of the user signed in when it runs", async () => {
+  const { result, signIn } = renderTools(userWith("member", ["acme"]));
+  signIn(userWith("member", []));
+  apollo.query.mockResolvedValueOnce({
+    data: { summarizeEntities: { count: 2, typeIds: {}, webIds: {} } },
+  });
+  await expect(
+    execute(result.current, brunchTools.hashCountEntities, {}),
+  ).resolves.toMatchObject({
+    count: 2,
+    webScope: "default",
+    webs: [{ webId: "member-web", count: 0 }],
+  });
+  expect(apollo.query).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      query: summarizeEntitiesQuery,
+      fetchPolicy: "network-only",
+      variables: {
+        request: expect.objectContaining({
+          filter: expect.objectContaining({
+            all: expect.arrayContaining([
+              {
+                any: [
+                  { equal: [{ path: ["webId"] }, { parameter: "member-web" }] },
+                ],
+              },
+            ]),
+          }),
+        }),
+      },
+    }),
+  );
+});
+
+test("the entity read asks the page's Apollo client for entities in the webs of the user signed in when it runs, and marks others external", async () => {
+  const { result, signIn } = renderTools(userWith("member", ["acme"]));
+  signIn(userWith("member", []));
+  apollo.query.mockResolvedValueOnce({
+    data: {
+      queryEntitySubgraph: {
+        subgraph: {
+          roots: [],
+          vertices: Object.fromEntries(
+            ["member-web~own", "acme-web~former"].map((entityId) => [
+              entityId,
+              {
+                "2026-10-26T00:00:00Z": {
+                  kind: "entity",
+                  inner: {
+                    metadata: {
+                      recordId: { entityId, editionId: `${entityId}-1` },
+                      entityTypeIds: [
+                        "https://hash.ai/@h/types/entity-type/thing/v/1",
+                      ],
+                    },
+                    properties: {},
+                  },
+                },
+              },
+            ]),
+          ),
+          edges: {},
+          temporalAxes: {},
+        },
+        closedMultiEntityTypes: {},
+        definitions: { dataTypes: {}, propertyTypes: {}, entityTypes: {} },
+      },
+    },
+  });
+  const output = await execute(result.current, brunchTools.hashQueryEntities, {
+    traversalDepth: 0,
+  });
+  expect(output).toMatchObject({
+    entities: [
+      { entityId: "member-web~own" },
+      { entityId: "acme-web~former", external: true },
+    ],
+  });
+  expect(output).not.toHaveProperty(["entities", 0, "external"]);
+  expect(apollo.query).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      fetchPolicy: "network-only",
+      variables: {
+        request: expect.objectContaining({
+          filter: expect.objectContaining({
+            all: expect.arrayContaining([
+              {
+                any: [
+                  { equal: [{ path: ["webId"] }, { parameter: "member-web" }] },
+                ],
+              },
+            ]),
+          }),
+        }),
+      },
+    }),
+  );
 });

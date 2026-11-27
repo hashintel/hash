@@ -36,6 +36,7 @@ import { queryBasisToolDescription } from "../shared/query-basis.ts";
 import { hashEvidencedDescription } from "./guidance.ts";
 import { hashSaveDescription } from "./petrinaut/save-net.ts";
 import {
+  hashEntityCountDescription,
   hashEntityReadDescription,
   hashEntityTypeReadDescription,
   hashWebReadDescription,
@@ -273,6 +274,7 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
       "hash_query_entities",
       "hash_query_entity_types",
       "hash_query_webs",
+      "hash_count_entities",
       "app_save_net",
       "petrinaut_read_guide",
       "petrinaut_get_net",
@@ -340,6 +342,9 @@ test("a document binding mounts the guidance, the Ledger, HASH's graph reads and
   expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toBe(
     hashWebReadDescription,
   );
+  expect(mounted.descriptions.get(brunchTools.hashCountEntities)).toBe(
+    hashEntityCountDescription,
+  );
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
   expect(mounted.instructions).toEqual([]);
@@ -379,13 +384,13 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(hashPrompt).toContain("Load `hash-graph`");
   expect(mounted.skills).toContain("hash-graph");
   expect(mounted.descriptions.get(brunchTools.hashQueryWebs)).toContain(
-    "Read it first, before hash_query_entities and hash_query_entity_types.",
+    "Read it first, before hash_count_entities, hash_query_entities and hash_query_entity_types.",
   );
   expect(mounted.descriptions.get(brunchTools.hashQueryEntityTypes)).toContain(
-    "Read it after hash_query_webs and hash_query_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters it lists the entity types the user can see, up to that limit: a very large read.",
+    "Filter by entityTypeIds (from hash_query_entities or hash_count_entities) or by titles; webIds rarely help, since most types live in HASH's shared webs. Pages hold at most limit types (default 50, max 1,000).",
   );
   expect(mounted.descriptions.get(brunchTools.hashQueryEntities)).toContain(
-    "Read webs with hash_query_webs first, for the web ids to filter by; then read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
+    "Read webs with hash_query_webs first; read the types of the entities found with hash_query_entity_types, by their entityTypeIds",
   );
 
   mounted.skills.length = 0;
@@ -395,6 +400,7 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.descriptions.has(brunchTools.hashQueryWebs)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.hashCountEntities)).toBe(false);
   expect(mounted.descriptions.has(brunchTools.appSaveNet)).toBe(false);
 });
 
