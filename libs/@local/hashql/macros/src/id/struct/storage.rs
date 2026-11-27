@@ -18,7 +18,17 @@ impl From<StructScalar> for IntegerScalar {
             StructScalar::U16(_) => Self::U16,
             StructScalar::U32(_) => Self::U32,
             StructScalar::U64(_) => Self::U64,
-            StructScalar::U128(_) => Self::U128,
+            StructScalar::U128(keyword) => {
+                emit_error(
+                    AsRef::<proc_macro2::Ident>::as_ref(&keyword)
+                        .span()
+                        .unwrap(),
+                    "`u128` cannot back an id: `Id` converts and computes in `u64` and `usize`, \
+                     which are lossy over `u128`",
+                );
+
+                Self::U64 // try to gather as many errors as possible, so continue with the next supported size
+            }
         }
     }
 }
@@ -81,7 +91,6 @@ impl Storage {
                 IntegerScalar::U16 => quote!(U16),
                 IntegerScalar::U32 => quote!(U32),
                 IntegerScalar::U64 => quote!(U64),
-                IntegerScalar::U128 => quote!(U128),
                 IntegerScalar::U8 => unreachable!("u8 never selects the byteorder form"),
             };
 

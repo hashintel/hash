@@ -9,7 +9,6 @@ pub(crate) enum IntegerScalar {
     U16,
     U32,
     U64,
-    U128,
 }
 
 impl IntegerScalar {
@@ -32,7 +31,6 @@ impl fmt::Display for IntegerScalar {
             Self::U16 => "u16",
             Self::U32 => "u32",
             Self::U64 => "u64",
-            Self::U128 => "u128",
         })
     }
 }
@@ -44,7 +42,6 @@ impl ToTokens for IntegerScalar {
             Self::U16 => Ident::new("u16", Span::call_site()),
             Self::U32 => Ident::new("u32", Span::call_site()),
             Self::U64 => Ident::new("u64", Span::call_site()),
-            Self::U128 => Ident::new("u128", Span::call_site()),
         };
 
         tokens.extend([ident]);

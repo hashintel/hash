@@ -85,6 +85,13 @@ impl Display for IdError {
 /// }
 /// ```
 ///
+/// `newtype!` refuses `u128` as the scalar of a struct. The conversions and the arithmetic of this
+/// trait compute in [`u64`] and [`usize`], which cannot hold every `u128`:
+///
+/// ```compile_fail
+/// hashql_core::id::newtype!(struct Wide(u128));
+/// ```
+///
 /// # Safety
 ///
 /// An ID stands for one number, fixed when the ID is created. Every operation this trait and its

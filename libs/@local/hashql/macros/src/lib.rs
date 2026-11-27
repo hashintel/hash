@@ -79,7 +79,7 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// Supported backing types: `u8`, `u16`, `u32`, `u64`, `u128`. `usize` is
+/// Supported backing types: `u8`, `u16`, `u32`, `u64`. `usize` is
 /// intentionally excluded: proc macros are compiled for and run on the host,
 /// so they cannot determine the target's pointer width. This makes it
 /// impossible to select the correct widening cast for range assertions during

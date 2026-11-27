@@ -100,5 +100,4 @@ define_ranged! {
     RangedU16(u16);
     RangedU32(u32);
     RangedU64(u64);
-    RangedU128(u128);
 }
