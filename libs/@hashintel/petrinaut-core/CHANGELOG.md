@@ -1,5 +1,63 @@
 # @hashintel/petrinaut-core
 
+## 0.0.7
+
+### Patch Changes
+
+- The adaptive simulator computes the runs of an experiment. ([#10435](https://github.com/hashintel/hash/pull/10435))
+
+- Classifies a net as timed or untimed, uncoloured or statically or dynamically coloured, and stochastic or deterministic.
+
+- Sizes a component instance node by its header and one row per port. ([#10419](https://github.com/hashintel/hash/pull/10419))
+
+- Lets a component carry an icon, as SVG markup, and a colour. ([#10421](https://github.com/hashintel/hash/pull/10421))
+
+- Places compose several differential equations, each declaring how many tokens it couples. ([#10409](https://github.com/hashintel/hash/pull/10409))
+
+- Registers the Composition page of the user guide for the assistant to read. ([#10310](https://github.com/hashintel/hash/pull/10310))
+
+- Adds a `rules` option that restricts an instance to placing and wiring the components of the libraries its host offers. ([#10511](https://github.com/hashintel/hash/pull/10511))
+
+- Lets a document import libraries of components: `imports` and `component: { from, id }` in the file, `resolveImport` and `libraries` on `createPetrinaut`, the state of each import in `instance.imports`, and `inlineImports` for a net that runs without them. ([#10510](https://github.com/hashintel/hash/pull/10510))
+
+- Treats a place's `showAsInitialState` flag as part of `appearance` in `hashPetrinautDocument`, so excluding `appearance` leaves the hash unchanged when it toggles. ([#10583](https://github.com/hashintel/hash/pull/10583))
+
+- Transition code can read an input place's token count as `input.Place.count`, and a mass-action SIR example is included. ([#10396](https://github.com/hashintel/hash/pull/10396))
+
+- Lets a component be an interface that other components implement, with the implementation an instance runs chosen on the instance or as the document's default. ([#10417](https://github.com/hashintel/hash/pull/10417))
+
+- Adds place fusions, which join a place of a net with ports of its component instances into one place in simulation. ([#10308](https://github.com/hashintel/hash/pull/10308))
+
+- Lets a component port declare its direction, checked against the component's arcs. ([#10371](https://github.com/hashintel/hash/pull/10371))
+
+- Removes `createPetrinautAiWritableCallbacks`, `normalizePetrinautAiToolInput` and `petrinautAiCapabilityGuidance`, which only the built-in AI chat used. ([#10267](https://github.com/hashintel/hash/pull/10267))
+
+- Removes `createSimulation`, its `./workers/simulation` entry, its types and `getPlayModeBackpressure`: run a net with `createJsFixedStepSimulator`, `createJsAdaptiveSimulator` or `createMonteCarloExperiment`. ([#10555](https://github.com/hashintel/hash/pull/10555))
+
+- Says "component" where the saved file and the API said "subnet": a document lists its `components`, an instance names its component with `component: { id }` or `component: { from, id }`, and the types, mutations and extension key follow; documents written before keep loading. ([#10534](https://github.com/hashintel/hash/pull/10534))
+
+- Adds `replaceFusionMember`, which moves a fusion from one place or port to another in one change. ([#10509](https://github.com/hashintel/hash/pull/10509))
+
+- A document handle's change event names the history entry that an undo, a redo or a jump restored. ([#10526](https://github.com/hashintel/hash/pull/10526))
+
+- The assistant's summary of the settings page no longer lists the removed arc rendering setting. ([#10407](https://github.com/hashintel/hash/pull/10407))
+
+- Reject external image destinations in visualizer styles and attributes, including escaped CSS URLs and destinations computed from runtime tokens and parameters. Preserve supported non-network styling and local SVG references. ([#10381](https://github.com/hashintel/hash/pull/10381))
+
+- Removes the server-backed optimization capability type, the CLI's protocol schemas, and the Monte Carlo experiment APIs only the CLI used: per-run seeds, per-run results, `runExperimentToCompletion` and `ExperimentRequest.runs`. ([#10287](https://github.com/hashintel/hash/pull/10287))
+
+- Adds simulators: a manifest with parameters, and the single runs and experiments it starts, with fixed-step, adaptive and WebGPU ones built in. ([#10431](https://github.com/hashintel/hash/pull/10431))
+
+- Use SVG background colors in example visualizers so their backgrounds fill resizable windows without stretching the drawings. ([#10319](https://github.com/hashintel/hash/pull/10319))
+
+- Adds a reader of each place's token count across the runs of an experiment. ([#10434](https://github.com/hashintel/hash/pull/10434))
+
+- A net with no stochastic rate and no dynamics runs as a sequence of steps, alone and in experiments, and a predicate with no input place is an error in a timed net. ([#10443](https://github.com/hashintel/hash/pull/10443))
+
+- The Bicycle Assembly example draws its parts in visualizers. ([#10505](https://github.com/hashintel/hash/pull/10505))
+
+- Author visualizers with function bodies and Visualizer.Svg; keep legacy code working with migration hints. ([#10364](https://github.com/hashintel/hash/pull/10364))
+
 ## 0.0.6
 
 ### Patch Changes
