@@ -106,6 +106,7 @@ impl ConstantSymbol {
 // We can rely on the derives for PartialEq, Eq, and Hash, as `_marker` is ignored, and the
 // internal representation makes a pointer comparison.
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct Symbol<'heap> {
     repr: Repr,
     _marker: PhantomData<&'heap ()>,
@@ -139,6 +140,8 @@ impl<'heap> Symbol<'heap> {
         }
     }
 
+    // Used by `sym::LOOKUP` in tests to verify static constant lookup.
+    #[cfg(test)]
     #[inline]
     const fn into_repr(self) -> Repr {
         self.repr

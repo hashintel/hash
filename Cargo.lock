@@ -7528,6 +7528,7 @@ dependencies = [
 name = "hashql-macros"
 version = "0.0.0"
 dependencies = [
+ "foldhash 0.2.0",
  "proc-macro2",
  "quote",
  "unsynn",

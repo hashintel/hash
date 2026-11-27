@@ -40,9 +40,9 @@ unsafe extern "C" {
     type Unsize;
 }
 
-#[repr(C, align(2))]
+#[repr(C, align(4))]
 struct RuntimeReprSkeleton {
-    len: usize,
+    len: u32,
     data: [u8; 0],
 }
 
@@ -52,7 +52,7 @@ struct RuntimeReprSkeleton {
 ///
 /// ```text
 /// ┌──────────────┬──────────────────────┐
-/// │ len: usize   │ data: [u8; len]      │
+/// │ len: u32     │ data: [u8; len]      │
 /// └──────────────┴──────────────────────┘
 /// ```
 ///
@@ -62,10 +62,10 @@ struct RuntimeReprSkeleton {
 ///
 /// # Provenance
 ///
-/// References to this type (`&RuntimeSymbol`) only have provenance for the header,
-/// not the trailing bytes. All access must go through [`*mut RuntimeSymbol`] to
+/// References to this type (`&RuntimeRepr`) only have provenance for the header,
+/// not the trailing bytes. All access must go through `*mut RuntimeRepr` to
 /// preserve full allocation provenance.
-#[repr(C, align(2))]
+#[repr(C, align(4))]
 pub(crate) struct RuntimeRepr {
     skel: RuntimeReprSkeleton,
     unsize: Unsize,
@@ -74,12 +74,14 @@ pub(crate) struct RuntimeRepr {
 impl RuntimeRepr {
     /// Computes the allocation layout for a runtime symbol with `len` bytes of data.
     #[inline]
-    fn layout(len: usize) -> Layout {
-        let (layout, _offset) = Layout::new::<RuntimeReprSkeleton>()
-            .extend(Layout::array::<u8>(len).expect("should not overflow"))
-            .expect("valid RuntimeSymbol layout");
+    fn try_layout(len: usize) -> Result<Layout, AllocError> {
+        let size = size_of::<RuntimeReprSkeleton>()
+            .checked_add(len)
+            .ok_or(AllocError)?;
 
-        layout
+        Layout::from_size_align(size, align_of::<RuntimeReprSkeleton>())
+            .ok()
+            .ok_or(AllocError)
     }
 
     /// Attempts to allocate a runtime symbol containing `value`.
@@ -89,15 +91,20 @@ impl RuntimeRepr {
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] if the allocator cannot satisfy the request.
-    #[expect(clippy::cast_ptr_alignment)]
-    pub(crate) fn try_alloc<A: Allocator>(
-        alloc: &A,
+    /// Returns [`AllocError`] if `value.len()` exceeds `u32::MAX`, the layout overflows, or the
+    /// allocator cannot satisfy the request.
+    #[expect(
+        clippy::cast_ptr_alignment,
+        reason = "layout aligns the allocation to RuntimeReprSkeleton"
+    )]
+    #[inline]
+    pub(crate) fn try_alloc_in<A: Allocator>(
         value: &str,
+        alloc: A,
     ) -> Result<NonNull<Self>, AllocError> {
-        let len = value.len();
+        let len = u32::try_from(value.len()).ok().ok_or(AllocError)?;
 
-        let layout = Self::layout(value.len());
+        let layout = Self::try_layout(value.len())?;
 
         let ptr = alloc.allocate(layout)?.as_ptr() as *mut Self;
 
@@ -121,15 +128,15 @@ impl RuntimeRepr {
     /// # Safety
     ///
     /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
-    /// - The allocation must remain live for the lifetime `'a`.
-    /// - The returned slice must not be mutated for the lifetime `'a`.
+    /// - The allocation must remain live for the lifetime `'bytes`.
+    /// - The returned slice must not be mutated for the lifetime `'bytes`.
     #[inline]
-    const unsafe fn as_bytes<'a>(this: *mut Self) -> &'a [u8] {
-        // SAFETY: Caller guarantees `this` is valid and the allocation outlives `'a`.
+    pub(crate) const unsafe fn as_bytes<'bytes>(this: *mut Self) -> &'bytes [u8] {
+        // SAFETY: Caller guarantees `this` is valid and the allocation outlives `'bytes`.
         // `data_ptr` has provenance over the full allocation (no reborrow narrowing).
         unsafe {
             let data_ptr = (&raw const (*this).skel.data).cast::<u8>();
-            let len = (&raw const (*this).skel.len).read();
+            let len = (&raw const (*this).skel.len).read() as usize;
 
             core::slice::from_raw_parts(data_ptr, len)
         }
@@ -140,11 +147,12 @@ impl RuntimeRepr {
     /// # Safety
     ///
     /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
-    /// - The allocation must remain live for the lifetime `'a`.
-    /// - The returned string must not be mutated for the lifetime `'a`.
+    /// - The allocation must remain live for the lifetime `'str`.
+    /// - The returned string must not be mutated for the lifetime `'str`.
     #[inline]
-    const unsafe fn as_str<'a>(this: *mut Self) -> &'a str {
-        // SAFETY: The bytes are valid UTF-8 because they were copied from a `&str` in `try_alloc`.
+    pub(crate) const unsafe fn as_str<'str>(this: *mut Self) -> &'str str {
+        // SAFETY: The bytes are valid UTF-8 because they were copied from a `&str` in
+        // `try_alloc_in`.
         unsafe { core::str::from_utf8_unchecked(Self::as_bytes(this)) }
     }
 }
@@ -194,6 +202,7 @@ impl ConstantRepr {
 /// `Repr` is exactly one pointer in size. Thanks to [`NonNull`], `Option<Repr>`
 /// is also one pointer in size (niche optimization).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub(crate) struct Repr {
     ptr: NonNull<u8>,
 }
@@ -361,7 +370,7 @@ mod tests {
     use crate::heap::Scratch;
 
     fn alloc(alloc: &Scratch, value: &str) -> NonNull<RuntimeRepr> {
-        RuntimeRepr::try_alloc(alloc, value).expect("should allocate the symbol")
+        RuntimeRepr::try_alloc_in(value, alloc).expect("should allocate the symbol")
     }
 
     #[test]

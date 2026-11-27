@@ -20,6 +20,7 @@ workspace = true
 # Private workspace dependencies
 
 # Private third-party dependencies
+foldhash    = { workspace = true }
 proc-macro2 = { workspace = true }
 quote       = { workspace = true, features = ["proc-macro"] }
 unsynn      = { workspace = true }

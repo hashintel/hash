@@ -142,11 +142,13 @@ pub fn define_id(item: TokenStream) -> TokenStream {
 
 /// Generates a pre-interned symbol table.
 ///
-/// Produces three artifacts from a symbol definition list:
+/// Produces four groups of items from a symbol definition list:
 ///
-/// 1. `SYMBOLS` — a static slice of string values for interner pre-population
-/// 2. Symbol constants — `Symbol<'static>` constants with companion `ConstantSymbol` modules
-/// 3. `LOOKUP` — a static slice mapping string values to their `Repr` for fast lookup
+/// 1. `SYMBOLS`: a fixed-size static array of string values indexed by constant symbols
+/// 2. Symbol constants: `Symbol<'static>` constants with companion `ConstantSymbol` modules
+/// 3. Compile-time 4-way SWAR lookup tables (`STATIC_SEED`, `STATIC_BUCKET_MASK`, `STATIC_TAGS`,
+///    `STATIC_INDICES`) for constant symbol resolution without runtime priming
+/// 4. `LOOKUP` (under `#[cfg(test)]`): a static slice mapping string values to their `Repr`
 ///
 /// # Syntax
 ///
@@ -158,9 +160,9 @@ pub fn define_id(item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// The call site must have `Symbol` and `ConstantSymbol` in scope (e.g. via
-/// `use super::{ConstantSymbol, Symbol}`). The generated `LOOKUP` references
-/// `super::repr::Repr`.
+/// The call site must have `Symbol` and `ConstantSymbol` in scope (for example via
+/// `use super::{ConstantSymbol, Symbol}`). Under `#[cfg(test)]`, the generated `LOOKUP`
+/// references `super::repr::Repr`.
 #[proc_macro]
 pub fn define_symbols(item: TokenStream) -> TokenStream {
     sym::expand(item.into()).into()
