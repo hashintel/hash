@@ -26,6 +26,7 @@ import {
 } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import { createRenderChipCell } from "../chip-cell";
+import { useDataTypesContext } from "../data-types-context";
 import { getReferencedDataTypeIds } from "../format-value";
 import { createRenderTextIconCell } from "../text-icon-cell";
 import { createRenderUrlCell } from "../url-cell";
@@ -326,6 +327,27 @@ export const EntitiesTable: FunctionComponent<{
       }
     },
   });
+
+  const { dataTypes } = useDataTypesContext();
+
+  const pluralConversionTargetsByColumnKey =
+    useMemo<ConversionTargetsByColumnKey>(
+      () =>
+        Object.fromEntries(
+          Object.entries(conversionTargetsByColumnKey).map(
+            ([columnKey, targets]) => [
+              columnKey,
+              targets.map((target) => ({
+                ...target,
+                title:
+                  dataTypes?.[target.dataTypeId]?.schema.titlePlural ??
+                  target.title,
+              })),
+            ],
+          ),
+        ),
+      [conversionTargetsByColumnKey, dataTypes],
+    );
 
   // eslint-disable-next-line no-param-reassign
   currentlyDisplayedColumnsRef.current = columns;
@@ -787,7 +809,7 @@ export const EntitiesTable: FunctionComponent<{
       <Grid
         activeConversions={activeConversions}
         columns={columns}
-        conversionTargetsByColumnKey={conversionTargetsByColumnKey}
+        conversionTargetsByColumnKey={pluralConversionTargetsByColumnKey}
         createGetCellContent={createGetCellContent}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         customRenderers={customRenderers}
