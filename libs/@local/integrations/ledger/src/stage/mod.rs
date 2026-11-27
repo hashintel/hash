@@ -5,6 +5,7 @@
 
 mod capture;
 mod failure;
+mod follow;
 mod prepare;
 mod send;
 #[cfg(test)]
@@ -14,8 +15,9 @@ use error_stack::Report;
 
 use self::failure::{from_run, permanent};
 pub use self::{
-    capture::capture,
+    capture::{capture, capture_changes},
     failure::StageError,
+    follow::{FollowError, Follower, Step},
     prepare::prepare_incremental,
     send::{GraphClient, GraphError, send},
 };

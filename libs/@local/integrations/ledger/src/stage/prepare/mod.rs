@@ -21,6 +21,7 @@ use error_stack::Report;
 use hash_integrations_definition::{Definition, SourceKind, SourceName};
 
 pub use self::incremental::prepare_incremental;
+pub(super) use self::workspace::Identifier;
 use self::{
     changes::{ChangeTable, Changes, Context},
     pipeline::{PreparationError, PreparedLink, PreparedSink},

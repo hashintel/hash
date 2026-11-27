@@ -104,6 +104,7 @@ fn finished(run: RunId) -> RunRecord {
                     key: format!("runs/{run}/capture/aircraft.parquet").into(),
                     size: 2140,
                     rows: 4,
+                    watermark: None,
                 },
             )]),
         }),

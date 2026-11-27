@@ -1,0 +1,21 @@
+# The GitHub example's settings for the local HASH stack. Run it with
+#
+#     uv run --all-packages hash-integrations-collect \
+#         --config-dir libs/@local/integrations/collect/examples/github github
+#
+# The bucket's credentials, and an optional GitHub token, go in `secrets.toml` beside this file,
+# which git ignores. dlt keeps the whole of `[destination.filesystem.credentials]` among the
+# secrets, the endpoint and region included.
+
+[integration]
+# Alice's web in the local stack; `github_types_in_local_web` prints it, and it changes when the
+# stack's volumes are wiped.
+web        = "01a21cbf-ce2c-7000-9bd5-e478eddc3b22"
+connector  = "github"
+bucket_uri = "s3://dev-hash-bucket/ledger"
+every      = 300
+
+[sources.github]
+owner        = "hashintel"
+repo         = "hash"
+initial_days = 2

@@ -1,0 +1,1 @@
+The rows of the aviation example's tables as a source serves them in two rounds, for `collected.rs`. Round 1 has three airfields and three aircraft. Round 2 renames an airfield and changes the mass of an aircraft, deletes an aircraft and the airfield it is based at with `deleted: true`, and adds an airfield and an aircraft based there.

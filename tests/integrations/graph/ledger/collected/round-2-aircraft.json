@@ -1,0 +1,35 @@
+[
+  {
+    "TAIL": "SE-AAA",
+    "MODEL": "DC-3",
+    "FIRST_FLIGHT": "1946-04-02",
+    "EMPTY_MASS": "8030",
+    "MASS_UNIT": "KG",
+    "HOME_BASE": "ESSA"
+  },
+  {
+    "TAIL": "N100",
+    "MODEL": "L-1049",
+    "FIRST_FLIGHT": "1951-10-13",
+    "EMPTY_MASS": "70000",
+    "MASS_UNIT": "LB",
+    "HOME_BASE": "ESSB"
+  },
+  {
+    "TAIL": "G-OLD",
+    "MODEL": "Ju 52",
+    "FIRST_FLIGHT": "1932-10-13",
+    "EMPTY_MASS": "6500",
+    "MASS_UNIT": "KG",
+    "HOME_BASE": "ESGG",
+    "deleted": true
+  },
+  {
+    "TAIL": "SE-BBB",
+    "MODEL": "Saab 340",
+    "FIRST_FLIGHT": "1983-01-25",
+    "EMPTY_MASS": "8140",
+    "MASS_UNIT": "KG",
+    "HOME_BASE": "ESOW"
+  }
+]

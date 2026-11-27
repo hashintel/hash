@@ -1,0 +1,14 @@
+[
+  {
+    "ICAO": "ESSA",
+    "FIELD_NAME": "Arlanda"
+  },
+  {
+    "ICAO": "ESSB",
+    "FIELD_NAME": "Bromma"
+  },
+  {
+    "ICAO": "ESGG",
+    "FIELD_NAME": "Landvetter"
+  }
+]

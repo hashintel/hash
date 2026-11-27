@@ -94,6 +94,23 @@ pub(crate) struct CapturedFile {
     pub key: Box<str>,
     pub size: u64,
     pub rows: u64,
+    /// The versions of the source's Delta table the file holds the changes of, if the file was
+    /// read from one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub watermark: Option<Watermark>,
+}
+
+/// The versions of a source's Delta table a run captured: the changes after `from_version`, up to
+/// and including `to_version`. A run without `from_version` captured every row at `to_version`.
+///
+/// The next run captures from the `to_version` of the last completed run, so a version is passed
+/// on only once Send has completed the run that captured it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Watermark {
+    /// The table's URL.
+    pub table: Box<str>,
+    pub from_version: Option<u64>,
+    pub to_version: u64,
 }
 
 /// The number of entity changes, and the issues file if Prepare noted anything.

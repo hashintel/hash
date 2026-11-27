@@ -1,0 +1,42 @@
+# Loads the issues and pull requests of a GitHub repository, which `hash-integrations-collect
+# github` collects into the integration's `dlt/` folder.
+connector: github
+
+vars:
+  TYPES: https://example.com/@demo/types
+
+sources:
+  issues:
+    primaryKey: [number]
+    local: dlt/issues
+  pull_requests:
+    primaryKey: [number]
+    local: dlt/pull_requests
+
+pipelines:
+  entities:
+    - source: issues
+      steps:
+        - id: sink-issues
+          sink:
+            entityType: ${TYPES}/entity-type/github-issue/v/1
+            entityId: number
+            properties:
+              ${TYPES}/property-type/github-number/v/1: number
+              ${TYPES}/property-type/title/v/1: title
+              ${TYPES}/property-type/github-state/v/1: state
+              ${TYPES}/property-type/github-url/v/1: url
+              ${TYPES}/property-type/github-author/v/1: author
+
+    - source: pull_requests
+      steps:
+        - id: sink-pull-requests
+          sink:
+            entityType: ${TYPES}/entity-type/github-pull-request/v/1
+            entityId: number
+            properties:
+              ${TYPES}/property-type/github-number/v/1: number
+              ${TYPES}/property-type/title/v/1: title
+              ${TYPES}/property-type/github-state/v/1: state
+              ${TYPES}/property-type/github-url/v/1: url
+              ${TYPES}/property-type/github-author/v/1: author
