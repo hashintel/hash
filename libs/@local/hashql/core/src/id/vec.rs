@@ -8,7 +8,7 @@ use core::{
     cmp::Ordering,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
-    marker::PhantomData,
+    marker::{Destruct, PhantomData},
     ops::{Deref, DerefMut, RangeBounds},
     slice,
 };
@@ -51,7 +51,7 @@ pub struct IdVec<I, T, A: Allocator = Global> {
 impl<I, T, A: Allocator> IdVec<I, T, A> {
     /// Returns a reference to the underlying allocator.
     #[inline]
-    pub fn allocator(&self) -> &A {
+    pub const fn allocator(&self) -> &A {
         self.raw.allocator()
     }
 }
@@ -75,7 +75,7 @@ where
     /// See [`Vec::with_capacity`] for details.
     #[inline]
     #[must_use]
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub const fn with_capacity(capacity: usize) -> Self {
         Self::from_raw(Vec::with_capacity(capacity))
     }
 
@@ -195,7 +195,10 @@ where
     ///
     /// See [`Vec::with_capacity_in`] for details.
     #[inline]
-    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
+    pub const fn with_capacity_in(capacity: usize, alloc: A) -> Self
+    where
+        A: [const] Allocator + [const] Destruct,
+    {
         Self::from_raw(Vec::with_capacity_in(capacity, alloc))
     }
 

@@ -26,6 +26,7 @@
     const_cmp,
     const_convert,
     const_destruct,
+    const_heap,
     const_index,
     const_iter,
     const_ops,

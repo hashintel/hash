@@ -54,7 +54,7 @@ pub struct Heap {
 }
 
 impl Heap {
-    const fn from_bump(bump: Bump) -> Self {
+    fn from_bump(bump: Bump) -> Self {
         Self {
             bump,
             symbols: SymbolTable::new(),

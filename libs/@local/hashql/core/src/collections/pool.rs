@@ -44,7 +44,7 @@
 //! ```
 
 use alloc::alloc::Global;
-use core::alloc::Allocator;
+use core::{alloc::Allocator, marker::Destruct};
 
 use crate::id::{Id, bit_vec::MixedBitSet};
 
@@ -280,7 +280,7 @@ impl<T, R> Pool<T, R, Global> {
     /// let recycler = MixedBitSetRecycler { domain_size: 1000 };
     /// let mut pool = MixedBitSetPool::<VarId>::with_recycler(5, recycler);
     /// ```
-    pub fn with_recycler(capacity: usize, recycler: R) -> Self {
+    pub const fn with_recycler(capacity: usize, recycler: R) -> Self {
         Self::with_recycler_in(capacity, recycler, Global)
     }
 }
@@ -293,7 +293,10 @@ impl<T, R, A: Allocator> Pool<T, R, A> {
         Self::with_recycler_in(capacity, R::default(), alloc)
     }
 
-    pub fn with_recycler_in(capacity: usize, recycler: R, alloc: A) -> Self {
+    pub const fn with_recycler_in(capacity: usize, recycler: R, alloc: A) -> Self
+    where
+        A: [const] Allocator + [const] Destruct,
+    {
         Self {
             free: Vec::with_capacity_in(capacity, alloc),
             recycler,

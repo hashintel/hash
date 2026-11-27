@@ -116,7 +116,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.constraints.push(constraint);
     }
 
-    pub fn add_dependency(&mut self, variable: Variable, other: Variable) {
+    pub const fn add_dependency(&mut self, variable: Variable, other: Variable) {
         let constraint = Constraint::Dependency {
             source: variable,
             target: other,

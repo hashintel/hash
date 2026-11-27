@@ -207,7 +207,7 @@ where
     /// pre-allocated.
     #[inline]
     #[must_use]
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub const fn with_capacity(capacity: usize) -> Self {
         Self {
             inner: IdVec::with_capacity(capacity),
             log: Log::new(),

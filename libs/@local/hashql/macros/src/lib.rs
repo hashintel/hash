@@ -1,16 +1,15 @@
 #![feature(proc_macro_diagnostic)]
-#![expect(clippy::indexing_slicing)]
 
 extern crate alloc;
 extern crate proc_macro;
 
-mod grammar;
-mod id;
-mod sym;
-
 use core::fmt::Display;
 
 use proc_macro::{Diagnostic, Level, Span, TokenStream};
+
+mod grammar;
+mod id;
+mod sym;
 
 /// Derives [`Id`] trait implementations for an enum with unit variants.
 ///
@@ -143,13 +142,11 @@ pub fn define_id(item: TokenStream) -> TokenStream {
 
 /// Generates a pre-interned symbol table.
 ///
-/// Produces four groups of items from a symbol definition list:
+/// Produces three groups of items from a symbol definition list:
 ///
 /// 1. `SYMBOLS`: a fixed-size static array of string values indexed by constant symbols
 /// 2. Symbol constants: `Symbol<'static>` constants with companion `ConstantSymbol` modules
-/// 3. Compile-time 4-way SWAR lookup tables (`STATIC_SEED`, `STATIC_BUCKET_MASK`, `STATIC_TAGS`,
-///    `STATIC_INDICES`) for constant symbol resolution without runtime priming
-/// 4. `LOOKUP` (under `#[cfg(test)]`): a static slice mapping string values to their `Repr`
+/// 3. `LOOKUP` (under `#[cfg(test)]`): a static slice mapping string values to their `Repr`
 ///
 /// # Syntax
 ///

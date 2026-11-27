@@ -30,11 +30,6 @@
 //! }
 //! ```
 
-mod lookup;
-mod repr;
-pub mod sym;
-mod table;
-
 use core::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter},
@@ -42,10 +37,17 @@ use core::{
     marker::PhantomData,
 };
 
-pub use self::lookup::SymbolLookup;
 use self::repr::{ConstantRepr, Repr};
-pub(crate) use self::table::SymbolTable;
 use crate::span::{SpanId, Spanned};
+
+mod constant;
+mod lookup;
+mod repr;
+pub mod sym;
+mod table;
+
+pub use self::lookup::SymbolLookup;
+pub(crate) use self::table::SymbolTable;
 
 /// A predefined symbol that can be used in pattern matching.
 ///
@@ -140,8 +142,7 @@ impl<'heap> Symbol<'heap> {
         }
     }
 
-    // Used by `sym::LOOKUP` in tests to verify static constant lookup.
-    #[cfg(test)]
+    #[cfg(test)] // `sym::LOOKUP` compares predefined symbols by raw `Repr` in static lookup tests.
     #[inline]
     const fn into_repr(self) -> Repr {
         self.repr

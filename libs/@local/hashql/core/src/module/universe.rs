@@ -7,6 +7,7 @@ use core::{
     alloc::Allocator,
     fmt::{self, Debug, Display},
     hash::{BuildHasher, Hash},
+    marker::Destruct,
     mem::variant_count,
     ops::{Index, IndexMut},
 };
@@ -1100,7 +1101,10 @@ where
     /// assert_eq!(realms.of(Universe::Type), &vec![42, 100]);
     /// ```
     #[inline]
-    pub fn push(&mut self, universe: Universe, value: T) {
+    pub const fn push(&mut self, universe: Universe, value: T)
+    where
+        A: [const] Allocator + [const] Destruct,
+    {
         let vec = self.of_mut(universe);
 
         vec.push(value);
