@@ -387,7 +387,7 @@ export type BaseQuantityPropertyValueWithMetadata =
  * A structured list of the components required to produce a material.
  */
 export type BillOfMaterials = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/bill-of-materials/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/bill-of-materials/v/3"];
   properties: BillOfMaterialsProperties;
   propertiesWithMetadata: BillOfMaterialsPropertiesWithMetadata;
 };

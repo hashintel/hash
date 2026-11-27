@@ -29,6 +29,7 @@ import flowDefinitionMigration from "./032-update-flow-definition-type.migration
 import openInputRequestsMigration from "./033-add-open-input-requests-to-flow-run.migration";
 import siUnitMigration from "./034-add-si-unit-data-types.migration";
 import { ensureUnitDataType } from "./034-add-si-unit-data-types/ensure-unit-data-type";
+import { moveScrapPercentage } from "./035-add-common-unit-data-types/move-scrap-percentage";
 import migrate, {
   archivedLengthGroupBaseUrls,
   upgradedEntityTypeKeys,
@@ -137,11 +138,11 @@ const typeMigrations = [
   openInputRequestsMigration,
 ];
 
-/** Every version of the property and entity types those migrations, then 039, create. */
+/** Every version of the property and entity types those migrations, then 035 and 039, create. */
 type OntologyTypes = {
   propertyTypes: Map<VersionedUrl, PropertyType>;
   entityTypes: Map<VersionedUrl, EntityType>;
-  /** The version of each of them before 039. */
+  /** The version of each of them before 039, which 035 runs before on a new instance. */
   propertyTypeVersions: Record<BaseUrl, OntologyTypeVersion>;
   entityTypeVersions: Record<BaseUrl, OntologyTypeVersion>;
 };
@@ -187,7 +188,10 @@ const recordTypeChanges = ({ propertyTypes, entityTypes }: OntologyTypes) => {
   );
 };
 
-/** Runs the migrations from 024 to 033 with type creation mocked, to read the types they create or change. */
+/**
+ * Runs the migrations from 024 to 033, then 035's move of `Scrap Percentage`, with type creation mocked, to read the
+ * types they create or change.
+ */
 const readTypes = async (): Promise<OntologyTypes> => {
   const types: OntologyTypes = {
     propertyTypes: new Map(),
@@ -281,6 +285,12 @@ const readTypes = async (): Promise<OntologyTypes> => {
         },
       }) as unknown as EntityTypeWithMetadata,
   );
+  vi.mocked(getPropertyTypeById).mockImplementation(
+    async (_graphApi, _authentication, { propertyTypeId }) =>
+      ({
+        schema: types.propertyTypes.get(propertyTypeId),
+      }) as unknown as PropertyTypeWithMetadata,
+  );
   recordTypeChanges(types);
 
   for (const typeMigration of typeMigrations) {
@@ -290,6 +300,16 @@ const readTypes = async (): Promise<OntologyTypes> => {
       migrationState,
     });
   }
+
+  /** 035 gives `Percentage` the version in the registry, then moves `Scrap Percentage` and its entity types onto it. */
+  const { baseUrl: percentageBaseUrl, version: percentageVersion } =
+    componentsFromVersionedUrl(systemDataTypes.percentage.dataTypeId);
+  dataTypeVersions[percentageBaseUrl] = percentageVersion;
+  await moveScrapPercentage({
+    context: {} as Parameters<MigrationFunction>[0]["context"],
+    authentication: {} as Parameters<MigrationFunction>[0]["authentication"],
+    migrationState,
+  });
 
   vi.clearAllMocks();
 
