@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { Activity, use, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -153,41 +153,49 @@ const panelState = () => screen.getByRole("status", { name: "Bottom panel" });
 
 const tabNames = () =>
   screen.getAllByRole("tab").map((tab) => tab.getAttribute("aria-label"));
+/** The element the active tab's content scrolls in. */
+const tabScroll = () =>
+  screen.getByRole("tabpanel").firstElementChild as HTMLElement;
+
 const selectedTab = () =>
   screen
     .getAllByRole("tab")
     .find((tab) => tab.getAttribute("aria-selected") === "true")
     ?.getAttribute("aria-label");
 
+/** Clicks a tab, and waits for the tabs to select it. */
+const pickTab = async (name: string) => {
+  fireEvent.click(screen.getByRole("tab", { name }));
+  await waitFor(() => expect(selectedTab()).toBe(name));
+};
+
 describe("BottomPanel", () => {
-  it("shows a plugin's view as a tab after its own, with its content and header action", () => {
+  it("shows a plugin's view as a tab after its own, with its content and header action", async () => {
     renderPlugins([notesPlugin], view);
 
     expect(tabNames()).toEqual(["Diagnostics", "Simulation Settings", "Notes"]);
     expect(screen.queryByText("Nothing noted")).toBeNull();
     expect(screen.queryByRole("button", { name: "Clear notes" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    await pickTab("Notes");
 
-    expect(selectedTab()).toBe("Notes");
     expect(screen.getByRole("tabpanel").textContent).toBe("Nothing noted");
     expect(screen.getByRole("button", { name: "Clear notes" })).toBeTruthy();
   });
 
-  it("starts an own tab at the top after a scrolled tab of a plugin", () => {
+  it("starts an own tab at the top after a scrolled tab of a plugin", async () => {
     renderPlugins([notesPlugin], view);
-    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
-    screen.getByRole("tabpanel").scrollTop = 40;
+    await pickTab("Notes");
+    tabScroll().scrollTop = 40;
 
-    fireEvent.click(screen.getByRole("tab", { name: "Diagnostics" }));
+    await pickTab("Diagnostics");
 
-    expect(screen.getByRole("tabpanel").scrollTop).toBe(0);
+    expect(tabScroll().scrollTop).toBe(0);
   });
 
-  it("returns to its first tab when the plugin of the active one stops", () => {
+  it("returns to its first tab when the plugin of the active one stops", async () => {
     const { rerender } = renderPlugins([notesPlugin], view);
-    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
-    expect(selectedTab()).toBe("Notes");
+    await pickTab("Notes");
 
     rerender([]);
 
@@ -228,12 +236,12 @@ describe("BottomPanel", () => {
     );
   });
 
-  it("keeps the tab picked during a run when the canvas comes back into view", () => {
+  it("keeps the tab picked during a run when the canvas comes back into view", async () => {
     const canvasView = (mode: "visible" | "hidden") => (
       <Activity mode={mode}>{panelWith("Running")}</Activity>
     );
     const { rerender } = renderPlugins([], canvasView("visible"));
-    fireEvent.click(screen.getByRole("tab", { name: "Diagnostics" }));
+    await pickTab("Diagnostics");
 
     rerender([], canvasView("hidden"));
     rerender([], canvasView("visible"));

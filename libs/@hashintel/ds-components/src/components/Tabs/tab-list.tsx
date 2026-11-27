@@ -73,7 +73,19 @@ export type TabListProps<Value extends string = string> = {
    * its arrow-key navigation, and doesn't scroll with the tabs.
    */
   actions?: React.ReactNode;
-};
+  /** Called on key presses in the tablist, before its arrow-key navigation. */
+  onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
+  ref?: React.Ref<HTMLDivElement>;
+} & React.AriaAttributes;
+
+// Direct children only, so nested tabs in the panels or actions can't be
+// mistaken for this list's own parts
+const childPart = (parent: Element, part: string) =>
+  [...parent.children].find(
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement &&
+      child.matches(`[data-scope='tabs'][data-part='${part}']`),
+  );
 
 export const TabList = <const Value extends string = string>({
   className,
@@ -86,6 +98,9 @@ export const TabList = <const Value extends string = string>({
   size: sizeProp,
   orientation: orientationProp,
   actions,
+  onKeyDown,
+  ref,
+  ...ariaProps
 }: TabListProps<Value>) => {
   const rootContext = useContext(TabsRootContext);
   const hasRoot = rootContext !== null;
@@ -116,15 +131,11 @@ export const TabList = <const Value extends string = string>({
   // The flap's zag-measured vars give the selected tab's static position; the
   // sticky trigger's own offsets shift once stuck, so they can't be used.
   useEffect(() => {
-    // :scope-anchored lookups so nested tabs inside the panels (or actions)
-    // can't be mistaken for this list's own parts
     const wrapper = wrapperRef.current;
     const rootEl = wrapper?.closest<HTMLElement>(
       "[data-scope='tabs'][data-part='root']",
     );
-    const list = wrapper?.querySelector<HTMLElement>(
-      ":scope > [data-scope='tabs'][data-part='list']",
-    );
+    const list = wrapper && childPart(wrapper, "list");
     if (!wrapper || !rootEl || !list) {
       return;
     }
@@ -134,9 +145,7 @@ export const TabList = <const Value extends string = string>({
 
     const sync = () => {
       frame = 0;
-      const indicator = list.querySelector<HTMLElement>(
-        ":scope > [data-scope='tabs'][data-part='indicator']",
-      );
+      const indicator = childPart(list, "indicator");
       const position = Number.parseFloat(
         indicator?.style.getPropertyValue(vertical ? "--top" : "--left") ?? "",
       );
@@ -184,9 +193,7 @@ export const TabList = <const Value extends string = string>({
         "data-stuck",
         selectedToStart < 0 || selectedToEnd < 0,
       );
-      const panel = rootEl.querySelector<HTMLElement>(
-        ":scope > [data-scope='tabs'][data-part='content']",
-      );
+      const panel = childPart(rootEl, "content");
       if (!panel) {
         return;
       }
@@ -246,7 +253,12 @@ export const TabList = <const Value extends string = string>({
   }, [variant, orientation]);
 
   const list = (
-    <ArkTabs.List className={classes.list}>
+    <ArkTabs.List
+      {...ariaProps}
+      ref={ref}
+      className={classes.list}
+      onKeyDown={onKeyDown}
+    >
       <ArkTabs.Indicator className={classes.indicator} />
       {items.map((item) => {
         const {
@@ -258,7 +270,7 @@ export const TabList = <const Value extends string = string>({
           href,
           align: itemAlign,
           testId,
-          ...ariaProps
+          ...itemAriaProps
         } = item;
 
         const triggerProps = {
@@ -268,7 +280,7 @@ export const TabList = <const Value extends string = string>({
           className: cx(classes.trigger, itemClassName),
           "data-align": itemAlign,
           "data-testid": testId,
-          ...ariaProps,
+          ...itemAriaProps,
         };
 
         if (href === undefined || disabled) {

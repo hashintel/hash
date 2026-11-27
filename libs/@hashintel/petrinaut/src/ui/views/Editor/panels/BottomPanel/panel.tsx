@@ -39,7 +39,7 @@ import {
   eventTimelineSubView,
   simulationSettingsSubView,
 } from "./sub-views";
-import { HorizontalTabPanel, HorizontalTabsHeader } from "./tabs";
+import { BottomPanelTabs } from "./tabs";
 import { useOpenTimelineOnRunStart } from "./use-open-timeline-on-run-start";
 
 const glassPanelBaseStyle = css({
@@ -52,36 +52,6 @@ const glassPanelBaseStyle = css({
 const panelContainerStyle = css({
   display: "flex",
   flexDirection: "column",
-});
-
-/**
- * The header is a size container (its width is imposed by the panel, so
- * inline-size containment is safe): descendants use
- * `@container bottom-panel-header (…)` to adapt to the panel width rather
- * than the viewport.
- */
-const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "[8px]",
-  padding: "[6px]",
-  flexShrink: 0,
-  containerType: "inline-size",
-  containerName: "bottom-panel-header",
-});
-
-/**
- * High flex-shrink so the header actions give up slack before the tabs do:
- * in practice only the Timeline metric picker can shrink (down to its
- * min-width) — every other control bottoms out at its content size — after
- * which remaining deficit compresses the tabs.
- */
-const headerRightStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-  flexShrink: "[10]",
 });
 
 /** A run with a timeline to show: one that is going, paused or finished. */
@@ -206,40 +176,31 @@ export const BottomPanel: React.FC = () => {
             shown.leftSidebar.get() * (leftSidebarWidth.get() + PANEL_MARGIN),
         }}
       >
-        {/* Tab Header */}
-        <div className={headerStyle}>
-          <HorizontalTabsHeader
-            subViews={tabs}
-            activeTabId={renderedActiveTab}
-            onTabChange={(tabId) => setActiveTab(tabId as BottomPanelTab)}
-          />
-          <div className={headerRightStyle}>
-            {activePluginView?.headerAction}
-            {HeaderAction && <HeaderAction />}
-            {!isActualMode && (
-              <Button
-                size="xxs"
-                variant="ghost"
-                onClick={toggleBottomPanel}
-                aria-label="Close panel"
-                tooltip="Close panel"
-                iconName="close"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Scrollable content: a plugin's, or the component of an own tab */}
-        <HorizontalTabPanel
-          // A new element between a plugin's tab and an own one, so the
-          // scroll offset of the one does not carry over to the other.
-          key={activePluginView ? "plugin" : "own"}
-          tabId={renderedActiveTab}
+        <BottomPanelTabs
+          tabs={tabs}
+          activeTabId={renderedActiveTab}
+          onTabChange={(tabId) => setActiveTab(tabId as BottomPanelTab)}
           padded={!activeSubView?.noPadding}
+          actions={
+            <>
+              {activePluginView?.headerAction}
+              {HeaderAction && <HeaderAction />}
+              {!isActualMode && (
+                <Button
+                  size="xxs"
+                  variant="ghost"
+                  onClick={toggleBottomPanel}
+                  aria-label="Close panel"
+                  tooltip="Close panel"
+                  iconName="close"
+                />
+              )}
+            </>
+          }
         >
           {activePluginView?.content}
           {Content && <Content />}
-        </HorizontalTabPanel>
+        </BottomPanelTabs>
       </DockedPanel>
     </KeptState>
   );

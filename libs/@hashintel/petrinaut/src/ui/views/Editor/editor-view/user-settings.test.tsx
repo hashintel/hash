@@ -91,6 +91,14 @@ const renderPluginSettings = (
     </PetrinautNavigationProvider>,
   );
 
+/** The element that moves the dialog: the one around the section tabs. */
+const dragArea = (dialog: HTMLElement) => {
+  const tabs = dialog.querySelector('[data-scope="tabs"][data-part="root"]')!;
+  return [
+    ...dialog.querySelectorAll<HTMLElement>("[role='presentation']"),
+  ].find((element) => element.contains(tabs))!;
+};
+
 describe("user settings", () => {
   it.each(["heading", "top padding"])(
     "drags from %s, stays within the viewport, and stops on release",
@@ -98,9 +106,7 @@ describe("user settings", () => {
       renderSettings({ overlay: { type: "user-settings" } });
       const dialog = await screen.findByRole("dialog");
       const heading = screen.getByRole("heading", { name: "General" });
-      const handle = dialog.querySelector<HTMLElement>(
-        '[data-scope="tabs"][data-part="root"]',
-      )!;
+      const handle = dragArea(dialog);
       vi.spyOn(
         heading.closest("header")!,
         "getBoundingClientRect",
@@ -160,9 +166,7 @@ describe("user settings", () => {
     renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
     const dialog = await screen.findByRole("dialog");
     const heading = screen.getByRole("heading", { name: "Viewport" });
-    const handle = dialog.querySelector<HTMLElement>(
-      '[data-scope="tabs"][data-part="root"]',
-    )!;
+    const handle = dragArea(dialog);
     const setPointerCapture = vi.fn();
     handle.setPointerCapture = setPointerCapture;
     vi.spyOn(
@@ -175,7 +179,7 @@ describe("user settings", () => {
       clientX: 150,
       clientY: 150,
     });
-    const panel = screen.getByRole("tabpanel");
+    const panel = screen.getByRole("tabpanel").firstElementChild!;
     panel.scrollTop = 200;
     fireEvent.scroll(panel);
     fireEvent.pointerDown(screen.getByText("Minimap"), {
@@ -375,14 +379,14 @@ describe("user settings", () => {
   it("keeps one content panel and walks a section from the top", async () => {
     renderSettings({ overlay: { type: "user-settings" } });
     const viewport = await screen.findByRole("tab", { name: "Viewport" });
-    screen.getByRole("tabpanel").scrollTop = 200;
+    screen.getByRole("tabpanel").firstElementChild!.scrollTop = 200;
     act(() => viewport.focus());
     fireEvent.click(viewport);
     await waitFor(() =>
       expect(viewport.getAttribute("aria-selected")).toBe("true"),
     );
     expect(screen.getAllByRole("tabpanel", { hidden: true })).toHaveLength(1);
-    expect(screen.getByRole("tabpanel").scrollTop).toBe(0);
+    expect(screen.getByRole("tabpanel").firstElementChild!.scrollTop).toBe(0);
     fireEvent.keyDown(viewport, { key: "ArrowRight" });
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", { name: "Minimap" }),

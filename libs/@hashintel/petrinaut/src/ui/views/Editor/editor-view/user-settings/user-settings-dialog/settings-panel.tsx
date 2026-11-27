@@ -1,5 +1,4 @@
-import { Tabs } from "@ark-ui/react/tabs";
-
+import { Tabs } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ScrollFade } from "../../../../../shared/scroll-fade";
@@ -14,6 +13,10 @@ const scrollAreaStyle = css({
   minHeight: "0",
 });
 
+const tabContentStyle = css({
+  "&&": { height: "full", padding: "0", outline: "none" },
+});
+
 const contentStyle = css({
   position: "relative",
   height: "full",
@@ -23,8 +26,6 @@ const contentStyle = css({
   scrollbarGutter: "stable",
   paddingX: "5",
   paddingBottom: "5",
-  outline: "none",
-  "&[hidden]": { display: "none" },
   "@media (max-width: 600px)": { paddingX: "3", paddingBottom: "3" },
 });
 
@@ -42,15 +43,19 @@ const SettingsScrollBody = ({
 
   return (
     <div className={scrollAreaStyle}>
-      <Tabs.Content
-        ref={scrollRef}
-        value={section}
-        hidden={false}
-        className={contentStyle}
-        onScroll={onScroll}
-      >
-        <div>{children}</div>
-      </Tabs.Content>
+      <Tabs.TabContent
+        className={tabContentStyle}
+        items={[
+          {
+            id: section,
+            children: (
+              <div ref={scrollRef} className={contentStyle} onScroll={onScroll}>
+                <div>{children}</div>
+              </div>
+            ),
+          },
+        ]}
+      />
       <ScrollFade
         edge="top"
         visible={canScrollUp}
@@ -70,7 +75,7 @@ const SettingsScrollBody = ({
 };
 
 const panelStyle = css({
-  gridArea: "[1 / 2]",
+  flex: "[1]",
   display: "flex",
   flexDirection: "column",
   minWidth: "0",
