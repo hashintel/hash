@@ -148,6 +148,8 @@ export type ReorderableListProps = {
   children: React.ReactNode;
   /** `card` frames each row; `plain` leaves row styling to the content */
   variant?: "card" | "plain";
+  /** Where the drag grip sits against the item */
+  handleAlign?: "center" | "top";
   /** Prevents reordering any item */
   disabled?: boolean;
   className?: string;
@@ -159,6 +161,7 @@ export const ReorderableListRoot = ({
   onChange,
   children,
   variant = "card",
+  handleAlign = "center",
   disabled = false,
   className,
   testId,
@@ -243,7 +246,10 @@ export const ReorderableListRoot = ({
     });
   };
 
-  const classes = useMemo(() => styles({ variant }), [variant]);
+  const classes = useMemo(
+    () => styles({ variant, handleAlign }),
+    [variant, handleAlign],
+  );
   const contextValue = useMemo(
     () => ({ classes, listDisabled: disabled }),
     [classes, disabled],

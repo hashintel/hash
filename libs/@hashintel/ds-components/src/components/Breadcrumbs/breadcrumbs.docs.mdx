@@ -128,7 +128,7 @@ export const EntityTrail = () => (
 
 Each crumb links to its level with `href`. The last crumb is the current
 page — leave it plain (no `href`, `onClick`, or `subItems`) and it renders as
-text with `aria-current="page"`.
+darker text with `aria-current="page"`.
 
 <Stage>
   <BreadCrumbs>
@@ -351,6 +351,8 @@ crumb names in order to prioritize truncation on those crumbs over others.
 
 ## Behavior
 
+- The last crumb is the current page unless a crumb sets `current`; the
+  current crumb renders with `aria-current="page"`.
 - The current page never collapses; other crumbs collapse into a menu from right
   to left where necessary to fit the available space. The first crumb stays visible as long as
   possible; in very tight spaces it joins the menu too. Only when nothing else fits does

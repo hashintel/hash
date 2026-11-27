@@ -32,6 +32,7 @@ const DialogRoot = ({
   shouldCloseOn = "closeButtonAndOverlay",
   loading,
   onClose,
+  onCloseRequest,
   initialFocusRef,
   returnFocusRef,
   onKeyDown,
@@ -63,6 +64,12 @@ const DialogRoot = ({
   shouldCloseOn?: OverlayShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
+  /**
+   * Called when a dismissal is requested (close button, Escape, or backdrop),
+   * before the exit animation plays. Return `false` to keep the dialog open
+   * and handle the request yourself.
+   */
+  onCloseRequest?: () => boolean | void;
   /** Focused when the dialog opens, instead of the default initial focus. */
   initialFocusRef?: React.RefObject<HTMLElement>;
   /** Receives focus when the dialog closes, instead of the element focused before it opened. */
@@ -70,7 +77,7 @@ const DialogRoot = ({
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
 
-  const classes = useMemo(() => styles({ size }), [size]);
+  const classes = useMemo(() => styles({ size, variant }), [size, variant]);
 
   const renderCloseButton = shouldCloseOn !== "none";
   const closeOnEscape = shouldCloseOn !== "none";
@@ -95,6 +102,9 @@ const DialogRoot = ({
   }, []);
 
   const requestClose = () => {
+    if (onCloseRequest?.() === false) {
+      return;
+    }
     setOpen(false);
   };
 

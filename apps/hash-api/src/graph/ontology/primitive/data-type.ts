@@ -214,3 +214,34 @@ export const checkPermissionsOnDataType: ImpureGraphFunction<
     view: true,
   };
 };
+
+export const checkPermissionsOnDataTypes: ImpureGraphFunction<
+  { dataTypeIds: VersionedUrl[] },
+  Promise<
+    { dataTypeId: VersionedUrl; permissions: UserPermissionsOnDataType }[]
+  >
+> = async (graphContext, { actorId }, params) => {
+  const { dataTypeIds } = params;
+
+  if (dataTypeIds.length === 0) {
+    return [];
+  }
+
+  const isPublicUser = actorId === publicUserAccountId;
+
+  const editableIds = isPublicUser
+    ? new Set<VersionedUrl>()
+    : await hasPermissionForDataTypes(
+        graphContext.graphApi,
+        { actorId },
+        { dataTypeIds, action: "updateDataType" },
+      ).then((permitted) => new Set(permitted));
+
+  return dataTypeIds.map((dataTypeId) => ({
+    dataTypeId,
+    permissions: {
+      edit: editableIds.has(dataTypeId),
+      view: true,
+    },
+  }));
+};

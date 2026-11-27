@@ -32,6 +32,7 @@ export const selectRecipe = sva({
     "connectRight",
     "connectLeft",
     "list",
+    "formMirror",
   ],
   base: {
     wrapper: {
@@ -224,6 +225,18 @@ export const selectRecipe = sva({
       minWidth:
         "[max(var(--select-list-reference-width), var(--form-min-width)) !important]",
       maxWidth: "[max(var(--select-list-reference-width), 18rem)]",
+    },
+    formMirror: {
+      position: "absolute",
+      width: "[1px]",
+      height: "[1px]",
+      margin: "[-1px]",
+      padding: "0",
+      overflow: "hidden",
+      border: "[0]",
+      clip: "[rect(0 0 0 0)]",
+      whiteSpace: "nowrap",
+      overflowWrap: "[normal]",
     },
   },
   variants: {
@@ -513,6 +526,15 @@ export const selectRecipe = sva({
       css: {
         trigger: {
           paddingLeft: "[calc(var(--base-input-padding-x) * 3 / 4)]",
+        },
+      },
+    },
+    {
+      variant: "default",
+      hideArrow: true,
+      css: {
+        trigger: {
+          paddingRight: "var(--base-input-padding-x)",
         },
       },
     },

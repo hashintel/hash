@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { useIsomorphicLayoutEffect } from "../../util/use-isomorphic-layout-effect";
 import { Icon } from "../Icon/icon";
 import { Menu } from "../Menu/menu";
@@ -62,6 +63,7 @@ const BreadCrumbsRoot = ({
   size = "md",
   maxItems,
   ellipsisLabel = "Show collapsed",
+  autoFocus,
   "aria-label": ariaLabel = "Breadcrumb",
 }: {
   className?: string;
@@ -71,6 +73,8 @@ const BreadCrumbsRoot = ({
   maxItems?: number;
   /** The aria-label of the ellipsis menu trigger, if one is rendered. */
   ellipsisLabel?: string;
+  /** Whether to focus the first interactive crumb on mount, or the ellipsis menu trigger when that crumb is collapsed; `"never"` prevents the crumbs being focused automatically. */
+  autoFocus?: boolean | "never";
   "aria-label"?: string;
 }) => {
   const classes = styles({ size });
@@ -92,6 +96,14 @@ const BreadCrumbsRoot = ({
   const [collapse, setCollapse] = useState(() =>
     initialCollapse(count, maxItems),
   );
+
+  // Mount-only: the first measure may swap the focus target between a crumb
+  // and the ellipsis, but a later resize remounting one mustn't steal focus
+  const [autoFocusPending, setAutoFocusPending] = useState(autoFocus === true);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setAutoFocusPending(false));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const measure = useCallback(() => {
     const root = rootRef.current;
@@ -181,9 +193,29 @@ const BreadCrumbsRoot = ({
     toMenuItem(entries[index]!.item!, index),
   );
 
+  const firstInteractiveIndex = entries.findIndex(
+    ({ item }) =>
+      item !== undefined &&
+      (item.href !== undefined ||
+        item.onClick !== undefined ||
+        item.subItems !== undefined),
+  );
+  const focusTarget: number | "ellipsis" | null =
+    autoFocus === true && autoFocusPending && firstInteractiveIndex !== -1
+      ? hiddenSet.has(firstInteractiveIndex)
+        ? "ellipsis"
+        : firstInteractiveIndex
+      : null;
+
+  // An explicit `current` crumb replaces the last-crumb default entirely, so
+  // the trail never carries two `aria-current="page"` marks.
+  const hasExplicitCurrent = entries.some(({ item }) => item?.current === true);
+
   const renderEntry = (index: number) => {
     const entry = entries[index]!;
-    const isCurrent = index === count - 1 && entry.item !== undefined;
+    const isCurrent =
+      entry.item !== undefined &&
+      (entry.item.current ?? (!hasExplicitCurrent && index === count - 1));
     return (
       <li
         key={`item-${index}`}
@@ -197,6 +229,13 @@ const BreadCrumbsRoot = ({
             isCurrent={isCurrent}
             size={size}
             classes={classes}
+            autoFocus={
+              autoFocus === "never"
+                ? "never"
+                : index === focusTarget
+                  ? true
+                  : undefined
+            }
           />
         ) : (
           entry.node
@@ -233,6 +272,11 @@ const BreadCrumbsRoot = ({
                     type="button"
                     className={classes.ellipsisTrigger}
                     aria-label={ellipsisLabel}
+                    {...resolveAutoFocusProps(
+                      autoFocus === "never"
+                        ? "never"
+                        : focusTarget === "ellipsis" || undefined,
+                    )}
                   >
                     <Icon name="ellipsis" />
                   </button>

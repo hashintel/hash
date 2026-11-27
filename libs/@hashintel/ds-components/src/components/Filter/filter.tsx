@@ -18,7 +18,12 @@ import {
   type Item,
   type ItemOrGroup,
 } from "../../primitives/SelectableList/selectable-list";
-import { getItemId } from "../../primitives/SelectableList/selectable-list-util";
+import {
+  getItemId,
+  toPublicItemId,
+  toRowItemId,
+  useNormalizedItems,
+} from "../../primitives/SelectableList/selectable-list-util";
 import {
   flashInvalidInput,
   isRejectedNumberInputKey,
@@ -734,12 +739,16 @@ export const Filter = <
     );
   }, [looseOperators]);
 
+  // The list keys rows by per-occurrence internal ids; the collection must
+  // hold the same ids as the rendered rows.
+  const normalizedMenuItems = useNormalizedItems(menuItems);
+
   const collection = useMemo(() => {
     const labelByKey = new Map(
       flatOperators.map((operator) => [operator.key, operator.label]),
     );
     const flatItems: Item[] = [];
-    for (const entry of menuItems) {
+    for (const entry of normalizedMenuItems) {
       if ("items" in entry) {
         flatItems.push(...entry.items);
       } else {
@@ -749,11 +758,13 @@ export const Filter = <
     return createListCollection<Item>({
       items: flatItems,
       itemToValue: (item) => getItemId(item),
-      itemToString: (item) =>
-        labelByKey.get(getItemId(item)) ?? getItemId(item),
+      itemToString: (item) => {
+        const key = toPublicItemId(getItemId(item));
+        return labelByKey.get(key) ?? key;
+      },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, flatOperators]);
+  }, [normalizedMenuItems, flatOperators]);
 
   const selectableOperators = flatOperators.length > 1;
   const selectedOperator = operatorByKey(draftKey);
@@ -884,10 +895,13 @@ export const Filter = <
   const chip = (
     <ArkSelect.Root
       collection={collection}
-      value={draftKey === null ? [] : [draftKey]}
-      onValueChange={({ value: nextValue }) =>
-        handleOperatorSelect(nextValue[0])
-      }
+      value={draftKey === null ? [] : [toRowItemId(draftKey)]}
+      onValueChange={({ value: nextValue }) => {
+        const nextRowId = nextValue[0];
+        handleOperatorSelect(
+          nextRowId === undefined ? undefined : toPublicItemId(nextRowId),
+        );
+      }}
       onOpenChange={({ open }) => {
         operatorDropdownOpenRef.current = open;
       }}
@@ -1094,7 +1108,7 @@ export const Filter = <
           <ArkSelect.Positioner className={parkedPopperPositioner}>
             <SelectableList
               as="Select"
-              items={menuItems}
+              items={normalizedMenuItems}
               selected={draftKey === null ? [] : [draftKey]}
               size={dropdownSizeMap[size]}
               emptyState="No operators available"

@@ -59,6 +59,15 @@ export const styles = sva({
     },
   },
   variants: {
+    handleAlign: {
+      center: {},
+      top: {
+        handle: {
+          alignItems: "flex-start",
+          paddingTop: "2",
+        },
+      },
+    },
     variant: {
       card: {
         root: {
@@ -97,5 +106,6 @@ export const styles = sva({
   },
   defaultVariants: {
     variant: "card",
+    handleAlign: "center",
   },
 });

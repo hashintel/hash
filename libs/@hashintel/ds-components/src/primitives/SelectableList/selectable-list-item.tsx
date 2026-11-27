@@ -64,6 +64,7 @@ export const ItemBody = ({
   expanded = false,
   containsSelection = false,
   onToggleExpansion,
+  collapseDimmed = false,
   reserveChevron = false,
 }: {
   item: Item;
@@ -76,6 +77,11 @@ export const ItemBody = ({
   containsSelection?: boolean;
   /** Toggles a collapsible item between expanded and collapsed */
   onToggleExpansion?: () => void;
+  /**
+   * Whether the collapse toggle reads as inert — no enabled item anywhere
+   * beneath the row. It stays clickable so the subtree can still be browsed.
+   */
+  collapseDimmed?: boolean;
   /** Whether the row keeps an empty chevron column, aligning it with the list's collapsible rows */
   reserveChevron?: boolean;
 }) => {
@@ -115,6 +121,7 @@ export const ItemBody = ({
           <button
             type="button"
             tabIndex={-1}
+            data-subtree-disabled={collapseDimmed || undefined}
             aria-label={
               expanded
                 ? "Collapse"

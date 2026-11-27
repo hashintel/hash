@@ -35,6 +35,11 @@ export type BreadcrumbSubItem = {
 >;
 
 export type BreadcrumbItem = BreadcrumbSubItem & {
+  /**
+   * Whether this crumb is the current page. When no crumb sets it, the last crumb is the
+   * current page; set `false` there to opt out.
+   */
+  current?: boolean;
   /** Caps the crumb's width while it is visible in the trail */
   maxWidth?: React.CSSProperties["maxWidth"];
   /**
@@ -132,4 +137,4 @@ export const collectEntries = (
   );
 
 export const isCollapsible = (entry: BreadcrumbEntry): boolean =>
-  entry.item !== undefined && !entry.item.noCollapse;
+  entry.item !== undefined && !entry.item.noCollapse && !entry.item.current;

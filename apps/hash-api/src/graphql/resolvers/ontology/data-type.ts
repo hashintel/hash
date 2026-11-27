@@ -8,6 +8,7 @@ import {
 import {
   archiveDataType,
   checkPermissionsOnDataType,
+  checkPermissionsOnDataTypes,
   createDataType,
   unarchiveDataType,
   updateDataType,
@@ -15,11 +16,13 @@ import {
 import { graphQLContextToImpureGraphContext } from "../util";
 
 import type {
+  DataTypePermissionsRecord,
   MutationArchiveDataTypeArgs,
   MutationCreateDataTypeArgs,
   MutationUnarchiveDataTypeArgs,
   MutationUpdateDataTypeArgs,
   QueryCheckUserPermissionsOnDataTypeArgs,
+  QueryCheckUserPermissionsOnDataTypesArgs,
   QueryFindDataTypeConversionTargetsArgs,
   QueryQueryDataTypesArgs,
   QueryQueryDataTypeSubgraphArgs,
@@ -109,7 +112,7 @@ export const updateDataTypeResolver: ResolverFn<
     {
       dataTypeId: params.dataTypeId,
       schema: params.dataType,
-      conversions: {},
+      conversions: params.conversions ?? {},
     },
   );
 
@@ -148,3 +151,13 @@ export const checkUserPermissionsOnDataTypeResolver: ResolverFn<
     authentication,
     params,
   );
+
+export const checkUserPermissionsOnDataTypesResolver: ResolverFn<
+  DataTypePermissionsRecord[],
+  Record<string, never>,
+  GraphQLContext,
+  QueryCheckUserPermissionsOnDataTypesArgs
+> = async (_, params, { dataSources, authentication, provenance }) =>
+  checkPermissionsOnDataTypes({ ...dataSources, provenance }, authentication, {
+    dataTypeIds: params.dataTypeIds,
+  });

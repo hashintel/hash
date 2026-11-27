@@ -40,7 +40,7 @@ export const styles = sva({
       inset: "0",
       width: "[100dvw]",
       height: "[100dvh]",
-      overflow: "hidden",
+      overflow: "clip",
       overscrollBehaviorY: "none",
       zIndex: "modal",
     },
@@ -73,12 +73,19 @@ export const styles = sva({
       "&[data-swiping]": {
         animationName: "[none !important]",
       },
-      "&:not([data-swiping])": {
-        userSelect: "[text !important]",
-      },
     },
   },
   variants: {
+    variant: {
+      partitionedFooter: {},
+      plain: {
+        content: {
+          padding: "0",
+          backgroundColor: "white",
+          border: "[1px solid {colors.neutral.s50}]",
+        },
+      },
+    },
     size: {
       sm: {
         content: {
@@ -223,6 +230,7 @@ export const styles = sva({
   defaultVariants: {
     size: "md",
     position: "right",
+    variant: "partitionedFooter",
   },
 });
 

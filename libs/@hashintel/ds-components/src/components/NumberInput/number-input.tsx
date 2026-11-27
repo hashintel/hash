@@ -122,7 +122,7 @@ export const NumberInput = ({
       )}
       style={style}
       type="number"
-      value={value?.toString() ?? null}
+      value={Object.is(value, -0) ? "-0" : (value?.toString() ?? null)}
       min={min}
       max={max}
       step={step}

@@ -27,6 +27,12 @@ export type OverlayHeaderProps = ExclusifyUnion<
     }
   | {
       children?: React.ReactNode;
+      /**
+       * How the close button is laid out beside custom `children`: `flex`
+       * places it after them in a flex row; `float` floats it at the inline
+       * end.
+       */
+      closeButtonLayout?: "flex" | "float";
       className?: string;
     }
 >;
@@ -37,6 +43,7 @@ export const OverlayHeader = ({
   iconName,
   actions,
   children,
+  closeButtonLayout = "flex",
   className,
 }: OverlayHeaderProps) => {
   const {
@@ -71,8 +78,17 @@ export const OverlayHeader = ({
   if (!hasStructuredHeader) {
     return (
       <div className={cx(classes.header, classes.hasCustomHeader, className)}>
-        {children && <div>{children}</div>}
-        {closeButton}
+        {closeButtonLayout === "float" ? (
+          <>
+            {closeButton}
+            {children && <div>{children}</div>}
+          </>
+        ) : (
+          <>
+            {children && <div>{children}</div>}
+            {closeButton}
+          </>
+        )}
       </div>
     );
   }
@@ -111,11 +127,12 @@ export const OverlayHeader = ({
   );
 };
 
-export type OverlayFooterProps = ExclusifyUnion<
+export type OverlayFooterProps = {
+  className?: string;
+} & ExclusifyUnion<
   | {
       /** Replaces the footer's action layout entirely with custom content — mutually exclusive with `actions`/`secondaryActions`. */
       children?: React.ReactNode;
-      className?: string;
     }
   | RequireAtLeastOne<{
       /** The overlay's main actions — confirm, cancel — aligned to the footer's end. */
@@ -228,6 +245,7 @@ export const OverlaySections = ({
   );
   const hasHeader = !!headerChild;
   const titleIconName = headerChild?.props.iconName;
+  const closeButtonLayout = headerChild?.props.closeButtonLayout;
 
   const classes = useMemo(
     () =>
@@ -242,8 +260,9 @@ export const OverlaySections = ({
               : "dialog",
         hasIcon: !!titleIconName,
         headerless: !hasHeader,
+        closeButtonLayout,
       }),
-    [size, variant, componentName, titleIconName, hasHeader],
+    [size, variant, componentName, titleIconName, hasHeader, closeButtonLayout],
   );
 
   const ctx = useMemo(

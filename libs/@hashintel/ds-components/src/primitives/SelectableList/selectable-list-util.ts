@@ -109,6 +109,33 @@ export const isCollapsibleItem = (item: Item): item is CollapsibleItem =>
 export const getItemId = (item: Item): string =>
   item.id ?? (typeof item.text === "string" ? item.text : "");
 
+/**
+ * Separator between a repeated id and the occurrence counter appended to keep
+ * row ids unique (see `useNormalizedItems`). A control character, so it never
+ * appears in a real id.
+ */
+const duplicateIdSeparator = "\u001D";
+
+/**
+ * The consumer-facing id behind a row id: strips the per-occurrence suffix
+ * `useNormalizedItems` gives every selectable item. Applied wherever an id
+ * crosses back to the consumer — selection matching, `onClick`, value
+ * changes.
+ */
+export const toPublicItemId = (id: string): string => {
+  const separatorIndex = id.indexOf(duplicateIdSeparator);
+  return separatorIndex === -1 ? id : id.slice(0, separatorIndex);
+};
+
+/**
+ * The row id of a consumer id's `occurrence`-th appearance, in the same
+ * depth-first order `normalizeItems` numbers rows — the inbound translation
+ * for controlled values handed to the ark machines, whose collections hold
+ * row ids. Defaults to the first occurrence.
+ */
+export const toRowItemId = (id: string, occurrence = 0): string =>
+  `${id}${duplicateIdSeparator}${occurrence}`;
+
 export interface CollapsibleFolder<TChild> {
   /** Nested options that sit beneath this item in a collapsible sub-folder. The item itself remains selectable, and a chevron button is added to toggle revealing sub-items */
   subItems: ReadonlyArray<TChild>;
@@ -130,11 +157,39 @@ export const isGroup = (
   entry: ItemOrGroup<Item>,
 ): entry is Extract<ItemOrGroup<Item>, { items: Item[] }> => "items" in entry;
 
+/**
+ * Whether any item nested under a collapsible item — at any depth, through
+ * groups and nested collapsibles — is enabled. The collapse toggle follows
+ * its subtree, not the row's own `disabled`: the chevron dims when nothing
+ * enabled hides beneath it, while staying clickable either way so the
+ * disabled subtree can still be browsed.
+ */
+export const hasEnabledDescendant = (item: CollapsibleItem): boolean => {
+  const visitEntry = (entry: ItemOrGroup<Item>): boolean => {
+    if (isGroup(entry)) {
+      return entry.items.some(visitEntry);
+    }
+    if (isCustomItem(entry)) {
+      return true;
+    }
+    if (!entry.disabled) {
+      return true;
+    }
+    // A disabled folder's children stay reachable through its own chevron;
+    // a disabled submenu row's don't — its submenu never opens.
+    return isCollapsibleItem(entry) && entry.subItems.some(visitEntry);
+  };
+  return item.subItems.some(visitEntry);
+};
+
 /** Expansion state of a list's `collapsible` items. */
 export type CollapsibleExpansion = {
   /** The ids of the collapsible items whose subItems are currently revealed. */
   expandedIds: ReadonlySet<string>;
-  /** Flips the given collapsible item between expanded and collapsed. */
+  /**
+   * Flips the given collapsible item between expanded and collapsed. Ignored
+   * for an item with no enabled descendant — its chevron renders disabled.
+   */
   onToggle: (id: string) => void;
   /**
    * Marks the given collapsible items expanded — dropdowns reveal the
@@ -176,7 +231,9 @@ export const collectSelectedAncestorIds = (
     if (descendantSelected && isCollapsibleItem(entry)) {
       result.add(getItemId(entry));
     }
-    return descendantSelected || selected.has(getItemId(entry));
+    // Selection is matched by consumer-facing id, so every occurrence of a
+    // duplicated selected id reveals; the collected ids stay row ids.
+    return descendantSelected || selected.has(toPublicItemId(getItemId(entry)));
   };
   for (const entry of items) {
     visitEntry(entry);
@@ -347,7 +404,7 @@ export const hasSelectedDescendant = (
     if (isCustomItem(entry)) {
       return false;
     }
-    if (selected.has(getItemId(entry))) {
+    if (selected.has(toPublicItemId(getItemId(entry)))) {
       return true;
     }
     return entry.subItems?.some(visitEntry) ?? false;
@@ -445,61 +502,71 @@ const internalCustomIdPrefix = "__custom-";
 export const headerRowId = `${internalCustomIdPrefix}header`;
 export const footerRowId = `${internalCustomIdPrefix}footer`;
 
-export const useItemsWithCustomIds = (
+/**
+ * Prepares items for rendering: custom items declared without an id get an
+ * internally assigned one, and every selectable item's id becomes a unique
+ * per-occurrence row id — highlight (hover) and expansion are tracked by id,
+ * so repeated ids would otherwise light up and expand together. A row id
+ * translates back through `toPublicItemId` wherever an id crosses to the
+ * consumer; a consumer value translates to its first occurrence's row id
+ * through `toRowItemId`.
+ *
+ * Idempotent — an id already carrying the separator passes through, subtree
+ * included — so owner components (Combobox, Select, Filter) can normalize
+ * before building their ark collection from the same rows the list renders,
+ * and the list's own pass leaves the ids alone.
+ */
+export const normalizeItems = (
   items: Array<ItemOrGroup<Item>>,
-): Array<ItemOrGroup<Item>> =>
-  useMemo(() => {
-    // Collapsible subtrees render in this same list, so their custom rows
-    // take part in the id assignment; submenu subItems are normalized by
-    // their own `NestedMenu` instead.
-    const orderedCustomItems: CustomItem[] = [];
-    const collect = (entry: ItemOrGroup<Item>) => {
-      if (isGroup(entry)) {
-        for (const item of entry.items) {
-          collect(item);
-        }
-        return;
+): Array<ItemOrGroup<Item>> => {
+  // Collapsible subtrees render in this same list, so their rows take part
+  // in the id assignment; submenu subItems are normalized by their own
+  // `NestedMenu` instead.
+  const counters = { custom: 0 };
+  const occurrences = new Map<string, number>();
+  const visitItem = (item: Item): Item => {
+    if (isCustomItem(item)) {
+      if (item.id !== undefined) {
+        return item;
       }
-      if (isCustomItem(entry)) {
-        orderedCustomItems.push(entry);
-        return;
-      }
-      if (isCollapsibleItem(entry)) {
-        for (const child of entry.subItems) {
-          collect(child);
-        }
-      }
-    };
-    for (const entry of items) {
-      collect(entry);
+      const withId = {
+        ...item,
+        id: `${internalCustomIdPrefix}${counters.custom}`,
+      };
+      counters.custom += 1;
+      return withId;
     }
-    const visitItem = (item: Item): Item => {
-      if (isCustomItem(item)) {
-        return item.id === undefined
-          ? {
-              ...item,
-              id: `${internalCustomIdPrefix}${orderedCustomItems.indexOf(item)}`,
-            }
-          : item;
-      }
-      if (isCollapsibleItem(item)) {
-        return {
-          ...item,
-          subItems: item.subItems.map((entry) =>
-            isGroup(entry)
-              ? { ...entry, items: entry.items.map(visitItem) }
-              : visitItem(entry),
-          ),
-        };
-      }
+    const id = getItemId(item);
+    if (id.includes(duplicateIdSeparator)) {
       return item;
-    };
-    return items.map((entry) =>
-      isGroup(entry)
-        ? { ...entry, items: entry.items.map(visitItem) }
-        : visitItem(entry),
-    );
-  }, [items]);
+    }
+    const seen = occurrences.get(id) ?? 0;
+    occurrences.set(id, seen + 1);
+    const rowId = `${id}${duplicateIdSeparator}${seen}`;
+    if (isCollapsibleItem(item)) {
+      return {
+        ...item,
+        id: rowId,
+        subItems: item.subItems.map((entry) =>
+          isGroup(entry)
+            ? { ...entry, items: entry.items.map(visitItem) }
+            : visitItem(entry),
+        ),
+      };
+    }
+    return { ...item, id: rowId };
+  };
+  return items.map((entry) =>
+    isGroup(entry)
+      ? { ...entry, items: entry.items.map(visitItem) }
+      : visitItem(entry),
+  );
+};
+
+/** Memoized `normalizeItems`. */
+export const useNormalizedItems = (
+  items: Array<ItemOrGroup<Item>>,
+): Array<ItemOrGroup<Item>> => useMemo(() => normalizeItems(items), [items]);
 
 /**
  * The highlighted-item id to report to consumers for a key event from an
@@ -515,7 +582,9 @@ export const getEventHighlightedId = (
       ? target.closest("[data-selectable-list-custom]")
       : null;
   if (!row) {
-    return menu.highlightedValue;
+    return menu.highlightedValue === null
+      ? null
+      : toPublicItemId(menu.highlightedValue);
   }
   const id = row.getAttribute("data-selectable-list-custom");
   return id === null || id.startsWith(internalCustomIdPrefix) ? null : id;

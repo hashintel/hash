@@ -1,10 +1,7 @@
-import { useMutation, useQuery } from "@apollo/client";
-import { Box, Container, Stack } from "@mui/material";
+import { useQuery } from "@apollo/client";
 import { GlobalStyles } from "@mui/system";
 import { NextSeo } from "next-seo";
-import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { useMemo, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -15,136 +12,91 @@ import {
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 
-import {
-  createDataTypeMutation,
-  queryDataTypeSubgraphQuery,
-  updateDataTypeMutation,
-} from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnDataType } from "../../shared/use-user-permissions-on-data-type";
-import { DataTypeConstraints } from "./data-type/data-type-constraints";
-import { DataTypeConversions } from "./data-type/data-type-conversions";
-import {
-  type DataTypeFormData,
-  getDataTypeFromFormData,
-  getFormDataFromDataType,
-} from "./data-type/data-type-form";
-import { DataTypeHeader } from "./data-type/data-type-header";
-import { DataTypeLabels } from "./data-type/data-type-labels";
-import { DataTypesParents } from "./data-type/data-type-parents";
-import { InheritedConstraintsProvider } from "./data-type/shared/inherited-constraints-provider";
+import { DataTypeDrawer } from "../types/data-type-drawer";
+import { DataTypeForm } from "../types/data-type-form";
 import { useDataTypesContext } from "./data-types-context";
 import { DataTypesLoadError } from "./data-types-load-error";
-import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
+import { DsComponentsScope } from "./ds-components-scope";
 import { NotFound } from "./not-found";
-import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
-import { TypeDefinitionContainer } from "./shared/type-editor-styling";
-import { typeHeaderContainerStyles } from "./shared/type-header-container-styles";
-import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
 import type {
-  CreateDataTypeMutation,
-  CreateDataTypeMutationVariables,
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
-  UpdateDataTypeMutation,
-  UpdateDataTypeMutationVariables,
 } from "../../graphql/api-types.gen";
+import type { DataTypeFormProps } from "../types/data-type-form";
 import type { DataTypeRootType } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
   OntologyTypeVersion,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { Theme } from "@mui/material";
 
+/**
+ * The data-type editor hosted directly on a page rather than in its drawer:
+ * resolves the loaded types the form needs (with their loading and error
+ * states), and scopes the subtree for the ds components the form is built
+ * from. Nested editors (extending types, staged group members) still open in
+ * stacked drawers above the page.
+ */
+export const PageDataTypeForm = (
+  props: Omit<
+    DataTypeFormProps,
+    "variant" | "swapKey" | "StackedDrawer" | "dataTypes" | "latestDataTypes"
+  >,
+) => {
+  const {
+    dataTypes,
+    latestDataTypes,
+    error: dataTypesError,
+  } = useDataTypesContext();
+
+  if (!dataTypes || !latestDataTypes) {
+    return dataTypesError ? <DataTypesLoadError /> : <TypeEditorSkeleton />;
+  }
+
+  return (
+    <DsComponentsScope overlayStackRoot>
+      <DataTypeForm
+        variant="page"
+        swapKey="data-type-page-editor"
+        StackedDrawer={DataTypeDrawer}
+        dataTypes={dataTypes}
+        latestDataTypes={latestDataTypes}
+        {...props}
+      />
+    </DsComponentsScope>
+  );
+};
+
 type DataTypeProps = {
-  isInSlide?: boolean;
-  webId?: WebId | null;
-  draftNewDataType?: DataTypeWithMetadata | null;
-  dataTypeBaseUrl?: BaseUrl;
+  dataTypeBaseUrl: BaseUrl;
   requestedVersion: OntologyTypeVersion | null;
   onDataTypeUpdated: (dataType: DataTypeWithMetadata) => void;
 };
 
 export const DataType = ({
-  isInSlide: inSlide,
-  webId,
-  draftNewDataType,
   dataTypeBaseUrl,
   requestedVersion,
   onDataTypeUpdated,
 }: DataTypeProps) => {
-  const router = useRouter();
+  const { refetch: refetchAllDataTypes } = useDataTypesContext();
 
-  const {
-    dataTypes: allDataTypes,
-    error: dataTypesError,
-    refetch: refetchAllDataTypes,
-    onDataTypeSaved,
-  } = useDataTypesContext();
+  /** Bumped to remount the form on a fresh baseline (cancel, same-$id saves) */
+  const [formGeneration, setFormGeneration] = useState(0);
 
-  const [createDataType] = useMutation<
-    CreateDataTypeMutation,
-    CreateDataTypeMutationVariables
-  >(createDataTypeMutation, {
-    onCompleted(data) {
-      onDataTypeSaved(data.createDataType);
-    },
-  });
-
-  const [updateDataType] = useMutation<
-    UpdateDataTypeMutation,
-    UpdateDataTypeMutationVariables
-  >(updateDataTypeMutation, {
-    onCompleted(data) {
-      onDataTypeSaved(data.updateDataType);
-      onDataTypeUpdated(data.updateDataType);
-    },
-  });
-
-  const formMethods = useForm<DataTypeFormData>({
-    defaultValues: {
-      allOf: [],
-      abstract: false,
-      constraints: {},
-      label: {},
-      title: "",
-    },
-  });
-
-  const {
-    control,
-    formState,
-    handleSubmit: wrapHandleSubmit,
-    reset,
-  } = formMethods;
-
-  const parents = useWatch({
-    control,
-    name: "allOf",
-    defaultValue: [],
-  });
-
-  const abstract = useWatch({
-    control,
-    name: "abstract",
-  });
-
-  useEffect(() => {
-    if (draftNewDataType) {
-      reset(
-        getFormDataFromDataType({
-          schema: draftNewDataType.schema,
-          metadata: { conversions: {} },
-        }),
-      );
-    }
-  }, [draftNewDataType, reset]);
+  /**
+   * The just-saved type: the save remounts the form before the remote-type
+   * refetch lands, so the remount must seed from the saved edition rather
+   * than the still-stale query result
+   */
+  const [lastSaved, setLastSaved] = useState<DataTypeWithMetadata | null>(null);
 
   const {
     loading: loadingRemoteDataType,
@@ -166,7 +118,6 @@ export const DataType = ({
           traversalPaths: [],
         },
       },
-      skip: !!draftNewDataType,
       fetchPolicy: "cache-and-network",
     },
   );
@@ -175,7 +126,7 @@ export const DataType = ({
     remoteDataType: DataTypeWithMetadata | null;
     latestVersionNumber: OntologyTypeVersion | null;
   }>(() => {
-    if (!remoteDataTypeData || !!draftNewDataType) {
+    if (!remoteDataTypeData) {
       return { remoteDataType: null, latestVersionNumber: null };
     }
 
@@ -204,13 +155,12 @@ export const DataType = ({
     }
 
     if (!highestVersionDataType) {
-      return {
-        remoteDataType: null,
-        latestVersionNumber: null,
-      };
+      return { remoteDataType: null, latestVersionNumber: null };
     }
 
-    if (!requestedVersion || !matchedDataType) {
+    // No version in the URL means the latest; only an explicitly requested
+    // version that doesn't exist is not found
+    if (requestedVersion && !matchedDataType) {
       return {
         remoteDataType: null,
         latestVersionNumber: highestVersionDataType.metadata.recordId.version,
@@ -218,87 +168,17 @@ export const DataType = ({
     }
 
     return {
-      remoteDataType: matchedDataType,
+      remoteDataType: matchedDataType ?? highestVersionDataType,
       latestVersionNumber: highestVersionDataType.metadata.recordId.version,
     };
-  }, [remoteDataTypeData, requestedVersion, draftNewDataType]);
+  }, [remoteDataTypeData, requestedVersion]);
 
-  useEffect(() => {
-    if (remoteDataType) {
-      formMethods.reset(getFormDataFromDataType(remoteDataType));
-    }
-  }, [remoteDataType, formMethods]);
-
-  const dataType = remoteDataType ?? draftNewDataType;
-
-  const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
-
-  const isDraft = !!draftNewDataType;
+  const dataType = remoteDataType;
 
   const { userPermissions, loading: loadingUserPermissions } =
     useUserPermissionsOnDataType(dataType?.schema.$id);
 
-  const handleSubmit = wrapHandleSubmit(async (data) => {
-    if (!isDirty && !isDraft) {
-      /**
-       * Prevent publishing a type unless:
-       * 1. The form has been touched by the user (isDirty) – don't publish versions without changes
-       * OR
-       * 2. It's a new draft type – the user may not have touched the form from its initial state,
-       *    which is set from input the user supplies in a separate form/modal.
-       */
-      return;
-    }
-
-    const { dataType: inputDataType, conversions } =
-      getDataTypeFromFormData(data);
-
-    if (isDraft) {
-      if (!webId) {
-        throw new Error("Cannot publish draft without webId");
-      }
-
-      const response = await createDataType({
-        variables: {
-          dataType: inputDataType,
-          conversions,
-          webId,
-        },
-      });
-
-      if (!!response.errors?.length || !response.data) {
-        throw new Error("Could not publish new data type");
-      }
-
-      void router.push(response.data.createDataType.schema.$id);
-      return;
-    }
-
-    if (!remoteDataType?.schema.$id) {
-      throw new Error("Cannot update data type without existing data type");
-    }
-
-    const response = await updateDataType({
-      variables: {
-        dataTypeId: remoteDataType.schema.$id,
-        dataType: inputDataType,
-        conversions,
-      },
-    });
-
-    if (!!response.errors?.length || !response.data) {
-      throw new Error("Could not update data type");
-    }
-  });
-
-  const { pushToSlideStack } = useSlideStack();
-
-  if (
-    !draftNewDataType &&
-    !dataType &&
-    !loadingRemoteDataType &&
-    !loadingUserPermissions
-  ) {
+  if (!dataType && !loadingRemoteDataType && !loadingUserPermissions) {
     return (
       <NotFound
         resourceLabel={{
@@ -326,128 +206,78 @@ export const DataType = ({
     );
   }
 
-  if (allDataTypes === null && dataTypesError) {
-    return <DataTypesLoadError />;
-  }
-
-  if (
-    loadingUserPermissions ||
-    loadingRemoteDataType ||
-    allDataTypes === null
-  ) {
+  if (loadingUserPermissions || loadingRemoteDataType) {
     return <TypeEditorSkeleton />;
   }
 
-  if (!dataType || !userPermissions) {
+  if (!dataType) {
     throw new Error("Cannot render data type without data type");
   }
 
-  const currentVersion = extractVersion(dataType.schema.$id);
+  const isLatest =
+    !requestedVersion ||
+    (latestVersion !== null &&
+      compareOntologyTypeVersions(requestedVersion, latestVersion) === 0);
 
-  const isLatest = !requestedVersion || requestedVersion === latestVersion;
-
-  const isReadOnly = !draftNewDataType && (!userPermissions.edit || !isLatest);
+  // Editing always targets the latest version; older ones are a record
+  const isReadOnly = !userPermissions?.edit || !isLatest;
 
   return (
     <>
-      {!inSlide && <NextSeo title={`${dataType.schema.title} | Data Type`} />}
-      <FormProvider {...formMethods}>
-        <Box display="contents" component="form" onSubmit={handleSubmit}>
-          <TopContextBar
-            defaultCrumbIcon={null}
-            item={remoteDataType ?? undefined}
-            crumbs={[
-              {
-                href: "/types",
-                title: "Types",
-                id: "types",
-              },
-              {
-                href: "/types/data-type",
-                title: "Data Types",
-                id: "data-types",
-              },
-              {
-                title: dataType.schema.title,
-                id: dataType.schema.$id,
-              },
-            ]}
-            onItemUnarchived={() => {
-              void refetchRemoteType();
-              void refetchAllDataTypes();
-            }}
-            scrollToTop={() => {}}
-            sx={{ bgcolor: "white" }}
-          />
+      <NextSeo title={`${dataType.schema.title} | Data Type`} />
 
-          {!isReadOnly && (
-            <EditBarTypeEditor
-              currentVersion={currentVersion}
-              isDraft={isDraft}
-              discardButtonProps={
-                // @todo confirmation of discard when draft
-                isDraft
-                  ? {
-                      href: `/new/types/data-type`,
-                    }
-                  : {
-                      onClick() {
-                        reset();
-                      },
-                    }
-              }
-              errorMessage={
-                parents.length === 0
-                  ? "must extend another data type"
-                  : Object.keys(formState.errors).length > 0
-                    ? "see validation errors below"
-                    : undefined
-              }
-              key={dataType.schema.$id} // reset edit bar state when the data type changes
-              gentleErrorStyling={parents.length === 0}
-            />
-          )}
+      <TopContextBar
+        defaultCrumbIcon={null}
+        item={dataType}
+        crumbs={[
+          {
+            href: "/types",
+            title: "Types",
+            id: "types",
+          },
+          {
+            href: "/types/data-type",
+            title: "Data Types",
+            id: "data-types",
+          },
+          {
+            title: dataType.schema.title,
+            id: dataType.schema.$id,
+          },
+        ]}
+        onItemUnarchived={() => {
+          void refetchRemoteType();
+          void refetchAllDataTypes();
+        }}
+        scrollToTop={() => {}}
+        sx={{ bgcolor: "white" }}
+      />
 
-          <Box sx={typeHeaderContainerStyles}>
-            <Container sx={inSlide ? inSlideContainerStyles : {}}>
-              <DataTypeHeader
-                currentVersion={currentVersion}
-                dataTypeSchema={dataType.schema}
-                isDraft={isDraft}
-                isReadOnly={isReadOnly}
-                isInSlide={inSlide}
-                latestVersion={latestVersion}
-              />
-            </Container>
-          </Box>
-
-          <TypeDefinitionContainer inSlide={inSlide}>
-            <Stack spacing={6.5}>
-              <DataTypesParents
-                dataTypeBaseUrl={dataType.metadata.recordId.baseUrl}
-                isReadOnly={isReadOnly}
-                onDataTypeClick={(dataTypeId) => {
-                  pushToSlideStack({
-                    kind: "dataType",
-                    itemId: dataTypeId,
-                  });
-                }}
-              />
-
-              <InheritedConstraintsProvider>
-                <DataTypeConstraints isReadOnly={isReadOnly} />
-                <DataTypeLabels isReadOnly={isReadOnly} />
-                {!abstract && (
-                  <DataTypeConversions
-                    dataType={dataType.schema}
-                    isReadOnly={isReadOnly}
-                  />
-                )}
-              </InheritedConstraintsProvider>
-            </Stack>
-          </TypeDefinitionContainer>
-        </Box>
-      </FormProvider>
+      <PageDataTypeForm
+        key={`${dataType.schema.$id}-${formGeneration}`}
+        // Navigates to the picked version's page; non-latest renders read-only
+        onSwitchVersion={onDataTypeUpdated}
+        editedDataType={
+          lastSaved?.schema.$id === dataType.schema.$id ? lastSaved : dataType
+        }
+        readonly={isReadOnly}
+        onClose={() => setFormGeneration((generation) => generation + 1)}
+        onSaved={(saved) => {
+          setLastSaved(saved);
+          // A save that doesn't republish this type keeps its $id, so the
+          // route won't remount the page — reset to the saved baseline here.
+          // A new version navigates instead: remounting now would flash the
+          // stale pre-save edition until the route lands.
+          // Navigating on a same-$id save would remount an unversioned URL
+          // onto its versioned path, dropping `lastSaved`.
+          void refetchRemoteType();
+          if (saved.schema.$id === dataType.schema.$id) {
+            setFormGeneration((generation) => generation + 1);
+          } else {
+            onDataTypeUpdated(saved);
+          }
+        }}
+      />
 
       <GlobalStyles<Theme>
         styles={(theme) => ({

@@ -276,21 +276,22 @@ export const overlayPartsStyles = sva({
       },
       plain: {
         header: {
+          borderTop: "none",
+          borderInline: "none",
+          borderTopRadius: "[calc({radii.xl} - 1px)]",
           borderBottomColor: "neutral.s20",
         },
         body: {
+          borderInline: "none",
           borderBottom: "none",
           "&:last-child": {
-            borderBottomRadius: "lg",
-            borderBottom: "[1px solid {colors.neutral.s50}]",
+            borderBottomRadius: "[calc({radii.xl} - 1px)]",
           },
         },
         footer: {
           backgroundColor: "white",
           borderTop: "[1px solid {colors.neutral.s20}]",
-          borderInline: "[1px solid {colors.neutral.s50}]",
-          borderBottom: "[1px solid {colors.neutral.s50}]",
-          borderBottomRadius: "lg",
+          borderBottomRadius: "[calc({radii.xl} - 1px)]",
         },
       },
     },
@@ -337,6 +338,17 @@ export const overlayPartsStyles = sva({
     hasIcon: {
       true: {
         description: { marginTop: "0.5" },
+      },
+    },
+    closeButtonLayout: {
+      flex: {},
+      float: {
+        hasCustomHeader: {
+          display: "flow-root",
+        },
+        closeButton: {
+          marginLeft: "2",
+        },
       },
     },
     headerless: {

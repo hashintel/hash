@@ -8,6 +8,18 @@ type SlideStackContextData = {
   pushToSlideStack: PushToStackFn;
   setSlideContainerRef: (ref: RefObject<HTMLDivElement | null> | null) => void;
   slideContainerRef?: RefObject<HTMLDivElement | null> | null;
+  /**
+   * How many slides are visibly open (navigating Back keeps forward history,
+   * which doesn't count) — overlays beneath the stack compare this against
+   * the depth they mounted at to tell their own dismissals from interactions
+   * with a slide stacked above them
+   */
+  slideStackDepth: number;
+  /**
+   * How many stacked data-type editor drawers are open — the same
+   * mounted-depth comparison for drawers, which stack outside the slide items
+   */
+  dataTypeDrawerDepth: number;
 };
 
 export const SlideStackContext = createContext<SlideStackContextData | null>(
