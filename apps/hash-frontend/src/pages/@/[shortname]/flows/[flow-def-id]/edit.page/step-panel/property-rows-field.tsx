@@ -67,8 +67,7 @@ type ShownRow =
  * removal. Saved values the rows can't show are read-only. Lists and properties of several data types aren't offered.
  */
 export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
-  const { editor, flowDefinition, stepId, input, source, problems, readOnly } =
-    props;
+  const { editor, flowDefinition, stepId, input, source, problems } = props;
 
   const patches =
     "oneOfPayloadKinds" in input &&
@@ -176,7 +175,6 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
         note={`${patches ? "These changes weren't" : "These properties weren't"} made here, so they can't be changed here. The step uses them as they are.`}
         resetLabel={patches ? "Make new changes" : "Set new properties"}
         errors={fieldErrors}
-        readOnly={readOnly}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
@@ -249,7 +247,7 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
       ? new Set(offeredProperties.map(({ baseUrl }) => baseUrl))
       : null;
 
-  const showsAdd = !readOnly && !newProperty;
+  const showsAdd = !newProperty;
   const firstShownIndex = rows.findIndex(({ property }) => property);
   const used = new Set(rows.map(({ property }) => property?.baseUrl));
   const options = (
@@ -304,7 +302,6 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
             valueKind={property.valueKind}
             value={value}
             label={property.title}
-            readOnly={readOnly}
             autoFocus={row === undefined}
             invalid={errors.length > 0}
             onCommit={setValue}
@@ -320,16 +317,14 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
             label={property.title}
             errors={shownErrors.length > 0 ? shownErrors : undefined}
             labelActions={
-              !readOnly && (
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  iconName="close"
-                  aria-label={`Don't ${patches ? "change" : "set"} ${property.title}`}
-                  tooltip={patches ? "Don't change" : "Don't set"}
-                  onClick={() => removeRow(index)}
-                />
-              )
+              <Button
+                variant="ghost"
+                size="xs"
+                iconName="close"
+                aria-label={`Don't ${patches ? "change" : "set"} ${property.title}`}
+                tooltip={patches ? "Don't change" : "Don't set"}
+                onClick={() => removeRow(index)}
+              />
             }
           >
             {patches ? (
@@ -339,7 +334,6 @@ export const PropertyRowsField = (props: ComponentProps<typeof InputField>) => {
                   width="fitContent"
                   items={opItems}
                   value={op}
-                  disabled={readOnly}
                   aria-label={`What to do with ${property.title}`}
                   className={opSelect}
                   onChange={(nextOp) => {
