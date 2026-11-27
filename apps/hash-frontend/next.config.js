@@ -1,22 +1,18 @@
-import bundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import { config } from "dotenv-flow";
-import webpack from "webpack";
 
 // eslint-disable-next-line import/extensions
 import { buildStamp } from "./buildstamp.js";
-
-const { DefinePlugin } = webpack;
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-});
 
 config({ silent: true, path: "../.." });
 
 /**
  * @type {import('@sentry/nextjs/config').SentryBuildOptions}
  */
-const sentryWebpackPluginOptions = {
+const sentryBuildOptions = {
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
   reactComponentAnnotation: {
     enabled: true,
   },
@@ -24,14 +20,9 @@ const sentryWebpackPluginOptions = {
     name: buildStamp,
   },
   silent: true,
-  webpack: {
-    treeshake: {
-      removeDebugLogging: true,
-    },
-  },
   widenClientFileUpload: true,
   // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options.
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/build/
 };
 
 // Insert other public env variables here. We have to add the `NEXT_PUBLIC` prefix for next to find them.
@@ -76,233 +67,179 @@ const apiDomain = new URL(apiUrl).hostname;
  */
 const pageEntityTypeBaseUrl = "https://hash.ai/@h/types/entity-type/page/";
 
-/**
- * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
- *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
- */
 // eslint-disable-next-line import/no-default-export
 export default withSentryConfig(
-  withBundleAnalyzer(
-    /** @type {import('next').NextConfig} */
-    {
-      async rewrites() {
-        return [
-          {
-            source: "/pages",
-            destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,
-          },
-          {
-            source: "/@:shortname/types",
-            destination: "/@/:shortname?tab=Types",
-          },
-          {
-            source:
-              "/@:shortname/types/:typeKind(data-type|entity-type|property-type|link-type)s",
-            destination: "/@/:shortname?tab=Types&typeKind=:typeKind",
-          },
-          {
-            source: "/@:shortname/:path*",
-            destination: "/@/:shortname/:path*",
-          },
-        ];
-      },
-      images: {
-        remotePatterns: [{ hostname: apiDomain }],
-      },
-      async redirects() {
-        return [
-          {
-            source: "/settings/organizations/:shortname(^(?!new)$)",
-            destination: "/settings/organizations/:shortname/general",
-            permanent: true,
-          },
-          {
-            source: "/login",
-            destination: "/signin",
-            permanent: true,
-          },
-          {
-            source: "/inbox",
-            destination: "/notifications",
-            permanent: false,
-          },
-          // Kratos sends browsers to its `/self-service/<flow>/browser` endpoints
-          // on this origin, because `SERVE_PUBLIC_BASE_URL` points here, but the
-          // frontend has no such routes. Next.js passes the query through, so
-          // `aal`, `refresh` and `return_to` reach the UI route. Keep in sync with
-          // `flowMetadata` in `src/pages/shared/ory-kratos.ts`.
-          {
-            source: "/self-service/login/browser",
-            destination: "/signin",
-            permanent: false,
-          },
-          {
-            source: "/self-service/recovery/browser",
-            destination: "/recovery",
-            permanent: false,
-          },
-          {
-            source: "/self-service/registration/browser",
-            destination: "/signup",
-            permanent: false,
-          },
-          {
-            source: "/self-service/settings/browser",
-            destination: "/settings/security",
-            permanent: false,
-          },
-          {
-            source: "/self-service/verification/browser",
-            destination: "/verification",
-            permanent: false,
-          },
-        ];
-      },
-      async headers() {
-        return [
-          {
-            source: "/:path*",
-            headers: [
-              // `frame-ancestors` in the Content Security Policy supersedes
-              // this where supported; it covers routes the policy isn't set on.
-              { key: "X-Frame-Options", value: "SAMEORIGIN" },
-              { key: "X-Content-Type-Options", value: "nosniff" },
-              {
-                key: "Referrer-Policy",
-                value: "strict-origin-when-cross-origin",
-              },
-              {
-                key: "Permissions-Policy",
-                value:
-                  "camera=(), geolocation=(), display-capture=(), payment=()",
-              },
-            ],
-          },
-          {
-            /**
-             * allow fetching types as JSON from anywhere
-             * see /src/middleware.page.ts for middleware which serves the JSON
-             */
-            source: "/:shortname/types/:path*",
-            has: [
-              {
-                type: "header",
-                key: "accept",
-                value: "(.*application/json.*)",
-              },
-            ],
-            headers: [
-              {
-                key: "access-control-allow-origin",
-                value: "*",
-              },
-            ],
-          },
-        ];
-      },
-      pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
+  /** @type {import('next').NextConfig} */ ({
+    async rewrites() {
+      return [
+        {
+          source: "/pages",
+          destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,
+        },
+        {
+          source: "/@:shortname/types",
+          destination: "/@/:shortname?tab=Types",
+        },
+        {
+          source:
+            "/@:shortname/types/:typeKind(data-type|entity-type|property-type|link-type)s",
+          destination: "/@/:shortname?tab=Types&typeKind=:typeKind",
+        },
+        {
+          source: "/@:shortname/:path*",
+          destination: "/@/:shortname/:path*",
+        },
+      ];
+    },
+    images: {
+      remotePatterns: [{ hostname: apiDomain }],
+    },
+    async redirects() {
+      return [
+        {
+          source: "/settings/organizations/:shortname(^(?!new)$)",
+          destination: "/settings/organizations/:shortname/general",
+          permanent: true,
+        },
+        {
+          source: "/login",
+          destination: "/signin",
+          permanent: true,
+        },
+        {
+          source: "/inbox",
+          destination: "/notifications",
+          permanent: false,
+        },
+        // Kratos sends browsers to its `/self-service/<flow>/browser` endpoints
+        // on this origin, because `SERVE_PUBLIC_BASE_URL` points here, but the
+        // frontend has no such routes. Next.js passes the query through, so
+        // `aal`, `refresh` and `return_to` reach the UI route. Keep in sync with
+        // `flowMetadata` in `src/pages/shared/ory-kratos.ts`.
+        {
+          source: "/self-service/login/browser",
+          destination: "/signin",
+          permanent: false,
+        },
+        {
+          source: "/self-service/recovery/browser",
+          destination: "/recovery",
+          permanent: false,
+        },
+        {
+          source: "/self-service/registration/browser",
+          destination: "/signup",
+          permanent: false,
+        },
+        {
+          source: "/self-service/settings/browser",
+          destination: "/settings/security",
+          permanent: false,
+        },
+        {
+          source: "/self-service/verification/browser",
+          destination: "/verification",
+          permanent: false,
+        },
+      ];
+    },
+    async headers() {
+      return [
+        {
+          source: "/:path*",
+          headers: [
+            // `frame-ancestors` in the Content Security Policy supersedes
+            // this where supported; it covers routes the policy isn't set on.
+            { key: "X-Frame-Options", value: "SAMEORIGIN" },
+            { key: "X-Content-Type-Options", value: "nosniff" },
+            {
+              key: "Referrer-Policy",
+              value: "strict-origin-when-cross-origin",
+            },
+            {
+              key: "Permissions-Policy",
+              value:
+                "camera=(), geolocation=(), display-capture=(), payment=()",
+            },
+          ],
+        },
+        {
+          /**
+           * allow fetching types as JSON from anywhere
+           * see /src/middleware.page.ts for middleware which serves the JSON
+           */
+          source: "/:shortname/types/:path*",
+          has: [
+            {
+              type: "header",
+              key: "accept",
+              value: "(.*application/json.*)",
+            },
+          ],
+          headers: [
+            {
+              key: "access-control-allow-origin",
+              value: "*",
+            },
+          ],
+        },
+      ];
+    },
+    pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
 
-      // We type-check in GitHub Actions for all pull requests. By not checking
-      // again during `next build`, we save CI minutes and unlock more feedback.
-      // Thus, we can get Playwright test results and Preview releases for WIP PRs.
-      typescript: { ignoreBuildErrors: true },
+    // We type-check in GitHub Actions for all pull requests. By not checking
+    // again during `next build`, we save CI minutes and unlock more feedback.
+    // Thus, we can get Playwright test results and Preview releases for WIP PRs.
+    typescript: { ignoreBuildErrors: true },
 
-      experimental: {
-        esmExternals: "loose",
-        webpackBuildWorker: true,
-        webpackMemoryOptimizations: true,
-      },
-
-      transpilePackages: [
-        "@blockprotocol/service",
-        "@blockprotocol/core",
-        "@blockprotocol/graph",
-        "@blockprotocol/hook",
-        "@blockprotocol/type-system",
-        "@emotion/server",
-        "@hashintel/block-design-system",
-        "@hashintel/design-system",
-        "@hashintel/integrations-catalog",
-        "@hashintel/petrinaut",
-        "@hashintel/petrinaut-core",
-        "@hashintel/ds-components",
-        "@hashintel/ds-helpers",
-        "@hashintel/type-editor",
-        "echarts",
-        "zrender",
-        "@hashintel/query-editor",
-        "@local/advanced-types",
-        "@local/flow-petri-net",
-        "@local/hash-graph-client",
-        "@local/hash-isomorphic-utils",
-        "react-syntax-highlighter",
-        "@tldraw/polyfills",
-        "@tldraw/tldraw",
-        "@tldraw/tlschema",
-        "@tldraw/ui",
-      ],
-
-      // These are introduced in the monorepo by the Temporal packages, and despite them not being part of the
-      // frontend dependency tree, they are not shaken and are included in the generated lambdas
-      // https://github.com/orgs/vercel/discussions/103#discussioncomment-5427097
-      outputFileTracingExcludes: {
-        "*": [
-          "node_modules/@swc/core-linux-x64-gnu",
-          "node_modules/@swc/core-linux-x64-musl",
-          "node_modules/@esbuild/linux-x64",
-        ],
-      },
-
-      webpack: (webpackConfig, { isServer, dev }) => {
-        if (!dev) {
-          // Production builds disable webpack's filesystem cache to avoid a
-          // "No serializer registered for ConstDependency" failure caused by
-          // Yarn PnP loading multiple virtual instances of webpack in the
-          // pruned Docker install.
-          webpackConfig.cache = false;
-        }
-
-        webpackConfig.module.rules.push({
-          test: /\.svg$/,
-          use: ["@svgr/webpack"],
-        });
-
-        // eslint-disable-next-line no-param-reassign
-        webpackConfig.experiments.asyncWebAssembly = true;
-
-        if (!isServer) {
-          // eslint-disable-next-line no-param-reassign
-          webpackConfig.output.publicPath = `/_next/`;
-        } else {
-          // eslint-disable-next-line no-param-reassign
-          webpackConfig.output.publicPath = `./`;
-        }
-        // eslint-disable-next-line no-param-reassign
-        webpackConfig.output.assetModuleFilename = `static/[hash][ext]`;
-        webpackConfig.module.rules.push({
-          test: /\.(wasm)$/,
-          type: "asset/resource",
-        });
-
-        // eslint-disable-next-line no-param-reassign
-        webpackConfig.resolve.extensionAlias = {
-          ".js": [".ts", ".tsx", ".jsx", ".js"],
-          ".mjs": [".mts", ".mjs"],
-          ".cjs": [".cts", ".cjs"],
-        };
-
-        // eslint-disable-next-line no-param-reassign
-        webpackConfig.resolve.alias.canvas = false;
-
-        webpackConfig.plugins.push(
-          new DefinePlugin({
-            __SENTRY_DEBUG__: false,
-          }),
-        );
-
-        return webpackConfig;
+    turbopack: {
+      rules: {
+        "*.svg": {
+          loaders: ["@svgr/webpack"],
+          as: "*.js",
+        },
       },
     },
-  ),
-  sentryWebpackPluginOptions,
+
+    transpilePackages: [
+      "@blockprotocol/service",
+      "@blockprotocol/core",
+      "@blockprotocol/graph",
+      "@blockprotocol/hook",
+      "@blockprotocol/type-system",
+      "@emotion/server",
+      "@hashintel/block-design-system",
+      "@hashintel/design-system",
+      "@hashintel/integrations-catalog",
+      "@hashintel/petrinaut",
+      "@hashintel/petrinaut-core",
+      "@hashintel/ds-components",
+      "@hashintel/ds-helpers",
+      "@hashintel/type-editor",
+      "echarts",
+      "zrender",
+      "@hashintel/query-editor",
+      "@local/advanced-types",
+      "@local/flow-petri-net",
+      "@local/hash-graph-client",
+      "@local/hash-isomorphic-utils",
+      "react-syntax-highlighter",
+      "@tldraw/polyfills",
+      "@tldraw/tldraw",
+      "@tldraw/tlschema",
+      "@tldraw/ui",
+    ],
+
+    // These are introduced in the monorepo by the Temporal packages, and despite them not being part of the
+    // frontend dependency tree, they are not shaken and are included in the generated lambdas
+    // https://github.com/orgs/vercel/discussions/103#discussioncomment-5427097
+    outputFileTracingExcludes: {
+      "*": [
+        "node_modules/@swc/core-linux-x64-gnu",
+        "node_modules/@swc/core-linux-x64-musl",
+        "node_modules/@esbuild/linux-x64",
+      ],
+    },
+  }),
+  sentryBuildOptions,
 );
