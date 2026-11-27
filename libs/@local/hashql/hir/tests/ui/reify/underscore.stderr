@@ -1,7 +1,7 @@
 error[reify::underscore-expression]: Invalid use of underscore expression
   ╭▸ 
 3 │ "_"
-  │  ━ `_` not allowed here
+  │  ━ `_` cannot be used as an expression
   │
-  ├ help: In expressions, `_` can only be used on the left-hand side of an assignment.
-  ╰ note: The underscore symbol `_` is a special placeholder that can only be used in specific contexts. Currently, it's only valid as an assignment target, not as a value in expressions.
+  ├ help: replace `_` with a concrete expression or variable reference
+  ╰ note: `_` is a placeholder reserved for inferred types, unbounded generic parameters, and same-name `use` imports

@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"f\", \"x\" /* unclosed"
+---
+error[jexpr::lexer::unterminated-block-comment]: Unterminated block comment
+  ╭▸ 
+1 │ ["f", "x" /* unclosed
+  │           ━━ unterminated block comment
+  ╰╴
+help: add `*/` to close the block comment, and the missing `]`
+  ╭╴
+1 │ ["f", "x" /* unclosed*/]
+  ╰╴                     +++

@@ -99,16 +99,15 @@ fn run_jexpr_test(
     expected_output: &std::path::Path,
     bless: bool,
 ) -> Result<(), Report<TestError>> {
-    let bytes = std::fs::read(path)
+    let source = std::fs::read_to_string(path)
         .change_context(TestError::ReadSource)
         .attach_with(|| format!("{}", path.display()))?;
 
-    let source = String::from_utf8_lossy(&bytes);
     let axis_directives = parse_directives(&source);
     let heap = Heap::new();
     let mut pipeline = Pipeline::new(&heap);
 
-    let lowered = match execution::lower(&mut pipeline, &bytes) {
+    let lowered = match execution::lower(&mut pipeline, &source) {
         Ok(lowered) => lowered,
         Err(diagnostic) => {
             let rendered = render_failure(&source, &pipeline, &diagnostic);

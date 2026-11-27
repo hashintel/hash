@@ -9,8 +9,8 @@ runs:
       id: find-version
       shell: bash
       run: |
-        YARN_VERSION=$(cat package.json | jq -r '.packageManager | ltrimstr("yarn@")')
-        echo "version=$YARN_VERSION" >> $GITHUB_OUTPUT
+        YARN_VERSION=$(jq -r '.packageManager | ltrimstr("yarn@")' package.json)
+        echo "version=$YARN_VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Restore yarn corepack cache
       id: cache-restore

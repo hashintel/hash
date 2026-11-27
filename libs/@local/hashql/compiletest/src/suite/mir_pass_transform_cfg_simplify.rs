@@ -61,7 +61,7 @@ pub(crate) fn mir_pass_transform_cfg_simplify<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut pass = CfgSimplify::new_in(&mut scratch);
+    let mut pass = CfgSimplify::new_in(scratch.as_mut_scope());
     for body in bodies.as_mut_slice() {
         let _: Changed = pass.run(&mut context, body);
     }

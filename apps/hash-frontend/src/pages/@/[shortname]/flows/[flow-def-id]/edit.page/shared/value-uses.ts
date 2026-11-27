@@ -21,8 +21,12 @@ const getValueKey = (value: FlowValue) =>
   );
 
 /** The value a source reads, if it reads a flow input or a step's output. */
-const getSourceValue = (source: StepInputSource): FlowValue | null =>
-  source.kind === "flow-input" || source.kind === "step-output" ? source : null;
+const getSourceValue = (
+  source: StepInputSource | undefined,
+): FlowValue | null =>
+  source?.kind === "flow-input" || source?.kind === "step-output"
+    ? source
+    : null;
 
 /**
  * Indexes the steps that use each value, at any depth, in the order they're listed: those with an input taking it,
@@ -45,7 +49,9 @@ export const indexValueUses = (
             { property: "List", value: getSourceValue(step.over) },
             {
               property: "Collects",
-              value: { kind: "step-output", ...step.collect },
+              value: step.collect
+                ? { kind: "step-output", ...step.collect }
+                : null,
             },
           ];
 

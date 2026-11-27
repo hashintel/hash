@@ -202,33 +202,37 @@ fn sorted_word_match<'heap>(
 /// # Examples
 ///
 /// ```
-/// use hashql_core::{algorithms::did_you_mean, heap::Heap, symbol::Symbol};
+/// use hashql_core::{
+///     algorithms::did_you_mean,
+///     heap::{Heap, SymbolAllocator as _},
+///     symbol::Symbol,
+/// };
 ///
 /// let heap = Heap::new();
 ///
 /// // Case-insensitive exact match (highest priority)
-/// let lookup = heap.intern_symbol("Hello");
-/// let candidates = [heap.intern_symbol("hello"), heap.intern_symbol("world")];
+/// let lookup = heap.alloc_symbol("Hello");
+/// let candidates = [heap.alloc_symbol("hello"), heap.alloc_symbol("world")];
 /// let matches = did_you_mean(lookup, &candidates, None, None);
 /// assert_eq!(matches[0].as_str(), "hello");
 ///
 /// // Edit distance matching for typos
-/// let lookup = heap.intern_symbol("tset");
+/// let lookup = heap.alloc_symbol("tset");
 /// let candidates = [
-///     heap.intern_symbol("test"),
-///     heap.intern_symbol("rest"),
-///     heap.intern_symbol("best"),
+///     heap.alloc_symbol("test"),
+///     heap.alloc_symbol("rest"),
+///     heap.alloc_symbol("best"),
 /// ];
 /// let matches = did_you_mean(lookup, &candidates, Some(2), None);
 /// assert_eq!(matches.len(), 1);
 /// assert_eq!(matches[0].as_str(), "test"); // Best match for "tset"
 ///
 /// // Word-based matching for compound identifiers
-/// let lookup = heap.intern_symbol("user name");
+/// let lookup = heap.alloc_symbol("user name");
 /// let candidates = [
-///     heap.intern_symbol("username_field"),
-///     heap.intern_symbol("user_data"),
-///     heap.intern_symbol("profile_info"),
+///     heap.alloc_symbol("username_field"),
+///     heap.alloc_symbol("user_data"),
+///     heap.alloc_symbol("profile_info"),
 /// ];
 /// let matches = did_you_mean(lookup, &candidates, None, None);
 /// // Will match "user_data" due to word overlap
@@ -276,7 +280,10 @@ pub fn did_you_mean<'heap>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{heap::Heap, symbol::Symbol};
+    use crate::{
+        heap::{Heap, SymbolAllocator as _},
+        symbol::Symbol,
+    };
 
     /// Helper function to create symbols from string literals for testing.
     fn collect_symbols(
@@ -285,7 +292,7 @@ mod tests {
     ) -> Vec<Symbol<'_>> {
         strings
             .into_iter()
-            .map(|value| heap.intern_symbol(value.as_ref()))
+            .map(|value| heap.alloc_symbol(value.as_ref()))
             .collect()
     }
 
@@ -303,7 +310,7 @@ mod tests {
     fn case_insensitive_exact_match_priority() {
         let heap = Heap::new();
 
-        let lookup = heap.intern_symbol("Hello");
+        let lookup = heap.alloc_symbol("Hello");
         let candidates = collect_symbols(&heap, ["hello", "HELLO", "helo", "world"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
@@ -315,7 +322,7 @@ mod tests {
     fn edit_distance_matching() {
         let heap = Heap::new();
 
-        let lookup = heap.intern_symbol("test");
+        let lookup = heap.alloc_symbol("test");
         let candidates = collect_symbols(
             &heap,
             [
@@ -346,7 +353,7 @@ mod tests {
     fn top_n_limiting() {
         let heap = Heap::new();
 
-        let lookup = heap.intern_symbol("test");
+        let lookup = heap.alloc_symbol("test");
         let candidates = collect_symbols(&heap, ["tset", "rest", "tests", "est", "best"]);
 
         let matches = did_you_mean(lookup, &candidates, Some(2), None);
@@ -358,7 +365,7 @@ mod tests {
     #[test]
     fn custom_cutoff() {
         let heap = Heap::new();
-        let lookup = heap.intern_symbol("test");
+        let lookup = heap.alloc_symbol("test");
         let candidates = collect_symbols(&heap, ["tset", "xyz"]);
 
         let strict_matches = did_you_mean(lookup, &candidates, None, Some(0.9));
@@ -377,7 +384,7 @@ mod tests {
     #[test]
     fn word_based_matching_fallback() {
         let heap = Heap::new();
-        let lookup = heap.intern_symbol("user name");
+        let lookup = heap.alloc_symbol("user name");
         let candidates = collect_symbols(
             &heap,
             [
@@ -401,7 +408,7 @@ mod tests {
     #[test]
     fn empty_candidates() {
         let heap = Heap::new();
-        let lookup = heap.intern_symbol("test");
+        let lookup = heap.alloc_symbol("test");
 
         let matches = did_you_mean(lookup, core::iter::empty::<Symbol<'_>>(), None, None);
         assert_eq!(matches, [] as [Symbol<'_>; 0]);
@@ -410,7 +417,7 @@ mod tests {
     #[test]
     fn no_matches_found() {
         let heap = Heap::new();
-        let lookup = heap.intern_symbol("test");
+        let lookup = heap.alloc_symbol("test");
         let candidates = collect_symbols(&heap, ["xyz", "abc", "123"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
@@ -420,7 +427,7 @@ mod tests {
     #[test]
     fn single_character_strings() {
         let heap = Heap::new();
-        let lookup = heap.intern_symbol("i");
+        let lookup = heap.alloc_symbol("i");
         let candidates = collect_symbols(&heap, ["I", "a", "o", "if", "in"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
@@ -433,7 +440,7 @@ mod tests {
     fn mixed_length_candidates() {
         let heap = Heap::new();
 
-        let lookup = heap.intern_symbol("fn");
+        let lookup = heap.alloc_symbol("fn");
         let candidates =
             collect_symbols(&heap, ["function", "func", "f", "fn_call", "main_fn", "FN"]);
 
@@ -450,7 +457,7 @@ mod tests {
     #[test]
     fn deterministic_results() {
         let heap = Heap::new();
-        let lookup = heap.intern_symbol("test");
+        let lookup = heap.alloc_symbol("test");
         let mut candidates = collect_symbols(&heap, ["tset", "rest", "best", "west"]);
 
         let first_run_matches = did_you_mean(lookup, &candidates, None, None);

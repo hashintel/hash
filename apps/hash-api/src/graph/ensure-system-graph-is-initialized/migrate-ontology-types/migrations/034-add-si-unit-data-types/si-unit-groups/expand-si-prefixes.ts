@@ -1,4 +1,5 @@
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { slugifyTypeTitle } from "@local/hash-isomorphic-utils/slugify-type-title";
 
 import { scaledConversion } from "../shared/conversions";
 
@@ -37,33 +38,33 @@ const prefixableUnits = new Set<BaseUrl>(
     systemDataTypes.meters,
     systemDataTypes.grams,
     systemDataTypes.second,
-    systemDataTypes.amperes,
-    systemDataTypes.kelvins,
-    systemDataTypes.moles,
-    systemDataTypes.candelas,
-    systemDataTypes.radians,
-    systemDataTypes.steradians,
+    systemDataTypes.ampere,
+    systemDataTypes.kelvin,
+    systemDataTypes.mole,
+    systemDataTypes.candela,
+    systemDataTypes.radian,
+    systemDataTypes.steradian,
     systemDataTypes.hertz,
-    systemDataTypes.newtons,
-    systemDataTypes.pascals,
-    systemDataTypes.joules,
+    systemDataTypes.newton,
+    systemDataTypes.pascal,
+    systemDataTypes.joule,
     systemDataTypes.watts,
-    systemDataTypes.coulombs,
-    systemDataTypes.volts,
-    systemDataTypes.farads,
-    systemDataTypes.ohms,
+    systemDataTypes.coulomb,
+    systemDataTypes.volt,
+    systemDataTypes.farad,
+    systemDataTypes.ohm,
     systemDataTypes.siemens,
-    systemDataTypes.webers,
-    systemDataTypes.teslas,
-    systemDataTypes.henries,
-    systemDataTypes.lumens,
+    systemDataTypes.weber,
+    systemDataTypes.tesla,
+    systemDataTypes.henry,
+    systemDataTypes.lumen,
     systemDataTypes.lux,
-    systemDataTypes.becquerels,
-    systemDataTypes.grays,
-    systemDataTypes.sieverts,
-    systemDataTypes.katals,
-    systemDataTypes.ampereHours,
-    systemDataTypes.wattHours,
+    systemDataTypes.becquerel,
+    systemDataTypes.gray,
+    systemDataTypes.sievert,
+    systemDataTypes.katal,
+    systemDataTypes.ampereHour,
+    systemDataTypes.wattHour,
     systemDataTypes.litres,
     systemDataTypes.squareMetres,
     systemDataTypes.cubicMetres,
@@ -101,23 +102,47 @@ const prefixConversion = (
   });
 };
 
+const systemDataTypeBaseUrl = (title: string) =>
+  `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/` as BaseUrl;
+
+const usSpelling = (text: string) =>
+  text
+    .replace(/metre/g, "meter")
+    .replace(/Metre/g, "Meter")
+    .replace(/litre/g, "liter")
+    .replace(/Litre/g, "Liter");
+
 export const expandSiPrefixes = (
   units: SiUnitDefinition[],
 ): SiUnitDefinition[] => {
-  const baseUrls = new Set(units.map(({ dataTypeBaseUrl }) => dataTypeBaseUrl));
+  const baseUrls = new Set(
+    units.map(
+      ({ dataTypeBaseUrl, title }) =>
+        dataTypeBaseUrl ?? systemDataTypeBaseUrl(title),
+    ),
+  );
+  const titles = new Set(units.map(({ title }) => title));
   const expanded = [...units];
 
   for (const unit of units) {
-    const baseUrl = unit.dataTypeBaseUrl;
-    if (!baseUrl || !prefixableUnits.has(baseUrl)) {
+    const baseUrl = unit.dataTypeBaseUrl ?? systemDataTypeBaseUrl(unit.title);
+    if (!prefixableUnits.has(baseUrl)) {
       continue;
     }
 
     const power =
-      unit.title === "Square Metre" ? 2 : unit.title === "Cubic Metre" ? 3 : 1;
+      baseUrl === systemDataTypes.squareMetres.dataTypeBaseUrl
+        ? 2
+        : baseUrl === systemDataTypes.cubicMetres.dataTypeBaseUrl
+          ? 3
+          : 1;
     const titlePrefix = power === 2 ? "Square " : power === 3 ? "Cubic " : "";
-    const name = power === 1 ? unit.title : "Metre";
-    const pluralName = power === 1 ? unit.titlePlural : "Metres";
+    const name = usSpelling(
+      power === 1 ? (unit.singularTitle ?? unit.title) : "Meter",
+    );
+    const pluralName = usSpelling(
+      power === 1 ? (unit.titlePlural ?? "") : "Meters",
+    );
     const slug = baseUrl
       .split("/")
       .at(-2)
@@ -137,11 +162,17 @@ export const expandSiPrefixes = (
         const word = prefixed(suffix);
         return `${titlePrefix}${word.charAt(0).toUpperCase()}${word.slice(1)}`;
       };
-      const dataTypeBaseUrl = baseUrl.replace(
+      const title = prefixedTitle(name);
+      const existingBaseUrl = baseUrl.replace(
         /[^/]+\/$/,
         `${titlePrefix.toLowerCase().replace(" ", "-")}${prefixed(slug)}/`,
       ) as BaseUrl;
-      if (baseUrls.has(dataTypeBaseUrl)) {
+      const dataTypeBaseUrl = systemDataTypeBaseUrl(title);
+      if (
+        baseUrls.has(existingBaseUrl) ||
+        baseUrls.has(dataTypeBaseUrl) ||
+        titles.has(title)
+      ) {
         continue;
       }
 
@@ -151,10 +182,10 @@ export const expandSiPrefixes = (
       };
       expanded.push({
         dataTypeBaseUrl,
-        title: prefixedTitle(name),
+        title,
         titlePlural: prefixedTitle(pluralName),
         symbol: `${prefix.symbol}${unit.symbol}`,
-        description: `A unit equal to 10^${prefix.exponent * power} ${unit.titlePlural?.toLowerCase()}.`,
+        description: `A unit equal to 10^${prefix.exponent * power} ${usSpelling(unit.titlePlural ?? "").toLowerCase()}.`,
         ...(unit.minimum === undefined
           ? {}
           : { minimum: unit.minimum / scale }),
@@ -166,6 +197,7 @@ export const expandSiPrefixes = (
         ),
       });
       baseUrls.add(dataTypeBaseUrl);
+      titles.add(title);
     }
   }
 

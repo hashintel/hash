@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/ident.rs
+description: Basic HTTP URL
+expression: "`http://example.com/`"
+info:
+  kind: Ok
+---
+Ident {
+    span: SpanId(
+        1,
+    ),
+    value: Symbol(
+        "http://example.com/",
+    ),
+    kind: BaseUrl,
+}

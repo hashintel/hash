@@ -1,0 +1,14 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[]"
+---
+error[jexpr::parser::array::empty]: Empty array not allowed
+  ╭▸ 
+1 │ []
+  │ ━━ empty arrays are not allowed as expressions
+  │
+  ├ help: add a function expression as the first element, or use `{"#list": []}` for an empty list
+  ╰ note: in J-Expr, bare arrays represent function calls whose first element is the callee:
+          - `["get", "user"]` calls `get` with `user`
+          - `{"#list": []}` constructs an empty list
+          - `{"#tuple": []}` constructs an empty tuple

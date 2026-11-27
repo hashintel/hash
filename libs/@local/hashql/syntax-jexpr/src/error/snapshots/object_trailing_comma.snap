@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1,}"
+---
+error[jexpr::parser::object::trailing-comma]: Unexpected trailing comma in object
+  ╭▸ 
+1 │ {"#literal": 1,}
+  │               ━ trailing comma is not allowed in objects
+  │
+  ╰ note: J-Expr follows JSON syntax, which does not allow trailing commas
+help: remove the trailing comma
+  ╭╴
+1 - {"#literal": 1,}
+1 + {"#literal": 1}
+  ╰╴

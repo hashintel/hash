@@ -40,9 +40,9 @@ pub(crate) struct Lowered<'heap> {
 /// Returns a diagnostic on parse or lowering failure.
 pub(crate) fn lower<'heap>(
     pipeline: &mut Pipeline<'heap>,
-    bytes: impl AsRef<[u8]>,
+    source: impl AsRef<str>,
 ) -> Result<Lowered<'heap>, BoxedDiagnostic<'static, SpanId>> {
-    let ast = pipeline.parse(bytes)?;
+    let ast = pipeline.parse(source)?;
     let (interner, entry, bodies) = pipeline.lower(ast)?;
 
     Ok(Lowered {
@@ -133,9 +133,9 @@ fn run_impl<'heap>(
         bodies,
         &analysis,
         pipeline.heap,
-        &mut pipeline.scratch,
+        pipeline.scratch.as_mut_scope(),
     );
-    let mut postgres = PostgresCompiler::new_in(&mut context, &mut pipeline.scratch);
+    let mut postgres = PostgresCompiler::new_in(&mut context, pipeline.scratch.as_mut_scope());
     let queries = postgres.compile();
     pipeline.scratch.reset();
 

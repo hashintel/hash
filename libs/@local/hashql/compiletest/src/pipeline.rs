@@ -20,6 +20,7 @@ use hashql_core::{
     heap::{Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
+    symbol::sym,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
@@ -34,7 +35,7 @@ use hashql_mir::{
     pass::{self, LowerConfig, execution::ExecutionAnalysisResidual},
     reify::ReifyContext,
 };
-use hashql_syntax_jexpr::span::Span;
+use hashql_syntax_jexpr::{ParserOptions, span::Span};
 
 /// Unwraps a [`Status`] into its success value, draining advisories and
 /// secondary diagnostics into the shared accumulator.
@@ -112,21 +113,22 @@ impl<'heap> Pipeline<'heap> {
         }
     }
 
-    /// Parses J-Expr source bytes into an AST expression.
+    /// Parses J-Expr source text into an AST expression.
     ///
     /// # Errors
     ///
     /// Returns a diagnostic if the input is not valid J-Expr syntax.
     pub fn parse(
         &mut self,
-        content: impl AsRef<[u8]>,
+        content: impl AsRef<str>,
     ) -> Result<hashql_ast::node::expr::Expr<'heap>, BoxedDiagnostic<'static, SpanId>> {
-        let mut parser = hashql_syntax_jexpr::Parser::new(self.heap, &mut self.spans);
+        let mut parser =
+            hashql_syntax_jexpr::Parser::new(self.heap, &mut self.spans, ParserOptions::default());
 
-        parser
-            .parse_expr(content.as_ref())
-            .map_err(Diagnostic::generalize)
-            .map_err(Diagnostic::boxed)
+        let status = parser.parse_expr_in(content.as_ref(), &self.scratch);
+        self.scratch.reset();
+
+        process_status(&mut self.diagnostics, status)
     }
 
     /// Lowers an AST expression through HIR into MIR.
@@ -154,21 +156,24 @@ impl<'heap> Pipeline<'heap> {
         let registry = ModuleRegistry::new(&self.env);
 
         let types = tri!(hashql_ast::lower::lower(
-            self.heap.intern_symbol("::main"),
+            sym::path::main,
             &mut expr,
             &self.env,
             &registry,
-            &mut self.scratch
+            self.scratch.as_mut_scope()
         ));
+        self.scratch.reset();
 
         let hir_interner = hashql_hir::intern::Interner::new(self.heap);
         let mut hir_context = HirContext::new(&hir_interner, &registry);
 
-        let node = tri!(hashql_hir::node::NodeData::from_ast(
+        let node = tri!(hashql_hir::node::NodeData::from_ast_in(
             expr,
             &mut hir_context,
-            &types
+            &types,
+            &self.scratch
         ));
+        self.scratch.reset();
 
         let node = tri!(hashql_hir::lower::lower(
             node,

@@ -22,8 +22,7 @@ import type { ComponentProps } from "react";
 
 /** Aggregate's aggregation: what to calculate and, for all but count, which number of each item it reads. */
 export const AggregationField = (props: ComponentProps<typeof InputField>) => {
-  const { editor, flowDefinition, stepId, input, source, problems, readOnly } =
-    props;
+  const { editor, flowDefinition, stepId, input, source, problems } = props;
 
   /* An operation picked before its number, which isn't an aggregation the step can run yet. */
   const [pending, setPending] = useState<AggregationForm>();
@@ -70,17 +69,12 @@ export const AggregationField = (props: ComponentProps<typeof InputField>) => {
         note="This calculation can't be shown here, so it can't be changed. The step calculates it as it is."
         resetLabel="Choose a new calculation"
         errors={errors}
-        readOnly={readOnly}
         onReset={() => editor.setInputSource(stepId, input.name, null)}
       />
     );
   }
 
   const form = saved ?? pending;
-
-  if (readOnly && !form) {
-    return null;
-  }
 
   const save = (next: AggregationForm) => {
     const aggregation = toAggregation(next, targetsByKey);
@@ -122,7 +116,6 @@ export const AggregationField = (props: ComponentProps<typeof InputField>) => {
           items={aggregationOperations}
           value={form?.operation ?? null}
           placeholder="Choose…"
-          readonly={readOnly}
           onChange={(operation) => {
             if (!operation) {
               setPending(undefined);
@@ -157,7 +150,6 @@ export const AggregationField = (props: ComponentProps<typeof InputField>) => {
             value={targetKey}
             placeholder="Choose a number…"
             searchable
-            readonly={readOnly}
             disabled={ofItems.length === 0}
             onChange={(nextKey) =>
               save({ operation: form.operation, targetKey: nextKey })

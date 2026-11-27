@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"a\",,, \"b\"]"
+---
+error[jexpr::parser::array::consecutive-comma]: Consecutive commas in array
+  ╭▸ 
+1 │ ["a",,, "b"]
+  │      ┯─ additional extra comma
+  │      │
+  │      consecutive comma is not allowed in arrays
+  │
+  ╰ note: array elements must be separated by a single comma
+help: remove the extra commas
+  ╭╴
+1 - ["a",,, "b"]
+1 + ["a", "b"]
+  ╰╴

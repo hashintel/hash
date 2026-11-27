@@ -3,7 +3,7 @@ use core::assert_matches;
 use hashql_diagnostics::Success;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -1103,7 +1103,7 @@ fn instantiate_list() {
         opaque!(env, "A", list!(env, param)),
         [GenericArgument {
             id: argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1153,7 +1153,7 @@ fn instantiate_dict() {
         opaque!(env, "A", dict!(env, param, param)),
         [GenericArgument {
             id: argument,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1213,7 +1213,7 @@ fn list_projection() {
     let list = list!(env, primitive!(env, PrimitiveType::String));
 
     let mut lattice = LatticeEnvironment::new(&env);
-    lattice.projection(list, Ident::synthetic(heap.intern_symbol("foo")));
+    lattice.projection(list, Ident::synthetic(heap.alloc_symbol("foo")));
 
     let diagnostics = lattice.take_diagnostics();
     assert_eq!(diagnostics.len(), 1);
@@ -1237,7 +1237,7 @@ fn dict_projection() {
     );
 
     let mut lattice = LatticeEnvironment::new(&env);
-    lattice.projection(dict, Ident::synthetic(heap.intern_symbol("foo")));
+    lattice.projection(dict, Ident::synthetic(heap.alloc_symbol("foo")));
 
     let diagnostics = lattice.take_diagnostics();
     assert_eq!(diagnostics.len(), 1);

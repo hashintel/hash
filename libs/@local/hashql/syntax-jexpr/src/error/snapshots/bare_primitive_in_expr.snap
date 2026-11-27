@@ -1,0 +1,27 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"add\", 1, 2]"
+---
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ ["add", 1, 2]
+  │         ━ expected an expression, found number
+  │
+  ╰ note: primitive values in J-Expr must be wrapped in `{"#literal": ...}`
+help: wrap the value in a `#literal` object
+  ╭╴
+1 - ["add", 1, 2]
+1 + ["add", {"#literal": 1}, 2]
+  ╰╴
+
+error[jexpr::lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ ["add", 1, 2]
+  │            ━ expected an expression, found number
+  │
+  ╰ note: primitive values in J-Expr must be wrapped in `{"#literal": ...}`
+help: wrap the value in a `#literal` object
+  ╭╴
+1 - ["add", 1, 2]
+1 + ["add", 1, {"#literal": 2}]
+  ╰╴

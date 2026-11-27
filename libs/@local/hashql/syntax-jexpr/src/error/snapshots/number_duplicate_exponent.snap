@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1e2e3}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": 1e2e3}
+  │               ┬ ━ duplicate exponent in number literal
+  │               │
+  │               exponent already here
+  │
+  ├ help: remove the extra exponent
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`

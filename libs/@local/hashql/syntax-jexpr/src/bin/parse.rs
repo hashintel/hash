@@ -3,22 +3,25 @@
 //! The binary lets a J-Expr producer outside Rust check its output against this crate's parser. On
 //! success, it writes the [`SyntaxDump`] of the parsed [`Expr`] to stdout and exits with status 0.
 //! With `--no-output` it writes nothing on success, for a caller that only needs to know whether
-//! the parser accepts the document. On a syntax error, it writes the rendered diagnostic to stderr
+//! the parser accepts the document. On a syntax error, it writes the rendered diagnostics to stderr
 //! and exits with status 1. Input that is not UTF-8 and an I/O failure also exit with status 1,
-//! with the error on stderr. The diagnostic carries ANSI colour only when stderr is a terminal.
+//! with the error on stderr. The diagnostics carry ANSI colour only when stderr is a terminal.
 //!
 //! [`Expr`]: hashql_ast::node::expr::Expr
 //! [`SyntaxDump`]: hashql_ast::format::SyntaxDump
 
+extern crate alloc;
+
+use alloc::alloc::Global;
 use std::io::{IsTerminal as _, Read as _, Write as _};
 
 use hashql_ast::format::SyntaxDump as _;
 use hashql_core::{heap::Heap, span::SpanTable};
 use hashql_diagnostics::{
-    Source, Sources,
+    Source, Sources, Success,
     diagnostic::render::{ColorDepth, Format, RenderOptions},
 };
-use hashql_syntax_jexpr::Parser;
+use hashql_syntax_jexpr::{Parser, ParserOptions};
 
 fn main() -> Result<(), Box<dyn core::error::Error>> {
     let mut input = String::new();
@@ -33,11 +36,10 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
     let heap = Heap::new();
     let mut spans = SpanTable::new(sources.push(Source::new(input.as_str())));
-    let mut parser = Parser::new(&heap, &mut spans);
+    let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
 
-    let result = parser.parse_expr(input.as_bytes());
-    match result {
-        Ok(expr) => {
+    match parser.parse_expr_in(&input, Global) {
+        Ok(Success { value: expr, .. }) => {
             if no_output {
                 return Ok(());
             }
@@ -47,7 +49,7 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
 
             Ok(())
         }
-        Err(diagnostic) => {
+        Err(failure) => {
             let mut stderr = std::io::stderr();
 
             let mut options = RenderOptions::new(Format::Ansi, &sources);
@@ -55,8 +57,8 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
                 options.color_depth = ColorDepth::Monochrome;
             }
 
-            let result = diagnostic.render(options, &mut &spans);
-            stderr.write_all(result.as_bytes())?;
+            let rendered = failure.into_issues().render(options, &mut &spans);
+            stderr.write_all(rendered.as_bytes())?;
 
             std::process::exit(1)
         }

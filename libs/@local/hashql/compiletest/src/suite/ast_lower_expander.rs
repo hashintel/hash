@@ -62,7 +62,7 @@ impl Suite for AstLowerExpanderSuite {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let mut expander = Expander::new(namespace, &mut scratch);
+        let mut expander = Expander::new(namespace, scratch.as_mut_scope());
         expander.visit_expr(&mut expr);
 
         if should_continue(self, suite_directives, reports) {

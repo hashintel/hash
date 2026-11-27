@@ -22,7 +22,7 @@ use hashql_core::{
             tarjan::{MembersRef, StronglyConnectedComponents},
         },
     },
-    heap::BumpAllocator,
+    heap::PhaseAllocator,
     id::{HasId, Id as _, bit_vec::DenseBitSet},
 };
 
@@ -92,21 +92,24 @@ pub(crate) struct BoundaryEdge {
 /// Wraps a [`LinkedGraph`] and provides accessors for topological traversal and edge queries.
 ///
 /// [`LinkedGraph`]: hashql_core::graph::LinkedGraph
-pub(crate) struct Condensation<'alloc, S: BumpAllocator> {
-    scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), &'alloc S>,
+pub(crate) struct Condensation<'alloc, S: Allocator> {
+    scc: StronglyConnectedComponents<BasicBlockId, PlacementRegionId, (), S>,
     scc_members: MembersRef<'alloc, BasicBlockId, PlacementRegionId>,
 
-    graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, &'alloc S>,
+    graph: LinkedGraph<PlacementRegion<'alloc>, BoundaryEdge, S>,
 
-    alloc: &'alloc S,
+    alloc: S,
 }
 
-impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
+impl<'alloc, S> Condensation<'alloc, S>
+where
+    S: PhaseAllocator<'alloc>,
+{
     /// Builds the condensation from a [`Body`]'s CFG and terminator transition costs.
     pub(crate) fn new(
         body: &Body<'_>,
         terminators: &TerminatorTransitionCostVec<impl Allocator>,
-        alloc: &'alloc S,
+        alloc: S,
     ) -> Self {
         let scc = Tarjan::new_in(&body.basic_blocks, alloc).run();
         let scc_members = scc.bump_members();
@@ -125,33 +128,6 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
         this
     }
 
-    /// Iterates placement regions in reverse topological order (sinks first).
-    pub(crate) fn reverse_topological_order(
-        &self,
-    ) -> impl ExactSizeIterator<Item = PlacementRegionId> + DoubleEndedIterator {
-        self.scc.iter_nodes()
-    }
-
-    /// Returns boundary edges whose target is `node`.
-    pub(crate) fn incoming_edges(
-        &self,
-        node: PlacementRegionId,
-    ) -> impl Iterator<Item = &BoundaryEdge> {
-        self.graph
-            .incoming_edges(NodeId::from_usize(node.as_usize()))
-            .map(|edge| &edge.data)
-    }
-
-    /// Returns boundary edges whose source is `node`.
-    pub(crate) fn outgoing_edges(
-        &self,
-        node: PlacementRegionId,
-    ) -> impl Iterator<Item = &BoundaryEdge> {
-        self.graph
-            .outgoing_edges(NodeId::from_usize(node.as_usize()))
-            .map(|edge| &edge.data)
-    }
-
     /// Populates the condensation graph with regions and boundary edges.
     fn fill(&mut self, body: &Body<'_>, terminators: &TerminatorTransitionCostVec<impl Allocator>) {
         for scc in self.scc.iter_nodes() {
@@ -165,7 +141,7 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
 
                     let blocks = self
                         .alloc
-                        .allocate_slice_uninit(len)
+                        .alloc_slice_uninit(len)
                         .write_filled(PlacementBlock::PLACEHOLDER);
 
                     PlacementRegionKind::Cyclic(CyclicPlacementRegion {
@@ -207,7 +183,36 @@ impl<'alloc, S: BumpAllocator> Condensation<'alloc, S> {
     }
 }
 
-impl<'alloc, S: BumpAllocator> DirectedGraph for Condensation<'alloc, S> {
+impl<S: Allocator> Condensation<'_, S> {
+    /// Iterates placement regions in reverse topological order (sinks first).
+    pub(crate) fn reverse_topological_order(
+        &self,
+    ) -> impl ExactSizeIterator<Item = PlacementRegionId> + DoubleEndedIterator {
+        self.scc.iter_nodes()
+    }
+
+    /// Returns boundary edges whose target is `node`.
+    pub(crate) fn incoming_edges(
+        &self,
+        node: PlacementRegionId,
+    ) -> impl Iterator<Item = &BoundaryEdge> {
+        self.graph
+            .incoming_edges(NodeId::from_usize(node.as_usize()))
+            .map(|edge| &edge.data)
+    }
+
+    /// Returns boundary edges whose source is `node`.
+    pub(crate) fn outgoing_edges(
+        &self,
+        node: PlacementRegionId,
+    ) -> impl Iterator<Item = &BoundaryEdge> {
+        self.graph
+            .outgoing_edges(NodeId::from_usize(node.as_usize()))
+            .map(|edge| &edge.data)
+    }
+}
+
+impl<'alloc, S: Allocator> DirectedGraph for Condensation<'alloc, S> {
     type Edge<'this>
         = &'this BoundaryEdge
     where
@@ -236,13 +241,13 @@ impl<'alloc, S: BumpAllocator> DirectedGraph for Condensation<'alloc, S> {
     }
 }
 
-impl<S: BumpAllocator> IndexMut<PlacementRegionId> for Condensation<'_, S> {
+impl<S: Allocator> IndexMut<PlacementRegionId> for Condensation<'_, S> {
     fn index_mut(&mut self, index: PlacementRegionId) -> &mut Self::Output {
         &mut self.graph[NodeId::from_usize(index.as_usize())].data
     }
 }
 
-impl<'alloc, S: BumpAllocator> Index<PlacementRegionId> for Condensation<'alloc, S> {
+impl<'alloc, S: Allocator> Index<PlacementRegionId> for Condensation<'alloc, S> {
     type Output = PlacementRegion<'alloc>;
 
     fn index(&self, index: PlacementRegionId) -> &Self::Output {

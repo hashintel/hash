@@ -23,7 +23,7 @@ use self::{
 pub use self::{resolver::Reference, universe::Universe};
 use crate::{
     collections::{FastHashMap, fast_hash_map_in},
-    heap::{BumpAllocator as _, Heap},
+    heap::{Heap, PhaseAllocator as _},
     id::{HasId, Id as _, IdSlice, IdVec, bit_vec::DenseBitSet, newtype},
     symbol::Symbol,
     r#type::environment::Environment,
@@ -143,7 +143,7 @@ impl<'heap, S: Allocator> PartialModuleRegistry<'heap, S> {
             "all modules must be inserted to be able to finish the registry"
         );
 
-        let modules = self.heap.allocate_slice_uninit(self.modules.len());
+        let modules = self.heap.alloc_slice_uninit(self.modules.len());
         for (dst, src) in modules.iter_mut().zip(self.modules.iter()) {
             // SAFETY: We have just verified above that all modules are Some
             unsafe {

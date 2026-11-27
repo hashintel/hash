@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"add\", {\"#struct\": {\"a\": {\"#literal\": 1}"
+---
+error[jexpr::lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ ["add", {"#struct": {"a": {"#literal": 1}
+  │ ┬       ┬           ┬                    ━ unexpected end of input, expected `}`
+  │ │       │           │
+  │ │       │           unclosed `{` opened here
+  │ │       unclosed `{` opened here
+  │ unclosed `[` opened here
+  ╰╴
+help: add the missing closing delimiters `}}]`
+  ╭╴
+1 │ ["add", {"#struct": {"a": {"#literal": 1}}}]
+  ╰╴                                         +++

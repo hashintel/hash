@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": \"\\uD800\"}"
+---
+error[jexpr::lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ {"#literal": "\uD800"}
+  │               ━━━━━━ unpaired high surrogate `\uD800`
+  │
+  ├ help: follow the high surrogate with a low surrogate escape (`\uDC00`..`\uDFFF`)
+  ╰ note: UTF-16 high surrogates must be paired with a low surrogate

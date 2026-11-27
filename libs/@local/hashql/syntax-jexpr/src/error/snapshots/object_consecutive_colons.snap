@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#struct\": {\"a\":: {\"#literal\": 1}}}"
+---
+error[jexpr::parser::object::consecutive-colon]: Consecutive colons in object
+  ╭▸ 
+1 │ {"#struct": {"a":: {"#literal": 1}}}
+  │                  ━ consecutive colon is not allowed between key and value
+  │
+  ╰ note: object keys and values must be separated by a single `:`
+help: remove the extra colon
+  ╭╴
+1 - {"#struct": {"a":: {"#literal": 1}}}
+1 + {"#struct": {"a": {"#literal": 1}}}
+  ╰╴

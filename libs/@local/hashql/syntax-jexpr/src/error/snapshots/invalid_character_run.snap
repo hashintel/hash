@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"f\", \"x\"] */"
+---
+error[jexpr::lexer::invalid-character]: Invalid character
+  ╭▸ 
+1 │ ["f", "x"] */
+  │            ━━ unexpected characters `*/`
+  │
+  ╰ help: use valid JSON tokens such as `{`, `}`, `[`, `]`, strings, numbers, `true`, `false`, or `null`

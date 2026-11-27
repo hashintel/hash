@@ -28,7 +28,7 @@
 //! [`TypeExtractor`]: type_extractor::TypeExtractor
 
 use hashql_core::{
-    heap::ResetAllocator,
+    heap::ScopeAllocator,
     module::{ModuleRegistry, locals::TypeLocals, namespace::ModuleNamespace},
     span::SpanId,
     symbol::Symbol,
@@ -80,29 +80,28 @@ pub struct ExtractedTypes<'heap> {
 ///   resolution errors.
 /// - [`LoweringDiagnosticCategory::Sanitizer`]: invalid AST constructs that survived expansion.
 /// - [`LoweringDiagnosticCategory::Extractor`]: type extraction errors.
-pub fn lower<'heap, S>(
+pub fn lower<'heap, 'alloc, S>(
     module_name: Symbol<'heap>,
     expr: &mut Expr<'heap>,
     env: &Environment<'heap>,
     registry: &ModuleRegistry<'heap>,
-    mut scratch: S,
+    scratch: &mut S,
 ) -> Status<ExtractedTypes<'heap>, LoweringDiagnosticCategory, SpanId>
 where
-    S: ResetAllocator,
+    S: ScopeAllocator<'alloc>,
 {
     let mut diagnostics = DiagnosticIssues::new();
 
     let mut namespace = ModuleNamespace::new(registry);
     namespace.import_prelude();
 
-    let mut expander = Expander::new(namespace, &mut scratch);
+    let mut expander = Expander::new(namespace, scratch);
     expander.visit_expr(expr);
     diagnostics.append(
         &mut expander
             .take_diagnostics()
             .map_category(LoweringDiagnosticCategory::Expander),
     );
-    scratch.reset();
 
     let mut sanitizer = Sanitizer::new();
     sanitizer.visit_expr(expr);

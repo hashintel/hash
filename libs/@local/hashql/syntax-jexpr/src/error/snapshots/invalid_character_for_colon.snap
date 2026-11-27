@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\" @ 1}"
+---
+error[jexpr::lexer::invalid-character]: Invalid character
+  ╭▸ 
+1 │ {"#literal" @ 1}
+  │             ━ unexpected character `@`
+  │
+  ╰ help: use valid JSON tokens such as `{`, `}`, `[`, `]`, strings, numbers, `true`, `false`, or `null`

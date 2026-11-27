@@ -1,9 +1,0 @@
----
-source: libs/@local/hashql/syntax-jexpr/src/parser/object/type.rs
-description: Parses an invalid type
-expression: "{\"#type\": \"\"}"
----
-error[parser::string::invalid-expression]: Invalid string expression
-  ╭▸ 
-1 │ {"#type": ""}
-  ╰╴          ━ Invalid type

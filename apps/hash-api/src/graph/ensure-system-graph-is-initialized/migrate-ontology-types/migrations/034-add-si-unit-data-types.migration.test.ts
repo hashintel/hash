@@ -64,10 +64,72 @@ const upgradedUnits = new Set(
     "Millilitres",
     "Cubic Metres",
     "Cubic Feet",
+    // Quantities seeded before 034 without a plural title
+    "Length",
+    "Mass",
+    "Duration",
+    "Frequency",
+    "Power",
+    "Area",
+    "Volume",
   ].map(
     (title) => `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(title)}/`,
   ),
 );
+
+const previousTitles: Record<string, string> = {
+  angle: "Angle",
+  area: "Area",
+  centimeters: "Centimeters",
+  "cubic-feet": "Cubic Feet",
+  "cubic-metres": "Cubic Metres",
+  day: "Day",
+  days: "Days",
+  degree: "Degree",
+  duration: "Duration",
+  feet: "Feet",
+  "feet-per-minute": "Feet per Minute",
+  frequency: "Frequency",
+  gigahertz: "Gigahertz",
+  gigawatts: "Gigawatts",
+  grams: "Grams",
+  hertz: "Hertz",
+  hour: "Hour",
+  hours: "Hours",
+  inches: "Inches",
+  kilograms: "Kilograms",
+  kilohertz: "Kilohertz",
+  kilometers: "Kilometers",
+  "kilometers-per-hour": "Kilometers per Hour",
+  kilowatts: "Kilowatts",
+  length: "Length",
+  litres: "Litres",
+  mass: "Mass",
+  megahertz: "Megahertz",
+  megawatts: "Megawatts",
+  meters: "Meters",
+  "meters-per-second": "Meters per Second",
+  "metric-tonnes": "Metric Tonnes",
+  microsecond: "Microsecond",
+  miles: "Miles",
+  millilitres: "Millilitres",
+  millimeters: "Millimeters",
+  millisecond: "Millisecond",
+  minute: "Minute",
+  month: "Month",
+  pounds: "Pounds",
+  power: "Power",
+  second: "Second",
+  speed: "Speed",
+  "square-centimetres": "Square Centimetres",
+  "square-feet": "Square Feet",
+  "square-metres": "Square Metres",
+  volume: "Volume",
+  watts: "Watts",
+  week: "Week",
+  yards: "Yards",
+  year: "Year",
+};
 
 const seeded = new Map<
   string,
@@ -159,25 +221,31 @@ describe("default SI data types", () => {
   });
 
   it.each([
-    ["Meters", "Meter", "Meters"],
-    ["Feet", "Foot", "Feet"],
-    ["Square Inches", "Square Inch", "Square Inches"],
-    ["Henries per Meter", "Henry per Meter", "Henries per Meter"],
-    ["Microhenries", "Microhenry", "Microhenries"],
-    ["Darcies", "Darcy", "Darcies"],
+    ["Meters", "Meters", "Meters"],
+    ["Feet", "Feet", "Feet"],
+    ["Square Inch", "Square Inch", "Square Inches"],
+    ["Henry per Meter", "Henry per Meter", "Henries per Meter"],
+    ["Microhenry", "Microhenry", "Microhenries"],
+    ["Darcy", "Darcy", "Darcies"],
     ["Quettasecond", "Quettasecond", "Quettaseconds"],
     ["Kilosiemens", "Kilosiemens", "Kilosiemens"],
     ["Hertz", "Hertz", "Hertz"],
-    ["Ampere Hours", "Ampere Hour", "Ampere Hours"],
+    ["Ampere Hour", "Ampere Hour", "Ampere Hours"],
     [
-      "Pounds-Force Seconds per Square Foot",
+      "Pound-Force Second per Square Foot",
       "Pound-Force Second per Square Foot",
       "Pound-Force Seconds per Square Foot",
     ],
     ["Amount of Substance", "Amount of Substance", "Amounts of Substance"],
     ["Length (Imperial)", "Length (Imperial)", "Lengths (Imperial)"],
+    ["Mole per Liter", "Mole per Liter", "Moles per Liter"],
+    ["Cubic Centimeter", "Cubic Centimeter", "Cubic Centimeters"],
+    ["Kiloliter", "Kiloliter", "Kiloliters"],
+    ["Square Kilometer", "Square Kilometer", "Square Kilometers"],
+    ["Litres", "Litres", "Litres"],
+    ["Square Metres", "Square Metres", "Square Metres"],
   ])(
-    "preserves %s identifiers while setting singular and plural names",
+    "keeps the %s identifier with matching singular and plural names",
     (identifierTitle, title, titlePlural) => {
       expect(getSeeded(identifierTitle).schema).toMatchObject({
         title,
@@ -189,12 +257,27 @@ describe("default SI data types", () => {
   it.each([
     ["Hour", "Hours"],
     ["Day", "Days"],
-  ])("preserves both existing %s identifiers", (singular, plural) => {
+  ])("keeps both existing %s identifiers", (singular, plural) => {
     const original = getSeeded(singular);
     const legacy = getSeeded(plural);
     expect(original.schema.$id).not.toBe(legacy.schema.$id);
-    for (const { schema } of [original, legacy]) {
-      expect(schema).toMatchObject({ title: singular, titlePlural: plural });
+    expect(original.schema).toMatchObject({
+      title: singular,
+      titlePlural: plural,
+    });
+    expect(legacy.schema).toMatchObject({ title: plural, titlePlural: plural });
+  });
+
+  it("derives the identifier of every new type from its title", () => {
+    for (const [baseUrl, { schema }] of seeded) {
+      const previousTitle = previousTitles[baseUrl.split("/").at(-2) ?? ""];
+      if (previousTitle) {
+        expect(schema.title, baseUrl).toBe(previousTitle);
+      } else {
+        expect(baseUrl).toBe(
+          `https://hash.ai/@h/types/data-type/${slugifyTypeTitle(schema.title)}/`,
+        );
+      }
     }
   });
 
@@ -212,34 +295,34 @@ describe("default SI data types", () => {
       "Meters",
       "Kilograms",
       "Second",
-      "Amperes",
-      "Kelvins",
-      "Moles",
-      "Candelas",
+      "Ampere",
+      "Kelvin",
+      "Mole",
+      "Candela",
     ];
     const derivedUnits = [
-      "Radians",
-      "Steradians",
+      "Radian",
+      "Steradian",
       "Hertz",
-      "Newtons",
-      "Pascals",
-      "Joules",
+      "Newton",
+      "Pascal",
+      "Joule",
       "Watts",
-      "Coulombs",
-      "Volts",
-      "Farads",
-      "Ohms",
+      "Coulomb",
+      "Volt",
+      "Farad",
+      "Ohm",
       "Siemens",
-      "Webers",
-      "Teslas",
-      "Henries",
-      "Degrees Celsius",
-      "Lumens",
+      "Weber",
+      "Tesla",
+      "Henry",
+      "Degree Celsius",
+      "Lumen",
       "Lux",
-      "Becquerels",
-      "Grays",
-      "Sieverts",
-      "Katals",
+      "Becquerel",
+      "Gray",
+      "Sievert",
+      "Katal",
     ];
     for (const title of [...baseUnits, ...derivedUnits]) {
       expect(hasSeeded(title), title).toBe(true);
@@ -251,38 +334,38 @@ describe("default SI data types", () => {
       "Square Metres",
       "Cubic Metres",
       "Meters per Second",
-      "Meters per Second Squared",
-      "Reciprocal Meters",
-      "Kilograms per Cubic Meter",
-      "Kilograms per Square Meter",
-      "Cubic Meters per Kilogram",
-      "Amperes per Square Meter",
-      "Amperes per Meter",
-      "Moles per Cubic Meter",
-      "Candelas per Square Meter",
-      "Pascal Seconds",
-      "Newton Meters",
-      "Newtons per Meter",
-      "Radians per Second",
-      "Radians per Second Squared",
-      "Watts per Square Meter",
-      "Joules per Kelvin",
-      "Joules per Kilogram Kelvin",
-      "Joules per Kilogram",
-      "Watts per Meter Kelvin",
-      "Joules per Cubic Meter",
-      "Volts per Meter",
-      "Coulombs per Cubic Meter",
-      "Coulombs per Square Meter",
-      "Farads per Meter",
-      "Henries per Meter",
-      "Joules per Mole",
-      "Joules per Mole Kelvin",
-      "Coulombs per Kilogram",
-      "Grays per Second",
-      "Watts per Steradian",
-      "Watts per Square Meter Steradian",
-      "Katals per Cubic Meter",
+      "Meter per Second Squared",
+      "Reciprocal Meter",
+      "Kilogram per Cubic Meter",
+      "Kilogram per Square Meter",
+      "Cubic Meter per Kilogram",
+      "Ampere per Square Meter",
+      "Ampere per Meter",
+      "Mole per Cubic Meter",
+      "Candela per Square Meter",
+      "Pascal Second",
+      "Newton Meter",
+      "Newton per Meter",
+      "Radian per Second",
+      "Radian per Second Squared",
+      "Watt per Square Meter",
+      "Joule per Kelvin",
+      "Joule per Kilogram Kelvin",
+      "Joule per Kilogram",
+      "Watt per Meter Kelvin",
+      "Joule per Cubic Meter",
+      "Volt per Meter",
+      "Coulomb per Cubic Meter",
+      "Coulomb per Square Meter",
+      "Farad per Meter",
+      "Henry per Meter",
+      "Joule per Mole",
+      "Joule per Mole Kelvin",
+      "Coulomb per Kilogram",
+      "Gray per Second",
+      "Watt per Steradian",
+      "Watt per Square Meter Steradian",
+      "Katal per Cubic Meter",
     ];
     for (const title of titles) {
       expect(getSeeded(title).schema.abstract, title).not.toBe(true);
@@ -380,8 +463,8 @@ describe("default SI data types", () => {
       "Millimeters",
       "Kilometers",
       "Kilograms",
-      "Kilohms",
-      "Megohms",
+      "Kilohm",
+      "Megohm",
       "Square Centimetres",
       "Cubic Metres",
       "Millilitres",
@@ -404,24 +487,24 @@ describe("default SI data types", () => {
       ["Meters", "Length (Metric)", "Length"],
       ["Feet", "Length (Imperial)", "Length"],
       ["Pounds", "Mass (Imperial)", "Mass"],
-      ["Short Tons", "Mass (US Customary)", "Mass"],
+      ["Short Ton", "Mass (US Customary)", "Mass"],
       ["Litres", "Volume (Metric)", "Volume"],
-      ["Imperial Gallons", "Volume (Imperial)", "Volume"],
-      ["US Liquid Gallons", "Volume (US Customary)", "Volume"],
-      ["Degrees Fahrenheit", "Temperature (Imperial)", "Temperature"],
-      ["Pound-Force Feet", "Torque (Imperial)", "Torque"],
-      ["Amperes", "Electric Current (Metric)", "Electric Current"],
+      ["Imperial Gallon", "Volume (Imperial)", "Volume"],
+      ["US Liquid Gallon", "Volume (US Customary)", "Volume"],
+      ["Degree Fahrenheit", "Temperature (Imperial)", "Temperature"],
+      ["Pound-Force Foot", "Torque (Imperial)", "Torque"],
+      ["Ampere", "Electric Current (Metric)", "Electric Current"],
       [
-        "Henries per Meter",
+        "Henry per Meter",
         "Magnetic Permeability (Metric)",
         "Magnetic Permeability",
       ],
       [
-        "Henries per Foot",
+        "Henry per Foot",
         "Magnetic Permeability (Imperial)",
         "Magnetic Permeability",
       ],
-      ["Darcies", "Fluid Permeability (Metric)", "Fluid Permeability"],
+      ["Darcy", "Fluid Permeability (Metric)", "Fluid Permeability"],
       ["Square Feet", "Fluid Permeability (Imperial)", "Fluid Permeability"],
     ] as const) {
       expect(getSeeded(unit).schema.allOf).toContainEqual({
@@ -445,12 +528,12 @@ describe("default SI data types", () => {
     for (const title of [
       "Square Metres",
       "Square Centimetres",
-      "Square Millimetres",
-      "Square Micrometres",
+      "Square Millimeter",
+      "Square Micrometer",
       "Square Feet",
-      "Square Inches",
+      "Square Inch",
     ]) {
-      const system = ["Square Feet", "Square Inches"].includes(title)
+      const system = ["Square Feet", "Square Inch"].includes(title)
         ? "Imperial"
         : "Metric";
       expect(getSeeded(title).schema.allOf).toEqual([
@@ -458,12 +541,7 @@ describe("default SI data types", () => {
         { $ref: getSeeded(`Fluid Permeability (${system})`).schema.$id },
       ]);
     }
-    for (const title of [
-      "Darcies",
-      "Millidarcies",
-      "Microdarcies",
-      "Nanodarcies",
-    ]) {
+    for (const title of ["Darcy", "Millidarcy", "Microdarcy", "Nanodarcy"]) {
       expect(getSeeded(title).schema.allOf).toEqual([
         { $ref: getSeeded("Fluid Permeability (Metric)").schema.$id },
       ]);
@@ -504,11 +582,11 @@ describe("default SI data types", () => {
   });
 
   it.each([
-    ["Becquerels", "Hertz"],
-    ["Grays", "Sieverts"],
-    ["Newton Meters", "Joules"],
-    ["Radians", "Steradians"],
-    ["Darcies", "Henries per Meter"],
+    ["Becquerel", "Hertz"],
+    ["Gray", "Sievert"],
+    ["Newton Meter", "Joule"],
+    ["Radian", "Steradian"],
+    ["Darcy", "Henry per Meter"],
   ])("keeps %s separate from %s", (left, right) => {
     const leftType = getSeeded(left);
     expect(leftType.conversions).not.toHaveProperty(
@@ -522,10 +600,10 @@ describe("default SI data types", () => {
 
 describe("SI unit conversions", () => {
   it.each([
-    ["Darcies", 1e-12],
-    ["Millidarcies", 1e-15],
-    ["Microdarcies", 1e-18],
-    ["Nanodarcies", 1e-21],
+    ["Darcy", 1e-12],
+    ["Millidarcy", 1e-15],
+    ["Microdarcy", 1e-18],
+    ["Nanodarcy", 1e-21],
   ])("converts %s to square metres with relative accuracy", (title, scale) => {
     const conversion = getConversion(title, "Square Metres");
     const expected = scale / 1.01325;
@@ -543,70 +621,65 @@ describe("SI unit conversions", () => {
     ["Feet", "Meters", 1, 0.3048],
     ["Miles", "Meters", 1, 1609.344],
     ["Pounds", "Kilograms", 1, 0.45359237],
-    ["Troy Ounces", "Kilograms", 1, 0.0311034768],
-    ["Long Tons", "Kilograms", 1, 1016.0469088],
-    ["Short Tons", "Kilograms", 1, 907.18474],
-    ["Acres", "Square Metres", 1, 4046.8564224],
-    ["Cubic Inches", "Litres", 1, 0.016387064],
-    ["Imperial Gallons", "Litres", 1, 4.54609],
-    ["US Liquid Gallons", "Litres", 1, 3.785411784],
-    ["US Dry Gallons", "Litres", 1, 4.40488377086],
-    ["US Cups", "Litres", 1, 0.2365882365],
-    ["Pounds-Force", "Newtons", 1, 4.4482216152605],
-    ["Pounds-Force per Square Inch", "Pascals", 1, 6894.757293168361],
+    ["Troy Ounce", "Kilograms", 1, 0.0311034768],
+    ["Long Ton", "Kilograms", 1, 1016.0469088],
+    ["Short Ton", "Kilograms", 1, 907.18474],
+    ["Acre", "Square Metres", 1, 4046.8564224],
+    ["Cubic Inch", "Litres", 1, 0.016387064],
+    ["Imperial Gallon", "Litres", 1, 4.54609],
+    ["US Liquid Gallon", "Litres", 1, 3.785411784],
+    ["US Dry Gallon", "Litres", 1, 4.40488377086],
+    ["US Cup", "Litres", 1, 0.2365882365],
+    ["Pound-Force", "Newton", 1, 4.4482216152605],
+    ["Pound-Force per Square Inch", "Pascal", 1, 6894.757293168361],
     ["Mechanical Horsepower", "Watts", 1, 745.6998715822702],
-    ["British Thermal Units (IT)", "Joules", 1, 1055.05585262],
+    ["British Thermal Unit (IT)", "Joule", 1, 1055.05585262],
     [
-      "British Thermal Units (IT) per Pound Degree Rankine",
-      "Joules per Kilogram Kelvin",
+      "British Thermal Unit (IT) per Pound Degree Rankine",
+      "Joule per Kilogram Kelvin",
       1,
       4186.8,
     ],
-    ["Pound-Force Feet", "Newton Meters", 1, 1.3558179483314],
-    [
-      "Pounds per Cubic Foot",
-      "Kilograms per Cubic Meter",
-      1,
-      16.01846337396014,
-    ],
-    ["Foot-Candles", "Lux", 1, 10.763910416709722],
-    ["Degrees Rankine", "Kelvins", 491.67, 273.15],
+    ["Pound-Force Foot", "Newton Meter", 1, 1.3558179483314],
+    ["Pound per Cubic Foot", "Kilogram per Cubic Meter", 1, 16.01846337396014],
+    ["Foot-Candle", "Lux", 1, 10.763910416709722],
+    ["Degree Rankine", "Kelvin", 491.67, 273.15],
     ["Hours", "Second", 1, 3600],
     ["Days", "Second", 1, 86400],
-    ["Degrees Celsius", "Kelvins", 0, 273.15],
-    ["Degrees Celsius", "Kelvins", -273.15, 0],
-    ["Degrees Celsius", "Kelvins", 100, 373.15],
-    ["Degrees Fahrenheit", "Kelvins", 32, 273.15],
-    ["Degrees Fahrenheit", "Kelvins", 212, 373.15],
-    ["Degrees Fahrenheit", "Kelvins", -459.67, 0],
-    ["Radians", "Degree", Math.PI, 180],
+    ["Degree Celsius", "Kelvin", 0, 273.15],
+    ["Degree Celsius", "Kelvin", -273.15, 0],
+    ["Degree Celsius", "Kelvin", 100, 373.15],
+    ["Degree Fahrenheit", "Kelvin", 32, 273.15],
+    ["Degree Fahrenheit", "Kelvin", 212, 373.15],
+    ["Degree Fahrenheit", "Kelvin", -459.67, 0],
+    ["Radian", "Degree", Math.PI, 180],
     ["Kilometers per Hour", "Meters per Second", 36, 10],
-    ["Milliamperes", "Amperes", 1000, 1],
-    ["Micromoles", "Moles", 1000000, 1],
-    ["Kilonewtons", "Newtons", 1, 1000],
-    ["Bars", "Pascals", 1, 100000],
-    ["Standard Atmospheres", "Pascals", 1, 101325],
-    ["Kilowatt Hours", "Joules", 1, 3600000],
-    ["Milliampere Hours", "Coulombs", 1000, 3600],
-    ["Picofarads", "Farads", 1000000000000, 1],
-    ["Grams per Cubic Centimeter", "Kilograms per Cubic Meter", 1, 1000],
-    ["Moles per Litre", "Moles per Cubic Meter", 1, 1000],
-    ["Millipascal Seconds", "Pascal Seconds", 1000, 1],
-    ["Microsieverts", "Sieverts", 1000000, 1],
-    ["Kiloampere Hours", "Coulombs", 1, 3600000],
-    ["Microampere Hours", "Coulombs", 1000000, 3600],
-    ["Millicoulombs", "Coulombs", 1000, 1],
-    ["Megawatt Hours", "Joules", 1, 3600000000],
-    ["Milligrams", "Kilograms", 1000000, 1],
-    ["Megagrams", "Kilograms", 1, 1000],
+    ["Milliampere", "Ampere", 1000, 1],
+    ["Micromole", "Mole", 1000000, 1],
+    ["Kilonewton", "Newton", 1, 1000],
+    ["Bar", "Pascal", 1, 100000],
+    ["Standard Atmosphere", "Pascal", 1, 101325],
+    ["Kilowatt Hour", "Joule", 1, 3600000],
+    ["Milliampere Hour", "Coulomb", 1000, 3600],
+    ["Picofarad", "Farad", 1000000000000, 1],
+    ["Gram per Cubic Centimeter", "Kilogram per Cubic Meter", 1, 1000],
+    ["Mole per Liter", "Mole per Cubic Meter", 1, 1000],
+    ["Millipascal Second", "Pascal Second", 1000, 1],
+    ["Microsievert", "Sievert", 1000000, 1],
+    ["Kiloampere Hour", "Coulomb", 1, 3600000],
+    ["Microampere Hour", "Coulomb", 1000000, 3600],
+    ["Millicoulomb", "Coulomb", 1000, 1],
+    ["Megawatt Hour", "Joule", 1, 3600000000],
+    ["Milligram", "Kilograms", 1000000, 1],
+    ["Megagram", "Kilograms", 1, 1000],
     ["Nanosecond", "Second", 1000000000, 1],
     ["Gigahertz", "Hertz", 1, 1000000000],
-    ["Microkelvins", "Kelvins", 1000000, 1],
-    ["Square Millimetres", "Square Metres", 1000000, 1],
-    ["Square Kilometres", "Square Metres", 1, 1000000],
-    ["Cubic Centimetres", "Litres", 1000, 1],
-    ["Cubic Millimetres", "Litres", 1000000, 1],
-    ["Microlitres", "Litres", 1000000, 1],
+    ["Microkelvin", "Kelvin", 1000000, 1],
+    ["Square Millimeter", "Square Metres", 1000000, 1],
+    ["Square Kilometer", "Square Metres", 1, 1000000],
+    ["Cubic Centimeter", "Litres", 1000, 1],
+    ["Cubic Millimeter", "Litres", 1000000, 1],
+    ["Microliter", "Litres", 1000000, 1],
   ])("converts %s to %s and back", (source, target, input, expected) => {
     const conversion = getConversion(source, target);
     expect(createConversionFunction([conversion.to])(input)).toBeCloseTo(
@@ -621,27 +694,15 @@ describe("SI unit conversions", () => {
 
   it.each([
     ["Feet", "Centimeters", "Meters", 1, 30.48],
-    [
-      "Miles per Hour",
-      "Kilometers per Hour",
-      "Meters per Second",
-      60,
-      96.56064,
-    ],
-    ["Ounces", "Grams", "Kilograms", 1, 28.349523125],
-    ["Imperial Gallons", "US Liquid Gallons", "Litres", 1, 1.20094992550485],
-    ["Imperial Pints", "US Liquid Pints", "Litres", 1, 1.20094992550485],
-    [
-      "Imperial Fluid Ounces",
-      "US Fluid Ounces",
-      "Litres",
-      1,
-      0.9607599404038839,
-    ],
-    ["Pound-Force Feet", "Pound-Force Inches", "Newton Meters", 1, 12],
+    ["Mile per Hour", "Kilometers per Hour", "Meters per Second", 60, 96.56064],
+    ["Ounce", "Grams", "Kilograms", 1, 28.349523125],
+    ["Imperial Gallon", "US Liquid Gallon", "Litres", 1, 1.20094992550485],
+    ["Imperial Pint", "US Liquid Pint", "Litres", 1, 1.20094992550485],
+    ["Imperial Fluid Ounce", "US Fluid Ounce", "Litres", 1, 0.9607599404038839],
+    ["Pound-Force Foot", "Pound-Force Inch", "Newton Meter", 1, 12],
     ["Days", "Hour", "Second", 1, 24],
-    ["Darcies", "Millidarcies", "Square Metres", 1, 1000],
-    ["Darcies", "Square Feet", "Square Metres", 1e12, 1 / 1.01325 / 0.09290304],
+    ["Darcy", "Millidarcy", "Square Metres", 1, 1000],
+    ["Darcy", "Square Feet", "Square Metres", 1e12, 1 / 1.01325 / 0.09290304],
   ])(
     "converts %s to %s through %s",
     (source, target, reference, value, expected) => {
@@ -661,9 +722,9 @@ describe("SI unit conversions", () => {
   );
 
   it("converts darcies and square micrometres within the existing evaluator precision", () => {
-    const darcies = getConversion("Darcies", "Square Metres");
+    const darcies = getConversion("Darcy", "Square Metres");
     const squareMicrometres = getConversion(
-      "Square Micrometres",
+      "Square Micrometer",
       "Square Metres",
     );
     expect(
@@ -677,8 +738,8 @@ describe("SI unit conversions", () => {
   });
 
   it("composes Fahrenheit and Celsius conversions through their shared Kelvin target", () => {
-    const fahrenheit = getConversion("Degrees Fahrenheit", "Kelvins");
-    const celsius = getConversion("Degrees Celsius", "Kelvins");
+    const fahrenheit = getConversion("Degree Fahrenheit", "Kelvin");
+    const celsius = getConversion("Degree Celsius", "Kelvin");
     expect(createConversionFunction([fahrenheit.to, celsius.from])(-40)).toBe(
       -40,
     );
@@ -713,14 +774,14 @@ describe("SI unit conversions", () => {
   });
 
   it.each([
-    ["Quettaamperes", "Amperes", 1, 1e30],
-    ["Ronnaamperes", "Amperes", 1, 1e27],
-    ["Rontoamperes", "Amperes", 1e27, 1],
-    ["Quectoamperes", "Amperes", 1e30, 1],
-    ["Quectograms", "Kilograms", 1e33, 1],
-    ["Square Quectometres", "Square Metres", 1e60, 1],
-    ["Cubic Quectometres", "Litres", 1e87, 1],
-    ["Cubic Quettametres", "Litres", 1, 1e93],
+    ["Quettaampere", "Ampere", 1, 1e30],
+    ["Ronnaampere", "Ampere", 1, 1e27],
+    ["Rontoampere", "Ampere", 1e27, 1],
+    ["Quectoampere", "Ampere", 1e30, 1],
+    ["Quectogram", "Kilograms", 1e33, 1],
+    ["Square Quectometer", "Square Metres", 1e60, 1],
+    ["Cubic Quectometer", "Litres", 1e87, 1],
+    ["Cubic Quettameter", "Litres", 1, 1e93],
   ])(
     "converts %s at supported magnitudes",
     (source, target, input, expected) => {
@@ -734,13 +795,13 @@ describe("SI unit conversions", () => {
   );
 
   it("composes charge and volume prefixes through their reference units", () => {
-    const kiloampereHours = getConversion("Kiloampere Hours", "Coulombs");
-    const milliampereHours = getConversion("Milliampere Hours", "Coulombs");
+    const kiloampereHours = getConversion("Kiloampere Hour", "Coulomb");
+    const milliampereHours = getConversion("Milliampere Hour", "Coulomb");
     expect(
       createConversionFunction([kiloampereHours.to, milliampereHours.from])(1),
     ).toBeCloseTo(1000000, 6);
 
-    const cubicCentimetres = getConversion("Cubic Centimetres", "Litres");
+    const cubicCentimetres = getConversion("Cubic Centimeter", "Litres");
     const millilitres = getConversion("Millilitres", "Litres");
     expect(
       createConversionFunction([cubicCentimetres.to, millilitres.from])(1),
@@ -749,11 +810,11 @@ describe("SI unit conversions", () => {
 
   it("bounds temperature readings at absolute zero", () => {
     for (const [title, minimum] of [
-      ["Kelvins", 0],
-      ["Degrees Celsius", -273.15],
-      ["Degrees Fahrenheit", -459.67],
-      ["Millikelvins", 0],
-      ["Quectokelvins", 0],
+      ["Kelvin", 0],
+      ["Degree Celsius", -273.15],
+      ["Degree Fahrenheit", -459.67],
+      ["Millikelvin", 0],
+      ["Quectokelvin", 0],
     ] as const) {
       expect(getSeeded(title).schema).toMatchObject({ minimum });
     }
@@ -782,7 +843,7 @@ describe("SI unit conversions", () => {
           ? schema.minimum
           : undefined;
       expect(minimum, schema.title).toBeDefined();
-      const conversion = conversions[systemDataTypes.kelvins.dataTypeBaseUrl];
+      const conversion = conversions[systemDataTypes.kelvin.dataTypeBaseUrl];
       if (conversion && minimum !== undefined) {
         expect(
           createConversionFunction([conversion.to])(minimum),
@@ -800,14 +861,14 @@ describe("SI unit conversions", () => {
     for (const title of [
       "Meters",
       "Second",
-      "Pascals",
-      "Volts",
-      "Amperes",
-      "Joules",
+      "Pascal",
+      "Volt",
+      "Ampere",
+      "Joule",
       "Watts",
-      "Radians",
+      "Radian",
       "Degree",
-      "Newton Meters",
+      "Newton Meter",
     ]) {
       const schema = getSeeded(title).schema;
       for (const bound of [

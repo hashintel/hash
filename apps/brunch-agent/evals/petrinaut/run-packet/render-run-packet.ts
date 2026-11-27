@@ -47,7 +47,7 @@ export const renderRunPacket = (packet: RunPacket): string => {
     lines.push(
       `- Case: ${metadata.caseName ?? "–"}`,
       `- Brunch: ${metadata.brunchModel ?? "default"} (${metadata.brunchThinking ?? "default"})`,
-      `- Persona: ${metadata.personaAgent ?? "–"}`,
+      `- Persona: ${metadata.personaDriver ?? "–"}`,
       `- Guidance: ${metadata.guidanceSha256?.slice(0, 12) ?? "–"}`,
       `- Created: ${metadata.createdAt ?? "–"}`,
     );

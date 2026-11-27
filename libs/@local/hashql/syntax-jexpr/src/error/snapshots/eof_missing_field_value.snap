@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\":"
+---
+error[jexpr::lexer::unexpected-eof]: Unexpected end of file
+  ╭▸ 
+1 │ {"#literal":
+  │  ┬───────── ━ unexpected end of input, expected string, number, `true`, `false`, or `null`
+  │  │
+  │  value required by `#literal`
+  │
+  ╰ help: add a primitive literal value such as `42`, `"text"`, `true`, or `null`

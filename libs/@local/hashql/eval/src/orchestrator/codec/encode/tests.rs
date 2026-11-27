@@ -2,7 +2,7 @@ use alloc::{alloc::Global, rc::Rc};
 use core::ops::Bound;
 
 use bytes::BytesMut;
-use hashql_core::heap::Heap;
+use hashql_core::heap::{Heap, SymbolAllocator as _};
 use hashql_mir::{
     intern::Interner,
     interpret::{
@@ -109,7 +109,7 @@ fn serialize_struct_as_map() {
 
     let fields = interner
         .symbols
-        .intern_slice(&[heap.intern_symbol("name"), heap.intern_symbol("value")]);
+        .intern_slice(&[heap.alloc_symbol("name"), heap.alloc_symbol("value")]);
 
     let values = alloc::vec![
         Value::<Global>::String(value::Str::from(Rc::<str>::from("Alice"))),

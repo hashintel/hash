@@ -10,7 +10,7 @@
 
 use core::{alloc::Allocator, fmt};
 
-use hashql_core::heap::TryCloneIn;
+use hashql_core::heap::CloneIn;
 
 use super::{
     InformationUnit,
@@ -59,17 +59,17 @@ impl<A: Allocator, B: Allocator> PartialEq<BodyFootprint<B>> for BodyFootprint<A
 
 impl<A: Allocator> Eq for BodyFootprint<A> {}
 
-impl<A: Allocator, B: Allocator> TryCloneIn<B> for BodyFootprint<A> {
+impl<A: Allocator, B: Allocator> CloneIn<B> for BodyFootprint<A> {
     type Cloned = BodyFootprint<B>;
 
-    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, core::alloc::AllocError> {
+    fn try_clone_in(&self, alloc: B) -> Result<Self::Cloned, core::alloc::AllocError> {
         let Self {
             args: params,
             locals,
             returns,
         } = self;
 
-        let locals = locals.try_clone_in(allocator)?;
+        let locals = locals.try_clone_in(alloc)?;
 
         Ok(BodyFootprint {
             args: *params,
@@ -80,8 +80,8 @@ impl<A: Allocator, B: Allocator> TryCloneIn<B> for BodyFootprint<A> {
 
     fn try_clone_into(
         &self,
-        into: &mut Self::Cloned,
-        allocator: B,
+        target: &mut Self::Cloned,
+        alloc: B,
     ) -> Result<(), core::alloc::AllocError> {
         let Self {
             args: params,
@@ -89,9 +89,9 @@ impl<A: Allocator, B: Allocator> TryCloneIn<B> for BodyFootprint<A> {
             returns,
         } = self;
 
-        into.args = *params;
-        locals.try_clone_into(&mut into.locals, allocator)?;
-        into.returns.clone_from(returns);
+        target.args = *params;
+        locals.try_clone_into(&mut target.locals, alloc)?;
+        target.returns.clone_from(returns);
 
         Ok(())
     }

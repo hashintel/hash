@@ -48,7 +48,7 @@ use super::{
 };
 use crate::{
     collections::{FastHashMap, SmallVec},
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     intern::Provisioned,
     span::SpanId,
     symbol::Symbol,
@@ -205,7 +205,7 @@ where
     T: AsRef<str>,
 {
     fn intern_into_symbol(self, heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol(self.as_ref())
+        heap.alloc_symbol(self.as_ref())
     }
 }
 
@@ -458,7 +458,7 @@ where
 ///
 /// ```rust
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoStructField}};
-/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # use hashql_core::{span::SpanId, heap::{Heap, SymbolAllocator as _}, intern::Provisioned};
 /// # let heap = Heap::new();
 /// # let env = Environment::new(&heap);
 /// # let builder = TypeBuilder::synthetic(&env);
@@ -468,7 +468,7 @@ where
 /// # builder.r#struct([field1]);
 ///
 /// // From a symbol and type
-/// let name_symbol = builder.env.heap.intern_symbol("age");
+/// let name_symbol = builder.env.heap.alloc_symbol("age");
 /// let field2 = (name_symbol, builder.integer());
 /// # builder.r#struct([field2]);
 /// ```

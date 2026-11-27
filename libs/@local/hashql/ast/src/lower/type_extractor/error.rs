@@ -3,7 +3,7 @@ use core::cmp::Ordering;
 
 use hashql_core::{
     algorithms::did_you_mean,
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     module::{Universe, error::ResolutionError, item::ItemKind},
     span::SpanId,
     symbol::Symbol,
@@ -463,8 +463,8 @@ pub(crate) fn unknown_intrinsic_type(
     .primary(Label::new(span, format!("Unknown intrinsic type `{name}`")));
 
     let similar = did_you_mean(
-        heap.intern_symbol(name),
-        available.iter().map(|name| heap.intern_symbol(name)),
+        heap.alloc_symbol(name),
+        available.iter().map(|name| heap.alloc_symbol(name)),
         Some(3),
         None,
     );

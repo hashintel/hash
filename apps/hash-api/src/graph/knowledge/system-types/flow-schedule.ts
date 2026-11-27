@@ -1,4 +1,8 @@
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import {
+  entityIdFromComponents,
+  extractBaseUrl,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowInputValuesToInputsProperty } from "@local/hash-isomorphic-utils/flows/mappings";
@@ -10,6 +14,7 @@ import {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
+  systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
@@ -31,11 +36,17 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 import type { FlowTriggerUsesLink } from "@local/hash-isomorphic-utils/system-types/shared";
 
+/**
+ * Whether an entity is a flow schedule, of any version of `Flow Schedule`: schedules created before its current
+ * version keep theirs until they are next updated.
+ */
 const isEntityFlowScheduleEntity = (
   entity: HashEntity,
 ): entity is HashEntity<FlowSchedule> =>
-  entity.metadata.entityTypeIds.includes(
-    systemEntityTypes.flowSchedule.entityTypeId,
+  entity.metadata.entityTypeIds.some(
+    (entityTypeId) =>
+      extractBaseUrl(entityTypeId) ===
+      systemEntityTypes.flowSchedule.entityTypeBaseUrl,
   );
 
 export const createFlowSchedule: ImpureGraphFunction<
@@ -88,7 +99,7 @@ export const createFlowSchedule: ImpureGraphFunction<
       "https://hash.ai/@h/types/property-type/schedule-catchup-window/": {
         value: catchupWindowMs,
         metadata: {
-          dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1",
+          dataTypeId: systemDataTypes.millisecond.dataTypeId,
         },
       },
       "https://hash.ai/@h/types/property-type/pause-on-failure/": {
@@ -219,14 +230,30 @@ export const updateFlowSchedule: ImpureGraphFunction<
     });
   }
 
-  if (updates.catchupWindowMs !== undefined) {
+  /*
+   * A schedule created before the current version of `Flow Schedule` moves to it, which uses the current version of
+   * `Millisecond`. Its catchup window refers to the earlier one, so it is written again with the current one.
+   */
+  const isOfEarlierType = !existingEntity.metadata.entityTypeIds.includes(
+    systemEntityTypes.flowSchedule.entityTypeId,
+  );
+
+  const catchupWindowMs =
+    updates.catchupWindowMs ??
+    (isOfEarlierType
+      ? existingEntity.properties[
+          "https://hash.ai/@h/types/property-type/schedule-catchup-window/"
+        ]
+      : undefined);
+
+  if (catchupWindowMs !== undefined) {
     propertyPatches.push({
       op: "replace",
       path: [systemPropertyTypes.scheduleCatchupWindow.propertyTypeBaseUrl],
       property: {
-        value: updates.catchupWindowMs,
+        value: catchupWindowMs,
         metadata: {
-          dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1",
+          dataTypeId: systemDataTypes.millisecond.dataTypeId,
         },
       },
     });
@@ -269,6 +296,18 @@ export const updateFlowSchedule: ImpureGraphFunction<
     authentication,
     {
       entity: existingEntity,
+      ...(isOfEarlierType
+        ? {
+            entityTypeIds: mustHaveAtLeastOne(
+              existingEntity.metadata.entityTypeIds.map((entityTypeId) =>
+                extractBaseUrl(entityTypeId) ===
+                systemEntityTypes.flowSchedule.entityTypeBaseUrl
+                  ? systemEntityTypes.flowSchedule.entityTypeId
+                  : entityTypeId,
+              ),
+            ),
+          }
+        : {}),
       propertyPatches,
     },
   );

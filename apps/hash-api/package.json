@@ -17,6 +17,7 @@
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; cd ../../libs/@local/hash-isomorphic-utils && oxfmt --write --ignore-path /dev/null src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "seed-flow-company-outreach": "tsx ./src/seed-data/seed-flow-company-outreach.ts",
     "setup:admin": "NODE_ENV=production OTEL_SERVICE_NAME=\"Setup Admin\" tsx --import ./src/instrument.mjs ./src/setup-admin.ts",
     "start": "NODE_ENV=production NODE_OPTIONS=\"${NODE_OPTIONS:-} --max-old-space-size=2048\" tsx --import ./src/instrument.mjs ./src/index.ts",
     "start:healthcheck": "wait-on --timeout 1200000 http://localhost:5001",

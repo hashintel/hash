@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#dict\": \"invalid\"}"
+---
+error[jexpr::parser::object::dict-expected-format]: Expected object or array of pairs for `#dict`
+  ╭▸ 
+1 │ {"#dict": "invalid"}
+  │  ┬──────  ━━━━━━━━━ expected an object or an array of `[key, value]` pairs, found a string
+  │  │
+  │  required by `#dict`
+  │
+  ╰ help: use an object `{"key": value}` or an array of pairs `[[key, value]]`

@@ -5,6 +5,7 @@ import { getStepPaths } from "../shared/step-paths";
 import { getStartPosition, startNodeId } from "./flow-graph";
 import {
   collapsedForEachSize,
+  emptyForEachSize,
   forEachBoxPadding,
   getStepCardSize,
   stepCardSize,
@@ -74,7 +75,7 @@ const getElkNodes = (
               ...layoutOptions,
               "elk.padding": `[top=${forEachBoxPadding.header},left=${forEachBoxPadding.side},bottom=${forEachBoxPadding.side},right=${forEachBoxPadding.side}]`,
               "elk.nodeSize.constraints": "MINIMUM_SIZE",
-              "elk.nodeSize.minimum": `(${stepCardSize.width}, ${stepCardSize.height + forEachBoxPadding.header})`,
+              "elk.nodeSize.minimum": `(${emptyForEachSize.width}, ${emptyForEachSize.height})`,
             },
           },
   );
@@ -136,8 +137,8 @@ export const getFreePosition = (
 };
 
 /**
- * Lays a flow out left to right, counting data links as well as connections, keeping Start where it is. Inner steps'
- * places are returned in `forEachLayouts` and never saved, except for the top-level for-each steps in
+ * Lays a flow out left to right, counting data links as well as connections, keeping Start where it is. The places of
+ * steps inside a box, relative to it, are returned in `forEachLayouts`, except for the top-level for-each steps in
  * `collapsedStepIds`, which are laid out at their collapsed size.
  */
 export const layOutFlow = async (

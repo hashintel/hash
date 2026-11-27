@@ -1,0 +1,13 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": {\"a\": 1}}"
+---
+error[jexpr::parser::object::literal-expected-primitive]: Expected primitive value for `#literal`
+  ╭▸ 
+1 │ {"#literal": {"a": 1}}
+  │  ┬─────────  ━━━━━━━━ expected a primitive literal, found an object
+  │  │
+  │  required by `#literal`
+  │
+  ├ help: use `{"#struct": {...}}` or `{"#dict": {...}}` for structured data
+  ╰ note: `#literal` only accepts primitive JSON values: strings, numbers, booleans, or `null`

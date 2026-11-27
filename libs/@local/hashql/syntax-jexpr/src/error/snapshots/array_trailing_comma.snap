@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "[\"a\",]"
+---
+error[jexpr::parser::array::trailing-comma]: Unexpected trailing comma in array
+  ╭▸ 
+1 │ ["a",]
+  │     ━ trailing comma is not allowed in arrays
+  │
+  ╰ note: J-Expr follows JSON syntax, which does not allow trailing commas
+help: remove the trailing comma
+  ╭╴
+1 - ["a",]
+1 + ["a"]
+  ╰╴

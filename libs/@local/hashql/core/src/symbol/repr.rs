@@ -26,15 +26,13 @@
 //! provenance / Stacked Borrows.
 #![expect(unsafe_code)]
 
-use alloc::alloc::handle_alloc_error;
 use core::{
-    alloc::{AllocError, Layout},
+    alloc::{AllocError, Allocator, Layout},
     num::NonZero,
     ptr::{self, NonNull},
 };
 
 use super::sym::SYMBOLS;
-use crate::heap::BumpAllocator;
 
 unsafe extern "C" {
     /// A dummy type used to force `RuntimeRepr` to be unsized while not requiring
@@ -84,29 +82,19 @@ impl RuntimeRepr {
         layout
     }
 
-    /// Allocates a runtime symbol containing `value` on the given allocator.
-    ///
-    /// Returns a [`NonNull`] pointer with provenance for the entire allocation,
-    /// including the trailing string bytes.
-    ///
-    /// # Panics
-    ///
-    /// Panics if allocation fails.
-    pub(crate) fn alloc<A: BumpAllocator>(alloc: &A, value: &str) -> NonNull<Self> {
-        let Ok(value) = Self::try_alloc(alloc, value) else {
-            handle_alloc_error(Self::layout(value.len()))
-        };
-
-        value
-    }
-
     /// Attempts to allocate a runtime symbol containing `value`.
+    ///
+    /// Returns a [`NonNull`] pointer with provenance for the entire allocation, including the
+    /// trailing string bytes.
     ///
     /// # Errors
     ///
     /// Returns [`AllocError`] if the allocator cannot satisfy the request.
     #[expect(clippy::cast_ptr_alignment)]
-    fn try_alloc<A: BumpAllocator>(alloc: &A, value: &str) -> Result<NonNull<Self>, AllocError> {
+    pub(crate) fn try_alloc<A: Allocator>(
+        alloc: &A,
+        value: &str,
+    ) -> Result<NonNull<Self>, AllocError> {
         let len = value.len();
 
         let layout = Self::layout(value.len());
@@ -367,8 +355,14 @@ const _: () = {
 mod tests {
     #![expect(clippy::non_ascii_literal)]
 
+    use core::ptr::NonNull;
+
     use super::{ConstantRepr, Repr, RuntimeRepr, SYMBOLS};
     use crate::heap::Scratch;
+
+    fn alloc(alloc: &Scratch, value: &str) -> NonNull<RuntimeRepr> {
+        RuntimeRepr::try_alloc(alloc, value).expect("should allocate the symbol")
+    }
 
     #[test]
     fn constant_symbol_first_entry() {
@@ -399,7 +393,7 @@ mod tests {
     #[test]
     fn runtime_symbol_empty_string() {
         let heap = Scratch::new();
-        let symbol = RuntimeRepr::alloc(&heap, "");
+        let symbol = alloc(&heap, "");
         let repr = Repr::runtime(symbol);
 
         // SAFETY: `heap` is live for the duration of this assertion.
@@ -409,7 +403,7 @@ mod tests {
     #[test]
     fn runtime_symbol_simple_string() {
         let heap = Scratch::new();
-        let symbol = RuntimeRepr::alloc(&heap, "hello");
+        let symbol = alloc(&heap, "hello");
         let repr = Repr::runtime(symbol);
 
         // SAFETY: `heap` is live for the duration of this assertion.
@@ -419,7 +413,7 @@ mod tests {
     #[test]
     fn runtime_symbol_unicode() {
         let heap = Scratch::new();
-        let symbol = RuntimeRepr::alloc(&heap, "日本語 🎉 émojis");
+        let symbol = alloc(&heap, "日本語 🎉 émojis");
         let repr = Repr::runtime(symbol);
 
         // SAFETY: `heap` is live for the duration of this assertion.
@@ -430,7 +424,7 @@ mod tests {
     fn runtime_symbol_long_string() {
         let heap = Scratch::new();
         let long_string = "a".repeat(10_000);
-        let symbol = RuntimeRepr::alloc(&heap, &long_string);
+        let symbol = alloc(&heap, &long_string);
         let repr = Repr::runtime(symbol);
 
         // SAFETY: `heap` is live for the duration of this assertion.
@@ -441,9 +435,9 @@ mod tests {
     fn multiple_runtime_symbols() {
         let heap = Scratch::new();
 
-        let symbol1 = RuntimeRepr::alloc(&heap, "first");
-        let symbol2 = RuntimeRepr::alloc(&heap, "second");
-        let symbol3 = RuntimeRepr::alloc(&heap, "third");
+        let symbol1 = alloc(&heap, "first");
+        let symbol2 = alloc(&heap, "second");
+        let symbol3 = alloc(&heap, "third");
 
         let repr1 = Repr::runtime(symbol1);
         let repr2 = Repr::runtime(symbol2);
@@ -462,7 +456,7 @@ mod tests {
         let heap = Scratch::new();
 
         let constant = Repr::constant(ConstantRepr(0));
-        let runtime = Repr::runtime(RuntimeRepr::alloc(&heap, "test"));
+        let runtime = Repr::runtime(alloc(&heap, "test"));
 
         assert_eq!(constant.tag(), Repr::TAG_CONSTANT);
         assert_eq!(runtime.tag(), Repr::TAG_RUNTIME);
@@ -471,7 +465,7 @@ mod tests {
     #[test]
     fn runtime_symbol_stores_correct_length() {
         let heap = Scratch::new();
-        let symbol = RuntimeRepr::alloc(&heap, "hello");
+        let symbol = alloc(&heap, "hello");
 
         // SAFETY: `symbol` points to a valid allocation and `heap` is live.
         unsafe {

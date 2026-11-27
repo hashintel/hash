@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
+import { findStep } from "../shared/find-step";
 import { getUnfillableInputProblem } from "../shared/run-form";
 import { actionStep, flowWith } from "../shared/step-fixtures";
 import {
@@ -35,9 +36,7 @@ const offeredFor = (
   stepId: string,
   inputName: string,
 ) => {
-  const step = flowDefinition.steps.find(
-    (candidate) => candidate.stepId === stepId,
-  );
+  const step = findStep(flowDefinition.steps, stepId)?.step;
 
   if (step?.kind !== "action") {
     throw new Error(`No action step "${stepId}"`);
@@ -53,13 +52,18 @@ const offeredFor = (
     throw new Error(`No input "${inputName}"`);
   }
 
-  const { flowInputs, earlierSteps } = getSourceOptions({
+  const { item, flowInputs, earlierSteps } = getSourceOptions({
     flowDefinition,
     stepId,
     target: getInputTarget({ flowDefinition, stepId, input, actionDefinition }),
+    getItemName: (forEachStepId) => `${forEachStepId} item`,
   });
 
   return {
+    item: item && {
+      label: `${item.from} › ${item.label}`,
+      source: item.source,
+    },
     flowInputs: flowInputs.map(({ label, source }) => ({ label, source })),
     earlierSteps: earlierSteps.map(({ from, label }) => `${from} › ${label}`),
   };
@@ -123,6 +127,7 @@ describe("getSourceOptions", () => {
 
     /* An optional input also takes values that may be missing. */
     expect(offeredFor(flowDefinition, "third", "context")).toEqual({
+      item: null,
       flowInputs: [
         { label: "Site", source: { kind: "flow-input", inputName: "site" } },
         { label: "Notes", source: { kind: "flow-input", inputName: "notes" } },
@@ -157,6 +162,7 @@ describe("getSourceOptions", () => {
     };
 
     expect(offeredFor(filtered, "next", "items")).toEqual({
+      item: null,
       flowInputs: [
         {
           label: "Questions",
@@ -165,6 +171,72 @@ describe("getSourceOptions", () => {
       ],
       earlierSteps: ["picked › Matching", "picked › Non matching"],
     });
+  });
+});
+
+describe("getSourceOptions inside a for-each step", () => {
+  /*
+   * `first` → `list`, a for-each step over `first`'s entities, with `before` → `inner` inside it, and `after` a step
+   * inside that `inner` runs before. `loose` is outside, connected to nothing.
+   */
+  const flowDefinition: FlowDefinition<string> = {
+    ...flowWith([
+      actionStep("first", {
+        actionDefinitionId: "queryEntities",
+        description: "first",
+      }),
+      answer("loose"),
+      {
+        kind: "for-each",
+        stepId: "list",
+        description: "list",
+        over: { kind: "step-output", stepId: "first", outputName: "entities" },
+        runAfter: [{ stepId: "first" }],
+        steps: [
+          answer("before"),
+          actionStep("inner", {
+            actionDefinitionId: "draftMessage",
+            runAfter: [{ stepId: "before" }],
+          }),
+          answer("after", { runAfter: [{ stepId: "inner" }] }),
+        ],
+      },
+    ]),
+    inputs: [
+      { name: "topic", payloadKind: "Text", array: false, required: true },
+    ],
+  };
+
+  it("offers the steps before it inside, then those before the for-each step, and none after it or apart from it", () => {
+    expect(offeredFor(flowDefinition, "inner", "instructions")).toEqual({
+      item: null,
+      flowInputs: [
+        { label: "Topic", source: { kind: "flow-input", inputName: "topic" } },
+      ],
+      earlierSteps: ["before › Explanation"],
+    });
+  });
+
+  it("offers the item whole, wrapped into a list for an input that takes one", () => {
+    expect(offeredFor(flowDefinition, "inner", "entities")).toEqual({
+      item: {
+        label: "list › list item",
+        source: { kind: "item", wrap: true },
+      },
+      flowInputs: [],
+      earlierSteps: ["first › Entities"],
+    });
+  });
+
+  it("offers no item while the for-each step has no list", () => {
+    const withoutList = structuredClone(flowDefinition);
+    const list = withoutList.steps[2];
+
+    if (list?.kind === "for-each") {
+      delete list.over;
+    }
+
+    expect(offeredFor(withoutList, "inner", "entities").item).toBeNull();
   });
 });
 

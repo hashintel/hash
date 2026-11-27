@@ -106,7 +106,7 @@ impl Suite for EvalPostgres {
 
         let analysis = ExecutionAnalysis {
             footprints: &footprints,
-            scratch: &mut scratch,
+            scratch: &scratch,
         };
         let analysis = analysis.run_all_in(&mut context, &mut bodies, heap);
         scratch.reset();
@@ -124,13 +124,13 @@ impl Suite for EvalPostgres {
             &bodies,
             &analysis,
             heap,
-            &mut scratch,
+            scratch.as_mut_scope(),
         );
         scratch.reset();
 
         // Inside of **all** the bodies, find the `GraphRead` terminators to compile.
         let mut prepared_queries = Vec::new();
-        let mut compiler = PostgresCompiler::new_in(&mut context, &mut scratch);
+        let mut compiler = PostgresCompiler::new_in(&mut context, scratch.as_mut_scope());
 
         for body in &bodies {
             for block in &*body.basic_blocks {

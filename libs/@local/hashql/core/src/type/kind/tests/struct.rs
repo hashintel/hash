@@ -1,7 +1,7 @@
 use core::assert_matches;
 
 use crate::{
-    heap::Heap,
+    heap::{Heap, SymbolAllocator as _},
     pretty::{Formatter, RenderOptions},
     span::SpanId,
     symbol::Ident,
@@ -1042,7 +1042,7 @@ fn collect_constraints_generic_params() {
         r#struct!(env, [struct_field!(env, "value", param1)]),
         [GenericArgument {
             id: arg1,
-            name: heap.intern_symbol("T"),
+            name: heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1052,7 +1052,7 @@ fn collect_constraints_generic_params() {
         r#struct!(env, [struct_field!(env, "value", param2)]),
         [GenericArgument {
             id: arg2,
-            name: heap.intern_symbol("U"),
+            name: heap.alloc_symbol("U"),
             constraint: None
         }]
     );
@@ -1193,7 +1193,7 @@ fn instantiate_struct() {
         ),
         [GenericArgument {
             id: argument,
-            name: env.heap.intern_symbol("T"),
+            name: env.heap.alloc_symbol("T"),
             constraint: None
         }]
     );
@@ -1236,7 +1236,7 @@ fn instantiate_struct_recursive() {
             base: r#struct!(env, [struct_field!(env, "name", id.value())]),
             arguments: env.intern_generic_arguments(&mut [GenericArgument {
                 id: argument,
-                name: env.heap.intern_symbol("T"),
+                name: env.heap.alloc_symbol("T"),
                 constraint: None,
             }]),
         })),
@@ -1278,12 +1278,12 @@ fn instantiate_interdependent() {
         [
             GenericArgument {
                 id: t,
-                name: env.heap.intern_symbol("T"),
+                name: env.heap.alloc_symbol("T"),
                 constraint: None,
             },
             GenericArgument {
                 id: u,
-                name: env.heap.intern_symbol("U"),
+                name: env.heap.alloc_symbol("U"),
                 constraint: Some(instantiate_param(&env, t)),
             }
         ]
@@ -1309,7 +1309,7 @@ fn projection() {
     let value = r#struct!(env, [struct_field!(env, "foo", string)]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("foo")));
+    let projection = lattice.projection(value, Ident::synthetic(heap.alloc_symbol("foo")));
 
     assert_eq!(projection, Projection::Resolved(string));
 }
@@ -1324,7 +1324,7 @@ fn projection_unknown_field() {
     let value = r#struct!(env, [struct_field!(env, "foo", string)]);
 
     let mut lattice = LatticeEnvironment::new(&env);
-    let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("bar")));
+    let projection = lattice.projection(value, Ident::synthetic(heap.alloc_symbol("bar")));
     assert_eq!(projection, Projection::Error);
 
     let diagnostics = lattice.take_diagnostics().into_vec();

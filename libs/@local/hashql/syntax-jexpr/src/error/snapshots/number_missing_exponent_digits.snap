@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/error/tests.rs
+expression: "{\"#literal\": 1e+}"
+---
+error[jexpr::lexer::invalid-number]: Invalid number literal
+  ╭▸ 
+1 │ {"#literal": 1e+}
+  │                 ━ expected a digit in exponent
+  │
+  ├ help: add exponent digits, for example `1e10` or `1e+2`
+  ╰ note: JSON numbers follow the format `[-]digits[.digits][(e|E)[+|-]digits]`

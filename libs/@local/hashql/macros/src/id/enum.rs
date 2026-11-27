@@ -214,7 +214,7 @@ pub(super) fn expand_enum(
                 type Error = #krate::id::IdError;
 
                 #[inline]
-                fn try_from(value: #int) -> ::core::result::Result<Self, Self::Error> {
+                fn try_from(value: #int) -> ::core::result::Result<Self, #krate::id::IdError> {
                     if value >= #count {
                         return Err(#krate::id::IdError::OutOfRange {
                             value: value as u64,

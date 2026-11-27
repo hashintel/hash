@@ -3,15 +3,132 @@ import {
   ApolloLink,
   HttpLink,
   InMemoryCache,
+  Observable,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
+import { RetryLink } from "@apollo/client/link/retry";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
 import possibleTypes from "./graphql/fragment-types.gen.json" with { type: "json" };
 import { hashClientHeaderKey } from "./http-requests.js";
 
-import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
+import type {
+  DefaultOptions,
+  FetchResult,
+  NormalizedCacheObject,
+  Operation,
+} from "@apollo/client";
+
+/**
+ * Opts one operation into retries, through its `context`. Operations without
+ * it are sent once, as before.
+ */
+export type RetryContext = {
+  /**
+   * How long each retry of a failed attempt waits, in order: one retry per
+   * entry. An attempt is retried on retryable failures (network errors, 5xx /
+   * 429 HTTP responses, or GraphQL answers whose errors are all retryable).
+   */
+  retryDelaysMs?: readonly number[];
+};
+
+const retryDelaysOf = (operation: Operation) =>
+  (operation.getContext() as RetryContext).retryDelaysMs;
+
+/** An answer with retryable errors, failed so that the retry link retries it. */
+class ResultWithErrors extends Error {
+  constructor(readonly result: FetchResult) {
+    super(
+      result.errors?.map(({ message }) => message).join("; ") ??
+        "The answer has errors",
+    );
+    this.name = "ResultWithErrors";
+  }
+}
+
+/**
+ * GraphQL error codes eligible for retry.
+ * Permanent errors (e.g. `FORBIDDEN`, `UNAUTHENTICATED`, `BAD_USER_INPUT`,
+ * `BAD_REQUEST`, `GRAPHQL_VALIDATION_FAILED`, `NOT_FOUND`) are not retried.
+ */
+const retryableGraphQLErrorCodes = new Set([
+  "INTERNAL_SERVER_ERROR",
+  "SERVICE_UNAVAILABLE",
+  "RATE_LIMITED",
+]);
+
+const isRetryableGraphQLResult = (result: FetchResult): boolean => {
+  const errors = result.errors;
+  if (!errors?.length) {
+    return false;
+  }
+  return errors.every(({ extensions }) => {
+    const code = extensions.code;
+    return typeof code === "string" && retryableGraphQLErrorCodes.has(code);
+  });
+};
+
+const shouldRetryError = (error: unknown): boolean => {
+  if (error instanceof ResultWithErrors) {
+    return isRetryableGraphQLResult(error.result);
+  }
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "statusCode" in error &&
+    typeof error.statusCode === "number"
+  ) {
+    return error.statusCode >= 500 || error.statusCode === 429;
+  }
+  // Network-level failures (e.g. TypeError from fetch) without an HTTP status.
+  return true;
+};
+
+/**
+ * Retries the operations that opt in through {@link RetryContext}, after
+ * each of their delays in turn, when the failure is retryable. When retries
+ * are exhausted, GraphQL error results are restored as normal
+ * {@link FetchResult}s so Apollo preserves `graphQLErrors`, partial `data`,
+ * and `errorPolicy` instead of surfacing them as network errors. Every other
+ * operation passes through untouched.
+ */
+const retryLink = ApolloLink.split(
+  (operation) => retryDelaysOf(operation) !== undefined,
+  ApolloLink.from([
+    new ApolloLink(
+      (operation, forward) =>
+        new Observable((observer) =>
+          forward(operation).subscribe({
+            next: (result) => observer.next(result),
+            complete: () => observer.complete(),
+            error: (err) => {
+              if (err instanceof ResultWithErrors) {
+                observer.next(err.result);
+                observer.complete();
+              } else {
+                observer.error(err);
+              }
+            },
+          }),
+        ),
+    ),
+    new RetryLink({
+      delay: (count, operation) => retryDelaysOf(operation)?.[count - 1] ?? 0,
+      attempts: (count, operation, error) =>
+        count <= (retryDelaysOf(operation)?.length ?? 0) &&
+        shouldRetryError(error),
+    }),
+    new ApolloLink((operation, forward) =>
+      forward(operation).map((result) => {
+        if (isRetryableGraphQLResult(result)) {
+          throw new ResultWithErrors(result);
+        }
+        return result;
+      }),
+    ),
+  ]),
+);
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
@@ -91,7 +208,9 @@ export const createApolloClient = (params?: {
     headers,
   });
 
-  const link = ApolloLink.from([errorLink, httpLink]);
+  // The error link sits before the retry link so Sentry only reports once
+  // after retries are exhausted, rather than once per retry attempt.
+  const link = ApolloLink.from([errorLink, retryLink, httpLink]);
 
   const entityKeyFields = { keyFields: ["entityId"] };
 

@@ -7,6 +7,7 @@ This directory contains the code pertaining to the HASH Graph. Every folder in t
 Each crate has a `hash-graph-` prefix and the following crates are part of the HASH Graph:
 
 - `api`: Endpoints for interacting with the graph. It provides a RESTful API to interact with the graph.
+- `audit`: The audit event the graph records for an action: who acted, on what, and from where.
 - `authorization`: Authorization layer which is responsible for authorizing the data that is being used in the graph, and the users who are interacting with the graph.
 - `client`: A client which is used to interact with the graph. It provides a typed interface to interact with the graph.
 - `migrations`: Migrations for the graph. It provides the functionality to migrate the graph to a new version.

@@ -12,6 +12,7 @@ use hashql_core::{
     id::IdVec,
     module::ModuleRegistry,
     pretty::Formatter,
+    symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{context::HirContext, node::NodeData};
@@ -39,19 +40,20 @@ pub(crate) fn mir_reify<'heap>(
     let mut hir_context = HirContext::new(&hir_interner, &registry);
 
     let result = hashql_ast::lower::lower(
-        heap.intern_symbol("::main"),
+        sym::path::main,
         &mut expr,
         environment,
         hir_context.modules,
-        &mut scratch,
+        scratch.as_mut_scope(),
     );
     scratch.reset();
     let types = process_status(diagnostics, result)?;
 
     let node = process_status(
         diagnostics,
-        NodeData::from_ast(expr, &mut hir_context, &types),
+        NodeData::from_ast_in(expr, &mut hir_context, &types, &scratch),
     )?;
+    scratch.reset();
 
     let node = process_status(
         diagnostics,
@@ -158,7 +160,7 @@ pub(crate) fn mir_spawn_d2() -> (BufWriter<ChildStdin>, JoinHandle<Vec<u8>>) {
         .args(["-l", "elk", "-b=false", "--stdout-format", "svg", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .spawn()
         .expect("should be able to spawn d2");
 
@@ -168,10 +170,18 @@ pub(crate) fn mir_spawn_d2() -> (BufWriter<ChildStdin>, JoinHandle<Vec<u8>>) {
     let handle = thread::spawn(move || {
         // We cannot Sync/Send the actual bodies, so instead we create a thread to wait for the
         // output.
-        child
+        let output = child
             .wait_with_output()
-            .expect("should be able to wait for d2")
-            .stdout
+            .expect("should be able to wait for d2");
+
+        if !output.stderr.is_empty() {
+            tracing::error!(
+                "d2 stderr: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            );
+        }
+
+        output.stdout
     });
 
     (writer, handle)

@@ -412,7 +412,7 @@ fn compile_and_patch<'heap>(
         &fixture.bodies,
         &fixture.execution,
         heap,
-        &mut scratch,
+        scratch.as_mut_scope(),
     );
 
     let mut filters = hashql_core::heap::Vec::new_in(heap);
@@ -430,7 +430,7 @@ fn compile_and_patch<'heap>(
     };
 
     let mut prepared_query = {
-        let mut compiler = PostgresCompiler::new_in(&mut context, &mut scratch);
+        let mut compiler = PostgresCompiler::new_in(&mut context, scratch.as_mut_scope());
         compiler.compile_graph_read(&read)
     };
 

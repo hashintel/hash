@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/embedded/generic.rs
+description: Invalid bound specification
+expression: "<T: >"
+info:
+  kind: Err
+---
+<T: >
+     ^
+invalid generics
+expected `>`
