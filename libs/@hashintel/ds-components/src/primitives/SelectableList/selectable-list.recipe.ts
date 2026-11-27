@@ -2,6 +2,9 @@ import { sva } from "@hashintel/ds-helpers/css";
 
 import type { FormInputSize } from "../../util/form-shared";
 
+// Gap the positioner keeps from the viewport edges (its overflowPadding)
+export const viewportGapPx = 8;
+
 export const styles = sva({
   slots: [
     "content",
@@ -16,6 +19,7 @@ export const styles = sva({
   ],
   base: {
     content: {
+      "--selectable-list-viewport-gap": `${viewportGapPx}px`,
       // A flex column so the header/footer can swap edges by placement when
       // swapHeaderFooterOnFlip is set. Children must not shrink, or long
       // lists would compress rows to fit maxHeight instead of scrolling.
@@ -34,7 +38,12 @@ export const styles = sva({
       borderRadius: "lg",
       boxShadow: "lg",
       outline: "0",
-      maxHeight: "[var(--available-height)]",
+      // Each side falls back to the other, so either variable alone applies.
+      maxHeight:
+        "[min(var(--dropdown-max-height, var(--available-height)), var(--available-height, var(--dropdown-max-height)))]",
+      // Never wider than the viewport, less the positioner's overflowPadding.
+      maxWidth:
+        "[min(var(--dropdown-max-width, var(--selectable-list-default-max-width, 100vw)), calc(100vw - 2 * var(--selectable-list-viewport-gap)))]",
       overflowY: "auto",
       scrollbarWidth: "[thin]",
       color: "fg.heading",
@@ -278,7 +287,7 @@ export const styles = sva({
       },
       menu: {
         content: {
-          maxWidth: "[min(500px, 70vw)]",
+          "--selectable-list-default-max-width": "min(500px, 70vw)",
           '&[data-state="open"]': {
             animation: "fadeIn 120ms ease-out",
           },

@@ -34,6 +34,7 @@ import {
   getVisibleTabbables,
   useCollapsibleExpansion,
 } from "../../primitives/SelectableList/selectable-list-util";
+import { viewportGapPx } from "../../primitives/SelectableList/selectable-list.recipe";
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { hasCaretModifier, hasCommandModifier } from "../../util/keyboard";
 import { parkedPopperPositioner } from "../../util/popper-positioner";
@@ -1167,6 +1168,7 @@ export const Select = <TValue extends string>({
       unmountOnExit
       positioning={{
         getAnchorRect: () => selectRef.current?.getBoundingClientRect() ?? null,
+        overflowPadding: viewportGapPx,
       }}
       ref={ref as React.Ref<HTMLDivElement>}
       className={cx(classes.wrapper, className)}

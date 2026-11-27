@@ -27,7 +27,8 @@ export const comboboxDropdownRecipe = cva({
     width: "[fit-content]",
     minWidth:
       "[max(var(--combobox-list-reference-width), var(--form-min-width)) !important]",
-    maxWidth: "[max(var(--combobox-list-reference-width), 18rem)]",
+    "--selectable-list-default-max-width":
+      "max(var(--combobox-list-reference-width), 18rem)",
     marginLeft: "[calc(-1 * var(--combobox-list-anchor-inset, 0px))]",
     // Items need the same inter-item gap as Menu lists so that adjacent
     // highlight-style selections read as separate rows (matches multi Select)
