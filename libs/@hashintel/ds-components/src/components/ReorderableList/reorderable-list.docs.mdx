@@ -7,6 +7,7 @@ import { PropsTable } from "../../../docs/blocks/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
 import { Stage } from "../../../docs/blocks/stage";
 import { Button } from "../Button/button";
+import { Kbd } from "../Kbd/kbd";
 import { Select } from "../Select/select";
 import { TextInput } from "../TextInput/text-input";
 import { ReorderableList } from "./reorderable-list";
@@ -473,10 +474,10 @@ move, and drop is announced to screen readers with the row's position.
 
 | Key | Action |
 | --- | --- |
-| <kbd>Tab</kbd> | Focus a row's drag handle |
-| <kbd>Space</kbd> / <kbd>Enter</kbd> | Pick up the row; press again to drop it |
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Move the picked-up row |
-| <kbd>Esc</kbd> | Cancel and restore the original position |
+| <Kbd keys="tab" /> | Focus a row's drag handle |
+| <Kbd keys="space" /> / <Kbd keys="enter" /> | Pick up the row; press again to drop it |
+| <Kbd keys="up" /> / <Kbd keys="down" /> | Move the picked-up row |
+| <Kbd keys="escape" /> | Cancel and restore the original position |
 
 ## API reference
 

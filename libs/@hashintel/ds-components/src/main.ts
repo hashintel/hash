@@ -66,6 +66,7 @@ export {
   IconProvider,
 } from "./components/Icon/icon";
 export { iconNames } from "./components/Icon/icon-util";
+export { Kbd, type KbdKeyName, type KbdProps } from "./components/Kbd/kbd";
 export {
   LoadingSpinner,
   type LoadingSpinnerVariant,

@@ -1,0 +1,244 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { noop } from "../../util/noop";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { Menu } from "../Menu/menu";
+import { Tooltip } from "../Tooltip/tooltip";
+import { Kbd } from "./kbd";
+
+<Meta title="Docs/Kbd" />
+
+export const meta = {
+  title: "Kbd",
+  description:
+    "Shows the keys that trigger an action, labelled for the user's platform.",
+  alternativeNames: ["KeyboardShortcut", "KeybindingHint", "Hotkey", "Keycap"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Kbd/kbd.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-kbd--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/kbd",
+  },
+  related: ["Menu", "RightClickMenu", "Tooltip"],
+};
+
+# Kbd
+
+Shows the keys that trigger an action, labelled for the user's platform.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Kbd keys="mod+k" />
+  <Kbd keys="mod+shift+z" />
+  <Kbd keys="escape" />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Kbd } from "@hashintel/ds-components";
+
+export const SearchHint = () => (
+  <span>
+    Search entities <Kbd keys="mod+k" />
+  </span>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Kbd beside an action's label to teach its shortcut — in a menu item's suffix, a tooltip, or a command list.",
+    "Use it in running text to name a key press, such as a hint under a search field.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't show a shortcut that is unavailable in the current context — drop the hint, or disable the action it belongs to.",
+    "Avoid a hint on every action — reserve them for frequent actions so the ones shown get learned.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Pass the combination as a `+`-separated string. The keys render together in
+one keycap.
+
+<Stage>
+  <Kbd keys="mod+k" />
+</Stage>
+
+### Single keys
+
+Pass a single key name for shortcuts without modifiers, or to name one key.
+
+<Stage>
+  <Kbd keys="v" />
+  <Kbd keys="enter" />
+  <Kbd keys="escape" />
+  <Kbd keys="up" />
+</Stage>
+
+### Key names
+
+The named keys — `mod`, `meta`, `ctrl`, `alt`, `shift`, `enter`, `backspace`,
+`delete`, `escape`, `tab`, `space`, `up`, `down`, `left`, `right`, `pageup`,
+`pagedown`, `insert`, `printscreen`, `plus` are case-insensitive, and aliases (`cmd`, `esc`, `pgup`) and
+`KeyboardEvent.key` values (`Meta`, `ArrowUp`) also work. Pass an array when
+the keys already come as a list, or to show a literal `+` key.
+
+<Stage>
+  <Kbd keys="alt+shift+ArrowDown" />
+  <Kbd keys={["Meta", "Enter"]} />
+  <Kbd keys={["mod", "+"]} />
+</Stage>
+
+### Platform
+
+`auto` (default) follows the user's platform: glyphs on Apple devices, words
+joined by `+` elsewhere. Set `apple` or `pc` only to pin one layout — to
+document both, or when the app already knows the platform.
+
+<Stage>
+  <Kbd keys="mod+shift+z" platform="auto" />
+  <Kbd keys="mod+shift+z" platform="apple" />
+  <Kbd keys="mod+shift+z" platform="pc" />
+</Stage>
+
+### Variants
+
+`neutral` (default) is drawn for light surfaces such as menus and panels.
+`inherit` takes its colors from the surrounding text, so it stays legible on
+solid and dark surfaces.
+
+<Stage>
+  <Button variant="subtle" tone="neutral">
+    Neutral <Kbd keys="mod+s" variant="neutral" />
+  </Button>
+  <Button variant="solid" tone="brand">
+    Inherit <Kbd keys="mod+s" variant="inherit" />
+  </Button>
+</Stage>
+
+### In menu items
+
+Pass it as an item's `suffix` in Menu or RightClickMenu. The keycap
+aligns to the row's first line of text.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Entity actions
+      </Button>
+    }
+    items={[
+      {
+        text: "Copy entity ID",
+        icon: "copy",
+        suffix: <Kbd keys="mod+c" />,
+        onClick: noop,
+      },
+      {
+        text: "Duplicate",
+        icon: "copy",
+        suffix: <Kbd keys="mod+d" />,
+        onClick: noop,
+      },
+      {
+        text: "Delete entity",
+        icon: "trash",
+        tone: "error",
+        suffix: <Kbd keys="mod+backspace" />,
+        onClick: noop,
+      },
+    ]}
+  />
+</Stage>
+
+### In running text
+
+Place it inline in a sentence. It scales with the text and doesn't change the
+line's height.
+
+<Stage>
+  <span>
+    Press <Kbd keys="mod+enter" /> to run the flow, or{" "}
+    <Kbd keys="escape" /> to cancel.
+  </span>
+</Stage>
+
+## Behavior
+
+- **Platform detection.** With `platform="auto"`, the platform is read
+  from the browser. When rendered on a server, PC labels are output first and
+  switch after hydration on Apple devices; pin `platform` to `apple` or `pc`
+  to avoid the switch if the server knows the platform.
+- **Sizing.** The keycap scales with the surrounding font size and is centered
+  on the text line without growing it. Set a `font-size` through `className`
+  to resize it.
+- **Order.** Modifiers move to the front and follow the platform's
+  convention: Control, Option, Shift, Command on Apple devices; Windows,
+  Ctrl, Alt, Shift elsewhere. Other keys keep the order written.
+- **Unknown keys.** A name it doesn't recognize is shown as written, with an
+  initial capital: `f2` shows "F2", `CapsLock` shows "CapsLock".
+- **Empty input.** Nothing renders when `keys` is empty.
+
+## Content
+
+- Prefer `mod` to `cmd` or `ctrl` for an app's primary modifier, so each
+  platform shows its own key.
+- For a sequence of presses, render one Kbd per step — a single instance reads as keys pressed together.
+
+## Accessibility
+
+### What Kbd provides
+
+- Screen readers announce each key by name — "Shift Command Z" — instead of
+  the glyphs, which are hidden from assistive technology.
+- Inside a menu item, the names become part of the item's accessible name, as
+  native menus announce them.
+- It is not focusable or interactive, and renders `kbd` elements.
+
+### What you must do
+
+- Bind the shortcut yourself, and keep the hint in sync with the binding.
+- Where the element that owns the action is focusable, also set
+  [`aria-keyshortcuts`](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-keyshortcuts)
+  on it so assistive technology can list the shortcut.
+- Don't make the hint the only way to discover an action — every shortcut
+  needs a visible control that does the same thing.
+
+## API reference
+
+<PropsTable
+  of={Kbd}
+  defaults={{ variant: '"neutral"', platform: '"auto"' }}
+/>
