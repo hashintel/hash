@@ -767,6 +767,13 @@ const hashEntityTypeSchema = v.object({
   entityTypeId: v.string(),
   title: v.string(),
   description: v.optional(v.string()),
+  /**
+   * Set when the type's web is neither the user's own nor one of their
+   * organizations' (HASH's shared webs included), or the type was fetched
+   * from outside HASH; the page decides, since it knows the user's webs.
+   * Absent from pages that predate it.
+   */
+  external: v.optional(v.literal(true)),
   properties: v.array(
     v.object({
       baseUrl: v.string(),

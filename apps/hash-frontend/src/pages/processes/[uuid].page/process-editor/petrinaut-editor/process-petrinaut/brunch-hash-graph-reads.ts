@@ -12,6 +12,7 @@ import {
   extractBaseUrl,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
+  isOwnedOntologyElementMetadata,
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -865,10 +866,13 @@ export const hashEntityTypeReadRequest = (
  * Each returned type with its properties (keyed by base URL, carrying title
  * and description/units where resolved), its links, and either `cursor` (when
  * cursor continuation is supported) or `hasMore: true` (when `version == "latest"`
- * hit `limit` and cursors are unavailable under H-1442).
+ * hit `limit` and cursors are unavailable under H-1442). A type is marked
+ * `external` unless its metadata places it in one of `ownWebIds`: a type in
+ * any other web (HASH's shared webs included) or fetched from outside HASH is.
  */
 const hashEntityTypeReadResult = (
   response: QueryEntityTypesQuery,
+  ownWebIds: ReadonlySet<WebId>,
   { usesLatestFilter }: { readonly usesLatestFilter: boolean },
 ): HashEntityTypeReadResult => {
   const { entityTypes, closedEntityTypes, definitions, cursor } =
@@ -877,14 +881,18 @@ const hashEntityTypeReadResult = (
     (closedEntityTypes ?? []).map((closed) => [closed.$id, closed]),
   );
   return {
-    entityTypes: entityTypes.map(({ schema }) => {
+    entityTypes: entityTypes.map(({ schema, metadata }) => {
       const closed = closedById.get(schema.$id);
       const properties = closed?.properties ?? schema.properties;
       const links = closed?.links ?? schema.links ?? {};
+      const own =
+        isOwnedOntologyElementMetadata(metadata) &&
+        ownWebIds.has(metadata.webId as WebId);
       return {
         entityTypeId: schema.$id,
         title: schema.title,
         description: schema.description,
+        ...(own ? {} : { external: true as const }),
         properties: Object.entries(properties).map(([baseUrl, value]) => {
           const propertyDef =
             definitions?.propertyTypes[
@@ -932,11 +940,14 @@ export type QueryEntityTypes = (
 ) => Promise<QueryEntityTypesQuery>;
 
 /**
- * Brunch's HASH entity type read, run in the page. An input the agent's
- * contract doesn't allow rejects; a failed query or invalid cursor settles `{ error }`.
+ * Brunch's HASH entity type read, run in the page, unscoped (most types live
+ * in HASH's shared webs) but marking types outside the webs of the user
+ * signed in when it runs external. An input the agent's contract doesn't
+ * allow rejects; a failed query or invalid cursor settles `{ error }`.
  */
 export const createHashEntityTypeReadTool = (
   queryEntityTypes: QueryEntityTypes,
+  currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.hashQueryEntityTypes,
   inputParser: { parse: parseHashEntityTypeReadInput },
@@ -959,9 +970,8 @@ export const createHashEntityTypeReadTool = (
       > => {
         const result = hashEntityTypeReadResult(
           await queryEntityTypes(request, signal),
-          {
-            usesLatestFilter,
-          },
+          ownWebIdsOf(currentUser()),
+          { usesLatestFilter },
         );
         const payloadBytes = serializedPayloadBytes(result);
         if (payloadBytes > hashEntityReadMaxPayloadBytes) {
@@ -1386,6 +1396,7 @@ export const useBrunchHashGraphReadTools =
                 context: { fetchOptions: { signal } },
               })
             ).data,
+          () => userRef.current,
         ),
         createHashWebReadTool(() => userRef.current),
         createHashEntityCountTool(

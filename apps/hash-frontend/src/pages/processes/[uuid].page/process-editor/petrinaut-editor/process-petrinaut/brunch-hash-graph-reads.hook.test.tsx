@@ -144,6 +144,48 @@ test("the type read asks the page's Apollo client for the graph's types now, and
   });
 });
 
+test("the type read marks types outside the webs of the user signed in when it runs external", async () => {
+  const { result, signIn } = renderTools(userWith("member", ["acme"]));
+  signIn(userWith("member", []));
+  const typeIn = (name: string, webId: string) => ({
+    schema: {
+      $id: `https://hash.ai/@h/types/entity-type/${name}/v/1`,
+      title: name,
+      properties: {},
+      links: {},
+    },
+    metadata: { webId },
+  });
+  apollo.query.mockResolvedValueOnce({
+    data: {
+      queryEntityTypes: {
+        entityTypes: [typeIn("own", "member-web"), typeIn("left", "acme-web")],
+        closedEntityTypes: [],
+        definitions: { dataTypes: {}, propertyTypes: {}, entityTypes: {} },
+      },
+    },
+  });
+  await expect(
+    execute(result.current, brunchTools.hashQueryEntityTypes, {}),
+  ).resolves.toEqual({
+    entityTypes: [
+      {
+        entityTypeId: "https://hash.ai/@h/types/entity-type/own/v/1",
+        title: "own",
+        properties: [],
+        links: [],
+      },
+      {
+        entityTypeId: "https://hash.ai/@h/types/entity-type/left/v/1",
+        title: "left",
+        external: true,
+        properties: [],
+        links: [],
+      },
+    ],
+  });
+});
+
 test("the count asks the page's Apollo client for a summary now, in the webs of the user signed in when it runs", async () => {
   const { result, signIn } = renderTools(userWith("member", ["acme"]));
   signIn(userWith("member", []));

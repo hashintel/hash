@@ -259,6 +259,25 @@ test("entity type reads accept base URLs, published versioned URLs, titles, allV
   });
 });
 
+test("an entity type read marks a type from outside the user's webs external, and only ever with true", () => {
+  const type = {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/user/v/7",
+    title: "User",
+    properties: [],
+    links: [],
+  };
+  const parsed = v.parse(hashEntityTypeReadResultSchema, {
+    entityTypes: [type, { ...type, external: true }],
+  });
+  expect(parsed.entityTypes[0]).not.toHaveProperty("external");
+  expect(parsed.entityTypes[1]).toEqual({ ...type, external: true });
+  expect(
+    v.safeParse(hashEntityTypeReadResultSchema, {
+      entityTypes: [{ ...type, external: false }],
+    }).success,
+  ).toBe(false);
+});
+
 test.each([
   ["entity read", parseHashEntityReadInput],
   ["entity type read", parseHashEntityTypeReadInput],

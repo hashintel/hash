@@ -1647,7 +1647,7 @@ const typesResponse = {
           },
           links: {},
         },
-        metadata: {},
+        metadata: { webId: "alice-web" },
       },
     ],
     closedEntityTypes: [
@@ -1690,7 +1690,10 @@ test("the type read runs the request it built and returns each type closed, with
   const query = vi.fn<QueryEntityTypes>(() => Promise.resolve(typesResponse));
   const input = { webIds: ["alice-web"] };
 
-  const output = await runTool(createHashEntityTypeReadTool(query), input);
+  const output = await runTool(
+    createHashEntityTypeReadTool(query, () => reader),
+    input,
+  );
 
   expect(query).toHaveBeenCalledWith(
     hashEntityTypeReadRequest(input),
@@ -1733,7 +1736,10 @@ test("latest-version type reads report hasMore without a broken cursor, allVersi
 
   // Latest-only reads report hasMore: true and NEVER emit a broken cursor (H-1442).
   const latestResult = await runTool(
-    createHashEntityTypeReadTool(() => Promise.resolve(withCursor)),
+    createHashEntityTypeReadTool(
+      () => Promise.resolve(withCursor),
+      () => reader,
+    ),
     {},
   );
   expect(latestResult).toMatchObject({ hasMore: true });
@@ -1742,14 +1748,20 @@ test("latest-version type reads report hasMore without a broken cursor, allVersi
   // allVersions: true returns the real cursor for pagination.
   await expect(
     runTool(
-      createHashEntityTypeReadTool(() => Promise.resolve(withCursor)),
+      createHashEntityTypeReadTool(
+        () => Promise.resolve(withCursor),
+        () => reader,
+      ),
       { allVersions: true },
     ),
   ).resolves.toMatchObject({ cursor: typeUrl("supplier") });
 
   await expect(
     runTool(
-      createHashEntityTypeReadTool(() => Promise.resolve(typesResponse)),
+      createHashEntityTypeReadTool(
+        () => Promise.resolve(typesResponse),
+        () => reader,
+      ),
       { allVersions: true },
     ),
   ).resolves.not.toHaveProperty("cursor");
@@ -1761,10 +1773,13 @@ test("latest-version type reads report hasMore without a broken cursor, allVersi
     "https://hash.ai/@alice/types/entity-type/supplier/v/2-draft.lane.1",
   ]) {
     await expect(
-      runTool(createHashEntityTypeReadTool(query), {
-        allVersions: true,
-        cursor: badCursor,
-      }),
+      runTool(
+        createHashEntityTypeReadTool(query, () => reader),
+        {
+          allVersions: true,
+          cursor: badCursor,
+        },
+      ),
     ).resolves.toEqual({
       error:
         "The cursor isn't one this type read gave. Repeat the read without a cursor to start from the first page.",
@@ -1774,8 +1789,9 @@ test("latest-version type reads report hasMore without a broken cursor, allVersi
 });
 
 test("a failed type query settles the read with its message", async () => {
-  const tool = createHashEntityTypeReadTool(() =>
-    Promise.reject(new Error("Response not successful: GraphQL error")),
+  const tool = createHashEntityTypeReadTool(
+    () => Promise.reject(new Error("Response not successful: GraphQL error")),
+    () => reader,
   );
   await expect(runTool(tool, {})).resolves.toEqual({
     error: "Response not successful: GraphQL error",
@@ -1785,9 +1801,62 @@ test("a failed type query settles the read with its message", async () => {
 test("a type read input the agent's contract doesn't allow is refused before any query", async () => {
   const query = vi.fn<QueryEntityTypes>(() => Promise.resolve(typesResponse));
   await expect(
-    runTool(createHashEntityTypeReadTool(query), { webIds: "alice-web" }),
+    runTool(
+      createHashEntityTypeReadTool(query, () => reader),
+      { webIds: "alice-web" },
+    ),
   ).rejects.toThrow();
   expect(query).not.toHaveBeenCalled();
+});
+
+test("the type read marks each type outside the reader's own and org webs external, by its metadata, and all of them with no user signed in", async () => {
+  const typeIn = (name: string, metadata: Record<string, unknown>) => ({
+    schema: { $id: typeUrl(name), title: name, properties: {}, links: {} },
+    metadata,
+  });
+  const webTypesResponse = {
+    queryEntityTypes: {
+      entityTypes: [
+        typeIn("own", { webId: "alice-web" }),
+        typeIn("org", { webId: "org-web" }),
+        typeIn("shared", { webId: "h-web" }),
+        typeIn("other-user", { webId: "bob-web" }),
+        typeIn("fetched", { fetchedAt: "2026-01-01T00:00:00.000Z" }),
+      ],
+      closedEntityTypes: [],
+      definitions: { dataTypes: {}, propertyTypes: {}, entityTypes: {} },
+    },
+  } as unknown as QueryEntityTypesQuery;
+  const externalById = async (user: HashWebReadUser | undefined) => {
+    const output = (await runTool(
+      createHashEntityTypeReadTool(
+        () => Promise.resolve(webTypesResponse),
+        () => user,
+      ),
+      {},
+    )) as { entityTypes: { entityTypeId: string; external?: true }[] };
+    return Object.fromEntries(
+      output.entityTypes.map(({ entityTypeId, external }) => [
+        entityTypeId,
+        external,
+      ]),
+    );
+  };
+
+  await expect(externalById(reader)).resolves.toEqual({
+    [typeUrl("own")]: undefined,
+    [typeUrl("org")]: undefined,
+    [typeUrl("shared")]: true,
+    [typeUrl("other-user")]: true,
+    [typeUrl("fetched")]: true,
+  });
+  await expect(externalById(undefined)).resolves.toEqual({
+    [typeUrl("own")]: true,
+    [typeUrl("org")]: true,
+    [typeUrl("shared")]: true,
+    [typeUrl("other-user")]: true,
+    [typeUrl("fetched")]: true,
+  });
 });
 
 const alice: HashWebReadUser = {
@@ -2699,6 +2768,7 @@ test("entity type reads exceeding 12 MiB settle a structured oversized refusal, 
             description: "d".repeat(12 * 1024 * 1024 + 1024),
             properties: {},
           },
+          metadata: { webId: "alice-web" },
         },
       ],
       closedEntityTypes: [],
@@ -2706,7 +2776,10 @@ test("entity type reads exceeding 12 MiB settle a structured oversized refusal, 
     },
   } as unknown as QueryEntityTypesQuery;
   const typeOutput = await runTool(
-    createHashEntityTypeReadTool(() => Promise.resolve(hugeTypeResponse)),
+    createHashEntityTypeReadTool(
+      () => Promise.resolve(hugeTypeResponse),
+      () => reader,
+    ),
     {},
   );
   expect(typeOutput).toEqual({
