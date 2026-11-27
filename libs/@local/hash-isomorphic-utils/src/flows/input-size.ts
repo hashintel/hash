@@ -15,6 +15,7 @@ const kindSizes: Record<PayloadKind, InputSize> = {
   /* Picked from a menu. */
   ActorType: "short",
   EntityId: "short",
+  EntityProperty: "short",
   GoogleAccountId: "short",
   GoogleSheet: "short",
   VersionedUrl: "short",
