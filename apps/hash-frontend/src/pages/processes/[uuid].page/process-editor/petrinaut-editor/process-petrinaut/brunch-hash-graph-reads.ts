@@ -24,6 +24,10 @@ import {
   type HashEntityTypeReadInput,
   type HashEntityTypeReadOversized,
   type HashEntityTypeReadResult,
+  type HashJoinEndpointAnchor,
+  type HashJoinEntity,
+  type HashJoinGraph,
+  type HashJoinTypeSelector,
   type HashReadFailure,
   type HashWebReadResult,
   type HashWebScope,
@@ -40,6 +44,7 @@ import {
   parseHashEntityReadInput,
   parseHashEntityTypeReadInput,
   parseHashWebReadInput,
+  runHashEntityJoinCount,
 } from "@hashintel/brunch-agent";
 import {
   deserializeQueryEntitySubgraphResponse,
@@ -59,13 +64,6 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { summarizeEntitiesQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthInfo } from "../../../../../shared/auth-info-context";
-import {
-  type HashJoinEndpointAnchor,
-  type HashJoinEntity,
-  type HashJoinGraph,
-  type HashJoinTypeSelector,
-  runHashEntityJoinCount,
-} from "./brunch-hash-graph-reads/join-count";
 
 import type {
   QueryEntitySubgraphQuery,

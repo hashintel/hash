@@ -904,3 +904,17 @@ export const hashEntityCountJoinResultSchema = v.variant("outcome", [
 export type HashEntityCountJoinResult = v.InferOutput<
   typeof hashEntityCountJoinResultSchema
 >;
+
+/**
+ * Unified contract schema for every successful (non-error) shape settled by
+ * `hash_count_entities`: either a plain count (`hashEntityCountResultSchema`)
+ * or a count by links (`hashEntityCountJoinResultSchema`).
+ */
+export const hashEntityCountToolResultSchema = v.union([
+  hashEntityCountJoinResultSchema,
+  hashEntityCountResultSchema,
+]);
+
+export type HashEntityCountToolResult = v.InferOutput<
+  typeof hashEntityCountToolResultSchema
+>;

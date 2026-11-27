@@ -35,6 +35,7 @@ export {
   hashEntityCountMaxGroups,
   hashEntityCountMaxJoinEntities,
   hashEntityCountResultSchema,
+  hashEntityCountToolResultSchema,
   hashEntityCountWhereConditions,
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
@@ -68,6 +69,7 @@ export {
   type HashEntityCountJoinResult,
   type HashEntityCountResult,
   type HashEntityCountStep,
+  type HashEntityCountToolResult,
   type HashEntityCountWhereCondition,
   type HashEntityReadInput,
   type HashEntityReadOversized,
@@ -79,6 +81,19 @@ export {
   type HashWebReadResult,
   type HashWebScope,
 } from "./hash/graph-reads";
+export {
+  hashEntityCountMaxGroupExpansionSteps,
+  hashEntityJoinCount,
+  hashEntityJoinCountPlan,
+  runHashEntityJoinCount,
+  type HashEntityJoinCountOptions,
+  type HashEntityJoinCountOutcome,
+  type HashJoinEndpointAnchor,
+  type HashJoinEntity,
+  type HashJoinGraph,
+  type HashJoinSelector,
+  type HashJoinTypeSelector,
+} from "./hash/join-count";
 export {
   hashSaveInputSchema,
   parseHashSaveInput,

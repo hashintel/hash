@@ -11,6 +11,7 @@ import {
   hashEntityCountMaxGroups,
   hashEntityCountMaxJoinEntities,
   hashEntityCountResultSchema,
+  hashEntityCountToolResultSchema,
   hashEntityCountWhereConditions,
   hashEntityReadDefaultLimit,
   hashEntityReadMaxLimit,
@@ -562,6 +563,16 @@ test("a count by links settles as counted, refused or incomplete, without webSco
     false,
   );
   expect(v.safeParse(hashEntityCountResultSchema, counted).success).toBe(false);
+  // The unified count tool result schema accepts every plain and join variant and rejects malformed shapes.
+  expect(v.parse(hashEntityCountToolResultSchema, plain)).toEqual(plain);
+  expect(v.parse(hashEntityCountToolResultSchema, counted)).toEqual(counted);
+  expect(v.parse(hashEntityCountToolResultSchema, refused)).toEqual(refused);
+  expect(v.parse(hashEntityCountToolResultSchema, incomplete)).toEqual(
+    incomplete,
+  );
+  expect(
+    v.safeParse(hashEntityCountToolResultSchema, { count: 1 }).success,
+  ).toBe(false);
 });
 
 test("browser oversized entity-read and type-read refusal schemas validate payload metadata", () => {

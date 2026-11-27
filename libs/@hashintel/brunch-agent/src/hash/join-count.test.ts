@@ -3,8 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   hashEntityCountDefaultJoinEntities,
   hashEntityReadMaxLimit,
-} from "@hashintel/brunch-agent";
-
+} from "./graph-reads";
 import {
   type HashJoinEntity,
   type HashJoinGraph,
@@ -275,15 +274,12 @@ describe("the join", () => {
       diamondOrders,
       diamondLinks,
     );
-    expect("reason" in exact).toBe(false);
-    if (!("reason" in exact)) {
-      expect(exact.groups).toEqual(
-        new Map([
-          ["t1", 5],
-          ["t2", 5],
-        ]),
-      );
-    }
+    expect("reason" in exact ? exact.reason : exact.groups).toEqual(
+      new Map([
+        ["t1", 5],
+        ["t2", 5],
+      ]),
+    );
 
     const stopped = hashEntityJoinCount(
       { groupBy: diamondGroupBy },
@@ -291,9 +287,9 @@ describe("the join", () => {
       diamondLinks,
       { maxExpansionSteps: 5 },
     );
-    expect(stopped).toEqual({
-      reason: expect.stringContaining("expansion limit"),
-    });
+    expect("reason" in stopped ? stopped.reason : "").toContain(
+      "expansion limit",
+    );
 
     const controller = new AbortController();
     controller.abort(new Error("cancelled join"));
@@ -548,8 +544,11 @@ describe("the paged read", () => {
       ([selector]) => "entityIds" in selector,
     );
     expect(idLookups).toHaveLength(1);
-    const requestedIds = (idLookups[0]?.[0] as { entityIds: string[] })
-      .entityIds;
+    const firstLookup = idLookups[0]?.[0];
+    const requestedIds =
+      firstLookup !== undefined && "entityIds" in firstLookup
+        ? firstLookup.entityIds
+        : [];
     expect(requestedIds).toHaveLength(25);
     expect(requestedIds[0]).toBe("c00");
     expect(requestedIds[24]).toBe("c24");
@@ -705,8 +704,11 @@ describe("the paged read", () => {
       ([selector]) => "entityIds" in selector,
     );
     expect(idLookups).toHaveLength(1);
+    const firstLookup = idLookups[0]?.[0];
     expect(
-      (idLookups[0]?.[0] as { entityIds: string[] }).entityIds,
+      firstLookup !== undefined && "entityIds" in firstLookup
+        ? firstLookup.entityIds
+        : [],
     ).toHaveLength(25);
   });
 
@@ -733,28 +735,20 @@ describe("the paged read", () => {
       graph,
       signal,
     );
-    expect(result).toEqual({
-      outcome: "incomplete",
-      reason: expect.stringContaining(
-        "took the reads past the 3,000 entities limit: HASH holds more than it did when the count began.",
-      ),
-      reads: [
-        {
-          role: "counted",
-          entityTypes: ["Sales Order"],
-          entities: expect.any(Number),
-        },
-        {
-          role: "link",
-          entityTypes: ["Has Customer"],
-          entities: expect.any(Number),
-        },
-      ],
-      requests: expect.any(Number),
-    });
+    expect(result.outcome).toBe("incomplete");
     if (result.outcome !== "incomplete") {
-      return;
+      throw new Error(`Expected incomplete outcome, got ${result.outcome}`);
     }
+    expect(result.reason).toContain(
+      "took the reads past the 3,000 entities limit: HASH holds more than it did when the count began.",
+    );
+    expect(
+      result.reads.map(({ role, entityTypes }) => ({ role, entityTypes })),
+    ).toEqual([
+      { role: "counted", entityTypes: ["Sales Order"] },
+      { role: "link", entityTypes: ["Has Customer"] },
+    ]);
+    expect(result.requests).toBeGreaterThan(0);
     const read = result.reads.reduce((sum, { entities }) => sum + entities, 0);
     expect(read).toBeGreaterThan(3_000);
     expect(read).toBeLessThanOrEqual(3_000 + 2 * hashEntityReadMaxLimit);
@@ -769,21 +763,22 @@ describe("the paged read", () => {
       graph,
       signal,
     );
-    expect(result).toEqual({
-      outcome: "incomplete",
-      reason:
-        "Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
-      reads: expect.arrayContaining([
-        { role: "link", entityTypes: ["Fulfills"], entities: 2 },
-      ]),
-      requests: expect.any(Number),
-    });
-    expect(graph.page).not.toHaveBeenCalledWith(
-      expect.objectContaining({ entityIds: expect.anything() }),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
+    expect(result.outcome).toBe("incomplete");
+    if (result.outcome !== "incomplete") {
+      throw new Error(`Expected incomplete outcome, got ${result.outcome}`);
+    }
+    expect(result.reason).toBe(
+      "Reading the Fulfills links failed on page 2: HASH didn't respond in time.",
     );
+    expect(result.reads).toContainEqual({
+      role: "link",
+      entityTypes: ["Fulfills"],
+      entities: 2,
+    });
+    expect(result.requests).toBeGreaterThan(0);
+    expect(
+      graph.page.mock.calls.some(([selector]) => "entityIds" in selector),
+    ).toBe(false);
   });
 
   test("a failed read of the grouped entities leaves the count incomplete too", async () => {
@@ -973,10 +968,10 @@ describe("the paged read", () => {
       signal,
       { maxExpansionSteps: 5 },
     );
-    expect(result).toMatchObject({
-      outcome: "incomplete",
-      reason: expect.stringContaining("expansion limit"),
-    });
+    expect(result.outcome).toBe("incomplete");
+    expect(result.outcome === "incomplete" ? result.reason : "").toContain(
+      "expansion limit",
+    );
     expect("count" in result).toBe(false);
   });
 });

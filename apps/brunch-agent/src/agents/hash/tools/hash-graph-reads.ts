@@ -25,6 +25,7 @@ import {
   hashEntityCountMaxGroups,
   hashEntityCountMaxJoinEntities,
   hashEntityCountResultSchema,
+  hashEntityCountToolResultSchema,
   hashEntityCountWhereConditions,
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
@@ -1621,6 +1622,29 @@ export const hashEntityCountJoinForModel = (
   ].join("\n");
 };
 
+/**
+ * Formats any valid `hash_count_entities` result (plain or link-join) via the
+ * unified contract schema `hashEntityCountToolResultSchema`.
+ */
+export const hashEntityCountToolResultForModel = (
+  output: unknown,
+  input: HashEntityCountInput = {},
+) => {
+  const parsed = v.safeParse(hashEntityCountToolResultSchema, output);
+  if (!parsed.success)
+    throw new Error(
+      "HASH's page returned an entity count in an unknown shape.",
+    );
+  return "outcome" in parsed.output
+    ? hashEntityCountJoinForModel(parsed.output, input)
+    : hashEntityCountForModel(parsed.output, {
+        propertyEquals: input.propertyEquals,
+        includeDrafts: input.includeDrafts,
+        includeArchived: input.includeArchived,
+        maxTokens: input.maxTokens,
+      });
+};
+
 /** The entity count, executed by whatever `execute` reaches HASH through. */
 export const createHashEntityCountTool = (execute: BrowserToolExecutor) =>
   defineTool({
@@ -1636,15 +1660,7 @@ export const createHashEntityCountTool = (execute: BrowserToolExecutor) =>
           toolCallId,
           signal,
         },
-        (output) =>
-          data.where === undefined && data.groupBy === undefined
-            ? hashEntityCountForModel(output, {
-                propertyEquals: data.propertyEquals,
-                includeDrafts: data.includeDrafts,
-                includeArchived: data.includeArchived,
-                maxTokens: data.maxTokens,
-              })
-            : hashEntityCountJoinForModel(output, data),
+        (output) => hashEntityCountToolResultForModel(output, data),
       ),
   });
 

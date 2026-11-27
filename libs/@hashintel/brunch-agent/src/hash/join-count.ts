@@ -24,7 +24,7 @@ import {
   hashEntityCountGroupByPath,
   hashEntityCountWhereConditions,
   hashEntityReadMaxLimit,
-} from "@hashintel/brunch-agent";
+} from "./graph-reads";
 
 /** An entity as the join needs it: projected from the canonical read entity. */
 export type HashJoinEntity = Pick<
