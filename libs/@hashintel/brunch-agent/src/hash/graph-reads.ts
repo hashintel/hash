@@ -41,6 +41,12 @@ export const hashEntityReadDefaultLimit = 100;
  */
 export const hashEntityReadMaxPayloadBytes = 12 * 1024 * 1024;
 
+/**
+ * The most values one entity read can name in `fullValuesFor`, so a read
+ * can't ask the agent to render the same large value over and over.
+ */
+export const hashEntityReadMaxFullValuesFor = 50;
+
 /** Maximum characters of an entity label rendered in headings before clipping. */
 export const hashReadLabelPreviewLength = 200;
 
@@ -375,8 +381,12 @@ export const hashEntityReadInputSchema = v.strictObject({
         ]),
       ),
       v.minLength(1, "fullValuesFor cannot be empty; omit it instead."),
+      v.maxLength(
+        hashEntityReadMaxFullValuesFor,
+        `fullValuesFor names at most ${hashEntityReadMaxFullValuesFor} values; split the rest across further reads.`,
+      ),
       v.description(
-        "Values to show where the read would otherwise summarise them (> 500 B): an entity id for all that entity's values, or { entityId, path, offset?, limit? } for one value or a slice of one. Neither changes which entities are read: read them by entityIds too.",
+        `Values to show where the read would otherwise summarise them (> 500 B), at most ${hashEntityReadMaxFullValuesFor}: an entity id for all that entity's values, or { entityId, path, offset?, limit? } for one value or a slice of one. Neither changes which entities are read: read them by entityIds too.`,
       ),
     ),
   ),

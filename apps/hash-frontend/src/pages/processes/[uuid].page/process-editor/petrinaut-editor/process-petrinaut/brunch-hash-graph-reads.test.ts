@@ -13,9 +13,8 @@ import {
   createHashEntityReadTool,
   createHashEntityTypeReadTool,
   createHashWebReadTool,
-  decodeHashEntityReadCursor,
-  encodeHashEntityReadCursor,
   hashEntityCountRequest,
+  hashEntityReadMaxCursors,
   hashEntityReadRequest,
   hashEntityReadWebIds,
   hashEntityTypeReadRequest,
@@ -805,98 +804,165 @@ test("a read asks for a page of the default size, or of the limit given, from th
   });
 });
 
-test("a cursor round-trips with optional resolved temporalAxes, and malformed values fail", () => {
-  const cursor = [
-    "2026-10-26T00:00:00.123456Z",
-    { nested: ["ünïcode ✓", 1, null] },
-    "alice-web",
-  ] as unknown as EntityQueryCursor;
-  const textWithoutAxes = encodeHashEntityReadCursor(cursor);
-  expect(textWithoutAxes).toMatch(/^[A-Za-z0-9_-]+$/u);
-  expect(decodeHashEntityReadCursor(textWithoutAxes)).toEqual({ cursor });
+const malformedCursor = {
+  error:
+    "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
+};
 
-  const textWithAxes = encodeHashEntityReadCursor(cursor, resolvedTemporalAxes);
-  expect(textWithAxes).toMatch(/^[A-Za-z0-9_-]+$/u);
-  expect(decodeHashEntityReadCursor(textWithAxes)).toEqual({
-    cursor,
-    temporalAxes: resolvedTemporalAxes,
-  });
-
-  const malformed = {
-    error:
-      "The cursor isn't one this read gave. Repeat the read without a cursor to start from the first page.",
-  };
-  for (const notACursor of [
-    "not a cursor",
-    "!!!",
-    encodeHashEntityReadCursor({} as never),
-    encodeHashEntityReadCursor([]),
-    encodeHashEntityReadCursor(cursor, {
-      variable: { axis: "decisionTime" },
-    } as never),
-    encodeHashEntityReadCursor(cursor, {
-      ...resolvedTemporalAxes,
-      pinned: { axis: "decisionTime", timestamp: resolvedTimestamp },
-    } as never),
-    btoa("not json"),
-    textWithAxes.slice(0, -3),
-  ]) {
-    expect(decodeHashEntityReadCursor(notACursor)).toEqual(malformed);
-  }
-});
-
-test("a response with a cursor encodes both the cursor and page 1's resolved temporalAxes", async () => {
-  const withCursor = (cursor: unknown, includeResolved = true) =>
-    ({
-      queryEntitySubgraph: {
-        ...response.queryEntitySubgraph,
-        subgraph: {
-          ...response.queryEntitySubgraph.subgraph,
-          ...(includeResolved
-            ? {
-                temporalAxes: {
-                  initial: hashEntityReadRequest({}, readerWebs).temporalAxes,
-                  resolved: resolvedTemporalAxes,
-                },
-              }
-            : {}),
+/** A response like `response`, ending its page with `cursor` and page 1's resolved temporalAxes. */
+const pageEndingAt = (cursor: unknown) =>
+  ({
+    queryEntitySubgraph: {
+      ...response.queryEntitySubgraph,
+      subgraph: {
+        ...response.queryEntitySubgraph.subgraph,
+        temporalAxes: {
+          initial: hashEntityReadRequest({}, readerWebs).temporalAxes,
+          resolved: resolvedTemporalAxes,
         },
-        cursor,
       },
-    }) as unknown as QueryEntitySubgraphQuery;
+      cursor,
+    },
+  }) as unknown as QueryEntitySubgraphQuery;
 
-  const output = await run(() => Promise.resolve(withCursor(graphCursor)), {});
-  expect(output).toMatchObject({
-    cursor: encodeHashEntityReadCursor(graphCursor, resolvedTemporalAxes),
-  });
+const readTool = (query: QueryEntitySubgraph) =>
+  createHashEntityReadTool(query, () => reader);
+
+test("a response with a cursor gives an opaque token, never the graph's cursor or its snapshot time", async () => {
+  const output = (await run(
+    () => Promise.resolve(pageEndingAt(graphCursor)),
+    {},
+  )) as HashEntityReadResult;
+  expect(output.cursor).toMatch(/^c_[0-9a-f-]{36}$/u);
+  expect(output.cursor).not.toContain(resolvedTimestamp);
+  expect(JSON.stringify(output)).not.toContain(resolvedTimestamp);
   await expect(
-    run(() => Promise.resolve(withCursor(null)), {}),
+    run(() => Promise.resolve(pageEndingAt(null)), {}),
   ).resolves.not.toHaveProperty("cursor");
   await expect(
     run(() => Promise.resolve(response), {}),
   ).resolves.not.toHaveProperty("cursor");
 });
 
-test("a read given a cursor passes both the cursor and pinned temporalAxes to the graph", async () => {
-  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
-  const input = {
-    entityTypes: ["Supplier"],
-    limit: 50,
-    cursor: encodeHashEntityReadCursor(graphCursor, resolvedTemporalAxes),
-  };
-  await run(query, input);
-  expect(query).toHaveBeenCalledWith(
+test("a read given a cursor its tool issued passes page 1's graph cursor and pinned temporalAxes to the graph, page after page", async () => {
+  const secondCursor = ["second"] as unknown as EntityQueryCursor;
+  const query = vi
+    .fn<QueryEntitySubgraph>()
+    .mockResolvedValueOnce(pageEndingAt(graphCursor))
+    .mockResolvedValueOnce(pageEndingAt(secondCursor))
+    .mockResolvedValueOnce(response);
+  const tool = readTool(query);
+  const input = { entityTypes: ["Supplier"], limit: 50 };
+
+  const page1 = (await runTool(tool, input)) as HashEntityReadResult;
+  const page2 = (await runTool(tool, {
+    ...input,
+    cursor: page1.cursor,
+  })) as HashEntityReadResult;
+  expect(page2.cursor).toBeDefined();
+  expect(page2.cursor).not.toBe(page1.cursor);
+  const page3 = (await runTool(tool, {
+    ...input,
+    cursor: page2.cursor,
+  })) as HashEntityReadResult;
+  expect(page3).not.toHaveProperty("cursor");
+
+  expect(query).toHaveBeenNthCalledWith(
+    2,
     hashEntityReadRequest(input, readerWebs, {
       cursor: graphCursor,
       temporalAxes: resolvedTemporalAxes,
     }),
     expect.any(AbortSignal),
   );
-  expect(query.mock.calls[0]?.[0]).toMatchObject({
-    limit: 50,
-    cursor: graphCursor,
-    temporalAxes: resolvedTemporalAxes,
-  });
+  expect(query).toHaveBeenNthCalledWith(
+    3,
+    hashEntityReadRequest(input, readerWebs, {
+      cursor: secondCursor,
+      temporalAxes: resolvedTemporalAxes,
+    }),
+    expect.any(AbortSignal),
+  );
+});
+
+test("a tampered, forged or self-encoded cursor settles malformedCursor without querying", async () => {
+  const query = vi
+    .fn<QueryEntitySubgraph>()
+    .mockResolvedValueOnce(pageEndingAt(graphCursor));
+  const tool = readTool(query);
+  const page1 = (await runTool(tool, {})) as HashEntityReadResult;
+  const issued = page1.cursor!;
+  query.mockClear();
+
+  const base64url = (value: unknown) =>
+    btoa(JSON.stringify(value))
+      .replaceAll("+", "-")
+      .replaceAll("/", "_")
+      .replace(/=+$/u, "");
+  for (const notACursor of [
+    "not a cursor",
+    "!!!",
+    `${issued}x`,
+    issued.slice(0, -1),
+    issued.toUpperCase(),
+    `c_${crypto.randomUUID()}`,
+    base64url({ cursor: graphCursor }),
+    base64url({
+      cursor: graphCursor,
+      temporalAxes: {
+        ...resolvedTemporalAxes,
+        pinned: { axis: "transactionTime", timestamp: "2001-01-01T00:00:00Z" },
+      },
+    }),
+    "__proto__",
+    "constructor",
+  ]) {
+    await expect(runTool(tool, { cursor: notACursor })).resolves.toEqual(
+      malformedCursor,
+    );
+  }
+  expect(query).not.toHaveBeenCalled();
+});
+
+test("a cursor one read tool issued isn't accepted by another", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() =>
+    Promise.resolve(pageEndingAt(graphCursor)),
+  );
+  const page1 = (await runTool(readTool(query), {})) as HashEntityReadResult;
+  query.mockClear();
+  await expect(
+    runTool(readTool(query), { cursor: page1.cursor }),
+  ).resolves.toEqual(malformedCursor);
+  expect(query).not.toHaveBeenCalled();
+});
+
+test(`a read tool remembers only its last ${hashEntityReadMaxCursors} cursors, forgetting the oldest first`, async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() =>
+    Promise.resolve(pageEndingAt(graphCursor)),
+  );
+  const tool = readTool(query);
+  const issued: string[] = [];
+  for (let index = 0; index <= hashEntityReadMaxCursors; index++) {
+    issued.push(((await runTool(tool, {})) as HashEntityReadResult).cursor!);
+  }
+  expect(new Set(issued).size).toBe(hashEntityReadMaxCursors + 1);
+  query.mockClear();
+
+  await expect(runTool(tool, { cursor: issued[0] })).resolves.toEqual(
+    malformedCursor,
+  );
+  expect(query).not.toHaveBeenCalled();
+  // Reading with a remembered cursor issues one more, forgetting issued[1].
+  await expect(runTool(tool, { cursor: issued[2] })).resolves.toHaveProperty(
+    "cursor",
+  );
+  await expect(
+    runTool(tool, { cursor: issued.at(-1) }),
+  ).resolves.toHaveProperty("cursor");
+  expect(query).toHaveBeenCalledTimes(2);
+  await expect(runTool(tool, { cursor: issued[1] })).resolves.toEqual(
+    malformedCursor,
+  );
 });
 
 test("includeArchived controls both the request filter and traversed metadata/property archived entities", async () => {
@@ -1191,8 +1257,9 @@ test.each([
 
     const matched: string[] = [];
     let cursor: string | undefined;
+    const tool = createHashEntityReadTool(query, () => reader);
     for (let pages = 0; pages <= matches + 1; pages++) {
-      const output = (await run(query, {
+      const output = (await runTool(tool, {
         entityTypes: ["Supplier"],
         traversalDepth: 1,
         limit,

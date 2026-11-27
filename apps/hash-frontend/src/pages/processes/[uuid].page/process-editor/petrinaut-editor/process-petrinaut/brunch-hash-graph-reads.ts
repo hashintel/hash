@@ -1,6 +1,5 @@
 import { useApolloClient } from "@apollo/client";
 import { useEffect, useMemo, useRef } from "react";
-import { z } from "zod";
 
 import { type QueryTemporalAxes } from "@blockprotocol/graph";
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
@@ -272,74 +271,41 @@ const hashEntityReadOnlyDrafts = (
   return input.includeDrafts === true || named.size === 0 ? undefined : named;
 };
 
-/** Decoded pagination state carried across entity-read pages. */
+/** Pagination state carried across entity-read pages, held in the page. */
 export type HashEntityReadCursor = {
   readonly cursor: EntityQueryCursor;
   readonly temporalAxes?: QueryTemporalAxes;
 };
 
-const limitedBoundSchema = z.strictObject({
-  kind: z.enum(["inclusive", "exclusive"]),
-  limit: z.string().min(1),
-});
-
-const temporalBoundSchema = z.union([
-  z.strictObject({ kind: z.literal("unbounded") }),
-  limitedBoundSchema,
-]);
-
-const temporalIntervalSchema = z.strictObject({
-  start: temporalBoundSchema,
-  end: limitedBoundSchema,
-});
-
-const queryTemporalAxesSchema = z.union([
-  z.strictObject({
-    variable: z.strictObject({
-      axis: z.literal("decisionTime"),
-      interval: temporalIntervalSchema,
-    }),
-    pinned: z.strictObject({
-      axis: z.literal("transactionTime"),
-      timestamp: z.string().min(1),
-    }),
-  }),
-  z.strictObject({
-    variable: z.strictObject({
-      axis: z.literal("transactionTime"),
-      interval: temporalIntervalSchema,
-    }),
-    pinned: z.strictObject({
-      axis: z.literal("decisionTime"),
-      timestamp: z.string().min(1),
-    }),
-  }),
-]) as unknown as z.ZodType<QueryTemporalAxes>;
-
-const hashEntityReadCursorSchema = z.strictObject({
-  cursor: z.array(z.unknown()).min(1),
-  temporalAxes: queryTemporalAxesSchema.optional(),
-});
+/** How many issued entity-read cursors one read tool remembers. */
+export const hashEntityReadMaxCursors = 64;
 
 /**
- * The graph's cursor and optional resolved snapshot time as opaque base64url
- * text the model copies whole, with no quotes or brackets to escape.
+ * The page's memory of the cursors an entity read gave: each issued token is
+ * an unguessable id standing for the graph's cursor and the snapshot time
+ * page 1 resolved, so the model can neither edit a timestamp to read older
+ * state nor forge a cursor. Past `maxEntries`, the oldest token is forgotten.
  */
-export const encodeHashEntityReadCursor = (
-  cursor: EntityQueryCursor,
-  temporalAxes?: QueryTemporalAxes,
-) => {
-  const payload =
-    temporalAxes === undefined ? { cursor } : { cursor, temporalAxes };
-  const bytes = new TextEncoder().encode(JSON.stringify(payload));
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
+const createHashEntityReadCursorStore = ({
+  maxEntries = hashEntityReadMaxCursors,
+}: { readonly maxEntries?: number } = {}) => {
+  const entries = new Map<string, HashEntityReadCursor>();
+  return {
+    issue: (pageCursor: HashEntityReadCursor): string => {
+      while (entries.size >= maxEntries) {
+        const oldest = entries.keys().next().value;
+        if (oldest === undefined) {
+          break;
+        }
+        entries.delete(oldest);
+      }
+      const token = `c_${crypto.randomUUID()}`;
+      entries.set(token, pageCursor);
+      return token;
+    },
+    resolve: (token: string): HashEntityReadCursor | undefined =>
+      entries.get(token),
+  };
 };
 
 const malformedCursor: HashReadFailure = {
@@ -353,38 +319,6 @@ const malformedTypeCursor: HashReadFailure = {
 };
 
 /**
- * Decodes the text `encodeHashEntityReadCursor` made, validating both the
- * graph cursor array and any pinned `temporalAxes`.
- */
-export const decodeHashEntityReadCursor = (
-  text: string,
-): HashEntityReadCursor | HashReadFailure => {
-  try {
-    if (!/^[A-Za-z0-9_-]+$/u.test(text)) {
-      return malformedCursor;
-    }
-    const binary = atob(text.replaceAll("-", "+").replaceAll("_", "/"));
-    const decoded: unknown = JSON.parse(
-      new TextDecoder("utf-8", { fatal: true }).decode(
-        Uint8Array.from(binary, (char) => char.charCodeAt(0)),
-      ),
-    );
-    const parsed = hashEntityReadCursorSchema.safeParse(decoded);
-    if (!parsed.success) {
-      return malformedCursor;
-    }
-    return {
-      cursor: parsed.data.cursor,
-      ...(parsed.data.temporalAxes === undefined
-        ? {}
-        : { temporalAxes: parsed.data.temporalAxes }),
-    };
-  } catch {
-    return malformedCursor;
-  }
-};
-
-/**
  * The `queryEntitySubgraph` request for one page of a read, limited to
  * `webIds` (from `hashEntityReadWebIds`, never the input's own): every given
  * filter must match. An entity id that names a draft reads that draft,
@@ -392,7 +326,7 @@ export const decodeHashEntityReadCursor = (
  * draft part reads only the live entity, and of the drafts the graph returns
  * the read keeps only those named (`hashEntityReadOnlyDrafts`). The page
  * holds up to the input's `limit` of matches (default `hashEntityReadDefaultLimit`,
- * 100), starting at `pageCursor` (from `decodeHashEntityReadCursor`) at its
+ * 100), starting at `pageCursor` (from the read's cursor store) at its
  * pinned `temporalAxes` when continuing a read, or else at the first match.
  */
 export const hashEntityReadRequest = (
@@ -518,21 +452,25 @@ const projectEntityProperties = (
  * filter applies only to matched roots, not traversed entities). Given
  * `onlyDrafts`, retain named drafts and draft links touching them without
  * expanding that set. Entities outside `ownWebIds` are marked `external`.
+ * When more follow, the result's `cursor` is the token `issueCursor` gives
+ * for the graph's cursor and the snapshot time this page resolved.
  */
 const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
   ownWebIds: ReadonlySet<WebId>,
   {
+    issueCursor,
     onlyDrafts,
     includeArchived = false,
     properties: chosenProperties,
     fullValuesFor,
   }: {
+    issueCursor: (pageCursor: HashEntityReadCursor) => string;
     onlyDrafts?: ReadonlySet<EntityId>;
     includeArchived?: boolean;
     properties?: HashEntityReadInput["properties"];
     fullValuesFor?: HashEntityReadInput["fullValuesFor"];
-  } = {},
+  },
 ): HashEntityReadResult => {
   const { subgraph, closedMultiEntityTypes, definitions, cursor } =
     deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph);
@@ -644,7 +582,9 @@ const hashEntityReadResult = (
     }),
     ...(cursor === undefined || cursor === null
       ? {}
-      : { cursor: encodeHashEntityReadCursor(cursor, resolvedTemporalAxes) }),
+      : {
+          cursor: issueCursor({ cursor, temporalAxes: resolvedTemporalAxes }),
+        }),
   };
 };
 
@@ -680,68 +620,75 @@ const settlingQueryFailure = async <Result>(
 /**
  * Brunch's HASH entity read, run in the page, over the webs in scope for the
  * user signed in when it runs, marking entities outside their webs external.
- * One call reads one page, from the input's cursor if it has one. An input
- * the agent's contract doesn't allow rejects; a failed query, a cursor this
- * read didn't give, or a read that names neither webs nor entities with no
- * user to scope to, settles `{ error }`. A serialized result exceeding the
- * 12 MiB browser transport guard settles `{ refused: true, ... }`.
+ * One call reads one page, from the input's cursor if it has one: a token
+ * this tool issued and still remembers (the last `hashEntityReadMaxCursors`),
+ * standing for the graph's cursor and page 1's snapshot time, both of which
+ * stay in the page. An input the agent's contract doesn't allow rejects; a
+ * failed query, a cursor this tool didn't give (or has forgotten), or a read
+ * that names neither webs nor entities with no user to scope to, settles
+ * `{ error }`. A serialized result exceeding the 12 MiB browser transport
+ * guard settles `{ refused: true, ... }`.
  */
 export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
   currentUser: () => HashWebReadUser | undefined,
-): PetrinautAiAutomaticTool => ({
-  toolName: brunchTools.hashQueryEntities,
-  inputParser: { parse: parseHashEntityReadInput },
-  outputParser: { parse: (value) => value },
-  execute: async ({ input, signal }) => {
-    const readInput = parseHashEntityReadInput(input);
-    const pageCursor =
-      readInput.cursor === undefined
-        ? undefined
-        : decodeHashEntityReadCursor(readInput.cursor);
-    if (pageCursor !== undefined && "error" in pageCursor) {
-      return pageCursor;
-    }
-    const user = currentUser();
-    const webScope = hashEntityReadWebIds(readInput, user);
-    if ("error" in webScope) {
-      return webScope;
-    }
-    const request = hashEntityReadRequest(
-      readInput,
-      webScope.webIds,
-      pageCursor,
-    );
-    return settlingQueryFailure(
-      signal,
-      async (): Promise<HashEntityReadResult | HashEntityReadOversized> => {
-        const result = hashEntityReadResult(
-          await queryEntitySubgraph(request, signal),
-          ownWebIdsOf(user),
-          {
-            onlyDrafts: hashEntityReadOnlyDrafts(readInput),
-            includeArchived: readInput.includeArchived === true,
-            properties: readInput.properties,
-            fullValuesFor: readInput.fullValuesFor,
-          },
-        );
-        const payloadBytes = serializedPayloadBytes(result);
-        if (payloadBytes > hashEntityReadMaxPayloadBytes) {
-          const matched = result.entities.filter(
-            (entity) => entity.matched,
-          ).length;
-          return {
-            refused: true as const,
-            payloadBytes,
-            matched,
-            linked: result.entities.length - matched,
-          };
-        }
-        return result;
-      },
-    );
-  },
-});
+): PetrinautAiAutomaticTool => {
+  const cursors = createHashEntityReadCursorStore();
+  return {
+    toolName: brunchTools.hashQueryEntities,
+    inputParser: { parse: parseHashEntityReadInput },
+    outputParser: { parse: (value) => value },
+    execute: async ({ input, signal }) => {
+      const readInput = parseHashEntityReadInput(input);
+      const pageCursor =
+        readInput.cursor === undefined
+          ? undefined
+          : cursors.resolve(readInput.cursor);
+      if (readInput.cursor !== undefined && pageCursor === undefined) {
+        return malformedCursor;
+      }
+      const user = currentUser();
+      const webScope = hashEntityReadWebIds(readInput, user);
+      if ("error" in webScope) {
+        return webScope;
+      }
+      const request = hashEntityReadRequest(
+        readInput,
+        webScope.webIds,
+        pageCursor,
+      );
+      return settlingQueryFailure(
+        signal,
+        async (): Promise<HashEntityReadResult | HashEntityReadOversized> => {
+          const result = hashEntityReadResult(
+            await queryEntitySubgraph(request, signal),
+            ownWebIdsOf(user),
+            {
+              issueCursor: cursors.issue,
+              onlyDrafts: hashEntityReadOnlyDrafts(readInput),
+              includeArchived: readInput.includeArchived === true,
+              properties: readInput.properties,
+              fullValuesFor: readInput.fullValuesFor,
+            },
+          );
+          const payloadBytes = serializedPayloadBytes(result);
+          if (payloadBytes > hashEntityReadMaxPayloadBytes) {
+            const matched = result.entities.filter(
+              (entity) => entity.matched,
+            ).length;
+            return {
+              refused: true as const,
+              payloadBytes,
+              matched,
+              linked: result.entities.length - matched,
+            };
+          }
+          return result;
+        },
+      );
+    },
+  };
+};
 
 type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
 

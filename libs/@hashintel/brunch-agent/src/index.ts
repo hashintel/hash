@@ -44,6 +44,7 @@ export {
   hashEntityReadDefaultLimit,
   hashEntityReadDefaultTraversalDepth,
   hashEntityReadInputSchema,
+  hashEntityReadMaxFullValuesFor,
   hashEntityReadMaxLimit,
   hashEntityReadMaxPayloadBytes,
   hashEntityReadMaxTraversalDepth,

@@ -2227,3 +2227,81 @@ test("whitespace floods and dense non-ASCII text cannot bypass maxTokens or rend
   expect(oversizedTypeRefusal).toContain("allVersions: true");
   expect(oversizedTypeRefusal).toContain("filter by entityTypeIds");
 });
+
+test("a part named more than once in fullValuesFor, however its path is spelled, is shown once", () => {
+  const notes = "n".repeat(2_000);
+  const noted: ReadEntity = {
+    ...person,
+    properties: { ...person.properties, [displayName]: notes },
+  };
+  const byShortName = { entityId: noted.entityId, path: ["display_name"] };
+  const text = hashEntityReadForModel(read([noted]), [
+    byShortName,
+    byShortName,
+    { ...byShortName },
+    { entityId: noted.entityId, path: [displayName] },
+    { entityId: noted.entityId, path: [`${displayName}v/1`] },
+  ]);
+  const pathLines = text
+    .split("\n")
+    .filter((line) => line.startsWith("  path "));
+  expect(pathLines).toEqual([
+    `  path ["display_name"]: ${JSON.stringify(notes)}`,
+  ]);
+
+  // Different slices of the same part are different parts.
+  const sliced = hashEntityReadForModel(read([noted]), [
+    { ...byShortName, limit: 10 },
+    { ...byShortName, limit: 10 },
+    { ...byShortName, offset: 10, limit: 10 },
+  ]);
+  expect(
+    sliced.split("\n").filter((line) => line.startsWith("  path ")),
+  ).toHaveLength(2);
+});
+
+test("many large path reads are refused before their text is built", () => {
+  const twoMiB = "z".repeat(2 * 1024 * 1024);
+  const tenMiB = "q".repeat(10 * 1024 * 1024);
+  const large: ReadEntity = {
+    ...person,
+    properties: { [displayName]: twoMiB, [property("notes")]: tenMiB },
+  };
+  const stringify = vi.spyOn(JSON, "stringify");
+  const largeStringifies = () =>
+    stringify.mock.calls.filter(
+      ([value]) => typeof value === "string" && value.length > 1024 * 1024,
+    ).length;
+  try {
+    const started = performance.now();
+    const fifty = hashEntityReadForModel(
+      read([large]),
+      Array.from({ length: 50 }, (_, offset) => ({
+        entityId: large.entityId,
+        path: ["display_name"],
+        offset,
+      })),
+    );
+    expect(fifty.startsWith("Refused: this read's text would be about")).toBe(
+      true,
+    );
+    expect(fifty).not.toContain("- raise maxTokens");
+    // Only the summaries of the two properties themselves stringify them.
+    expect(largeStringifies()).toBeLessThanOrEqual(2);
+
+    stringify.mockClear();
+    const unsliced = hashEntityReadForModel(read([large]), [
+      { entityId: large.entityId, path: ["notes"] },
+    ]);
+    expect(unsliced.startsWith("Refused:")).toBe(true);
+    expect(largeStringifies()).toBeLessThanOrEqual(2);
+
+    stringify.mockClear();
+    const whole = hashEntityReadForModel(read([large]), [large.entityId]);
+    expect(whole.startsWith("Refused:")).toBe(true);
+    expect(largeStringifies()).toBe(0);
+    expect(performance.now() - started).toBeLessThan(1_000);
+  } finally {
+    stringify.mockRestore();
+  }
+});

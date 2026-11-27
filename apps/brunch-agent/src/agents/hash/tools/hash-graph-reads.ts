@@ -124,6 +124,16 @@ const valueSummaryThresholdBytes = 500;
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length;
 
+/**
+ * BPE-shaped runs in `text`: ASCII words of up to eight letters with a
+ * leading space, up to three digits, up to two printable ASCII symbols,
+ * individual non-ASCII code points such as CJK/emoji, or newlines. No run
+ * spans a newline, so the runs of lines joined by newlines add up.
+ */
+const bpeRuns = (text: string) =>
+  text.match(/ ?[A-Za-z]{1,8}|\d{1,3}|[!-/:-@[-`{-~]{1,2}|\P{ASCII}|\n/gu)
+    ?.length ?? 0;
+
 const jsonBytes = (value: unknown) => byteLength(JSON.stringify(value));
 
 const formatBytes = (bytes: number) =>
@@ -240,6 +250,74 @@ const summarise = (
 };
 
 /**
+ * A lower bound on the length of `value`'s JSON, from its strings', keys' and
+ * punctuation's lengths, without building it; it stops counting once past
+ * `cap`. Values are as JSON gives them: no `undefined`, functions or cycles.
+ */
+const jsonLengthAtLeast = (value: unknown, cap: number): number => {
+  let length = 0;
+  const pending: unknown[] = [value];
+  while (pending.length > 0 && length <= cap) {
+    const here = pending.pop();
+    if (typeof here === "string") {
+      length += here.length + 2;
+    } else if (Array.isArray(here)) {
+      // Brackets and commas.
+      length += here.length + 1;
+      if (length > cap) break;
+      for (const item of here) pending.push(item);
+    } else if (typeof here === "object" && here !== null) {
+      const entries = Object.entries(here as Record<string, unknown>);
+      // Braces, commas, and each key's quotes and colon.
+      length += 1 + entries.length * 4;
+      for (const [key, item] of entries) {
+        length += key.length;
+        pending.push(item);
+      }
+    } else {
+      length += 1;
+    }
+  }
+  return length;
+};
+
+/** Where rendering stopped: the text would cost at least `tokens`. */
+type RenderStop = { readonly stopped: true; readonly tokens: number };
+
+/**
+ * What an entity read's text has cost so far, charged as it is rendered: its
+ * parts' BPE-shaped runs and UTF-8 bytes summed, so the estimate is never
+ * above `estimateTokens` of the joined text. Past `stopAt` tokens the text
+ * would be refused at any `maxTokens`, so rendering stops there instead of
+ * building text only to discard it. Below `stopAt` it renders in full, so a
+ * refusal's token count, and its advice to raise `maxTokens`, stay exact.
+ */
+const renderBudgetWith = ({ stopAt }: { readonly stopAt: number }) => {
+  let runs = 0;
+  let bytes = 0;
+  /** The estimate with at least `moreBytes` more bytes of text. */
+  const tokensWith = (moreBytes: number) =>
+    Math.max(runs, Math.ceil((bytes + moreBytes) / 4));
+  return {
+    /** A stop, if at least `moreBytes` more bytes of text would pass `stopAt`. */
+    stopBefore: (moreBytes: number): RenderStop | undefined =>
+      tokensWith(moreBytes) > stopAt
+        ? { stopped: true, tokens: tokensWith(moreBytes) }
+        : undefined,
+    /** Charges `text`, and a stop if it passed `stopAt`. */
+    charge: (text: string): RenderStop | undefined => {
+      runs += bpeRuns(text);
+      bytes += byteLength(text);
+      return tokensWith(0) > stopAt
+        ? { stopped: true, tokens: tokensWith(0) }
+        : undefined;
+    },
+  };
+};
+
+type RenderBudget = ReturnType<typeof renderBudgetWith>;
+
+/**
  * One property value: in full as JSON when asked for, a summary when large,
  * else inline.
  */
@@ -272,13 +350,8 @@ const pathContainerOutlineMaxTokens = 8_000;
  * floods (e.g. U+00A0 or ASCII spaces) and dense multi-byte scripts cannot
  * bypass `maxTokens` or container outlining.
  */
-const estimateTokens = (text: string) => {
-  const bpeRuns =
-    text.match(/ ?[A-Za-z]{1,8}|\d{1,3}|[!-/:-@[-`{-~]{1,2}|\P{ASCII}|\n/gu)
-      ?.length ?? 0;
-  const byteFloor = Math.ceil(byteLength(text) / 4);
-  return Math.max(bpeRuns, byteFloor);
-};
+const estimateTokens = (text: string) =>
+  Math.max(bpeRuns(text), Math.ceil(byteLength(text) / 4));
 
 /** At most this many keys are listed where a path stopped. */
 const pathStopKeysShown = 20;
@@ -288,16 +361,25 @@ type PathReadRequest = Extract<
   object
 >;
 
-/** What a path names inside an entity's properties, or where it stopped. */
+/**
+ * What a path names inside an entity's properties, with the keys it matched
+ * and the path as the keys and positions it resolved to, or where it stopped.
+ */
 const valueAtPath = (
   properties: Record<string, unknown>,
   path: readonly string[],
   nameOf: PropertyNamer,
 ):
-  | { found: true; matchedKeys: readonly string[]; value: unknown }
+  | {
+      found: true;
+      matchedKeys: readonly string[];
+      resolvedPath: readonly string[];
+      value: unknown;
+    }
   | { found: false; note: string } => {
   let here: unknown = properties;
   const matchedKeys: string[] = [];
+  const resolvedPath: string[] = [];
   for (const [index, step] of path.entries()) {
     const within =
       index === 0
@@ -312,6 +394,7 @@ const valueAtPath = (
           note: `${missing}: it is an array ${here.length === 0 ? "with no items" : `with positions 0 to ${here.length - 1}`}`,
         };
       here = here.at(position);
+      resolvedPath.push(String(position));
     } else if (typeof here === "object" && here !== null) {
       const entries = Object.entries(here as Record<string, unknown>);
       const stepBaseUrl = index === 0 ? hashPropertyBaseUrl(step) : undefined;
@@ -347,6 +430,7 @@ const valueAtPath = (
       }
       const [key, nextValue] = matched;
       matchedKeys.push(key);
+      resolvedPath.push(key);
       here = nextValue;
     } else
       return {
@@ -354,8 +438,21 @@ const valueAtPath = (
         note: `${missing}: there is a ${here === null ? "null" : typeof here}, with nothing inside`,
       };
   }
-  return { found: true, matchedKeys, value: here };
+  return { found: true, matchedKeys, resolvedPath, value: here };
 };
+
+/** The same part and slice of a value, however its path was given. */
+const pathReadKey = (
+  path: readonly string[],
+  { offset, limit }: Pick<PathReadRequest, "offset" | "limit">,
+) => JSON.stringify([path, offset ?? null, limit ?? null]);
+
+/**
+ * Containers read by path whose JSON is at least this long are outlined
+ * without building their JSON: they are over any outline threshold, so only
+ * the size shown is lost, given as a lower bound.
+ */
+const pathContainerMeasureMaxChars = hashReadMaxMaxTokens * 4;
 
 /**
  * One part of a value read by path:
@@ -364,19 +461,26 @@ const valueAtPath = (
  * - Containers render in full when within `pathContainerOutlineMaxTokens` (and
  *   not sliced), else outline one level down starting at `offset` (up to
  *   `limit` entries and the outline budget), naming every escape hatch.
+ *
+ * A string whose length alone would pass `budget` stops the render before it
+ * is sliced or quoted.
  */
 const renderPathRead = (
   request: PathReadRequest,
   value: unknown,
   nameOf: PropertyNamer,
   maxTokens: number,
-): { text: string; summarised: boolean } => {
+  budget: RenderBudget,
+): { text: string; summarised: boolean } | RenderStop => {
   const { path, offset, limit } = request;
   const label = `  path ${JSON.stringify(path)}`;
   const hasSlice = offset !== undefined || limit !== undefined;
 
   if (typeof value === "string") {
     if (!hasSlice) {
+      // Each UTF-16 code unit is at least one UTF-8 byte.
+      const stop = budget.stopBefore(label.length + value.length + 4);
+      if (stop !== undefined) return stop;
       return { text: `${label}: ${JSON.stringify(value)}`, summarised: false };
     }
     const start = offset ?? 0;
@@ -388,11 +492,10 @@ const renderPathRead = (
         summarised: false,
       };
     }
-    const slice =
-      limit === undefined
-        ? value.slice(start)
-        : value.slice(start, start + limit);
-    const end = start + slice.length;
+    const end = Math.min(total, limit === undefined ? total : start + limit);
+    const stop = budget.stopBefore(label.length + (end - start) + 4);
+    if (stop !== undefined) return stop;
+    const slice = value.slice(start, end);
     const moreHint =
       end < total ? `; pass { entityId, path, offset: ${end} } for more` : "";
     return {
@@ -405,11 +508,21 @@ const renderPathRead = (
     return { text: `${label}: ${JSON.stringify(value)}`, summarised: false };
   }
 
-  const json = JSON.stringify(value);
-  const tokens = estimateTokens(json);
   const outlineBudget = Math.min(pathContainerOutlineMaxTokens, maxTokens);
-  if (!hasSlice && tokens <= outlineBudget) {
-    return { text: `${label}: ${json}`, summarised: false };
+  // A slice is always outlined, so its container's size is never needed.
+  let sizeText = "";
+  if (!hasSlice) {
+    const leastLength = jsonLengthAtLeast(value, pathContainerMeasureMaxChars);
+    if (leastLength > pathContainerMeasureMaxChars) {
+      sizeText = `at least ${formatInt(Math.ceil(leastLength / 4))} tokens`;
+    } else {
+      const json = JSON.stringify(value);
+      const tokens = estimateTokens(json);
+      if (tokens <= outlineBudget) {
+        return { text: `${label}: ${json}`, summarised: false };
+      }
+      sizeText = `about ${formatInt(tokens)} tokens`;
+    }
   }
 
   const isArray = Array.isArray(value);
@@ -448,7 +561,7 @@ const renderPathRead = (
   const more = remaining > 0 ? [`${formatInt(remaining)} more not shown`] : [];
   const rangeText = hasSlice
     ? `entries ${formatInt(start)}..${formatInt(shownEnd)} of ${formatInt(entries.length)} ${kind}`
-    : `about ${formatInt(tokens)} tokens, over the ${formatInt(outlineBudget)}-token outline threshold, outlined one level down (showing ${formatInt(parts.length)} of ${formatInt(entries.length)} ${kind})`;
+    : `${sizeText}, over the ${formatInt(outlineBudget)}-token outline threshold, outlined one level down (showing ${formatInt(parts.length)} of ${formatInt(entries.length)} ${kind})`;
   const nextHint =
     remaining > 0
       ? `read a deeper path, pass offset: ${shownEnd} for more ${kind}, or pass the entityId in fullValuesFor for full JSON`
@@ -696,7 +809,7 @@ export const hashEntityReadForModel = (
   const parsed = v.safeParse(hashEntityReadResultSchema, output);
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");
-  const text = renderHashEntityRead(parsed.output, fullValuesFor, {
+  const rendered = renderHashEntityRead(parsed.output, fullValuesFor, {
     properties,
     propertyEquals,
     traversalDepth,
@@ -708,8 +821,9 @@ export const hashEntityReadForModel = (
     includeArchived,
     hadCursor,
   });
-  const tokens = estimateTokens(text);
-  if (tokens <= maxTokens) return text;
+  const tokens =
+    typeof rendered === "string" ? estimateTokens(rendered) : rendered.tokens;
+  if (typeof rendered === "string" && tokens <= maxTokens) return rendered;
   const linked = parsed.output.entities.filter(
     ({ matched }) => !matched,
   ).length;
@@ -801,7 +915,11 @@ const traversedSourceIds = (
   return visited;
 };
 
-/** The compact text of an entity read, however long. */
+/**
+ * The compact text of an entity read, or, once its text would pass
+ * `hashReadMaxMaxTokens` (refused at any `maxTokens`), where it stopped: the
+ * tokens it would cost, extrapolated from the entities rendered so far.
+ */
 const renderHashEntityRead = (
   read: HashEntityReadResult,
   fullValuesFor: NonNullable<HashEntityReadInput["fullValuesFor"]>,
@@ -831,7 +949,7 @@ const renderHashEntityRead = (
       HashEntityReadFormatOptions,
       "properties" | "propertyEquals" | "webIds" | "entityIds"
     >,
-) => {
+): string | RenderStop => {
   const { entities, propertyTypes, entityTypes, cursor } = read;
   // The base URLs to show, when the read chose them; otherwise every one.
   const chosen =
@@ -842,14 +960,16 @@ const renderHashEntityRead = (
     chosen === undefined || chosen.has(baseUrl);
 
   const full = new Set<string>();
-  const pathsFor = new Map<string, PathReadRequest[]>();
+  // Each entity's parts to show, each part and slice named once.
+  const pathsFor = new Map<string, Map<string, PathReadRequest>>();
   for (const entry of fullValuesFor) {
     if (typeof entry === "string") full.add(entry);
-    else
-      pathsFor.set(entry.entityId, [
-        ...(pathsFor.get(entry.entityId) ?? []),
-        entry,
-      ]);
+    else {
+      const paths =
+        pathsFor.get(entry.entityId) ?? new Map<string, PathReadRequest>();
+      paths.set(pathReadKey(entry.path, entry), entry);
+      pathsFor.set(entry.entityId, paths);
+    }
   }
   const readIds = new Set(entities.map(({ entityId }) => entityId));
   const unmatchedFull = [...new Set([...full, ...pathsFor.keys()])].filter(
@@ -941,28 +1061,16 @@ const renderHashEntityRead = (
   const anyExternal = entities.some(({ external }) => external === true);
   const anyLabelClipped = entities.some(({ label }) => isLongLabel(label));
 
-  const rendered = entities.map((entity) => {
-    const isFull = full.has(entity.entityId);
-    const properties = Object.entries(entity.properties)
-      .filter(([baseUrl]) => isFull || isShown(baseUrl))
-      .map(([baseUrl, value]) => ({
-        name: nameOf(baseUrl),
-        ...renderValue(value, isFull, nameOf),
-      }));
-    const pathReads = (pathsFor.get(entity.entityId) ?? []).map((request) => {
-      const at = valueAtPath(entity.properties, request.path, nameOf);
-      if (!at.found) {
-        return {
-          text: `  path ${JSON.stringify(request.path)}: ${at.note}`,
-          summarised: false,
-        };
-      }
-      // Include every key traversed along the path plus nested keys inside the
-      // resolved value in the legend, even when `properties` excluded them.
-      for (const matchedKey of at.matchedKeys) shownKeys.add(matchedKey);
-      collectNestedKeys(at.value, shownKeys);
-      return renderPathRead(request, at.value, nameOf, maxTokens);
-    });
+  const budget = renderBudgetWith({ stopAt: hashReadMaxMaxTokens });
+  const stoppedAt = (stop: RenderStop, rendering: number): RenderStop => ({
+    stopped: true,
+    tokens: Math.max(
+      stop.tokens,
+      Math.ceil((stop.tokens * entities.length) / (rendering + 1)),
+    ),
+  });
+  const rendered: { block: string; summarised: boolean }[] = [];
+  for (const [index, entity] of entities.entries()) {
     const types = entity.entityTypeIds.map(headingOf).join(", ");
     const flags = [
       ...(entity.matched ? [] : ["(linked)"]),
@@ -975,7 +1083,7 @@ const renderHashEntityRead = (
       (entity.matched ||
         traversedSources.has(entity.linkData.leftEntityId) ||
         traversedSources.has(entity.linkData.rightEntityId));
-    const block = [
+    const lines = [
       `- ${[types, ...(entity.label === undefined ? [] : [renderLabel(entity.label)]), ...flags].join(" ")}`,
       `  entityId: ${entity.entityId}`,
       `  editionId: ${entity.editionId}`,
@@ -985,16 +1093,62 @@ const renderHashEntityRead = (
             `  linksFrom: ${renderEndpoint(entity.linkData.leftEntityId, endpointsTraversed)}`,
             `  linksTo: ${renderEndpoint(entity.linkData.rightEntityId, endpointsTraversed)}`,
           ]),
-      ...properties.map(({ name, text }) => `  ${name}: ${text}`),
-      ...pathReads.map(({ text }) => text),
-    ].join("\n");
-    return {
-      block,
-      summarised:
-        properties.some(({ summarised }) => summarised) ||
-        pathReads.some(({ summarised }) => summarised),
+    ];
+    const headStop = budget.charge(lines.join("\n"));
+    if (headStop !== undefined) return stoppedAt(headStop, index);
+    const add = (text: string) => {
+      lines.push(text);
+      return budget.charge(text);
     };
-  });
+    let summarisedHere = false;
+
+    const isFull = full.has(entity.entityId);
+    for (const [baseUrl, value] of Object.entries(entity.properties)) {
+      if (!isFull && !isShown(baseUrl)) continue;
+      // A full value whose JSON alone would pass the budget stops the render
+      // before its JSON is built.
+      const tooLong = isFull
+        ? budget.stopBefore(
+            jsonLengthAtLeast(value, pathContainerMeasureMaxChars),
+          )
+        : undefined;
+      if (tooLong !== undefined) return stoppedAt(tooLong, index);
+      const { text, summarised } = renderValue(value, isFull, nameOf);
+      summarisedHere ||= summarised;
+      const stop = add(`  ${nameOf(baseUrl)}: ${text}`);
+      if (stop !== undefined) return stoppedAt(stop, index);
+    }
+
+    const shownParts = new Set<string>();
+    for (const request of pathsFor.get(entity.entityId)?.values() ?? []) {
+      const at = valueAtPath(entity.properties, request.path, nameOf);
+      if (!at.found) {
+        const stop = add(`  path ${JSON.stringify(request.path)}: ${at.note}`);
+        if (stop !== undefined) return stoppedAt(stop, index);
+        continue;
+      }
+      // Paths spelled differently can name the same part.
+      const part = pathReadKey(at.resolvedPath, request);
+      if (shownParts.has(part)) continue;
+      shownParts.add(part);
+      // Include every key traversed along the path plus nested keys inside the
+      // resolved value in the legend, even when `properties` excluded them.
+      for (const matchedKey of at.matchedKeys) shownKeys.add(matchedKey);
+      collectNestedKeys(at.value, shownKeys);
+      const pathRead = renderPathRead(
+        request,
+        at.value,
+        nameOf,
+        maxTokens,
+        budget,
+      );
+      if ("stopped" in pathRead) return stoppedAt(pathRead, index);
+      summarisedHere ||= pathRead.summarised;
+      const stop = add(pathRead.text);
+      if (stop !== undefined) return stoppedAt(stop, index);
+    }
+    rendered.push({ block: lines.join("\n"), summarised: summarisedHere });
+  }
   const summarised = rendered.some((entity) => entity.summarised);
 
   const candidates = propertyTypes.filter(({ baseUrl }) =>

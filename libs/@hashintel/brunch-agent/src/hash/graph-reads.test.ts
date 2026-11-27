@@ -16,6 +16,7 @@ import {
   hashEntityCountToolResultSchema,
   hashEntityCountWhereConditions,
   hashEntityReadDefaultLimit,
+  hashEntityReadMaxFullValuesFor,
   hashEntityReadMaxLimit,
   hashEntityReadMaxTraversalDepth,
   hashEntityReadOversizedSchema,
@@ -123,6 +124,27 @@ test("an entity read names values to show by entity id, or by entity id and path
     );
   expect(() => parseHashEntityReadInput({ fullValuesFor: [] })).toThrow(
     /omit it instead/u,
+  );
+});
+
+test(`an entity read names at most ${hashEntityReadMaxFullValuesFor} values to show`, () => {
+  const entries = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      entityId: "web~entity",
+      path: ["notes"],
+      offset: index,
+    }));
+  expect(
+    parseHashEntityReadInput({
+      fullValuesFor: entries(hashEntityReadMaxFullValuesFor),
+    }).fullValuesFor,
+  ).toHaveLength(hashEntityReadMaxFullValuesFor);
+  expect(() =>
+    parseHashEntityReadInput({
+      fullValuesFor: entries(hashEntityReadMaxFullValuesFor + 1),
+    }),
+  ).toThrow(
+    `fullValuesFor names at most ${hashEntityReadMaxFullValuesFor} values; split the rest across further reads.`,
   );
 });
 
