@@ -1,6 +1,11 @@
 import { randomBytes } from "node:crypto";
 
-import { browserToolFacts } from "@hashintel/brunch-agent";
+import {
+  browserCallEndedWithoutResult,
+  browserCallStaleRefusal,
+  browserCallUnstartedRefusal,
+  browserToolFacts,
+} from "@hashintel/brunch-agent";
 
 import type {
   BrowserCallClaim,
@@ -18,10 +23,6 @@ import type {
  * makes waiting turns durable. No durable effects live here.
  */
 const leaseMs = 25_000;
-export const BROWSER_CALL_UNSTARTED_ERROR =
-  "Browser call was not started; no document operation was invoked.";
-export const BROWSER_CALL_STALE_ERROR =
-  "Not started: the document changed by other means after your last view of the net. Read the net again, then make the change.";
 
 /** A browser call that was never issued to, or never started by, the browser: it had no effect. */
 export class BrowserCallNotStartedError extends Error {
@@ -51,30 +52,15 @@ const outcomeError = (
   cause: BrowserCallFailureDisposition | "expired" | "stopped",
 ): Error => {
   if (cause === "stale")
-    return new BrowserCallNotStartedError(BROWSER_CALL_STALE_ERROR);
+    return new BrowserCallNotStartedError(browserCallStaleRefusal);
   if (!entry.claimed || cause === "unstarted")
-    return new BrowserCallNotStartedError(BROWSER_CALL_UNSTARTED_ERROR);
-  const unchanged = !browserToolFacts(entry.toolName).effectUnknownOnFailure;
-  switch (cause) {
-    case "failed":
-      return new Error(
-        unchanged
-          ? "The non-mutating browser call failed; the document is unchanged."
-          : "The browser result failed; an attempted document effect is unknown.",
-      );
-    case "expired":
-      return new Error(
-        unchanged
-          ? "Browser call lease expired; the document is unchanged."
-          : "Browser call lease expired; an attempted document effect is unknown.",
-      );
-    case "stopped":
-      return new Error(
-        unchanged
-          ? "Browser call stopped; the document is unchanged."
-          : "Browser call stopped; an attempted document effect is unknown.",
-      );
-  }
+    return new BrowserCallNotStartedError(browserCallUnstartedRefusal);
+  return new Error(
+    browserCallEndedWithoutResult(
+      cause,
+      !browserToolFacts(entry.toolName).effectUnknownOnFailure,
+    ),
+  );
 };
 // Instance ids are unique only within an agent name, so the issuing agent is part of the key.
 const keyFor = (agentName: string, instanceId: string, toolCallId: string) =>
@@ -138,7 +124,7 @@ export const issueBrowserCall = (
   const key = keyFor(input.agentName, input.instanceId, input.toolCallId);
   if (calls.has(key)) throw new Error("Duplicate issued browser call.");
   if (input.signal?.aborted)
-    throw new BrowserCallNotStartedError(BROWSER_CALL_UNSTARTED_ERROR);
+    throw new BrowserCallNotStartedError(browserCallUnstartedRefusal);
   const result = Promise.withResolvers<ClientToolResult>();
   const entry: IssuedCall = {
     agentName: input.agentName,
