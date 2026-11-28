@@ -489,7 +489,7 @@ mod tests {
         assert_eq!(
             json!(spans),
             json!([
-                {"location": "input.x", "range": {"start": 13, "end": 16}, "pointer": "/#literal"},
+                {"location": "inputs.x", "range": {"start": 13, "end": 16}, "pointer": "/#literal"},
                 {"location": "query", "range": {"start": 16, "end": 23}, "pointer": "/2"},
             ])
         );
@@ -502,7 +502,7 @@ mod tests {
             .expect("the response body should be readable");
         let page = String::from_utf8(page.into()).expect("the page should be UTF-8");
 
-        assert!(page.contains("input.x:1:14"));
+        assert!(page.contains("inputs.x:1:14"));
         assert!(page.contains("query:1:17"));
     }
 }

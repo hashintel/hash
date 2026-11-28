@@ -837,7 +837,8 @@
           }
         },
         "required": [
-          "query"
+          "query",
+          "inputs"
         ],
         "type": "object"
       },

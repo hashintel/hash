@@ -883,7 +883,7 @@ async fn hashql_invalid_input() {
     let body = response_json(response).await;
     assert_eq!(
         body["diagnostics"][0]["labels"]["labels"][0]["span"],
-        json!({"location": "input.x", "range": {"start": 12, "end": 15}, "pointer": "/#literal"}),
+        json!({"location": "inputs.x", "range": {"start": 12, "end": 15}, "pointer": "/#literal"}),
         "a span in a value should name the input of the value, got {body}"
     );
 }
@@ -907,6 +907,23 @@ async fn hashql_inputs_over_limit() {
         response.status(),
         StatusCode::UNPROCESSABLE_ENTITY,
         "more values than a request can hold should be refused with the body"
+    );
+}
+
+#[tokio::test]
+async fn hashql_inputs_missing() {
+    let router = hashql_router(StaticAuthenticationProvider::Verified(ActorId::new(
+        Uuid::from_u128(1),
+        ActorType::User,
+    )));
+
+    let mut request = hashql_request(&json!({"#literal": 1}));
+    *request.body_mut() = Body::from(json!({"query": {"#literal": 1}}).to_string());
+    let response = send_request(&router, request).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "a request without `inputs` should be refused with the body"
     );
 }
 

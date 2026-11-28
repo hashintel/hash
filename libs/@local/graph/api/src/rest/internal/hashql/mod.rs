@@ -227,7 +227,6 @@ pub(crate) struct HashQlRequest {
     #[schemars(with = "hashql_syntax_jexpr::schemas::Expr")]
     query: Arc<RawValue>,
     /// The value of each input that the query declares.
-    #[serde(default)]
     inputs: InputValues,
 }
 

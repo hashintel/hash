@@ -140,7 +140,8 @@ X-Session-Token: {{session_token}}
         ]
       ]
     ]
-  ]
+  ],
+  "inputs": {}
 }
 
 > {%
@@ -162,7 +163,8 @@ Authorization: <omit>
 X-Session-Token: {{session_token}}
 
 {
-  "query": {"not": "a valid query"}
+  "query": {"not": "a valid query"},
+  "inputs": {}
 }
 
 > {%
@@ -216,7 +218,7 @@ X-Session-Token: {{session_token}}
   });
   client.test("span names the input", function() {
     var span = response.body.diagnostics[0].labels.labels[0].span;
-    client.assert(span.input === "limit", "Expected the span to name the input, got: " + span.input);
+    client.assert(span.location === "inputs.limit", "Expected the span to name the input, got: " + span.location);
   });
 %}
 
@@ -252,7 +254,8 @@ Json-Compat: true
         ]
       ]
     ]
-  ]
+  ],
+  "inputs": {}
 }
 
 > {%
@@ -275,7 +278,8 @@ X-Session-Token: {{session_token}}
 Interactive: true
 
 {
-  "query": {"not": "a valid query"}
+  "query": {"not": "a valid query"},
+  "inputs": {}
 }
 
 > {%

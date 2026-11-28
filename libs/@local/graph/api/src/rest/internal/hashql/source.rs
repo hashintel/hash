@@ -75,7 +75,7 @@ impl fmt::Display for ExpressionLocation<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ExpressionLocation::Query => fmt.write_str("query"),
-            ExpressionLocation::Input(name) => write!(fmt, "input.{name}"),
+            ExpressionLocation::Input(name) => write!(fmt, "inputs.{name}"),
         }
     }
 }
@@ -229,6 +229,8 @@ impl<'request> RequestSources<'request> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::borrow::Cow;
+
     use hashql_core::{
         heap::{Heap, Scratch},
         span::SpanId,
