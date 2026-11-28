@@ -70,11 +70,11 @@ impl<S> SourceTable<'_, S> {
 impl<'source, S, A: Allocator> SourceTable<'source, S, A> {
     /// The number of sources a table can hold.
     ///
-    /// A [`SpanId`] encodes one more source id than this. [`SpanId::SYNTHETIC`] has that id, and no
+    /// The largest source id that a [`SpanId`] encodes is the one of [`SpanId::SYNTHETIC`], and no
     /// source receives it.
     pub const MAX_LEN: usize = SpanId::MAX_SOURCE_ID as usize;
 
-    /// Creates a table without sources, whose span tables are allocated in `alloc`.
+    /// Creates a table without sources, which allocates the list of its span tables in `alloc`.
     #[must_use]
     pub const fn new_in(alloc: A) -> Self {
         Self {
@@ -119,16 +119,17 @@ impl<'source, S, A: Allocator> SourceTable<'source, S, A> {
         &mut self.spans[index]
     }
 
-    /// Returns the sources in the order they were registered.
+    /// Returns the registered sources.
     pub const fn sources(&self) -> &Sources<'source> {
         &self.sources
     }
 
     /// Resolves `span` to its position in its source.
     ///
-    /// A [`SpanId::SYNTHETIC`] span resolves to the start of the first source. Returns `None` if
-    /// `span` is of a source that is not registered, or if the table of its source cannot resolve
-    /// it, as [`SpanTable::absolute`] describes.
+    /// A [`SpanId::SYNTHETIC`] span resolves in the first source, to an empty span at its start.
+    ///
+    /// Returns `None` if the source that `span` resolves in is not registered, or if the
+    /// [`SpanTable`] of that source cannot resolve `span`, as [`SpanTable::absolute`] describes.
     #[must_use]
     pub fn absolute(&self, span: SpanId) -> Option<SourceSpan>
     where

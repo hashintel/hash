@@ -1321,7 +1321,7 @@
         "type": "object"
       },
       "DiagnosticWithAdvisoryDiagnosticSeverity": {
-        "description": "An issue that a compilation reports, such as an error or a warning. A diagnostic publishes a human readable components (`title`, `labels` and `messages`), which should be considered perma-unstable and may change without notice between versions, and `category` and `severity` which are considered stable, and designed for machine readability.",
+        "description": "An issue that a compilation reports, such as an error or a warning. A diagnostic publishes human readable components (`title`, `labels` and `messages`), which should be considered perma-unstable and may change without notice between versions, and `category` and `severity` which are considered stable, and designed for machine readability.",
         "properties": {
           "category": {
             "description": "The category identifying the type of diagnostic issue.",
@@ -1368,7 +1368,7 @@
         "type": "object"
       },
       "DiagnosticWithDiagnosticSeverity": {
-        "description": "An issue that a compilation reports, such as an error or a warning. A diagnostic publishes a human readable components (`title`, `labels` and `messages`), which should be considered perma-unstable and may change without notice between versions, and `category` and `severity` which are considered stable, and designed for machine readability.",
+        "description": "An issue that a compilation reports, such as an error or a warning. A diagnostic publishes human readable components (`title`, `labels` and `messages`), which should be considered perma-unstable and may change without notice between versions, and `category` and `severity` which are considered stable, and designed for machine readability.",
         "properties": {
           "category": {
             "description": "The category identifying the type of diagnostic issue.",
@@ -1752,7 +1752,7 @@
             "type": "string"
           },
           "pointer": {
-            "description": "The RFC 6901 JSON Pointer of the innermost value that contains the span, relative to the\nquery or the input value of its location.",
+            "description": "The RFC 6901 JSON Pointer of the innermost value that contains the span.\n\nThis pointer is relative to the query or the input value of its location.",
             "type": [
               "string",
               "null"
@@ -1764,7 +1764,7 @@
                 "$ref": "#/components/schemas/Range_of_uint"
               }
             ],
-            "description": "The bytes of the span in the text of its location."
+            "description": "The byte range of the span in the text of its location."
           }
         },
         "required": [

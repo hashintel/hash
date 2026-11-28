@@ -154,11 +154,13 @@ impl<A: Allocator> PointerIndex<A> {
     }
 }
 
-/// An RFC 6901 JSON Pointer into a J-Expr document, as [`JsonPointers::resolve`] returns it.
+/// An RFC 6901 JSON Pointer into a J-Expr document.
 ///
-/// The text is the string representation of the RFC, such as `/#struct/items/#list/0`, with `~` and
-/// `/` inside a key written as `~0` and `~1`. The pointer of the whole document is the empty
-/// string.
+/// The pointer is in the string representation of the RFC, such as `/#struct/items/#list/0`, in
+/// which `~` and `/` inside a key are written as `~0` and `~1`. The pointer of the whole document
+/// is the empty string.
+///
+/// [`JsonPointers::resolve`] returns the pointer of a range of the document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JsonPointer(Arc<str>);
 

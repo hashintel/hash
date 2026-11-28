@@ -121,16 +121,15 @@ impl<T: fmt::Display> Serialize for SerializeThroughDisplay<T> {
 pub(crate) struct PointerSpan {
     /// The text the span is in: `query`, or `inputs.<name>` for the value of the input `<name>`.
     location: ExpressionLocation<'static>,
-    /// The bytes of the span in the text of its location.
+    /// The byte range of the span in the text of its location.
     range: Range<usize>,
-    /// The RFC 6901 JSON Pointer of the innermost value that contains the span
+    /// The RFC 6901 JSON Pointer of the innermost value that contains the span.
     ///
     /// This pointer is relative to the query or the input value of its location.
     #[schemars(with = "Option<String>")]
     pointer: Option<SerializeThroughDisplay<JsonPointer>>,
 }
 
-/// The query of a request and the values of its inputs, as the parser returns them.
 pub(crate) struct ParsedRequest<'heap> {
     pub query: Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
     pub inputs: Status<Vec<(Symbol<'heap>, Value<'heap>)>, JExprDiagnosticCategory, SpanId>,
@@ -143,8 +142,6 @@ pub(crate) struct RequestSource<'request> {
 }
 
 /// The sources of a request, with the spans and the JSON pointers the parser records for each.
-///
-/// The query is the first source. The value of each input follows, in the order of the names.
 pub(crate) struct RequestSources<'request> {
     table: SourceTable<'request, Span>,
     origins: Vec<RequestSource<'request>>,
@@ -174,7 +171,6 @@ impl<'request> RequestSources<'request> {
         parsed
     }
 
-    /// Parses the query of a request and the value of each of its inputs.
     pub(crate) fn parse_in<'heap, 'scratch, S>(
         heap: &'heap Heap,
         query: &'request str,
@@ -189,6 +185,7 @@ impl<'request> RequestSources<'request> {
             origins: Vec::with_capacity(values.len() + 1),
         };
 
+        // the query is the first source, which is where a synthetic span resolves
         let query = this.parse_source(heap, ExpressionLocation::Query, query, |mut parser| {
             scratch.scoped(|scope| parser.parse_expr_with_pointers_in(query, &scope))
         });

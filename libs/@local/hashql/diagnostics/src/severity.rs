@@ -469,7 +469,6 @@ impl serde::Serialize for Severity {
     }
 }
 
-/// Returns the schema that accepts the serialized form of each of `severities` and nothing else.
 #[cfg(feature = "schemars")]
 fn one_of_schema(
     generator: &mut schemars::SchemaGenerator,
