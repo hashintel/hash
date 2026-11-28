@@ -1,0 +1,40 @@
+diff --git a/dist/shared/vite-plugin-react-docgen-typescript.BMGr25-c.mjs b/dist/shared/vite-plugin-react-docgen-typescript.BMGr25-c.mjs
+index 94c25a67f745aade8d898c07c3fe202cbe64d16f..25821d379d320fe96b3834ed239ae5ae88b86994 100644
+--- a/dist/shared/vite-plugin-react-docgen-typescript.BMGr25-c.mjs
++++ b/dist/shared/vite-plugin-react-docgen-typescript.BMGr25-c.mjs
+@@ -218,7 +218,7 @@ function createFileSystemCacheNamespace(options, rootDir, backendFingerprint = "
+       rootDir,
+       moduleDirectory
+     ]),
+-    typescript: resolvePackageVersion("typescript", [rootDir, moduleDirectory])
++    typescript: resolvePackageVersion("@typescript/typescript6", [rootDir, moduleDirectory])
+   };
+   return hashValue(
+     stableStringify({
+@@ -675,7 +675,7 @@ const validateTypescriptModule = (moduleValue) => {
+   }
+   return candidate;
+ };
+-const loadTypescript = async (importer = () => import('typescript')) => {
++const loadTypescript = async (importer = () => import('@typescript/typescript6')) => {
+   let moduleValue;
+   try {
+     moduleValue = await importer();
+@@ -881,7 +881,7 @@ const createStubFileWatcher = () => ({
+   close: doNothing
+ });
+ const createProjectService = async (project) => {
+-  const { default: tsserver } = await import('typescript/lib/tsserverlibrary.js');
++  const { default: tsserver } = await import('@typescript/typescript6/lib/tsserverlibrary.js');
+   const projectServiceRootFiles = project.tsconfigPath ? project.configFiles : project.rootFiles;
+   const system = {
+     ...tsserver.sys,
+@@ -1250,7 +1250,7 @@ const collectUnresolvedModuleDependencies = (dependencyFiles, cacheByProgram, pr
+ const describeLegacyBackend = (_config, rootDir) => {
+   return Object.freeze({
+     cacheFingerprint: createDependencyVersionFingerprint({
+-      packageNames: ["react-docgen-typescript", "typescript"],
++      packageNames: ["react-docgen-typescript", "@typescript/typescript6"],
+       rootDir,
+       schema: "legacy-backend-1"
+     }),
