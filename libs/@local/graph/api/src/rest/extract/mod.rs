@@ -4,12 +4,14 @@
 //! problem details response. [`Page`] is a response only: it answers like [`Json`] and, when
 //! another page follows, names it in a `Link` header.
 //!
-//! The extractors of axum and axum-extra answer a rejection with plain text. These wrap them and
-//! answer `application/problem+json`, with the status axum chose for each rejection they name. Each
-//! one lists the ways it rejects a request as the variants of its
+//! The extractors of axum and axum-extra answer a rejection with plain text. [`Json`], [`Path`] and
+//! [`Query`] wrap them and answer `application/problem+json`, with the status axum chose for each
+//! rejection they name. [`Header`] reads the headers itself and answers the same way. Each one
+//! lists the ways it rejects a request as the variants of its
 //! [`Problem`](problematic::Problem), so an operation documents the variants of every extractor it
 //! reads its request through, next to those the middleware documents at the same status.
 
+mod header;
 mod json;
 mod page;
 mod path;
@@ -21,21 +23,23 @@ use aide::openapi::Operation;
 use serde_json::Value;
 
 pub(in crate::rest) use self::{
+    header::Header,
     json::Json,
     page::{NextPage, Page},
     path::Path,
     query::Query,
 };
 
-/// The part of a request that [`Json`], [`Path`] or [`Query`] reads.
+/// The part of a request that [`Header`], [`Json`], [`Path`] or [`Query`] reads.
 ///
 /// Each extractor marks the operations it documents with the parts it reads, and
-/// [`openapi::build`] requires the mark for every path parameter, query parameter and request body
-/// an operation documents.
+/// [`openapi::build`] requires the mark for every header parameter, path parameter, query parameter
+/// and request body an operation documents.
 ///
 /// [`openapi::build`]: crate::rest::openapi::build
 #[derive(Debug, Clone, Copy)]
 pub(in crate::rest) enum MessagePart {
+    HeaderParameters,
     PathParameters,
     QueryParameters,
     RequestBody,
@@ -47,6 +51,7 @@ impl MessagePart {
     /// [`openapi::build`]: crate::rest::openapi::build
     pub(in crate::rest) const fn extension(self) -> &'static str {
         match self {
+            Self::HeaderParameters => "x-hash-header-parameters",
             Self::PathParameters => "x-hash-path-parameters",
             Self::QueryParameters => "x-hash-query-parameters",
             Self::RequestBody => "x-hash-request-body",

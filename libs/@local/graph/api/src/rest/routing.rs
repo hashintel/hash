@@ -8,6 +8,9 @@
 //! fails to compile. [`Routes`] accepts no other route, so a handler reaches an API only through
 //! [`get`] or [`post`].
 //!
+//! The query endpoint of HashQL implements [`Outcome`] for a rejection of its own, which answers
+//! the diagnostics of a query as an HTML page when the request asks for one.
+//!
 //! [`openapi::build`]: crate::rest::openapi::build
 
 use aide::{

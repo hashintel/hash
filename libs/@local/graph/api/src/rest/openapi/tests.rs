@@ -18,7 +18,7 @@ use problematic::{Problem, ProblemDetails, ProblemType, ProblemVariant, Rejectio
 use super::reference_responses;
 use crate::rest::{
     Api,
-    extract::{Json, Path, Query},
+    extract::{Header, Json, Path, Query},
     middleware, openapi,
     routing::{self, Routes},
     test_utils::NoCredentials,
@@ -72,6 +72,19 @@ fn response<'doc>(
         .and_then(|operation| operation.responses.as_ref())
         .and_then(|responses| responses.responses.get(&StatusCode::Code(status)))
         .expect("the route should document the response")
+}
+
+fn response_extensions<'doc>(document: &'doc OpenApi, path: &str) -> Vec<&'doc str> {
+    document
+        .paths
+        .as_ref()
+        .and_then(|paths| paths.paths.get(path))
+        .and_then(ReferenceOr::as_item)
+        .and_then(|item| item.get.as_ref())
+        .into_iter()
+        .flat_map(|operation| operation.extensions.keys())
+        .map(String::as_str)
+        .collect()
 }
 
 #[test]
@@ -443,6 +456,57 @@ fn build_bytes_body() {
     );
 }
 
+fn build_with_html_alternative(status: http::StatusCode) -> Api {
+    openapi::build::<NoCredentials, _>(
+        "/test",
+        Info::default(),
+        move || {
+            Routes::new().route(
+                "/entities",
+                routing::get(
+                    async || Json::<_, 200>(true),
+                    move |mut operation| {
+                        openapi::mark_html_alternative(operation.inner_mut(), [status]);
+                        named(unsupported_query(operation))
+                    },
+                ),
+            )
+        },
+        |document| document,
+    )
+}
+
+#[test]
+fn build_html_alternative() {
+    let api = build_with_html_alternative(http::StatusCode::BAD_REQUEST);
+
+    let document = api.document();
+    let response = match response(document, "/test/entities", "get", 400) {
+        ReferenceOr::Item(response) => response,
+        ReferenceOr::Reference { .. } => document
+            .components
+            .as_ref()
+            .and_then(|components| components.responses.get("BadRequest"))
+            .and_then(ReferenceOr::as_item)
+            .expect("the document should declare the response it references"),
+    };
+    assert_eq!(
+        response.content.keys().collect::<Vec<_>>(),
+        ["application/problem+json", "text/html"],
+        "the marked response should document the page beside its problem variants"
+    );
+    assert!(
+        response_extensions(document, "/test/entities").is_empty(),
+        "the mark should not remain in the document"
+    );
+}
+
+#[test]
+#[should_panic(expected = "should document a response at 418")]
+fn build_html_alternative_undocumented() {
+    let _: Api = build_with_html_alternative(http::StatusCode::IM_A_TEAPOT);
+}
+
 fn build_with_parameter(parameter: Parameter) {
     let _: Api = openapi::build::<NoCredentials, _>(
         "/test",
@@ -484,8 +548,37 @@ fn parameter_data(name: &str) -> ParameterData {
     }
 }
 
+/// Header parameters with a sequence for a field.
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+struct SequenceHeader {
+    ids: Vec<u8>,
+}
+
 #[test]
-#[should_panic(expected = "should read no header parameter such as `x-trace`")]
+#[should_panic(expected = "should read its header parameter `ids` as a single value")]
+fn build_header_parameter_sequence() {
+    let _: Api = openapi::build::<NoCredentials, _>(
+        "/test",
+        Info::default(),
+        || {
+            Routes::new().route(
+                "/entities",
+                routing::get(
+                    async |Header(SequenceHeader { ids }): Header<SequenceHeader>| {
+                        Json::<_, 200>(ids)
+                    },
+                    named,
+                ),
+            )
+        },
+        |document| document,
+    );
+}
+
+#[test]
+#[should_panic(
+    expected = "should read its header parameter `x-trace` through `rest::extract::Header`"
+)]
 fn build_header_parameter() {
     build_with_parameter(Parameter::Header {
         parameter_data: parameter_data("x-trace"),

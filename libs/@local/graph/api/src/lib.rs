@@ -5,6 +5,7 @@
     // Language Features
     impl_trait_in_assoc_type,
     return_type_notation,
+    mut_restriction,
 
     // Library Features
     error_generic_member_access,

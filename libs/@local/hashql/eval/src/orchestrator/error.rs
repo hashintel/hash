@@ -279,8 +279,10 @@ pub enum DecodeError<'heap> {
 pub enum BridgeError<'heap> {
     /// The compiled SQL query was rejected by PostgreSQL.
     ///
-    /// Carries the generated SQL so the diagnostic can show exactly what
-    /// the compiler produced.
+    /// [`Self::into_diagnostic`] records the statement and the database's message as a tracing
+    /// event and keeps both out of the diagnostic, which the author of the query reads. The
+    /// statement shows the storage schema and the authorization filter, and a database message can
+    /// quote stored values.
     QueryExecution {
         /// The SQL statement that was sent to the database.
         sql: String,
@@ -459,13 +461,11 @@ fn query_execution(
     sql: &str,
     error: &tokio_postgres::Error,
 ) -> OrchestratorDiagnostic {
+    tracing::error!(%error, sql, "database rejected the compiled query");
+
     let mut diagnostic = Diagnostic::new(category(&QUERY_EXECUTION), Critical::BUG).primary(
         Label::new(span, "compiled query was rejected by the database"),
     );
-
-    diagnostic.add_message(Message::note(format!("generated SQL: {sql}")));
-
-    diagnostic.add_message(Message::note(format!("the database reported: {error}")));
 
     diagnostic.add_message(Message::help(
         "the SQL lowering pass should produce queries that the database accepts",
@@ -789,4 +789,35 @@ fn value_serialization(span: SpanId, error: &serde_json::Error) -> OrchestratorD
     ));
 
     diagnostic
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::string::ToString as _;
+
+    use hashql_core::span::SpanId;
+    use hashql_diagnostics::{Label, diagnostic::Message};
+
+    use super::query_execution;
+
+    #[test]
+    fn query_execution_text() {
+        let sql = r#"SELECT "secret" FROM "entity_editions""#;
+        let error = "host"
+            .parse::<tokio_postgres::Config>()
+            .expect_err("a key without a value should not parse");
+        let reported = error.to_string();
+
+        let diagnostic = query_execution(SpanId::SYNTHETIC, sql, &error);
+
+        let labels = diagnostic.labels.iter().map(Label::message);
+        let messages = diagnostic.messages.iter().map(Message::message);
+        for text in labels.chain(messages) {
+            assert!(!text.contains(sql), "`{text}` holds the statement");
+            assert!(
+                !text.contains(&reported),
+                "`{text}` holds the database's message"
+            );
+        }
+    }
 }

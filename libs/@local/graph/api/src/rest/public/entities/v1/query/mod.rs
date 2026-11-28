@@ -239,7 +239,7 @@ where
 
     let page_size = page_size(
         limit,
-        NonZero::<usize>::from(state.public_api_config().query_entity_limit),
+        NonZero::<usize>::from(state.public_api_config.query_entity_limit),
     );
 
     let mut store = state

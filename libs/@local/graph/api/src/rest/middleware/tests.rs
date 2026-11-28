@@ -157,11 +157,11 @@ async fn internal_api_answers_beside_its_reference() {
     )
     .assemble(Router::new(), apis, documentation);
 
-    let path = format!("{}/caller", internal::PREFIX);
+    let response = send_request(&router, hashql_request(&json!({"not": "a query"}))).await;
     assert_eq!(
-        send(&router, &path).await.status(),
-        StatusCode::OK,
-        "{path} should answer beside the reference occupying its prefix"
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "the HashQL route should answer beside the reference occupying its prefix"
     );
 }
 
@@ -760,6 +760,130 @@ async fn legacy_routes_use_legacy_provider() {
     );
 }
 
+fn hashql_request(query: &serde_json::Value) -> Request<Body> {
+    let mut request = request_with(Method::POST, &format!("{}/hashql", internal::PREFIX));
+    request
+        .headers_mut()
+        .insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    *request.body_mut() = Body::from(json!({ "query": query }).to_string());
+    request
+}
+
+fn hashql_router(internal_provider: StaticAuthenticationProvider) -> Router {
+    middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Unreachable,
+        internal_provider,
+        StaticAuthenticationProvider::Unreachable,
+    )
+    .assemble(Router::new(), apis(), Router::new())
+}
+
+#[tokio::test]
+async fn hashql_anonymous() {
+    let router = hashql_router(StaticAuthenticationProvider::NotRecognized);
+
+    let response = send_request(&router, hashql_request(&json!({"#literal": 1}))).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNAUTHORIZED,
+        "an anonymous request should be answered 401"
+    );
+}
+
+#[tokio::test]
+async fn hashql_invalid_query() {
+    let router = hashql_router(StaticAuthenticationProvider::Verified(ActorId::new(
+        Uuid::from_u128(1),
+        ActorType::User,
+    )));
+
+    let response = send_request(&router, hashql_request(&json!({"not": "a query"}))).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "a query with an error should be answered 400"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "the diagnostics should be problem details"
+    );
+    let body = response_json(response).await;
+    let diagnostics = body["diagnostics"]
+        .as_array()
+        .expect("the problem details should list the diagnostics");
+    assert_eq!(
+        diagnostics[0]["severity"]["id"],
+        json!("error"),
+        "the diagnostic that failed the query should be first, got {body}"
+    );
+    assert_eq!(
+        diagnostics[0]["labels"]["labels"][0]["span"]["pointer"],
+        json!("/not"),
+        "a span should name the value it lies in by its JSON pointer, got {body}"
+    );
+}
+
+#[tokio::test]
+async fn hashql_invalid_query_interactive() {
+    let router = hashql_router(StaticAuthenticationProvider::Verified(ActorId::new(
+        Uuid::from_u128(1),
+        ActorType::User,
+    )));
+
+    let mut request = hashql_request(&json!({"not": "a query"}));
+    request
+        .headers_mut()
+        .insert("Interactive", HeaderValue::from_static("true"));
+    let response = send_request(&router, request).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "a query with an error should be answered 400"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "text/html; charset=utf-8",
+        "an interactive request should be answered with the rendered diagnostics"
+    );
+    assert!(
+        response.extensions().get::<Rejected>().is_some(),
+        "the page should keep the rejection, through which the middleware records the error"
+    );
+}
+
+/// A store that cannot be acquired is answered `503` as problem details, also to an interactive
+/// request.
+#[tokio::test]
+async fn hashql_store_unreachable() {
+    let router = hashql_router(StaticAuthenticationProvider::Verified(ActorId::new(
+        Uuid::from_u128(1),
+        ActorType::User,
+    )));
+
+    let mut request = hashql_request(&json!({"#literal": 1}));
+    request
+        .headers_mut()
+        .insert("Interactive", HeaderValue::from_static("true"));
+    let response = send_request(&router, request).await;
+    assert_eq!(
+        response.status(),
+        StatusCode::SERVICE_UNAVAILABLE,
+        "the route should answer 503 when it cannot reach the store"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/problem+json",
+        "an interactive request should be answered HTML for its diagnostics alone"
+    );
+    assert_eq!(
+        response_json(response).await["detail"],
+        json!(ServiceUnavailable.to_string()),
+        "the problem document should not name the store"
+    );
+}
+
 /// The service secret passes the caller budget on the legacy routes, which the services holding
 /// it call, and on no API.
 #[tokio::test]
@@ -772,11 +896,10 @@ async fn service_secret_exempt_on_legacy_only() {
     )
     .assemble(
         Router::new().route("/legacy", get(async || "ok")),
-        [internal::api()],
+        [internal::api().with_state(test_utils::state())],
         Router::new(),
     );
-    let with_secret = |path: &str, peer: IpAddr| {
-        let mut request = request_from(path, peer);
+    let with_secret = |mut request: Request<Body>| {
         request.headers_mut().insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("HASH-Service {SERVICE_SECRET}"))
@@ -787,25 +910,24 @@ async fn service_secret_exempt_on_legacy_only() {
 
     for _ in 0..3 {
         assert_eq!(
-            send_request(&router, with_secret("/legacy", client(1)))
+            send_request(&router, with_secret(request_from("/legacy", client(1))))
                 .await
                 .status(),
             StatusCode::OK,
             "the legacy routes should not charge the service secret"
         );
     }
-    let caller = format!("{}/caller", internal::PREFIX);
     let mut statuses = Vec::new();
     for _ in 0..2 {
-        statuses.push(
-            send_request(&router, with_secret(&caller, client(2)))
-                .await
-                .status(),
-        );
+        let mut request = with_secret(hashql_request(&json!({"#literal": 1})));
+        request
+            .extensions_mut()
+            .insert(ConnectInfo(SocketAddr::new(client(2), 4000)));
+        statuses.push(send_request(&router, request).await.status());
     }
     assert_eq!(
         statuses,
-        [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
+        [StatusCode::UNAUTHORIZED, StatusCode::TOO_MANY_REQUESTS],
         "the internal API should charge the service secret's presenter like any anonymous caller"
     );
 }
@@ -951,7 +1073,7 @@ async fn cors_preflight_unlisted_origin() {
     for (path, origin) in [
         ("/entities/v1/query", "https://example.com"),
         ("/entities/v1/query", "https://app.hash.ai"),
-        ("/_api/caller", "https://hash.dev"),
+        ("/_api/hashql", "https://hash.dev"),
         ("/_apis", "https://app.hash.ai"),
         ("/", "https://hash.dev"),
     ] {
@@ -975,7 +1097,7 @@ async fn cors_preflight_internal() {
         Router::new(),
     );
 
-    let response = send_request(&router, preflight("/_api/caller", "https://app.hash.ai")).await;
+    let response = send_request(&router, preflight("/_api/hashql", "https://app.hash.ai")).await;
     assert_eq!(
         response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN),
         Some(&HeaderValue::from_static("https://app.hash.ai")),

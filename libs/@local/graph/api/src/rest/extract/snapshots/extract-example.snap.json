@@ -24,6 +24,33 @@
                 }
               },
               "about:blank (3)": {
+                "summary": "A required header is missing.",
+                "value": {
+                  "detail": "Missing header `limit`",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (4)": {
+                "summary": "A header occurs more than once.",
+                "value": {
+                  "detail": "Header `limit` occurs more than once",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (5)": {
+                "summary": "A header does not match its documented schema.",
+                "value": {
+                  "detail": "Failed to deserialize header `limit`: cannot parse u8: invalid digit found in string",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (6)": {
                 "summary": "The request body is not valid JSON.",
                 "value": {
                   "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
@@ -32,7 +59,7 @@
                   "type": "about:blank"
                 }
               },
-              "about:blank (4)": {
+              "about:blank (7)": {
                 "summary": "The request body could not be read to its end.",
                 "value": {
                   "detail": "Failed to buffer the request body: error reading a body from connection",
@@ -114,6 +141,78 @@
                       ]
                     }
                   ],
+                  "title": "A required header is missing."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "A header occurs more than once."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "A header does not match its documented schema."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
                   "title": "The request body is not valid JSON."
                 },
                 {
@@ -144,7 +243,7 @@
             }
           }
         },
-        "description": "- A path parameter does not match its documented schema.\n- A required query parameter is missing, or one does not match its documented schema.\n- The request body is not valid JSON.\n- The request body could not be read to its end.",
+        "description": "- A path parameter does not match its documented schema.\n- A required query parameter is missing, or one does not match its documented schema.\n- A required header is missing.\n- A header occurs more than once.\n- A header does not match its documented schema.\n- The request body is not valid JSON.\n- The request body could not be read to its end.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -718,7 +817,7 @@
   "paths": {
     "/example/echo/{label}": {
       "post": {
-        "description": "Returns the label from the path and the value from the body, repeated as often as the query parameter `repeat` asks.",
+        "description": "Returns the label from the path and the value from the body, repeated as often as the query parameter `repeat` asks and in upper case when the header `Uppercase` asks.",
         "operationId": "echo",
         "parameters": [
           {
@@ -744,6 +843,17 @@
               "type": "integer"
             },
             "style": "form"
+          },
+          {
+            "description": "Whether the response carries `value` in upper case. Defaults to `false`.",
+            "in": "header",
+            "name": "Uppercase",
+            "schema": {
+              "default": false,
+              "description": "Whether the response carries `value` in upper case. Defaults to `false`.",
+              "type": "boolean"
+            },
+            "style": "simple"
           }
         ],
         "requestBody": {

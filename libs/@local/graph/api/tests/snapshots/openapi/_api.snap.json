@@ -1,13 +1,381 @@
 {
   "components": {
     "responses": {
+      "BadRequest": {
+        "content": {
+          "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "A required header is missing.",
+                "value": {
+                  "detail": "Missing header `limit`",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "A header occurs more than once.",
+                "value": {
+                  "detail": "Header `limit` occurs more than once",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (3)": {
+                "summary": "A header does not match its documented schema.",
+                "value": {
+                  "detail": "Failed to deserialize header `limit`: cannot parse u8: invalid digit found in string",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (4)": {
+                "summary": "The request body is not valid JSON.",
+                "value": {
+                  "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (5)": {
+                "summary": "The request body could not be read to its end.",
+                "value": {
+                  "detail": "Failed to buffer the request body: error reading a body from connection",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "A required header is missing."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "A header occurs more than once."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "A header does not match its documented schema."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "The request body is not valid JSON."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "The request body could not be read to its end."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "properties": {
+                        "diagnostics": {
+                          "description": "The diagnostics of the query, the one that failed it first.",
+                          "items": {
+                            "additionalProperties": true,
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "diagnostics"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "The query has an error, which `diagnostics` describes."
+                }
+              ]
+            }
+          },
+          "text/html": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "- A required header is missing.\n- A header occurs more than once.\n- A header does not match its documented schema.\n- The request body is not valid JSON.\n- The request body could not be read to its end.\n- The query has an error, which `diagnostics` describes.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
       "InternalServerError": {
         "content": {
           "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "An internal error prevented the request from completing.",
+                "value": {
+                  "detail": "An internal error prevented the request from completing.",
+                  "status": 500,
+                  "title": "Internal Server Error",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "title": {
+                          "const": "Internal Server Error"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "An internal error prevented the request from completing."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 500
+                        },
+                        "title": {
+                          "const": "Internal Server Error"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "properties": {
+                        "diagnostics": {
+                          "description": "The diagnostics of the query, the one that failed it first.",
+                          "items": {
+                            "additionalProperties": true,
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "diagnostics"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "An error in HashQL itself failed the query, which `diagnostics` describes."
+                }
+              ]
+            }
+          },
+          "text/html": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "- An internal error prevented the request from completing.\n- An error in HashQL itself failed the query, which `diagnostics` describes.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "content": {
+          "application/problem+json": {
             "example": {
-              "detail": "An internal error prevented the request from completing.",
-              "status": 500,
-              "title": "Internal Server Error",
+              "detail": "Failed to buffer the request body: length limit exceeded",
+              "status": 413,
+              "title": "Content Too Large",
               "type": "about:blank"
             },
             "schema": {
@@ -18,10 +386,10 @@
                 {
                   "properties": {
                     "status": {
-                      "const": 500
+                      "const": 413
                     },
                     "title": {
-                      "const": "Internal Server Error"
+                      "const": "Content Too Large"
                     },
                     "type": {
                       "const": "about:blank"
@@ -32,11 +400,11 @@
                   ]
                 }
               ],
-              "title": "Internal Server Error"
+              "title": "Content Too Large"
             }
           }
         },
-        "description": "An internal error prevented the request from completing.",
+        "description": "The request body is larger than the operation accepts.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -68,39 +436,81 @@
       "ServiceUnavailable": {
         "content": {
           "application/problem+json": {
-            "example": {
-              "detail": "authentication is temporarily unavailable",
-              "status": 503,
-              "title": "Service Unavailable",
-              "type": "about:blank"
+            "examples": {
+              "about:blank": {
+                "summary": "The service is temporarily unavailable.",
+                "value": {
+                  "detail": "The service is temporarily unavailable.",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Authentication is temporarily unavailable.",
+                "value": {
+                  "detail": "authentication is temporarily unavailable",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                }
+              }
             },
             "schema": {
-              "allOf": [
+              "anyOf": [
                 {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "The service is temporarily unavailable."
                 },
                 {
-                  "properties": {
-                    "status": {
-                      "const": 503
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
                     },
-                    "title": {
-                      "const": "Service Unavailable"
-                    },
-                    "type": {
-                      "const": "about:blank"
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
                     }
-                  },
-                  "required": [
-                    "type"
-                  ]
+                  ],
+                  "title": "Authentication is temporarily unavailable."
                 }
-              ],
-              "title": "Service Unavailable"
+              ]
             }
           }
         },
-        "description": "Authentication is temporarily unavailable.",
+        "description": "- The service is temporarily unavailable.\n- Authentication is temporarily unavailable.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -274,105 +684,147 @@
             "style": "simple"
           }
         }
+      },
+      "UnprocessableEntity": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
+              "status": 422,
+              "title": "Unprocessable Content",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 422
+                    },
+                    "title": {
+                      "const": "Unprocessable Content"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unprocessable Content"
+            }
+          }
+        },
+        "description": "The request body does not match the schema of the operation.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Expected request with `Content-Type: application/json`",
+              "status": 415,
+              "title": "Unsupported Media Type",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 415
+                    },
+                    "title": {
+                      "const": "Unsupported Media Type"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unsupported Media Type"
+            }
+          }
+        },
+        "description": "The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       }
     },
     "schemas": {
-      "ActorId": {
-        "description": "An actor's type and UUID.",
-        "oneOf": [
-          {
-            "properties": {
-              "actorType": {
-                "const": "user",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of a user.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "User",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "actorType": {
-                "const": "machine",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of a machine actor.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "Machine",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "actorType": {
-                "const": "ai",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of an AI agent.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "AI",
-            "type": "object"
-          }
-        ]
-      },
-      "AuthenticatedCallerResponse": {
-        "description": "The caller of the request.",
+      "HashQlRequest": {
+        "additionalProperties": false,
+        "description": "The query to run.",
         "properties": {
-          "actor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ActorId"
-              }
-            ],
-            "description": "The actor the request's credentials identify."
+          "query": {
+            "description": "The query, as a J-Expr."
           }
         },
         "required": [
-          "actor"
-        ],
-        "type": "object"
-      },
-      "CallerResponse": {
-        "description": "The caller of the request.",
-        "properties": {
-          "actor": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ActorId"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The actor the request's credentials identify, or `null` for an anonymous request."
-          }
-        },
-        "required": [
-          "actor"
+          "query"
         ],
         "type": "object"
       },
@@ -408,6 +860,27 @@
         ],
         "title": "Problem Details",
         "type": "object"
+      },
+      "QueryResponse": {
+        "description": "The result of a query.",
+        "properties": {
+          "advisories": {
+            "description": "The diagnostics of the query that did not fail it, such as warnings.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "value": {
+            "description": "The value the query evaluates to.\n\nEvery value is tagged with its HashQL kind, unless the request sets `Json-Compat`."
+          }
+        },
+        "required": [
+          "value",
+          "advisories"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -426,25 +899,60 @@
     }
   },
   "info": {
-    "description": "Errors use RFC 9457 Problem Details with the `application/problem+json` media type.\n\nReplacing `about:blank` with a specific problem type URI is a non-breaking change. Handle a problem type you do not recognize by its HTTP status code.\n",
+    "description": "Errors use RFC 9457 Problem Details with the `application/problem+json` media type. An operation that can answer an error in another media type documents it on that response.\n\nReplacing `about:blank` with a specific problem type URI is a non-breaking change. Handle a problem type you do not recognize by its HTTP status code.\n",
     "title": "Internal",
     "version": "unversioned"
   },
   "openapi": "3.1.0",
   "paths": {
-    "/_api/authenticated-caller": {
-      "get": {
-        "operationId": "getAuthenticatedCaller",
+    "/_api/hashql": {
+      "post": {
+        "description": "Compiles the query and evaluates it as the caller. Returns the value of the query with the diagnostics that did not fail it. A query that fails is answered with its diagnostics.",
+        "operationId": "queryHashql",
+        "parameters": [
+          {
+            "description": "Whether a query that fails is answered with its diagnostics as an HTML page.",
+            "in": "header",
+            "name": "Interactive",
+            "schema": {
+              "default": false,
+              "description": "Whether a query that fails is answered with its diagnostics as an HTML page.",
+              "type": "boolean"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "Whether the value is answered as plain JSON, without the HashQL kind of each value.",
+            "in": "header",
+            "name": "Json-Compat",
+            "schema": {
+              "default": false,
+              "description": "Whether the value is answered as plain JSON, without the HashQL kind of each value.",
+              "type": "boolean"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HashQlRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthenticatedCallerResponse"
+                  "$ref": "#/components/schemas/QueryResponse"
                 }
               }
             },
-            "description": "The caller of the request.",
+            "description": "The result of a query.",
             "headers": {
               "Cache-Control": {
                 "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -473,8 +981,20 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -494,79 +1014,9 @@
             "sessionCookie": []
           }
         ],
-        "summary": "Get the authenticated caller",
+        "summary": "Run a HashQL query",
         "tags": [
-          "Caller"
-        ]
-      }
-    },
-    "/_api/caller": {
-      "get": {
-        "description": "Returns the actor the request's credentials identify, or `actor: null` for an anonymous request.",
-        "operationId": "getCaller",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CallerResponse"
-                }
-              }
-            },
-            "description": "The caller of the request.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "For each budget in `RateLimit-Policy`, the number of requests it has left after this request, as `r`. An exhausted budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one list item each, in the format of draft-ietf-httpapi-ratelimit-headers-11. `q` is the number of requests a budget admits at once. `w` is the number of whole seconds an exhausted budget takes to refill. Sending at most `q` requests every `w` seconds stays within a budget's sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ServiceUnavailable"
-          }
-        },
-        "security": [
-          {},
-          {
-            "sessionToken": []
-          },
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Get the caller",
-        "tags": [
-          "Caller"
+          "HashQL"
         ]
       }
     }

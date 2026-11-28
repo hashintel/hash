@@ -55,8 +55,6 @@ pub(crate) struct CodeExecutionPermissions<'heap> {
 pub(crate) struct Compilation<'heap> {
     pub heap: &'heap Heap,
 
-    pub root_span: SpanId,
-
     pub interner: hashql_eval::intern::Interner<'heap>,
     pub env: Environment<'heap>,
 
@@ -106,8 +104,6 @@ impl<'heap> Compilation<'heap> {
             value: (mut ast, inputs),
             advisories,
         } = Status::zip(parsed, inputs).map_category(HashQlDiagnosticCategory::JExpr)?;
-
-        let root_span = ast.span;
 
         let mut env = Environment::new(heap);
         let modules = ModuleRegistry::new(&env);
@@ -267,26 +263,31 @@ impl<'heap> Compilation<'heap> {
 
         let permissions = CodeExecutionPermissions { actions };
 
-        context
+        let Success {
+            value: (),
+            advisories,
+        } = context
             .diagnostics
             .into_status(())
             .map_category(HashQlDiagnosticCategory::Eval)
             .with_diagnostics(advisories)?;
 
-        Status::success(Self {
-            heap,
+        Ok(Success {
+            value: Self {
+                heap,
 
-            root_span,
-            env,
-            interner,
-            entrypoint,
-            inputs,
-            artifact: CodeCompilationArtifact {
-                assignment: execution,
-                interpreter: bodies,
-                postgres: queries,
+                env,
+                interner,
+                entrypoint,
+                inputs,
+                artifact: CodeCompilationArtifact {
+                    assignment: execution,
+                    interpreter: bodies,
+                    postgres: queries,
+                },
+                permissions,
             },
-            permissions,
+            advisories,
         })
     }
 
@@ -299,5 +300,56 @@ impl<'heap> Compilation<'heap> {
             execution: &self.artifact.assignment,
             alloc: self.heap,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hashql_core::{
+        heap::{Heap, ScopeAllocator as _, Scratch},
+        span::{SpanId, SpanTable},
+    };
+    use hashql_diagnostics::{
+        Diagnostic, Label, Source, Sources, Status, StatusExt as _, severity::Advisory,
+    };
+    use hashql_syntax_jexpr::{
+        Parser, ParserOptions,
+        error::{JExprDiagnosticCategory, ParserDiagnosticCategory},
+    };
+
+    use super::Compilation;
+
+    #[test]
+    fn parser_advisory() {
+        let source = r##"{"#literal": 1}"##;
+
+        let mut sources = Sources::new();
+        let mut spans = SpanTable::new(sources.push(Source::new(source)));
+        let heap = Heap::new();
+        let mut scratch = Scratch::new();
+
+        let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
+        let (parsed, _) = scratch
+            .as_mut_scope()
+            .scoped(|scope| parser.parse_expr_with_pointers_in(source, &scope));
+
+        let mut parsed = parsed.expect("the query should parse");
+        parsed.advisories.push(
+            Diagnostic::new(
+                JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::ExpectedEof),
+                Advisory::WARNING,
+            )
+            .primary(Label::new(SpanId::SYNTHETIC, "warning of the parser")),
+        );
+
+        let compiled = Compilation::compile_parsed(
+            &heap,
+            &mut scratch,
+            Ok(parsed),
+            Status::success(Vec::new()),
+        )
+        .expect("the query should compile");
+
+        assert_eq!(compiled.advisories.len(), 1);
     }
 }

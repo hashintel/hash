@@ -21,12 +21,15 @@ pub(crate) mod test_utils;
 
 use aide::openapi::OpenApi;
 use axum::Router;
+use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
+use hash_graph_postgres_store::store::postgres::PostgresClient;
 use hash_graph_store::pool::StorePool;
 use hash_middleware::authentication::Challenge;
 
-pub(crate) use self::state::ApiState;
+pub(crate) use self::state::{ApiState, FilterProtection};
 pub use self::{
     cors::CorsConfig,
+    internal::CompilerState,
     public::PublicApiConfig,
     router::{Dependencies, router},
 };
@@ -82,7 +85,10 @@ impl<T: Clone + Send + Sync + 'static> Api<T> {
 
 pub(crate) fn apis<S>() -> impl Iterator<Item = Api<ApiState<S>>>
 where
-    S: StorePool + Send + Sync + 'static,
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+        + Send
+        + Sync
+        + 'static,
 {
     public::apis::<S>().chain([internal::api()])
 }
