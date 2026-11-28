@@ -224,7 +224,7 @@ where
 #[serde(deny_unknown_fields)]
 pub(crate) struct HashQlRequest {
     /// The query, as a J-Expr.
-    #[schemars(with = "hashql_syntax_jexpr::schemas::Expr")]
+    #[schemars(with = "hashql_syntax_jexpr::schema::Expr")]
     query: Arc<RawValue>,
     /// The value of each input that the query declares.
     inputs: InputValues,

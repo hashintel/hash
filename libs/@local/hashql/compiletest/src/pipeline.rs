@@ -35,7 +35,7 @@ use hashql_mir::{
     pass::{self, LowerConfig, execution::ExecutionAnalysisResidual},
     reify::ReifyContext,
 };
-use hashql_syntax_jexpr::{ParserOptions, span::Span};
+use hashql_syntax_jexpr::{ParserOptions, Span};
 
 /// Unwraps a [`Status`] into its success value, draining advisories and
 /// secondary diagnostics into the shared accumulator.

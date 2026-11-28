@@ -62,8 +62,8 @@ pub(crate) mod lower;
 pub(crate) mod parser;
 pub(crate) mod pointer;
 #[cfg(feature = "schemars")]
-pub mod schemas;
-pub mod span;
+pub mod schema;
+pub(crate) mod span;
 pub(crate) mod stack;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;

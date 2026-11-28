@@ -27,9 +27,9 @@
 //!
 //! #[derive(schemars::JsonSchema)]
 //! struct Request {
-//!     #[schemars(with = "hashql_syntax_jexpr::schemas::Expr")]
+//!     #[schemars(with = "hashql_syntax_jexpr::schema::Expr")]
 //!     query: Box<RawValue>,
-//!     #[schemars(with = "Vec<hashql_syntax_jexpr::schemas::Value>")]
+//!     #[schemars(with = "Vec<hashql_syntax_jexpr::schema::Value>")]
 //!     inputs: Vec<Box<RawValue>>,
 //! }
 //!

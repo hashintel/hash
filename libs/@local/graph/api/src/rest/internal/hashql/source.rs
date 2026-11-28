@@ -12,7 +12,7 @@ use hashql_diagnostics::{
     source::{DiagnosticSpan as _, SourceId},
 };
 use hashql_syntax_jexpr::{
-    JsonPointer, JsonPointers, Parser, ParserOptions, error::JExprDiagnosticCategory, span::Span,
+    JsonPointer, JsonPointers, Parser, ParserOptions, Span, error::JExprDiagnosticCategory,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, de::Error as _};
@@ -24,7 +24,7 @@ use serde_json::value::RawValue;
 #[derive(Default, JsonSchema)]
 #[schemars(extend("maxProperties" = Self::MAX_LEN))]
 pub(crate) struct InputValues(
-    #[schemars(with = "BTreeMap<String, hashql_syntax_jexpr::schemas::Value>")]
+    #[schemars(with = "BTreeMap<String, hashql_syntax_jexpr::schema::Value>")]
     BTreeMap<String, Box<RawValue>>,
 );
 

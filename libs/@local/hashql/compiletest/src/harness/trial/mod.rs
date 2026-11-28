@@ -89,7 +89,7 @@ where
 fn parse_source<'heap>(
     source: &str,
     heap: &'heap Heap,
-) -> Result<(Expr<'heap>, SpanTable<hashql_syntax_jexpr::span::Span>), Report<TrialError>> {
+) -> Result<(Expr<'heap>, SpanTable<hashql_syntax_jexpr::Span>), Report<TrialError>> {
     let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
     let mut parser = Parser::new(heap, &mut spans, ParserOptions::default());
 
