@@ -37,6 +37,10 @@ const config: StorybookConfig = {
       // Parser options are shared with the published docgen registry so
       // PropsTable renders identically in Storybook and in dist/docs.
       ...docgenParserOptions,
+      docgenMode: "legacy",
+      // Same resolver as `docgenParserOptions`, typed against the plugin's
+      // compiler-agnostic symbol instead of `ts.Symbol`.
+      componentNameResolver: (symbol) => symbol.getName(),
       // The plugin defaults to injecting `X.displayName = "<doc name>"` after
       // each module, which would overwrite hand-set displayNames
       // (e.g. "Form.Field") with export names.
