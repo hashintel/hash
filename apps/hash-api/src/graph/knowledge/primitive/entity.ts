@@ -14,6 +14,10 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { actorHeaders } from "@local/hash-graph-client";
 import {
+  ConversationClassificationError,
+  ensureConversationClassificationsPreserved,
+} from "@local/hash-graph-sdk/conversation-entity-restrictions";
+import {
   type CreateEntityParameters,
   type DiffEntityInput,
   HashEntity,
@@ -548,6 +552,31 @@ export const updateEntities: ImpureGraphFunction<
   false,
   true
 > = async (context, authentication, updates) => {
+  const typeTransitions = updates.flatMap((update) =>
+    !isEntityLinkEntity(update.entity) && update.entityTypeIds
+      ? [
+          {
+            previousEntityTypeIds: update.entity.metadata.entityTypeIds,
+            nextEntityTypeIds: update.entityTypeIds,
+          },
+        ]
+      : [],
+  );
+  if (typeTransitions.length > 0) {
+    try {
+      await ensureConversationClassificationsPreserved({
+        graphApi: context.graphApi,
+        authentication,
+        transitions: typeTransitions,
+      });
+    } catch (error) {
+      if (error instanceof ConversationClassificationError) {
+        throw GraphQlError.forbidden(error.message);
+      }
+      throw error;
+    }
+  }
+
   const patches = await Promise.all(
     updates.map(async (update) => {
       const params = isEntityLinkEntity(update.entity)
@@ -597,11 +626,15 @@ export const updateEntity = async <
   const [context, authentication, params] = args;
   const { entity } = params;
   const patch = await prepareEntityUpdate(context, authentication, params);
-  const updatedEntity = await entity.patch(
-    context.graphApi,
-    authentication,
-    patch,
-  );
+  let updatedEntity: HashEntity<Properties>;
+  try {
+    updatedEntity = await entity.patch(context.graphApi, authentication, patch);
+  } catch (error) {
+    if (error instanceof ConversationClassificationError) {
+      throw GraphQlError.forbidden(error.message);
+    }
+    throw error;
+  }
   runAfterEntityUpdateHooks(context, authentication, {
     ...params,
     updatedEntity,

@@ -5,6 +5,7 @@ import { createContext, use, useEffect, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { PetrinautEditor } from "./petrinaut-editor";
+import { NetExistsError } from "./shared/net-exists-error";
 
 import type {
   PetrinautEditorLoad,
@@ -45,6 +46,11 @@ const observed = vi.hoisted(() => ({
   brunchFailure: null as null | { error: Error; source: string },
   /** The HASH graph reads the page gives Brunch. */
   hashGraphReadTools: [{ toolName: "hash_query_entities" }],
+  /** Calls to `useAgentConversation`'s `subjectSaved` callback. */
+  subjectSaved:
+    vi.fn<
+      (subjectEntityId: EntityId, options?: { createdHere?: boolean }) => void
+    >(),
 }));
 
 const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
@@ -138,6 +144,20 @@ vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashGraphReadTools: () => observed.hashGraphReadTools,
 }));
 
+vi.mock("./petrinaut-editor/use-agent-conversation", () => {
+  // Stable, as the hook's is while the open conversation is unchanged.
+  const conversation = {
+    conversationId: null,
+    start: () => {},
+    replace: () => {},
+  };
+  const conversationRead = {
+    conversationPointer: conversation,
+    subjectSaved: observed.subjectSaved,
+  };
+  return { useAgentConversation: () => conversationRead };
+});
+
 vi.mock("./petrinaut-editor/process-petrinaut/top-bar-plugin", () => ({
   topBarPlugin: { id: "top-bar" },
 }));
@@ -194,7 +214,7 @@ const savedLoad = (
 const draftLoad = (): PetrinautEditorLoad => ({
   definition,
   title: "Draft",
-  mode: { kind: "draft", seedKey: null },
+  mode: { kind: "draft", seedKey: null, entityId: "web~draft" as EntityId },
   savedSnapshot: null,
   reason: "open",
 });
@@ -224,6 +244,7 @@ beforeEach(() => {
   observed.brunchInputs.length = 0;
   observed.petrinautFailure = null;
   observed.brunchFailure = null;
+  observed.subjectSaved.mockClear();
   identityRequests.length = 0;
   sentry.captureException.mockClear();
   onDirtyChange.mockClear();
@@ -397,6 +418,7 @@ test("Save submits the net as it was pressed once, and marks only that as saved"
     definition: handle?.doc(),
     title: "Net (edited)",
     entityId: savedEntityId,
+    exists: true,
   });
   expect(lastTopBar()?.persistPending).toBe(true);
 
@@ -496,7 +518,7 @@ test("a Save kept from before Create, called once Create resolves but before the
     decisionTime: "2026-10-24T02:00:00.000Z",
   });
   renderEditor({ load: draftLoad() });
-  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Create"));
+  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Save"));
   const draftBar = lastTopBar();
   act(() => draftBar?.onSave());
 
@@ -513,7 +535,7 @@ test("a Save kept from before Create, called once Create resolves but before the
     }
     // Create has resolved, and the editor has not rendered since.
     expect(lastTopBar()).toMatchObject({
-      saveLabel: "Create",
+      saveLabel: "Save",
       persistPending: true,
     });
     draftBar?.onTitleChange("Renamed");
@@ -521,8 +543,8 @@ test("a Save kept from before Create, called once Create resolves but before the
   });
 
   expect(onSave.mock.calls.map(([save]) => save)).toMatchObject([
-    { title: "Draft", entityId: null },
-    { title: "Renamed", entityId: createdEntityId },
+    { title: "Draft", entityId: "web~draft", exists: false },
+    { title: "Renamed", entityId: createdEntityId, exists: true },
   ]);
   await waitFor(() =>
     expect(lastTopBar()).toMatchObject({
@@ -541,7 +563,7 @@ test("Create turns the draft into the saved net in the same editor, which then o
     decisionTime: "2026-10-24T01:00:00.000Z",
   });
   renderEditor({ load: draftLoad() });
-  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Create"));
+  await waitFor(() => expect(lastTopBar()?.saveLabel).toBe("Save"));
   const handle = lastHandle();
 
   await act(async () => {
@@ -550,7 +572,11 @@ test("Create turns the draft into the saved net in the same editor, which then o
   });
 
   expect(onSave).toHaveBeenCalledWith(
-    expect.objectContaining({ title: "Draft", entityId: null }),
+    expect.objectContaining({
+      title: "Draft",
+      entityId: "web~draft",
+      exists: false,
+    }),
   );
   await waitFor(() =>
     expect(lastBrunchInput()?.openDocument?.documentId).toBe(createdEntityId),
@@ -644,6 +670,7 @@ test("the agent's save runs the Save button's one save and settles once saved, s
     definition: captured,
     title: "Net",
     entityId: savedEntityId,
+    exists: true,
   });
   await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
   editNet("after-save");
@@ -915,8 +942,9 @@ test("a failed save settles with its error after its one attempt, and nothing re
   });
 });
 
-// Brunch is offered only on an editable saved net, so a read-only net or a
-// draft can only reach the agent's save when the net changes under a session.
+// Brunch is offered only on a net the user may edit, under that net's id, so
+// a read-only net or another net can only reach the agent's save when the
+// net changes under a session.
 test.each([
   {
     refused: "another net",
@@ -931,11 +959,10 @@ test.each([
     reason: "The user can't edit this net, so they can't save it.",
   },
   {
-    refused: "a draft",
+    refused: "the saved net once a draft with another id is open",
     change: { load: draftLoad() },
     documentId: savedEntityId,
-    reason:
-      "The net is an unsaved draft, which the user creates with the editor's Create.",
+    reason: "That isn't the net open in the editor.",
   },
 ])(
   "the agent's save of $refused is refused as not started and saves nothing",
@@ -1116,4 +1143,85 @@ test("the agent's save of a net with no unsaved changes is refused as not starte
     reason: clean,
   });
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test("subjectSaved is called only on a draft's first save, not on updates to an already-saved net", async () => {
+  // Saving an already-saved net must not call subjectSaved.
+  const { rerender } = renderEditor({ load: savedLoad() });
+  await waitFor(() => expect(lastTopBar()).toBeDefined());
+  onSave.mockResolvedValueOnce({
+    entityId: savedEntityId,
+    decisionTime: "2026-10-24T01:00:00.000Z",
+  });
+  act(() => lastTopBar()?.onTitleChange("Net (edited)"));
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(observed.subjectSaved).not.toHaveBeenCalled();
+
+  // Saving a draft for the first time calls subjectSaved with createdHere: true,
+  // and a subsequent save of the now-saved net does not call it again.
+  rerender({ load: draftLoad() });
+  await waitFor(() => expect(lastTopBar()?.title).toBe("Draft"));
+  const draftEntityId = "web~draft" as EntityId;
+  onSave
+    .mockResolvedValueOnce({
+      entityId: draftEntityId,
+      decisionTime: "2026-10-24T02:00:00.000Z",
+    })
+    .mockResolvedValueOnce({
+      entityId: draftEntityId,
+      decisionTime: "2026-10-24T03:00:00.000Z",
+    });
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  expect(observed.subjectSaved).toHaveBeenCalledTimes(1);
+  expect(observed.subjectSaved).toHaveBeenCalledWith(draftEntityId);
+
+  act(() => lastTopBar()?.onTitleChange("Draft (second save)"));
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  expect(observed.subjectSaved).toHaveBeenCalledTimes(1);
+
+  // If a draft's first save discovers the net already exists elsewhere,
+  // subjectSaved is still called once for the draft.
+  observed.subjectSaved.mockClear();
+  const collidedId = "web~collided" as EntityId;
+  const collidedLoad: PetrinautEditorLoad = {
+    definition,
+    title: "Collided",
+    mode: { kind: "draft", seedKey: null, entityId: collidedId },
+    savedSnapshot: null,
+    reason: "open",
+  };
+  rerender({ load: collidedLoad });
+  await waitFor(() =>
+    expect(lastTopBar()).toMatchObject({
+      title: "Collided",
+      persistPending: false,
+    }),
+  );
+  onSave.mockRejectedValueOnce(
+    new NetExistsError({
+      entityId: collidedId,
+      savedSnapshot: {
+        definition,
+        title: "Collided",
+        decisionTime: "2026-10-24T00:00:00.000Z",
+      },
+      userEditable: true,
+    }),
+  );
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  await waitFor(() => expect(observed.subjectSaved).toHaveBeenCalledTimes(1));
+  expect(observed.subjectSaved).toHaveBeenCalledWith(collidedId);
 });

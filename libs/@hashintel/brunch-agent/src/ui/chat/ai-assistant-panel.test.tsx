@@ -982,7 +982,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
-        name: "Clear AI chat",
+        name: "New conversation",
       }).disabled,
     ).toBe(true);
   });
@@ -5403,7 +5403,7 @@ describe("AiAssistantPanel composer submissions", () => {
 
     sendText("Outline it again");
     await screen.findByText("No reply received");
-    fireEvent.click(screen.getByRole("button", { name: "Clear AI chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "New conversation" }));
     await waitFor(() =>
       expect(screen.queryByText("No reply received")).toBeNull(),
     );

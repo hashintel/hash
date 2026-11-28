@@ -23,9 +23,7 @@ import {
 } from "../client/brunch-panel-transport";
 import {
   brunchEvaluationConversationIdFrom,
-  getOrCreateBrunchConversationId,
   ordinaryConstructionConversationIdFrom,
-  replaceBrunchConversationId,
 } from "../client/conversation/brunch-conversation-id";
 import { requestFlueStop } from "../client/request-flue-stop";
 import {
@@ -33,6 +31,7 @@ import {
   canonicalPetrinautClientToolNames,
 } from "../client/tools/brunch-client-tools";
 import { createInBandBrowserCalls } from "../client/tools/in-band-browser-call";
+import { browserConversationPointer } from "./conversation/browser-conversation-pointer";
 import { useFlueChatHistory } from "./conversation/use-flue-chat-history";
 import {
   useProcessAgentBinding,
@@ -162,6 +161,29 @@ export interface BrunchOpenDocument {
   readonly editor: BrunchEditorDocument | null;
 }
 
+/**
+ * Where a host keeps which conversation the open document uses. A host that
+ * passes none leaves it in this browser's storage.
+ */
+export interface BrunchConversationPointer {
+  /**
+   * The conversation stored for the open document: `undefined` while the host
+   * reads it, `null` when it stores none and the document's first conversation
+   * applies. Brunch binds no conversation until it is read.
+   */
+  readonly conversationId: string | null | undefined;
+  /**
+   * The user sent a message in this conversation. Called for every message,
+   * so a host that records a conversation when it starts ignores the repeats.
+   */
+  readonly start: (conversationId: string) => void;
+  /**
+   * The user cleared the chat: this conversation is bound in place of the
+   * one before it. What becomes of the earlier one is the host's to decide.
+   */
+  readonly replace: (conversationId: string) => void;
+}
+
 /** Brunch's Voice choices, as the host stores them. */
 export interface BrunchVoicePreferences {
   /** The host's Voice preference is loaded and on. */
@@ -211,6 +233,7 @@ export const useBrunchAssistant = ({
   fetch: hostFetch,
   selected,
   openDocument,
+  conversationPointer,
   voice,
   interviewBudget,
   words,
@@ -226,6 +249,13 @@ export const useBrunchAssistant = ({
   readonly selected: boolean;
   /** The open document, or `null` while none is open. */
   readonly openDocument: BrunchOpenDocument | null;
+  /**
+   * The host's own record of the open document's conversation, for a host
+   * that stores it with the document. It must describe the document open
+   * now: `undefined` until that document's record is read. Pass a stable
+   * object. A host that passes none gets `browserConversationPointer`.
+   */
+  readonly conversationPointer?: BrunchConversationPointer;
   readonly voice: BrunchVoicePreferences;
   readonly interviewBudget: BrunchInterviewBudgetPreferences;
   readonly words: BrunchWordsPreferences;
@@ -291,18 +321,30 @@ export const useBrunchAssistant = ({
   const [freshConversationIds, setFreshConversationIds] = useState<
     Record<string, string>
   >({});
+  /** Where the open document's conversation is kept: the host's, or this browser's storage. */
+  const pointer = useMemo(
+    () =>
+      conversationPointer ??
+      (currentNetId === null ? null : browserConversationPointer(currentNetId)),
+    [conversationPointer, currentNetId],
+  );
   const baseConstructionConversationId = useMemo(() => {
-    if (!selected || currentNetId === null) return undefined;
-    const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
-    return (
-      freshConversationIds[currentNetId] ??
-      getOrCreateBrunchConversationId(
-        initialId,
-        window.localStorage,
-        () => initialId,
-      )
-    );
-  }, [selected, currentNetId, freshConversationIds]);
+    if (!selected || currentNetId === null || pointer === null)
+      return undefined;
+    const freshId = freshConversationIds[currentNetId];
+    if (freshId !== undefined) return freshId;
+    const storedId = pointer.conversationId;
+    return storedId === undefined
+      ? undefined
+      : (storedId ?? ordinaryConstructionConversationIdFrom(currentNetId));
+  }, [selected, currentNetId, freshConversationIds, pointer]);
+  // No conversation is bound while the host still reads which one applies:
+  // binding the document's first conversation meanwhile would show, and could
+  // write to, a conversation the user has cleared.
+  const awaitingHostConversation =
+    selected &&
+    currentNetId !== null &&
+    baseConstructionConversationId === undefined;
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
@@ -313,7 +355,7 @@ export const useBrunchAssistant = ({
     [baseConstructionConversationId],
   );
   const baseProcessAgentBinding = useProcessAgentBinding({
-    document: openDocument,
+    document: awaitingHostConversation ? null : openDocument,
     fixture: fixtureProcessAgentConfiguration,
   });
   const processAgentBinding = useMemo(
@@ -610,14 +652,18 @@ export const useBrunchAssistant = ({
                   : current,
               );
             },
-            onSubmission: (messageId) =>
+            onSubmission: (messageId) => {
+              if (baseConstructionConversationId !== undefined) {
+                pointer?.start(baseConstructionConversationId);
+              }
               setHighlightDismissal({
                 tracker: conversationTracker,
                 // The latest turn the user saw when they sent the message,
                 // or, while the history is being read, of the first read.
                 ...(historyKnown ? { turn: { id: latestTurnId } } : {}),
                 messageId,
-              }),
+              });
+            },
             onToolOutputError: (event) =>
               reportBrunchFailure("server-tool", new Error(event.errorText), {
                 submissionId: event.submissionId,
@@ -643,6 +689,8 @@ export const useBrunchAssistant = ({
             onDisconnect: refreshHistory,
           }),
     [
+      baseConstructionConversationId,
+      pointer,
       conversationTracker,
       conversationId,
       constructionBrowser,
@@ -861,11 +909,11 @@ export const useBrunchAssistant = ({
       },
       messages: flueHistory.messages,
       onClearMessages: () => {
-        if (currentNetId === null) return;
+        if (currentNetId === null || pointer === null) return;
         conversationWords.clear();
         const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
         const nextId = `${initialId}:${crypto.randomUUID()}`;
-        replaceBrunchConversationId(initialId, nextId);
+        pointer.replace(nextId);
         setFreshConversationIds((current) => ({
           ...current,
           [currentNetId]: nextId,
@@ -886,6 +934,7 @@ export const useBrunchAssistant = ({
     conversationWords,
     conversationTracker,
     currentNetId,
+    pointer,
     draftInteractiveTool,
     editor,
     flueClientPromise,

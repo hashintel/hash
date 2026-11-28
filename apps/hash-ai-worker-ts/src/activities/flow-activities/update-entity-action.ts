@@ -1,4 +1,8 @@
-import { isEntityId, splitEntityId } from "@blockprotocol/type-system";
+import {
+  isEntityId,
+  mustHaveAtLeastOne,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import {
   getStorageProvider,
   resolvePayloadValue,
@@ -126,7 +130,9 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
         { actorId: savingActorId },
         {
           propertyPatches,
-          entityTypeIds,
+          entityTypeIds: entityTypeIds
+            ? mustHaveAtLeastOne(entityTypeIds)
+            : undefined,
           draft: !!draftId,
           provenance: {
             actorType: "machine",

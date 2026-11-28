@@ -1,6 +1,9 @@
 import { Context } from "@temporalio/activity";
 
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import {
   getStorageProvider,
   resolvePayloadValue,
@@ -190,8 +193,9 @@ export const persistEntity = async ({
             graphApiClient,
             { actorId: webBotActorId },
             {
-              entityTypeIds:
+              entityTypeIds: mustHaveAtLeastOne(
                 stableReferenceToMatchedEntity.newValues.entityTypeIds,
+              ),
               draft: existingEntityIsDraft ? true : createEditionAsDraft,
               propertyPatches: patchOperations,
               provenance: {

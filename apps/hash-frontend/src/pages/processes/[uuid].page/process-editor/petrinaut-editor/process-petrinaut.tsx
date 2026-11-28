@@ -11,6 +11,7 @@ import {
 import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
   BrunchAssistantContext,
+  type BrunchConversationPointer,
   type BrunchHostSave,
   type BrunchOpenDocument,
   brunchPlugin,
@@ -149,6 +150,7 @@ const BrunchSession = memo(
     actorKey,
     chatEndpoint,
     openDocument,
+    conversationPointer,
     shown,
     hostTools,
     hostSave,
@@ -159,6 +161,8 @@ const BrunchSession = memo(
     /** Brunch's HASH agent. */
     chatEndpoint: string;
     openDocument: BrunchOpenDocument;
+    /** The open net's conversation with Brunch. */
+    conversationPointer: BrunchConversationPointer;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
     /**
@@ -181,6 +185,7 @@ const BrunchSession = memo(
       fetch: brunchFetch,
       selected: shown,
       openDocument,
+      conversationPointer,
       voice: brunchVoice,
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
@@ -200,13 +205,14 @@ const BrunchSession = memo(
 
 /**
  * The Petrinaut editor for the open net, with Brunch as its assistant while
- * the net is saved, the user may edit it, and the account's actor key is
+ * the user may edit it, saved or a draft, and the account's actor key is
  * known. Rendered inside the editor's `ErrorTrackerContext`, so Brunch's
  * contained failures reach the same reporter as Petrinaut's.
  */
 export const ProcessPetrinaut = ({
   handle,
-  savedEntityId,
+  entityId,
+  conversationPointer,
   readTitle,
   hostSave,
   versionLoad,
@@ -215,8 +221,13 @@ export const ProcessPetrinaut = ({
   title,
 }: {
   handle: PetrinautDocHandle;
-  /** The open net's entity id, or `null` while it is an unsaved draft. */
-  savedEntityId: EntityId | null;
+  /** The open net's entity id; a draft's is the one its first save creates. */
+  entityId: EntityId;
+  /**
+   * The open net's conversation with Brunch, kept by the editor, or `null`
+   * when reading the conversation failed and Brunch is unavailable.
+   */
+  conversationPointer: BrunchConversationPointer | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
   /** The editor's Save, for the agent: what it would do now, and running it. Stable for the handle. */
@@ -250,23 +261,24 @@ export const ProcessPetrinaut = ({
   );
 
   const editor = useMemo(() => ({ handle, readTitle }), [handle, readTitle]);
-  // Brunch edits and saves the net, so it is offered only on saved nets the
-  // user may edit.
+  // Brunch edits and saves the net, so it is offered only on nets the user
+  // may edit.
   const openDocument = useMemo<BrunchOpenDocument | null>(
-    () =>
-      savedEntityId === null || readonly
-        ? null
-        : { documentId: savedEntityId, editor },
-    [savedEntityId, readonly, editor],
+    () => (readonly ? null : { documentId: entityId, editor }),
+    [entityId, readonly, editor],
   );
+
+  const brunchAvailable =
+    brunch !== null && openDocument !== null && conversationPointer !== null;
 
   return (
     <>
-      {brunch !== null && openDocument !== null && (
+      {brunchAvailable && (
         <BrunchSession
           actorKey={brunch.actorKey}
           chatEndpoint={brunchChatEndpoint(brunch.origin)}
           openDocument={openDocument}
+          conversationPointer={conversationPointer}
           shown={brunchShown}
           hostTools={hostTools}
           hostSave={hostSave}
@@ -284,11 +296,7 @@ export const ProcessPetrinaut = ({
           existingNets={[]}
           hideNetManagementControls="all"
           loadPetriNet={noNetSwitchingError}
-          plugins={
-            brunch !== null && openDocument !== null
-              ? editorPluginsWithBrunch
-              : editorPlugins
-          }
+          plugins={brunchAvailable ? editorPluginsWithBrunch : editorPlugins}
           readonly={readonly}
           setTitle={setTitle}
           title={title}

@@ -4,6 +4,7 @@ export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeIds: [VersionedUrl!]!
     $webId: WebId
+    $entityUuid: EntityUuid
     $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
     $draft: Boolean
@@ -13,6 +14,7 @@ export const createEntityMutation = gql`
     createEntity(
       entityTypeIds: $entityTypeIds
       webId: $webId
+      entityUuid: $entityUuid
       properties: $properties
       linkData: $linkData
       draft: $draft

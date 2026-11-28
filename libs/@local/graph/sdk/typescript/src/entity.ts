@@ -10,6 +10,7 @@ import {
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { actorHeaders } from "@local/hash-graph-client";
 
+import { ensureConversationClassificationPreserved } from "./conversation-entity-restrictions.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
@@ -200,8 +201,9 @@ export type CreateEntityParameters<
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
-  "entityId" | "decisionTime" | "properties" | "provenance"
+  "entityId" | "decisionTime" | "entityTypeIds" | "properties" | "provenance"
 > & {
+  entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   propertyPatches?: PropertyPatchOperation[];
   provenance: ProvidedEntityEditionProvenance;
   /**
@@ -1281,6 +1283,14 @@ export class HashEntity<
      *    )
      */
   ): Promise<this> {
+    if (entityTypeIds) {
+      await ensureConversationClassificationPreserved({
+        graphApi: graphAPI,
+        authentication,
+        previousEntityTypeIds: this.metadata.entityTypeIds,
+        nextEntityTypeIds: entityTypeIds,
+      });
+    }
     return graphAPI
       .patchEntity(
         this.preparePatch({
@@ -1577,6 +1587,14 @@ export class HashLinkEntity<
       ...params
     }: PatchEntityParameters,
   ): Promise<this> {
+    if (entityTypeIds) {
+      await ensureConversationClassificationPreserved({
+        graphApi: graphAPI,
+        authentication,
+        previousEntityTypeIds: this.metadata.entityTypeIds,
+        nextEntityTypeIds: entityTypeIds,
+      });
+    }
     return graphAPI
       .patchEntity(
         this.preparePatch({

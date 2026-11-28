@@ -18,6 +18,7 @@ import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { brunchTools, hashPetrinautTools } from "@hashintel/brunch-agent";
 import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
 
+import { exampleTileBySlug } from "../../processes.page/example-tiles-data";
 import ProcessRoutePage from "../[uuid].page";
 
 import type {
@@ -26,6 +27,7 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
 import type { TopBarState } from "./process-editor/petrinaut-editor/top-bar-context";
+import type * as AgentConversationModule from "./process-editor/petrinaut-editor/use-agent-conversation";
 import type { PetriNetRevision } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import type * as ApolloClient from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
@@ -63,6 +65,12 @@ type EditorView = {
 const titleUrl = "https://hash.ai/@h/types/property-type/title/";
 const definitionUrl =
   "https://hash.ai/@h/types/property-type/definition-object/";
+const agentConversationTypeId =
+  "https://hash.ai/@h/types/entity-type/agent-conversation/v/1";
+const conversationIdUrl =
+  "https://hash.ai/@h/types/property-type/conversation-id/";
+const focusTypeId =
+  "https://hash.ai/@h/types/entity-type/has-agent-conversation-focus/v/1";
 
 /**
  * The graph behind Apollo: answers queries from its nets as of when they
@@ -75,15 +83,39 @@ const graph = vi.hoisted(() => {
     nets: new Map<string, GraphNet>(),
     /** The nets query has not answered yet. */
     listPending: false,
+    /** The nets query fails with this error instead of answering. */
+    listError: undefined as Error | undefined,
     cache: new Map<string, unknown>(),
     version: 0,
     nextTime: 1,
-    createdEntityId: null as EntityId | null,
     /** Gates the next writes wait on before applying. */
     writeGates: [] as Promise<void>[],
     writeFailures: [] as Error[],
+    /** Failures the next refetches reject with. */
+    refetchFailures: [] as Error[],
+    /**
+     * Entities the user can't see, whose uuids a create is refused as for
+     * any net that exists.
+     */
+    hiddenEntityIds: new Set<string>(),
     /** Edit permission the next written net has afterwards. */
     editableAfterWrite: null as boolean | null,
+    /**
+     * The test runs the real conversation hook over `conversations`, rather
+     * than a stand-in with none open.
+     */
+    realConversations: false,
+    conversations: [] as {
+      entityId: EntityId;
+      properties: Record<string, string>;
+      createdById: string;
+      createdAt: string;
+    }[],
+    /** The conversations' links to the entities they focus on. */
+    conversationLinks: [] as {
+      leftEntityId: EntityId;
+      rightEntityId: EntityId;
+    }[],
     writes: [] as {
       kind: "create" | "update";
       entityId: EntityId;
@@ -118,21 +150,41 @@ const router = vi.hoisted(() => {
   const go = (url: string) => {
     const [path = "", search = ""] = url.split("?");
     const uuid = path.replace("/processes/", "");
-    const example = new URLSearchParams(search).get("example");
     state.current = {
       isReady: true,
       asPath: url,
-      query: example === null ? { uuid } : { uuid, example },
+      query: { uuid, ...Object.fromEntries(new URLSearchParams(search)) },
     };
     for (const listener of listeners) {
       listener();
     }
   };
+  /**
+   * The URL a destination names. A structured one is resolved as Next does:
+   * `uuid` fills the `[uuid]` segment and the rest becomes the query.
+   */
+  const href = (
+    destination:
+      | string
+      | { pathname: string; query: Record<string, string> & { uuid: string } },
+  ) => {
+    if (typeof destination === "string") {
+      return destination;
+    }
+    const {
+      pathname,
+      query: { uuid, ...query },
+    } = destination;
+    const search = new URLSearchParams(query).toString();
+    return `${pathname.replace("[uuid]", uuid)}${search ? `?${search}` : ""}`;
+  };
   /** Next applies a navigation after the call returns. */
-  const navigate = (url: string) => {
-    queueMicrotask(() => go(url));
+  const navigate = (destination: Parameters<typeof href>[0]) => {
+    queueMicrotask(() => go(href(destination)));
     return Promise.resolve(true);
   };
+  type Handler = (...args: unknown[]) => void;
+  const handlers = new Map<string, Set<Handler>>();
   return {
     state,
     go,
@@ -142,7 +194,20 @@ const router = vi.hoisted(() => {
     },
     push: vi.fn(navigate),
     replace: vi.fn(navigate),
-    events: { on: vi.fn(), off: vi.fn() },
+    /** Route events, which a test emits as Next would. */
+    events: {
+      on: (event: string, handler: Handler) => {
+        handlers.set(event, (handlers.get(event) ?? new Set()).add(handler));
+      },
+      off: (event: string, handler: Handler) => {
+        handlers.get(event)?.delete(handler);
+      },
+      emit: (event: string, ...args: unknown[]) => {
+        for (const handler of handlers.get(event) ?? []) {
+          handler(...args);
+        }
+      },
+    },
   };
 });
 
@@ -152,6 +217,8 @@ const observed = vi.hoisted(() => ({
   handles: [] as PetrinautDocHandle[],
   /** The input of Brunch's mounted session, or `null` when none is. */
   brunch: null as BrunchInput | null,
+  /** How many times a Brunch session has mounted. */
+  brunchMounts: 0,
   alert: null as AlertProps | null,
 }));
 
@@ -212,15 +279,42 @@ vi.mock("../../shared/auth-info-context", () => ({
     authenticatedUser: {
       accountId: "alice-account",
       accountSignupComplete: true,
+      // The web the tests' nets and drafts are in is an org Alice belongs to.
+      memberOf: [{ org: { webId: "00000000-0000-4000-8000-000000000001" } }],
     },
   }),
 }));
 
-vi.mock("../../shared/workspace-context", () => ({
-  useActiveWorkspace: () => ({
-    activeWorkspaceWebId: "00000000-0000-4000-8000-000000000001",
-  }),
-}));
+/** The active workspace, which a test can switch. */
+const workspace = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  const store = {
+    webId: "00000000-0000-4000-8000-000000000001",
+    switchTo: (webId: string) => {
+      store.webId = webId;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+  return store;
+});
+
+vi.mock("../../shared/workspace-context", async () => {
+  const { useSyncExternalStore } = await import("react");
+  return {
+    useActiveWorkspace: () => ({
+      activeWorkspaceWebId: useSyncExternalStore(
+        workspace.subscribe,
+        () => workspace.webId,
+      ),
+    }),
+  };
+});
 
 vi.mock("@sentry/nextjs", () => sentry);
 
@@ -309,6 +403,35 @@ vi.hoisted(() => {
   });
 });
 
+// The conversation's entities have their own tests; most tests here give
+// Brunch none open.
+vi.mock(
+  "./process-editor/petrinaut-editor/use-agent-conversation",
+  async (importOriginal) => {
+    const actual = await importOriginal<typeof AgentConversationModule>();
+    const conversation = {
+      conversationPointer: {
+        conversationId: null,
+        start: () => {},
+        replace: () => {},
+      },
+      subjectSaved: () => {},
+    };
+    const useStandIn = () => conversation;
+    return {
+      ...actual,
+      useAgentConversation: (
+        input: Parameters<typeof actual.useAgentConversation>[0],
+      ) => {
+        const useConversation = graph.realConversations
+          ? actual.useAgentConversation
+          : useStandIn;
+        return useConversation(input);
+      },
+    };
+  },
+);
+
 vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
   createHashPetrinautSaveTool: (await importOriginal<typeof BrunchUi>())
     .createHashPetrinautSaveTool,
@@ -322,12 +445,12 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
     useLayoutEffect(() => {
       observed.brunch = input;
     });
-    useLayoutEffect(
-      () => () => {
+    useLayoutEffect(() => {
+      observed.brunchMounts += 1;
+      return () => {
         observed.brunch = null;
-      },
-      [],
-    );
+      };
+    }, []);
     return { assistant: null, openAIVoiceConfig: null };
   },
 }));
@@ -335,11 +458,15 @@ vi.mock("@hashintel/brunch-agent/ui", async (importOriginal) => ({
 /** Apollo's hooks over the fake graph; documents and SDK stay real. */
 vi.mock("@apollo/client", async (importOriginal) => {
   const original = await importOriginal<typeof ApolloClient>();
-  const { useCallback, useSyncExternalStore } = await import("react");
+  const { useCallback, useEffect, useState, useSyncExternalStore } =
+    await import("react");
 
   const queryKey = ({
     request: { filter },
   }: QueryEntitySubgraphQueryVariables): string => {
+    if (JSON.stringify(filter).includes(agentConversationTypeId)) {
+      return `conversations:${JSON.stringify(filter)}`;
+    }
     if ("all" in filter) {
       const uuidFilter = JSON.stringify(filter.all[0]);
       const net = [...graph.nets.values()].find(({ entityId }) =>
@@ -374,8 +501,116 @@ vi.mock("@apollo/client", async (importOriginal) => {
     },
   });
 
+  /** The graph's answer to a conversations read, applying its filter. */
+  const conversationsAnswer = (filter: string): QueryEntitySubgraphQuery => {
+    type Equal = { equal: [{ path: string[] }, { parameter: unknown }] };
+    const { all } = JSON.parse(filter) as { all: Equal[] };
+    const isLinkClause = ({ equal: [{ path }] }: Equal) =>
+      path[0] === "outgoingLinks";
+    const clauses = all.filter((clause) => !isLinkClause(clause));
+    // As the graph does, these hold of one and the same link.
+    const linkClauses = all.filter(isLinkClause);
+    const linkValue = (
+      link: (typeof graph.conversationLinks)[number],
+      path: string[],
+    ) => {
+      const [, root, key] = path;
+      if (root === "type") {
+        return focusTypeId;
+      }
+      if (root === "archived") {
+        return false;
+      }
+      if (root === "rightEntity" && key === "webId") {
+        return link.rightEntityId.split("~")[0];
+      }
+      if (root === "rightEntity" && key === "uuid") {
+        return link.rightEntityId.split("~")[1];
+      }
+      throw new Error(`The fake graph can't filter on ${path.join(".")}`);
+    };
+    const linked = (entityId: EntityId) =>
+      linkClauses.length === 0 ||
+      graph.conversationLinks.some(
+        (link) =>
+          link.leftEntityId === entityId &&
+          linkClauses.every(
+            ({ equal: [{ path }, { parameter }] }) =>
+              linkValue(link, path) === parameter,
+          ),
+      );
+    const matching = graph.conversations.filter(
+      (conversation) =>
+        linked(conversation.entityId) &&
+        clauses.every(({ equal: [{ path }, { parameter }] }) => {
+          const [root, key = ""] = path;
+          const value =
+            root === "webId"
+              ? conversation.entityId.split("~")[0]
+              : root === "type"
+                ? agentConversationTypeId
+                : root === "properties"
+                  ? conversation.properties[key]
+                  : root === "createdById"
+                    ? conversation.createdById
+                    : root === "archived"
+                      ? false
+                      : undefined;
+          return value === parameter;
+        }),
+    );
+    const timeInterval = (createdAt: string) => ({
+      start: { kind: "inclusive", limit: createdAt },
+      end: { kind: "unbounded" },
+    });
+    return JSON.parse(
+      JSON.stringify({
+        queryEntitySubgraph: {
+          subgraph: {
+            roots: matching.map(({ entityId, createdAt }) => ({
+              baseId: entityId,
+              revisionId: createdAt,
+            })),
+            vertices: Object.fromEntries(
+              matching.map(
+                ({ entityId, properties, createdById, createdAt }) => [
+                  entityId,
+                  {
+                    [createdAt]: {
+                      kind: "entity",
+                      inner: {
+                        metadata: {
+                          recordId: { entityId, editionId: createdAt },
+                          entityTypeIds: [agentConversationTypeId],
+                          provenance: {
+                            createdById,
+                            createdAtDecisionTime: createdAt,
+                          },
+                          temporalVersioning: {
+                            decisionTime: timeInterval(createdAt),
+                            transactionTime: timeInterval(createdAt),
+                          },
+                        },
+                        properties,
+                      },
+                    },
+                  },
+                ],
+              ),
+            ),
+            edges: {},
+            temporalAxes: {},
+          },
+        },
+      }),
+    ) as QueryEntitySubgraphQuery;
+  };
+
   /** The server's answer to a query, as serialized JSON. */
   const answer = (key: string): QueryEntitySubgraphQuery => {
+    if (key.startsWith("conversations:")) {
+      return conversationsAnswer(key.slice("conversations:".length));
+    }
     const entries: [EntityId, PetriNetRevision][] =
       key === "nets"
         ? [...graph.nets.values()].flatMap(({ entityId, revisions }) => {
@@ -420,7 +655,7 @@ vi.mock("@apollo/client", async (importOriginal) => {
 
   const read = (key: string): QueryEntitySubgraphQuery | undefined => {
     if (!graph.cache.has(key)) {
-      if (key === "nets" && graph.listPending) {
+      if (key === "nets" && (graph.listPending || graph.listError)) {
         return undefined;
       }
       graph.cache.set(key, answer(key));
@@ -433,13 +668,40 @@ vi.mock("@apollo/client", async (importOriginal) => {
     {
       skip,
       variables,
-    }: { skip?: boolean; variables: QueryEntitySubgraphQueryVariables },
+      fetchPolicy,
+    }: {
+      skip?: boolean;
+      variables: QueryEntitySubgraphQueryVariables;
+      fetchPolicy?: string;
+    },
   ) => {
-    useSyncExternalStore(graph.subscribe, graph.getVersion);
+    const version = useSyncExternalStore(graph.subscribe, graph.getVersion);
     const key = skip ? null : queryKey(variables);
     const data = key === null ? undefined : read(key);
+    const error = key === "nets" ? graph.listError : undefined;
+    // As Apollo's `cache-and-network` does: what the cache holds is given at
+    // once, and the query is loading until the graph answers it afresh.
+    const asksGraph = fetchPolicy === "cache-and-network";
+    const [answeredKey, setAnsweredKey] = useState<string | null>(null);
+    useEffect(() => {
+      if (!asksGraph || key === null || answeredKey === key) {
+        return;
+      }
+      if (key === "nets" && (graph.listPending || graph.listError)) {
+        return;
+      }
+      queueMicrotask(() => {
+        graph.cache.set(key, answer(key));
+        setAnsweredKey(key);
+        graph.notify();
+      });
+    }, [answeredKey, asksGraph, key, version]);
     const refetch = useCallback(() => {
       const refetched = key ?? queryKey(variables);
+      const refetchFailure = graph.refetchFailures.shift();
+      if (refetchFailure) {
+        return Promise.reject(refetchFailure);
+      }
       const fresh = answer(refetched);
       graph.cache.set(refetched, fresh);
       graph.notify();
@@ -447,7 +709,15 @@ vi.mock("@apollo/client", async (importOriginal) => {
       // Stable while the key is, as Apollo's is.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
-    return { data, loading: key !== null && data === undefined, refetch };
+    return {
+      data,
+      error,
+      loading:
+        key !== null &&
+        !error &&
+        (data === undefined || (asksGraph && answeredKey !== key)),
+      refetch,
+    };
   };
 
   /** The client Brunch's graph reads use; these tests make no reads. */
@@ -467,6 +737,14 @@ vi.mock("@apollo/client", async (importOriginal) => {
     const failure = graph.writeFailures.shift();
     if (failure) {
       throw failure;
+    }
+    // As the graph does: a uuid taken already is refused, with the same
+    // error as any other failure to store the entity.
+    if (
+      kind === "create" &&
+      (graph.nets.has(entityId) || graph.hiddenEntityIds.has(entityId))
+    ) {
+      throw new Error("Could not store entity");
     }
     const net = graph.nets.get(entityId) ?? {
       entityId,
@@ -513,16 +791,69 @@ vi.mock("@apollo/client", async (importOriginal) => {
     if (name === "createEntity") {
       return [
         async ({
-          variables: { properties },
+          variables: {
+            properties,
+            webId: createdIn,
+            entityUuid,
+            entityTypeIds,
+            linkData,
+          },
         }: {
           variables: {
             properties: { value: Record<string, { value: unknown }> };
+            webId?: string;
+            entityUuid?: string;
+            entityTypeIds?: string[];
+            linkData?: { leftEntityId: EntityId; rightEntityId: EntityId };
           };
         }) => {
-          const entityId = graph.createdEntityId;
-          if (!entityId) {
-            throw new Error("The test named no entity to create");
+          if (entityTypeIds?.includes(focusTypeId) && linkData) {
+            // As the graph does: a link needs both its entities to exist.
+            if (
+              !graph.conversations.some(
+                ({ entityId }) => entityId === linkData.leftEntityId,
+              ) ||
+              !graph.nets.has(linkData.rightEntityId)
+            ) {
+              throw new Error("The link's entities don't exist");
+            }
+            graph.conversationLinks.push(linkData);
+            return { data: { createEntity: {} } };
           }
+          if (entityTypeIds?.includes(agentConversationTypeId)) {
+            const conversationEntityId =
+              `${createdIn}~${entityUuid ?? `conversation-${graph.conversations.length + 1}`}` as EntityId;
+            graph.conversations.push({
+              entityId: conversationEntityId,
+              properties: Object.fromEntries(
+                Object.entries(properties.value).map(([url, { value }]) => [
+                  url,
+                  value as string,
+                ]),
+              ),
+              createdById: "alice-account",
+              createdAt: `2026-10-25T00:00:${String(graph.conversations.length).padStart(2, "0")}.000Z`,
+            });
+            return {
+              data: {
+                createEntity: {
+                  metadata: {
+                    recordId: {
+                      entityId: conversationEntityId,
+                      editionId: "edition",
+                    },
+                    entityTypeIds,
+                  },
+                  properties: {},
+                },
+              },
+            };
+          }
+          // As the graph does: the caller names the new entity and its web.
+          if (!createdIn || !entityUuid) {
+            throw new Error("The create named no web or uuid for its entity");
+          }
+          const entityId = `${createdIn}~${entityUuid}` as EntityId;
           await write(
             "create",
             entityId,
@@ -553,6 +884,8 @@ const uuidCreated = "00000000-0000-4000-8000-00000000000c";
 const netAId = `${webId}~${uuidA}` as EntityId;
 const netBId = `${webId}~${uuidB}` as EntityId;
 const createdId = `${webId}~${uuidCreated}` as EntityId;
+/** A draft's URL names the net its first save creates, and that net's web. */
+const draftUrl = `/processes/${uuidCreated}?draftWeb=${webId}`;
 const firstSaved = "2026-10-24T00:00:00.000Z";
 
 /** A net whose place has a legacy (non-UUID) id, which a load converts. */
@@ -611,19 +944,26 @@ beforeEach(() => {
     [netBId, graphNet(netBId, "B")],
   ]);
   graph.listPending = false;
+  graph.listError = undefined;
   graph.cache.clear();
   graph.nextTime = 1;
-  graph.createdEntityId = createdId;
   graph.writeGates.length = 0;
   graph.writeFailures.length = 0;
+  graph.refetchFailures.length = 0;
+  graph.hiddenEntityIds.clear();
   graph.editableAfterWrite = null;
+  graph.realConversations = false;
+  graph.conversations.length = 0;
+  graph.conversationLinks.length = 0;
   graph.writes.length = 0;
+  workspace.webId = webId;
   router.state.current = { isReady: false, asPath: "", query: {} };
   router.push.mockClear();
   router.replace.mockClear();
   observed.editor = null;
   observed.handles.length = 0;
   observed.brunch = null;
+  observed.brunchMounts = 0;
   observed.alert = null;
   sentry.captureException.mockClear();
   vi.stubGlobal(
@@ -767,10 +1107,16 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
 });
 
 test("Create turns the draft into the saved net in the same editor, under its URL, with its history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draft = editor().handle;
-  expect(topBar()).toMatchObject({ saveLabel: "Create", isDirty: true });
-  expect(observed.brunch).toBeNull();
+  expect(topBar()).toMatchObject({ saveLabel: "Save", isDirty: true });
+  // The draft has Brunch already, under the id its first save creates.
+  const offered = observed.brunch?.openDocument;
+  expect(offered).toMatchObject({
+    documentId: createdId,
+    editor: { handle: draft },
+  });
+  const mounts = observed.brunchMounts;
   editTitle("New net");
 
   pressSave();
@@ -793,10 +1139,10 @@ test("Create turns the draft into the saved net in the same editor, under its UR
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
   expect(topBar().revisions).toHaveLength(1);
   expect(topBar().loadedRevisionTime).toBe(topBar().revisions[0]?.decisionTime);
-  expect(observed.brunch?.openDocument).toMatchObject({
-    documentId: createdId,
-    editor: { handle: draft },
-  });
+  // Create changed nothing Brunch's session is built from: the same open
+  // document, in the session that was already mounted.
+  expect(observed.brunch?.openDocument).toBe(offered);
+  expect(observed.brunchMounts).toBe(mounts);
   expect(leaveIsBlocked()).toBe(false);
 });
 
@@ -887,7 +1233,7 @@ test("Save persists the net as pressed, returns its history, and keeps edits mad
 });
 
 test("a Create finishing after another net loads leaves that net, its URL, history and Brunch", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const release = holdNextWrite();
   pressSave();
   await settle();
@@ -999,7 +1345,7 @@ test("a pending save takes no second press, and a failed save settles and can be
 });
 
 test("Save called twice before the editor rerenders writes once, for Create and for an update", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draftBar = topBar();
 
   act(() => {
@@ -1043,7 +1389,7 @@ test("Save submits the title as it is when called, even one changed in the same 
 });
 
 test("a Save kept from before Create, called after Create resolves, saves to the created net", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draftBar = topBar();
   const release = holdNextWrite();
   act(() => draftBar.onSave());
@@ -1142,8 +1488,23 @@ test("a save pending for an earlier load neither blocks the next load's save nor
   expect(topBar().revisions.map(({ title }) => title)).toEqual(["B2", "B"]);
 });
 
+test("a Create whose move to the net's URL Next cancels leaves the editor following the URL", async () => {
+  await renderRoute(draftUrl);
+  // Next resolves a cancelled navigation with `false`, leaving the URL.
+  router.replace.mockImplementationOnce(() => Promise.resolve(false));
+
+  pressSave();
+  await settle();
+
+  expect(url()).toBe(draftUrl);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+
+  await navigate(`/processes/${uuidA}`);
+  expect(topBar()).toMatchObject({ title: "A", saveLabel: "Saved" });
+});
+
 test("a failed Create stays on the draft, and its retry creates the net and moves the URL", async () => {
-  await renderRoute("/processes/draft");
+  await renderRoute(draftUrl);
   const draft = editor().handle;
   graph.writeFailures.push(new Error("graph unavailable"));
 
@@ -1151,16 +1512,277 @@ test("a failed Create stays on the draft, and its retry creates the net and move
   await settle();
 
   expect(router.replace).not.toHaveBeenCalled();
-  expect(url()).toBe("/processes/draft");
+  expect(url()).toBe(draftUrl);
   expect(topBar()).toMatchObject({
     persistPending: false,
-    saveLabel: "Create",
+    saveLabel: "Save",
     isDirty: true,
   });
 
   pressSave();
   await settle();
 
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+});
+
+test("starting a draft gives it an id in the active workspace, carried in its URL and kept by its first save", async () => {
+  await renderRoute("/processes/draft");
+
+  const [, uuid, web] =
+    /^\/processes\/([0-9a-f-]{36})\?draftWeb=(.+)$/u.exec(url()) ?? [];
+  expect(uuid).toBeDefined();
+  expect(web).toBe(webId);
+  expect(topBar()).toMatchObject({ saveLabel: "Save" });
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes).toEqual([
+    expect.objectContaining({ kind: "create", entityId: `${webId}~${uuid}` }),
+  ]);
+  expect(url()).toBe(`/processes/${uuid}`);
+});
+
+test("a draft's URL opens the saved net once a net exists under its id", async () => {
+  graph.nets.set(createdId, graphNet(createdId, "Saved elsewhere"));
+
+  await renderRoute(draftUrl);
+
+  expect(topBar()).toMatchObject({
+    title: "Saved elsewhere",
+    saveLabel: "Saved",
+  });
+  // Saving it updates that net; nothing is created a second time.
+  pressSave();
+  await settle();
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
+});
+
+test("a draft's or saved net's URL is resolved against the graph's nets, not a list cached before the net was saved", async () => {
+  // An earlier visit leaves the nets list cached.
+  await renderRoute(`/processes/${uuidA}`);
+  cleanup();
+  observed.editor = null;
+  // Another tab then saves the draft.
+  graph.nets.set(createdId, graphNet(createdId, "Saved elsewhere"));
+
+  await renderRoute(draftUrl);
+  expect(topBar()).toMatchObject({
+    title: "Saved elsewhere",
+    saveLabel: "Saved",
+  });
+  pressSave();
+  await settle();
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["update"]);
+  cleanup();
+  observed.editor = null;
+
+  // A saved net the cached list lacks opens too.
+  const uuidLater = "00000000-0000-4000-8000-00000000000d";
+  const laterId = `${webId}~${uuidLater}` as EntityId;
+  graph.nets.set(laterId, graphNet(laterId, "Later"));
+
+  await renderRoute(`/processes/${uuidLater}`);
+  expect(topBar()).toMatchObject({ title: "Later", saveLabel: "Saved" });
+});
+const openDraft = () => {
+  const [, uuid, web, query] =
+    /^\/processes\/([0-9a-f-]{36})\?draftWeb=([^&]+)(.*)$/u.exec(url()) ?? [];
+  return uuid && web ? { uuid, web, query } : null;
+};
+
+test("starting a draft waits for a navigation already under way, including one a newer navigation cancels", async () => {
+  // The page mounts before the router is ready, so the start isn't due yet.
+  await renderRoute(null);
+  // The user leaves for another net; then the start becomes due.
+  router.events.emit("routeChangeStart", `/processes/${uuidB}`);
+  act(() => router.go("/processes/draft"));
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+
+  // They change their mind: Next reports the first navigation cancelled
+  // before the second one starts.
+  act(() => {
+    router.events.emit("routeChangeError", { cancelled: true });
+  });
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+  act(() => {
+    router.events.emit("routeChangeStart", `/processes/${uuidA}`);
+  });
+  await settle();
+
+  act(() => {
+    router.go(`/processes/${uuidA}`);
+    router.events.emit("routeChangeComplete", `/processes/${uuidA}`);
+  });
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(topBar()).toMatchObject({ title: "A" });
+});
+
+test("starting a draft goes ahead once a hash change ends the navigation it cancelled", async () => {
+  await renderRoute(null);
+  router.events.emit("routeChangeStart", "/processes/draft");
+  act(() => router.go("/processes/draft"));
+  await settle();
+  expect(router.replace).not.toHaveBeenCalled();
+
+  // A link to a hash on this page cancels the navigation under way, and Next
+  // reports only the hash change after it.
+  act(() => {
+    router.events.emit("routeChangeError", { cancelled: true });
+    router.events.emit("hashChangeStart", "/processes/draft#top");
+    router.events.emit("hashChangeComplete", "/processes/draft#top");
+  });
+  await settle();
+  expect(router.replace).toHaveBeenCalledOnce();
+  expect(openDraft()).toMatchObject({ web: webId });
+});
+
+test("starting a draft keeps an example we have and drops any other value", async () => {
+  await renderRoute("/processes/draft?example=sir-model");
+  expect(router.replace).toHaveBeenLastCalledWith({
+    pathname: "/processes/[uuid]",
+    query: { uuid: openDraft()?.uuid, draftWeb: webId, example: "sir-model" },
+  });
+  expect(openDraft()?.query).toBe("&example=sir-model");
+  expect(topBar().title).toBe(exampleTileBySlug.get("sir-model")?.title);
+  cleanup();
+  observed.editor = null;
+
+  await renderRoute(
+    `/processes/draft?example=${encodeURIComponent("//evil.test/x")}`,
+  );
+  expect(openDraft()).toMatchObject({ web: webId, query: "" });
+  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Save" });
+});
+
+test("a draft's URL with an example we don't have opens a blank draft", async () => {
+  await renderRoute(`${draftUrl}&example=unknown`);
+  expect(url()).toBe(`${draftUrl}&example=unknown`);
+  expect(topBar()).toMatchObject({ title: "Process", saveLabel: "Save" });
+});
+
+test("a draft's URL naming a web the user can't create in, or a malformed uuid, opens a fresh draft in the active workspace instead", async () => {
+  const otherWeb = "00000000-0000-4000-8000-0000000000ff";
+  await renderRoute(
+    `/processes/${uuidCreated}?draftWeb=${otherWeb}&example=sir-model`,
+  );
+  const replacing = openDraft();
+  expect(replacing).toMatchObject({
+    web: webId,
+    query: "&example=sir-model",
+  });
+  expect(replacing?.uuid).not.toBe(uuidCreated);
+  pressSave();
+  await settle();
+  expect(graph.writes).toEqual([
+    expect.objectContaining({
+      kind: "create",
+      entityId: `${webId}~${replacing?.uuid}`,
+    }),
+  ]);
+  cleanup();
+  observed.editor = null;
+
+  await renderRoute(`/processes/not-a-uuid?draftWeb=${webId}`);
+  expect(openDraft()).toMatchObject({ web: webId, query: "" });
+  expect(topBar()).toMatchObject({ saveLabel: "Save" });
+});
+
+test("a draft's URL naming a web the user can't create in opens the net they can see under its uuid", async () => {
+  const otherWeb = "00000000-0000-4000-8000-0000000000ff";
+  const elsewhereId = `${otherWeb}~${uuidCreated}` as EntityId;
+  graph.nets.set(elsewhereId, graphNet(elsewhereId, "Shared with Alice"));
+
+  await renderRoute(`/processes/${uuidCreated}?draftWeb=${otherWeb}`);
+
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(topBar()).toMatchObject({ title: "Shared with Alice" });
+  pressSave();
+  await settle();
+  expect(graph.writes.filter(({ kind }) => kind === "create")).toEqual([]);
+});
+
+test("when loading the persisted nets list fails, a draft URL is neither redirected to a new draft nor opened blank", async () => {
+  const otherWeb = "00000000-0000-4000-8000-0000000000ff";
+  graph.listError = new Error("Graph unavailable");
+
+  await renderRoute(null);
+  await navigate(`/processes/${uuidCreated}?draftWeb=${otherWeb}`);
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(observed.editor).toBeNull();
+  cleanup();
+
+  await renderRoute(null);
+  await navigate(draftUrl);
+  expect(router.replace).not.toHaveBeenCalled();
+  expect(observed.editor).toBeNull();
+});
+
+test("a Create refused because another tab created the net moves this tab to that net, keeping its edits unsaved for an update", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  editTitle("Mine");
+  const mine = structuredClone(draft.doc());
+  // Another tab of the same draft creates its net first.
+  graph.nets.set(createdId, graphNet(createdId, "Other tab"));
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["create"]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(draft.doc()).toEqual(mine);
+  expect(topBar()).toMatchObject({
+    title: "Mine",
+    saveLabel: "Save",
+    isDirty: true,
+    persistPending: false,
+    loadedRevisionTime: firstSaved,
+    revisions: [{ decisionTime: firstSaved, title: "Other tab" }],
+  });
+  expect(observed.brunch?.openDocument?.documentId).toBe(createdId);
+  expect(leaveIsBlocked()).toBe(true);
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes.slice(1)).toEqual([
+    { kind: "update", entityId: createdId, title: "Mine", definition: mine },
+  ]);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+  expect(topBar().revisions.map(({ title }) => title)).toEqual([
+    "Mine",
+    "Other tab",
+  ]);
+});
+
+test("a Create confirmed before its follow-up read failed is retried as an update", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  graph.refetchFailures.push(new Error("network down"));
+
+  pressSave();
+  await settle();
+
+  expect(graph.nets.has(createdId)).toBe(true);
+  expect(url()).toBe(draftUrl);
+  expect(topBar()).toMatchObject({ saveLabel: "Save", isDirty: true });
+
+  pressSave();
+  await settle();
+
+  expect(
+    graph.writes.map(({ kind, entityId }) => ({ kind, entityId })),
+  ).toEqual([
+    { kind: "create", entityId: createdId },
+    { kind: "update", entityId: createdId },
+  ]);
   expect(url()).toBe(`/processes/${uuidCreated}`);
   expect(editor().handle).toBe(draft);
   expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
@@ -1195,7 +1817,7 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
   });
 
   // A draft turned into a saved net by Create reports as that net.
-  await navigate("/processes/draft");
+  await navigate(draftUrl);
   pressSave();
   await settle();
   const createdFailure = new Error("brunch failed");
@@ -1276,6 +1898,207 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
   await settle();
   expect(graph.writes).toHaveLength(2);
   expect(topBar()).toMatchObject({ isDirty: false, persistPending: false });
+});
+
+test("Brunch's agent save of a draft creates the net under the draft's id, in the session that offered it", async () => {
+  await renderRoute(draftUrl);
+  const draft = editor().handle;
+  const offered = observed.brunch?.openDocument;
+  const mounts = observed.brunchMounts;
+  // Never saved, which is what makes the approval card say it creates.
+  expect(observed.brunch?.hostSave?.read(createdId)).toMatchObject({
+    lastSavedTime: null,
+    refusal: null,
+  });
+
+  const saved = agentSave(createdId);
+  await settle();
+
+  const decisionTime = graph.nets
+    .get(createdId)
+    ?.revisions.at(-1)?.decisionTime;
+  await expect(saved).resolves.toMatchObject({
+    status: "saved",
+    decisionTime,
+    stillDirty: false,
+  });
+  expect(
+    graph.writes.map(({ kind, entityId }) => ({ kind, entityId })),
+  ).toEqual([{ kind: "create", entityId: createdId }]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(editor().handle).toBe(draft);
+  expect(topBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
+  expect(observed.brunch?.openDocument).toBe(offered);
+  expect(observed.brunchMounts).toBe(mounts);
+});
+
+/** The pointer Brunch's session was given for the open net's conversation. */
+const conversationPointer = () => {
+  const pointer = observed.brunch?.conversationPointer;
+  if (!pointer) {
+    throw new Error("Brunch's session was given no conversation pointer");
+  }
+  return pointer;
+};
+
+/** Opens `at` afresh, as a reload or another browser does. */
+const reopen = async (at: string) => {
+  cleanup();
+  observed.editor = null;
+  graph.cache.clear();
+  await renderRoute(at);
+};
+
+test("a conversation started on a draft is written at its first save, in the draft's web, carries on through it, and opens again after it", async () => {
+  graph.realConversations = true;
+  await renderRoute(draftUrl);
+  expect(conversationPointer().conversationId).toBeNull();
+  const mounts = observed.brunchMounts;
+
+  act(() => conversationPointer().start("draft-conversation"));
+  await settle();
+  // The draft's net doesn't exist yet, so nothing is written for it.
+  expect(graph.conversations).toEqual([]);
+
+  pressSave();
+  await settle();
+  // Written at the save, without waiting for another message.
+  expect(graph.conversations).toHaveLength(1);
+  expect(graph.conversationLinks).toHaveLength(1);
+  act(() => conversationPointer().start("draft-conversation"));
+  await settle();
+
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["create"]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(observed.brunchMounts).toBe(mounts);
+  expect(graph.conversations).toEqual([
+    expect.objectContaining({
+      entityId: expect.toSatisfy(
+        (id: string) => id.startsWith(`${webId}~`),
+        `an entity id in the web ${webId}`,
+      ),
+      properties: expect.objectContaining({
+        [conversationIdUrl]: "draft-conversation",
+      }),
+    }),
+  ]);
+  expect(graph.conversationLinks).toEqual([
+    {
+      leftEntityId: graph.conversations[0]?.entityId,
+      rightEntityId: createdId,
+    },
+  ]);
+
+  await reopen(`/processes/${uuidCreated}`);
+  expect(conversationPointer().conversationId).toBe("draft-conversation");
+});
+
+test("a conversation on a draft left unsaved writes nothing, and its draft's URL reopens with none read, so Brunch derives the first conversation's id again", async () => {
+  graph.realConversations = true;
+  await renderRoute(draftUrl);
+  act(() => conversationPointer().start("left-unsaved"));
+  await settle();
+
+  await reopen(draftUrl);
+
+  expect(graph.nets.has(createdId)).toBe(false);
+  expect(graph.conversations).toEqual([]);
+  expect(graph.conversationLinks).toEqual([]);
+  expect(conversationPointer().conversationId).toBeNull();
+});
+
+test("two drafts started separately have their own ids, and so their own conversations", async () => {
+  graph.realConversations = true;
+  await renderRoute("/processes/draft");
+  const first = openDraft();
+  act(() => conversationPointer().start("first-draft"));
+  await settle();
+
+  await reopen("/processes/draft");
+  const second = openDraft();
+
+  expect(second?.uuid).toBeDefined();
+  expect(second?.uuid).not.toBe(first?.uuid);
+  expect(conversationPointer().conversationId).toBeNull();
+});
+
+test("a conversation started on a draft whose Create another tab beat is written against that net when this tab moves to it", async () => {
+  graph.realConversations = true;
+  await renderRoute(draftUrl);
+  act(() => conversationPointer().start("draft-conversation"));
+  await settle();
+  // Another tab of the same draft creates its net first.
+  graph.nets.set(createdId, graphNet(createdId, "Other tab"));
+
+  pressSave();
+  await settle();
+
+  expect(graph.writes.map(({ kind }) => kind)).toEqual(["create"]);
+  expect(url()).toBe(`/processes/${uuidCreated}`);
+  expect(graph.conversations).toEqual([
+    expect.objectContaining({
+      properties: expect.objectContaining({
+        [conversationIdUrl]: "draft-conversation",
+      }),
+    }),
+  ]);
+  expect(graph.conversationLinks).toEqual([
+    {
+      leftEntityId: graph.conversations[0]?.entityId,
+      rightEntityId: createdId,
+    },
+  ]);
+});
+
+test("a net the user may not edit reads no conversation", async () => {
+  graph.realConversations = true;
+  graph.nets.set(netBId, graphNet(netBId, "B", false));
+  await renderRoute(`/processes/${uuidB}`);
+
+  expect(editor().readonly).toBe(true);
+  expect(
+    [...graph.cache.keys()].filter((key) => key.startsWith("conversations:")),
+  ).toEqual([]);
+
+  // A net the user may edit does.
+  graph.nets.set(netAId, graphNet(netAId, "A"));
+  await reopen(`/processes/${uuidA}`);
+  expect(
+    [...graph.cache.keys()].filter((key) => key.startsWith("conversations:")),
+  ).toHaveLength(1);
+});
+
+test("a draft saved after the user switches workspace is created in the draft's web", async () => {
+  await renderRoute(draftUrl);
+
+  act(() => workspace.switchTo("00000000-0000-4000-8000-0000000000ee"));
+  await settle();
+  expect(url()).toBe(draftUrl);
+  pressSave();
+  await settle();
+
+  expect(graph.writes).toEqual([
+    expect.objectContaining({ kind: "create", entityId: createdId }),
+  ]);
+});
+
+test("a refused create with no visible process preserves the error and stays on the draft", async () => {
+  graph.hiddenEntityIds.add(createdId);
+  await renderRoute(draftUrl);
+
+  const saved = agentSave(createdId);
+  await settle();
+
+  await expect(saved).resolves.toEqual({
+    status: "unconfirmed",
+    error: expect.stringContaining("Could not store entity"),
+  });
+  expect(url()).toBe(draftUrl);
+  expect(topBar()).toMatchObject({
+    saveLabel: "Save",
+    isDirty: true,
+    persistPending: false,
+  });
 });
 
 test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {

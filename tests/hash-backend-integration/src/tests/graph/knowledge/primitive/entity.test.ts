@@ -8,6 +8,7 @@ import {
   createEntityWithLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
+  updateEntities,
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
@@ -34,6 +35,7 @@ import {
   blockProtocolPropertyTypes,
   systemDataTypes,
   systemEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
@@ -50,6 +52,7 @@ import type {
   EntityTypeWithMetadata,
   EntityUuid,
   PropertyTypeWithMetadata,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
@@ -251,6 +254,45 @@ describe("Entity CRU", () => {
     );
     expect(fetchedEntity.metadata.recordId.editionId).toEqual(
       createdEntity.metadata.recordId.editionId,
+    );
+  });
+
+  it("creates an entity under a uuid the caller chose, and refuses that uuid a second time", async () => {
+    const authentication = { actorId: testUser.accountId };
+    const entityUuid = generateUuid() as EntityUuid;
+    const params = {
+      // The user's own web, so that the tests counting the org's entities are unaffected.
+      webId: testUser.accountId as WebId,
+      entityUuid,
+      properties: {
+        value: {
+          [namePropertyType.metadata.recordId.baseUrl]: {
+            value: "Carol",
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+            },
+          },
+        },
+      },
+      entityTypeIds: [entityType.schema.$id] as [typeof entityType.schema.$id],
+    };
+
+    const chosen = await createEntity(graphContext, authentication, params);
+
+    expect(
+      extractEntityUuidFromEntityId(chosen.metadata.recordId.entityId),
+    ).toEqual(entityUuid);
+
+    await expect(
+      createEntity(graphContext, authentication, params),
+    ).rejects.toThrow();
+
+    const fetched = await getLatestEntityById(graphContext, authentication, {
+      entityId: chosen.metadata.recordId.entityId,
+    });
+
+    expect(fetched.metadata.recordId.editionId).toEqual(
+      chosen.metadata.recordId.editionId,
     );
   });
 
@@ -559,6 +601,88 @@ describe("Entity CRU", () => {
     expect(linkedUuid).not.toEqual(rootUuid);
     expect(linkUuid).not.toEqual(rootUuid);
     expect(linkUuid).not.toEqual(linkedUuid);
+  });
+
+  it("refuses adding or removing Agent Conversation classification on updateEntity and updateEntities", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    const plainEntity = await createEntity(graphContext, authentication, {
+      webId: testOrg.webId,
+      entityTypeIds: [entityType.schema.$id],
+      properties: {
+        value: {
+          [namePropertyType.metadata.recordId.baseUrl]: {
+            value: "Reclassify Target",
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+            },
+          },
+          [favoriteBookPropertyType.metadata.recordId.baseUrl]: {
+            value: "Book",
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+            },
+          },
+        },
+      },
+    });
+
+    await expect(
+      updateEntity(graphContext, authentication, {
+        entity: plainEntity,
+        entityTypeIds: [
+          entityType.schema.$id,
+          systemEntityTypes.agentConversation.entityTypeId,
+        ],
+      }),
+    ).rejects.toMatchObject({
+      extensions: { code: "FORBIDDEN" },
+    });
+
+    const conversationEntity = await createEntity(
+      graphContext,
+      authentication,
+      {
+        webId: testOrg.webId,
+        entityTypeIds: [systemEntityTypes.agentConversation.entityTypeId],
+        properties: {
+          value: {
+            [systemPropertyTypes.conversationId.propertyTypeBaseUrl]: {
+              value: `conv-${generateUuid()}`,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+            [systemPropertyTypes.agentId.propertyTypeBaseUrl]: {
+              value: "brunch/hash",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+          },
+        },
+      },
+    );
+
+    await expect(
+      updateEntity(graphContext, authentication, {
+        entity: conversationEntity,
+        entityTypeIds: [entityType.schema.$id],
+      }),
+    ).rejects.toMatchObject({
+      extensions: { code: "FORBIDDEN" },
+    });
+
+    await expect(
+      updateEntities(graphContext, authentication, [
+        {
+          entity: conversationEntity,
+          entityTypeIds: [entityType.schema.$id],
+        },
+      ]),
+    ).rejects.toMatchObject({
+      extensions: { code: "FORBIDDEN" },
+    });
   });
 
   it("Cannot instantiate actor entity type", async () => {

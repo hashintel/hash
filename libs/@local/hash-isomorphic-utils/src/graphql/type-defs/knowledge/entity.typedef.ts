@@ -206,6 +206,11 @@ export const entityTypedef = gql`
       """
       webId: WebId
       """
+      The uuid of the new entity, for a caller that has to name the entity before it exists. Defaults to a generated one.
+      Creation fails if the web already has an entity with it.
+      """
+      entityUuid: EntityUuid
+      """
       The type(s) of the new entity.
       """
       entityTypeIds: [VersionedUrl!]!

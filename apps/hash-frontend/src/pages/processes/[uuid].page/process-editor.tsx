@@ -12,9 +12,11 @@ import {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 
+import { NetExistsError } from "./process-editor/shared/net-exists-error";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 import { useStringEvaluationGate } from "./process-editor/use-string-evaluation-gate";
+import { draftRoute } from "./shared/draft-path";
 
 import type {
   NetMode,
@@ -115,6 +117,11 @@ export type ProcessEditorView =
        */
       seedKey: string | null;
       seed?: { title: string; petriNetDefinition: SDCPN };
+      /**
+       * The draft's final identity, chosen when it opened and carried in its
+       * URL: its first save creates the net under this id, in this web.
+       */
+      entityId: EntityId;
     }
   | { kind: "saved"; entityUuid: string };
 
@@ -128,22 +135,24 @@ type Loaded = {
   load: PetrinautEditorLoad;
 };
 
-const draftPathForSeedKey = (seedKey: string | null): string =>
-  seedKey === null ? "/processes/draft" : `/processes/draft?example=${seedKey}`;
-
-const pathForLoadedView = (loadedView: NetMode): string => {
-  if (loadedView.kind === "draft") {
-    return draftPathForSeedKey(loadedView.seedKey);
-  }
-  return `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
-};
+const routeForLoadedView = (loadedView: NetMode) =>
+  loadedView.kind === "draft"
+    ? draftRoute(loadedView.entityId, loadedView.seedKey)
+    : `/processes/${extractEntityUuidFromEntityId(loadedView.entityId)}`;
 
 const viewMatchesLoaded = (
   view: ProcessEditorView,
   loadedView: NetMode,
 ): boolean => {
   if (view.kind === "draft" && loadedView.kind === "draft") {
-    return view.seedKey === loadedView.seedKey;
+    return (
+      view.entityId === loadedView.entityId &&
+      view.seedKey === loadedView.seedKey
+    );
+  }
+  // A draft's URL for a net that has since been saved under its id.
+  if (view.kind === "draft" && loadedView.kind === "saved") {
+    return view.entityId === loadedView.entityId;
   }
   if (view.kind === "saved" && loadedView.kind === "saved") {
     return (
@@ -229,13 +238,6 @@ export const ProcessEditor = ({
     null,
   );
 
-  /**
-   * UUID of the entity we just saved a draft into and are now navigating
-   * to via `router.replace`. While set, the reconciliation effect ignores
-   * the stale draft `view` until Next.js's router catches up to the new URL.
-   */
-  const expectedSavedUuidRef = useRef<string | null>(null);
-
   const { revisions, refetch: refetchRevisions } =
     usePetriNetRevisions(selectedNetId);
 
@@ -243,6 +245,7 @@ export const ProcessEditor = ({
     loadPersistedNet,
     persistDefinition,
     persistedNets,
+    persistedNetsError,
     persistedNetsLoading,
     setUserEditable,
     userEditable,
@@ -254,28 +257,39 @@ export const ProcessEditor = ({
   /**
    * Resolve the incoming `view` prop into what the editor holds for it.
    * Returns `null` while we're still waiting for `persistedNets` to load
-   * (saved view) — which the reconciliation effect treats as a "not yet
-   * ready" signal. Every result is a new load.
+   * (or when the list read failed and absence isn't confirmed) — which the
+   * reconciliation effect treats as a "not yet ready" signal. Every result is
+   * a new load.
    */
   const resolveView = useCallback(
     (target: ProcessEditorView): Loaded | null => {
-      if (target.kind === "draft") {
+      // A draft's URL outlives its first save (another tab, a reload before
+      // the URL caught up): the net saved under its id is what it names now.
+      const targetNet = persistedNets.find((net) =>
+        target.kind === "draft"
+          ? net.entityId === target.entityId
+          : extractEntityUuidFromEntityId(net.entityId) === target.entityUuid,
+      );
+      if (target.kind === "draft" && !targetNet) {
+        if (persistedNetsLoading || persistedNetsError) {
+          return null;
+        }
+        const mode: NetMode = {
+          kind: "draft",
+          seedKey: target.seedKey,
+          entityId: target.entityId,
+        };
         return {
-          view: { kind: "draft", seedKey: target.seedKey },
+          view: mode,
           load: {
             definition: target.seed?.petriNetDefinition ?? emptySDCPN,
             title: target.seed?.title ?? "Process",
-            mode: { kind: "draft", seedKey: target.seedKey },
+            mode,
             savedSnapshot: null,
             reason: "open",
           },
         };
       }
-
-      const targetNet = persistedNets.find(
-        (net) =>
-          extractEntityUuidFromEntityId(net.entityId) === target.entityUuid,
-      );
       if (!targetNet) {
         return null;
       }
@@ -294,7 +308,7 @@ export const ProcessEditor = ({
         },
       };
     },
-    [persistedNets],
+    [persistedNets, persistedNetsError, persistedNetsLoading],
   );
 
   /**
@@ -346,22 +360,8 @@ export const ProcessEditor = ({
       return;
     }
 
-    if (expectedSavedUuidRef.current !== null) {
-      if (
-        view.kind === "saved" &&
-        view.entityUuid === expectedSavedUuidRef.current
-      ) {
-        // URL has caught up — proceed normally (and `viewMatchesLoaded`
-        // below will short-circuit since the loaded view was already set in
-        // sync with the save).
-        expectedSavedUuidRef.current = null;
-      } else {
-        // Still waiting for `router.replace` to settle; don't react to the
-        // transient mismatch.
-        return;
-      }
-    }
-
+    // A draft's URL still showing after Create, until (or unless) the move
+    // to the saved net's URL lands, matches the net it saved.
     if (viewMatchesLoaded(view, loaded.view)) {
       return;
     }
@@ -473,26 +473,47 @@ export const ProcessEditor = ({
    * Persists what the editor submitted to the net it names. Its result
    * applies to the host only while the load it was submitted from is still
    * open: a save finishing after another load changes neither the selection
-   * nor the URL.
+   * nor the URL. A draft whose Create finds its net saved already, from
+   * another tab of the same draft, moves to that net as a Create would,
+   * leaving the editor's edits unsaved.
    */
   const save = useCallback(
-    async ({ definition, title, entityId }: PetrinautEditorSave) => {
+    async ({ definition, title, entityId, exists }: PetrinautEditorSave) => {
       const submittedFrom = loadedRef.current?.load;
-      const result = await persistDefinition(definition, title, entityId);
+
+      /** The draft is now the saved net `savedEntityId`, under its URL. */
+      const becomeSaved = (savedEntityId: EntityId) => {
+        const savedUuid = extractEntityUuidFromEntityId(savedEntityId);
+        setLoaded((current) =>
+          current
+            ? { ...current, view: { kind: "saved", entityId: savedEntityId } }
+            : current,
+        );
+        void router.replace(`/processes/${savedUuid}`);
+      };
+
+      const result = await persistDefinition(definition, title, {
+        entityId,
+        exists,
+      }).catch((error: unknown) => {
+        if (
+          error instanceof NetExistsError &&
+          !exists &&
+          loadedRef.current?.load === submittedFrom
+        ) {
+          setSelectedNetId(error.entityId);
+          setUserEditable(error.userEditable);
+          becomeSaved(error.entityId);
+        }
+        throw error;
+      });
       if (loadedRef.current?.load !== submittedFrom) {
         return result;
       }
       setSelectedNetId(result.entityId);
       setUserEditable(result.userEditable);
-      if (entityId === null) {
-        const savedUuid = extractEntityUuidFromEntityId(result.entityId);
-        expectedSavedUuidRef.current = savedUuid;
-        setLoaded((current) =>
-          current
-            ? { ...current, view: { kind: "saved", entityId: result.entityId } }
-            : current,
-        );
-        void router.replace(`/processes/${savedUuid}`);
+      if (!exists) {
+        becomeSaved(result.entityId);
       }
       return result;
     },
@@ -516,11 +537,11 @@ export const ProcessEditor = ({
           header="Discard unsaved changes?"
           open
           close={() => {
-            const revertPath = pathForLoadedView(loaded.view);
+            const revertRoute = routeForLoadedView(loaded.view);
             setPendingView(null);
             // Restore the URL to the editor's loaded view so URL and
             // editor stay in sync.
-            void router.replace(revertPath);
+            void router.replace(revertRoute);
           }}
           type="warning"
         />
