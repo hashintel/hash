@@ -1,3 +1,8 @@
+import {
+  isIsoDate,
+  parseDateTime,
+} from "@local/hash-isomorphic-utils/flows/datetime";
+
 import { deriveFilterableProperties } from "../../../../../../../shared/entities-visualizer/shared/property-filters/derive-filterable-properties";
 
 import type { FilterMetadataForProperty } from "../../../../../../../shared/entities-visualizer/shared/property-filters/property-filter";
@@ -17,6 +22,28 @@ export type PropertyValueKind =
   | { kind: "Date" }
   | { kind: "DateTime" }
   | { kind: "Boolean" };
+
+/** Whether a value is one of a kind's: a number, true or false, a date, an instant, a status's option, or any text. */
+export const isValueOfKind = (
+  valueKind: PropertyValueKind,
+  value: unknown,
+): value is string | number | boolean => {
+  switch (valueKind.kind) {
+    case "Number":
+      return typeof value === "number" && Number.isFinite(value);
+    case "Boolean":
+      return typeof value === "boolean";
+    case "Date":
+      return typeof value === "string" && isIsoDate(value);
+    case "DateTime":
+      return typeof parseDateTime(value) === "number";
+    case "Text":
+      return (
+        typeof value === "string" &&
+        (!valueKind.options || valueKind.options.includes(value))
+      );
+  }
+};
 
 /** A property a condition can check: one with a single value of a kind it compares. */
 export type EntityProperty = {

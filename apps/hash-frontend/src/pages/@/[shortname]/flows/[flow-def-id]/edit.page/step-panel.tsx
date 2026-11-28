@@ -21,6 +21,7 @@ import { getStepPaths } from "./shared/step-paths";
 import { indexValueUses } from "./shared/value-uses";
 import { AggregationField } from "./step-panel/aggregation-field";
 import { ConditionField } from "./step-panel/condition-field";
+import { EntityTypeField } from "./step-panel/entity-type-field";
 import {
   getFieldProblems,
   getForEachFieldProblems,
@@ -31,6 +32,7 @@ import { InputField } from "./step-panel/input-field";
 import { getNewFlowInput } from "./step-panel/input-sources";
 import { OutputField } from "./step-panel/output-field";
 import { PathsField } from "./step-panel/paths-field";
+import { PropertyRowsField } from "./step-panel/property-rows-field";
 import { QueryField } from "./step-panel/query-field";
 import { SortKeyField } from "./step-panel/sort-key-field";
 import { TriggersPanelBody } from "./step-panel/triggers-panel";
@@ -58,7 +60,16 @@ type UsesOf = (value: FlowValue) => ValueUse[];
 const takesKind = (input: InputDefinition, kind: PayloadKind) =>
   "oneOfPayloadKinds" in input && input.oneOfPayloadKinds.includes(kind);
 
-/** The field for an input: a builder for a query, a condition, a sort or an aggregation, otherwise a menu of values. */
+/* Not an input of any kind, such as Find's items. */
+const takesOnly = (input: InputDefinition, kind: PayloadKind) =>
+  "oneOfPayloadKinds" in input &&
+  input.oneOfPayloadKinds.length === 1 &&
+  input.oneOfPayloadKinds[0] === kind;
+
+/**
+ * The field for an input: a builder for a query, a condition, a sort, an aggregation, or an entity's properties or
+ * changes to them, a picker for entity types, otherwise a menu of values.
+ */
 const getFieldFor = (input: InputDefinition) =>
   takesKind(input, "EntityQuery")
     ? QueryField
@@ -68,7 +79,12 @@ const getFieldFor = (input: InputDefinition) =>
         ? SortKeyField
         : takesKind(input, "Aggregation")
           ? AggregationField
-          : InputField;
+          : takesOnly(input, "PropertyObjectWithMetadata") ||
+              takesOnly(input, "PropertyPatch")
+            ? PropertyRowsField
+            : takesOnly(input, "VersionedUrl") && input.array
+              ? EntityTypeField
+              : InputField;
 
 /** What the panel shows: the flow's triggers, the start step, or one step at any depth. */
 export type StepPanelSubject =

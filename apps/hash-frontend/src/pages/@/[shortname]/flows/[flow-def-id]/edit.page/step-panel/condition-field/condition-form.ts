@@ -1,12 +1,9 @@
 import {
-  isIsoDate,
-  parseDateTime,
-} from "@local/hash-isomorphic-utils/flows/datetime";
-import {
   binaryFilterOperatorsByPrimitive,
   unaryFilterOperators,
 } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 
+import { isValueOfKind } from "../shared/condition-properties";
 import {
   getSavedSubjectKind,
   hasOnlyKeys,
@@ -108,25 +105,6 @@ export const getSavedConditionKind = (
   return getSavedSubjectKind(first);
 };
 
-/** Whether a typed value is one of a kind's: a number, true or false, a date, an instant, a status's option, or any text. */
-const isRowValue = (valueKind: PropertyValueKind, value: unknown) => {
-  switch (valueKind.kind) {
-    case "Number":
-      return typeof value === "number" && Number.isFinite(value);
-    case "Boolean":
-      return typeof value === "boolean";
-    case "Date":
-      return typeof value === "string" && isIsoDate(value);
-    case "DateTime":
-      return typeof parseDateTime(value) === "number";
-    case "Text":
-      return (
-        typeof value === "string" &&
-        (!valueKind.options || valueKind.options.includes(value))
-      );
-  }
-};
-
 const readRow = (
   leaf: unknown,
   targets: ReadonlyMap<string, ConditionTarget>,
@@ -161,8 +139,8 @@ const readRow = (
   return isRecord(value) &&
     hasOnlyKeys(value, ["kind", "value"]) &&
     value.kind === target.valueKind.kind &&
-    isRowValue(target.valueKind, value.value)
-    ? { targetKey: target.key, operator, value: value.value as RowValue }
+    isValueOfKind(target.valueKind, value.value)
+    ? { targetKey: target.key, operator, value: value.value }
     : undefined;
 };
 
