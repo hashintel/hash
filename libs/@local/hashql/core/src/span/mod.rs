@@ -289,7 +289,8 @@ pub struct SpanId(u32);
 impl SpanId {
     const ID_MASK: u32 = (1 << Self::SOURCE_OFFSET) - 1;
     pub(crate) const MAX_ID: u32 = (1 << Self::SOURCE_OFFSET) - 1;
-    pub(crate) const MAX_SOURCE_ID: u32 = (1 << (u32::BITS - Self::SOURCE_OFFSET)) - 1;
+    /// The largest value of a [`SourceId`] that a [`SpanId`] encodes.
+    pub const MAX_SOURCE_ID: u32 = (1 << (u32::BITS - Self::SOURCE_OFFSET)) - 1;
     const SOURCE_OFFSET: u32 = 20;
     /// A special span ID for compiler-generated nodes that don't correspond to actual source code.
     ///
@@ -513,6 +514,24 @@ where
     }
 }
 
+/// Resolves a span in the table of its source.
+impl<S> DiagnosticSpan<&[SpanTable<S>]> for SpanId
+where
+    S: Span,
+{
+    fn source(&self) -> SourceId {
+        self.source_id()
+    }
+
+    fn absolute(&self, resolver: &mut &[SpanTable<S>]) -> Option<SourceSpan> {
+        resolver.iter().find_map(|table| table.absolute(*self))
+    }
+
+    fn is_synthetic(&self) -> bool {
+        *self == Self::SYNTHETIC
+    }
+}
+
 /// A wrapper that associates a value with its source span.
 ///
 /// [`Spanned<T>`] is a convenience type that pairs any value with a [`SpanId`],
@@ -537,5 +556,48 @@ impl<T> Deref for Spanned<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hashql_diagnostics::source::{DiagnosticSpan as _, SourceId};
+    use text_size::TextRange;
+
+    use super::{Span, SpanAncestors, SpanTable};
+
+    struct Range(TextRange);
+
+    impl Span for Range {
+        fn range(&self) -> TextRange {
+            self.0
+        }
+    }
+
+    #[test]
+    fn absolute_in_table_of_source() {
+        let mut tables = [0, 1].map(|source| SpanTable::new(SourceId::new_unchecked(source)));
+
+        // both spans have the same index in their table
+        let first = tables[0].insert(
+            Range(TextRange::new(0.into(), 4.into())),
+            SpanAncestors::empty(),
+        );
+        let second = tables[1].insert(
+            Range(TextRange::new(8.into(), 16.into())),
+            SpanAncestors::empty(),
+        );
+
+        for (span, range) in [(first, 0..4), (second, 8..16)] {
+            let absolute = span
+                .absolute(&mut tables.as_slice())
+                .expect("the span should resolve");
+
+            assert_eq!(absolute.source(), span.source_id());
+            assert_eq!(
+                absolute.range(),
+                TextRange::new(range.start.into(), range.end.into())
+            );
+        }
     }
 }

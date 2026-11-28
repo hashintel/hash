@@ -179,6 +179,47 @@ X-Session-Token: {{session_token}}
   });
 %}
 
+### HashQL: an input takes its value from the request
+POST http://127.0.0.1:4000/_api/hashql
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+{
+  "query": ["input", "limit", "Integer"],
+  "inputs": {"limit": {"#literal": 3}}
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.test("value", function() {
+    client.assert(response.body.value !== undefined, "Expected 'value' field");
+  });
+%}
+
+### HashQL: a value of another type than its input returns 400 with diagnostics
+POST http://127.0.0.1:4000/_api/hashql
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+{
+  "query": ["input", "limit", "Integer"],
+  "inputs": {"limit": {"#literal": "three"}}
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for a mistyped value");
+  });
+  client.test("span names the input", function() {
+    var span = response.body.diagnostics[0].labels.labels[0].span;
+    client.assert(span.input === "limit", "Expected the span to name the input, got: " + span.input);
+  });
+%}
+
 ### HashQL: json-compat wraps result in envelope with advisories
 POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json

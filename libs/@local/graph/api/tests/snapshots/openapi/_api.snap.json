@@ -819,7 +819,20 @@
         "additionalProperties": false,
         "description": "The query to run.",
         "properties": {
+          "inputs": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InputValues"
+              }
+            ],
+            "description": "The value of each input that the query declares."
+          },
           "query": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JExpr"
+              }
+            ],
             "description": "The query, as a J-Expr."
           }
         },
@@ -827,6 +840,308 @@
           "query"
         ],
         "type": "object"
+      },
+      "InputValues": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/JExprValue"
+        },
+        "description": "The values a request supplies for the inputs of its query, by the name of the input.\n\nA value is a J-Expr of literals and of the constructors for structs, tuples, lists and dicts.",
+        "maxProperties": 4094,
+        "type": "object"
+      },
+      "JExpr": {
+        "description": "A HashQL expression in J-Expr syntax. A string is a path, an array is a call and an object constructs a value. An expression that matches this schema can still fail to parse.",
+        "examples": [
+          [
+            "==",
+            {
+              "#literal": 2
+            },
+            {
+              "#literal": 3
+            }
+          ]
+        ],
+        "oneOf": [
+          {
+            "description": "A path in HashQL syntax, such as `x`, `entity.metadata` or `::core::math::add`.",
+            "title": "Path",
+            "type": "string"
+          },
+          {
+            "description": "The callee, followed by the arguments. A string argument `\":label\"` passes the variable `label` as the argument labeled `label`.",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/JExpr"
+                  },
+                  "description": "An argument under a single key, `:` followed by the label. Caveat: the schema is broader than the value J-Expr allows.",
+                  "maxProperties": 1,
+                  "minProperties": 1,
+                  "propertyNames": {
+                    "pattern": "^:"
+                  },
+                  "title": "Labeled argument",
+                  "type": "object"
+                }
+              ]
+            },
+            "minItems": 1,
+            "title": "Call",
+            "type": "array"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A primitive value. A number with a fraction or an exponent is a float and any other number an integer, which JSON parsing does not preserve.",
+            "properties": {
+              "#literal": {
+                "type": [
+                  "null",
+                  "boolean",
+                  "number",
+                  "string"
+                ]
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#literal"
+            ],
+            "title": "Literal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Fields by name. A name is an identifier. Caveat: the schema is broader than the value J-Expr allows.",
+            "properties": {
+              "#struct": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                "type": "object"
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#struct"
+            ],
+            "title": "Struct",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A fixed number of elements in order.",
+            "properties": {
+              "#tuple": {
+                "items": {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                "type": "array"
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Any number of elements in order.",
+            "properties": {
+              "#list": {
+                "items": {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                "type": "array"
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#list"
+            ],
+            "title": "List",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entries mapping keys to values, as an object keyed by string or as an array of `[key, value]` pairs.",
+            "properties": {
+              "#dict": {
+                "oneOf": [
+                  {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/JExpr"
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/JExpr"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array"
+                    },
+                    "type": "array"
+                  }
+                ]
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#dict"
+            ],
+            "title": "Dict",
+            "type": "object"
+          }
+        ],
+        "title": "J-Expr expression"
+      },
+      "JExprValue": {
+        "description": "A HashQL value in J-Expr syntax: a constructor object, whose items are values. A value has no paths, calls or `#type` annotations.",
+        "examples": [
+          {
+            "#struct": {
+              "name": {
+                "#literal": "Alice"
+              },
+              "tags": {
+                "#list": [
+                  {
+                    "#literal": "admin"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "A primitive value. A number with a fraction or an exponent is a float and any other number an integer, which JSON parsing does not preserve.",
+            "properties": {
+              "#literal": {
+                "type": [
+                  "null",
+                  "boolean",
+                  "number",
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "#literal"
+            ],
+            "title": "Literal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Fields by name. A name is an identifier. Caveat: the schema is broader than the value J-Expr allows.",
+            "properties": {
+              "#struct": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JExprValue"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "#struct"
+            ],
+            "title": "Struct",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A fixed number of elements in order.",
+            "properties": {
+              "#tuple": {
+                "items": {
+                  "$ref": "#/components/schemas/JExprValue"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "#tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Any number of elements in order.",
+            "properties": {
+              "#list": {
+                "items": {
+                  "$ref": "#/components/schemas/JExprValue"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "#list"
+            ],
+            "title": "List",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entries mapping keys to values, as an object keyed by string or as an array of `[key, value]` pairs.",
+            "properties": {
+              "#dict": {
+                "oneOf": [
+                  {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/JExprValue"
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/JExprValue"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array"
+                    },
+                    "type": "array"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "#dict"
+            ],
+            "title": "Dict",
+            "type": "object"
+          }
+        ],
+        "title": "J-Expr value"
       },
       "ProblemDetails": {
         "properties": {
@@ -907,7 +1222,7 @@
   "paths": {
     "/_api/hashql": {
       "post": {
-        "description": "Compiles the query and evaluates it as the caller. Returns the value of the query with the diagnostics that did not fail it. A query that fails is answered with its diagnostics.",
+        "description": "Compiles the query and evaluates it as the caller, with the values of `inputs` for the inputs that the query declares. Returns the value of the query with the diagnostics that did not fail it. A query that fails is answered with its diagnostics, and so is a value that does not have the type of its input.",
         "operationId": "queryHashql",
         "parameters": [
           {

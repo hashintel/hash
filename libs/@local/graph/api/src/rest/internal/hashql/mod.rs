@@ -1,9 +1,8 @@
 //! HashQL query endpoint.
 //!
-//! Accepts a HashQL query as raw JSON, compiles it through the full pipeline
-//! (parse, type-check, optimize, codegen), executes the generated SQL, and returns
-//! the result. Compilation errors are reported as structured diagnostics with
-//! source spans.
+//! Accepts a HashQL query and the values of its inputs as raw JSON, compiles the query through the
+//! full pipeline (parse, type-check, optimize, codegen), executes the generated SQL, and returns
+//! the result. Compilation errors are reported as structured diagnostics with source spans.
 
 use alloc::{alloc::Global, sync::Arc};
 use core::num::NonZero;
@@ -21,15 +20,14 @@ use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool:
 use hash_temporal_client::TemporalClient;
 use hashql_core::{
     heap::{Heap, Pool, ResetAllocator as _, Scratch},
-    span::{SpanId, SpanTable},
+    span::SpanId,
 };
-use hashql_diagnostics::{IntoStatus as _, Source, Sources, StatusExt as _, Success};
+use hashql_diagnostics::{IntoStatus as _, StatusExt as _, Success};
 use hashql_eval::{
     error::EvalDiagnosticCategory,
     orchestrator::Orchestrator,
     postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
-use hashql_syntax_jexpr::{JsonPointers, span::Span};
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
 use type_system::principal::actor::ActorId;
@@ -40,6 +38,7 @@ use self::{
         HashQlDiagnosticCategory, QueryError, QueryFailure, QueryRejection, QueryResponse,
         status_to_response,
     },
+    source::{InputValues, RequestSources},
     value::OwnedValue,
 };
 use super::Credentials;
@@ -52,6 +51,7 @@ use crate::rest::{
 
 mod compile;
 mod error;
+mod source;
 mod value;
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
@@ -102,10 +102,9 @@ pub(crate) struct CompilationOutputOptions {
 
 /// Compiles and executes a HashQL query, returning its value or the way it failed.
 #[expect(clippy::future_not_send)]
-async fn query_local_impl<S>(
+async fn query_local_impl<'request, S>(
     ctx: Arc<CompilerState>,
-    spans: &mut SpanTable<Span>,
-    source: &str,
+    HashQlRequest { query, inputs }: &'request HashQlRequest,
     ExecutionContext {
         temporal,
         actor_id,
@@ -114,7 +113,7 @@ async fn query_local_impl<S>(
     }: ExecutionContext<S>,
 ) -> (
     Result<Success<OwnedValue, HashQlDiagnosticCategory, SpanId>, QueryFailure>,
-    JsonPointers,
+    RequestSources<'request>,
 )
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
@@ -125,7 +124,7 @@ where
     let mut scratch = ctx.scratches.get();
     let heap = ctx.heaps.get();
 
-    let (compiled, pointers) = Compilation::compile(&heap, &mut scratch, spans, source);
+    let (compiled, sources) = Compilation::compile(&heap, &mut scratch, query.get(), inputs);
     let status = async {
         let Success {
             value: mut compilation,
@@ -175,32 +174,27 @@ where
     }
     .await;
 
-    (status, pointers)
+    (status, sources)
 }
 
 #[expect(clippy::future_not_send)]
 async fn query_local<S>(
     ctx: Arc<CompilerState>,
-    query: Arc<RawValue>,
+    request: HashQlRequest,
     options: CompilationOutputOptions,
     exec: ExecutionContext<S>,
 ) -> Result<Json<QueryResponse>, QueryRejection>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
 {
-    let mut sources = Sources::new();
-    let source_id = sources.push(Source::new(query.get()));
-
-    let mut spans = SpanTable::new(source_id);
-
-    let (status, pointers) = query_local_impl(ctx, &mut spans, query.get(), exec).await;
-    status_to_response(status, &sources, &spans, &pointers, &options)
+    let (status, sources) = query_local_impl(ctx, &request, exec).await;
+    status_to_response(status, &sources, &options)
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.
 async fn run_query<S>(
     ctx: Arc<CompilerState>,
-    query: Arc<RawValue>,
+    request: HashQlRequest,
     options: CompilationOutputOptions,
     exec: ExecutionContext<S>,
 ) -> Result<Json<QueryResponse>, QueryRejection>
@@ -215,7 +209,7 @@ where
     // is `Send` so the HTTP handler can await it normally.
     let pool = ctx.pool.clone();
     let result = pool
-        .spawn_pinned(|| query_local(ctx, query, options, exec))
+        .spawn_pinned(|| query_local(ctx, request, options, exec))
         .await;
 
     result.unwrap_or_else(|error| {
@@ -230,7 +224,11 @@ where
 #[serde(deny_unknown_fields)]
 pub(crate) struct HashQlRequest {
     /// The query, as a J-Expr.
+    #[schemars(with = "hashql_syntax_jexpr::schemas::Expr")]
     query: Arc<RawValue>,
+    /// The value of each input that the query declares.
+    #[serde(default)]
+    inputs: InputValues,
 }
 
 impl Outcome for Result<Json<QueryResponse>, QueryRejection> {}
@@ -242,7 +240,7 @@ async fn query_hashql<S>(
     State(temporal): State<Option<Arc<TemporalClient>>>,
     State(FilterProtection(filter_protection)): State<FilterProtection>,
     Header(options): Header<CompilationOutputOptions>,
-    Json(HashQlRequest { query }): Json<HashQlRequest>,
+    Json(request): Json<HashQlRequest>,
 ) -> Result<Json<QueryResponse>, QueryRejection>
 where
     S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
@@ -257,7 +255,7 @@ where
         filter_protection,
     };
 
-    run_query(compiler, query, options, exec).await
+    run_query(compiler, request, options, exec).await
 }
 
 fn document_query_hashql(operation: TransformOperation<'_>) -> TransformOperation<'_> {
@@ -265,9 +263,10 @@ fn document_query_hashql(operation: TransformOperation<'_>) -> TransformOperatio
         .id("queryHashql")
         .summary("Run a HashQL query")
         .description(
-            "Compiles the query and evaluates it as the caller. Returns the value of the query \
-             with the diagnostics that did not fail it. A query that fails is answered with its \
-             diagnostics.",
+            "Compiles the query and evaluates it as the caller, with the values of `inputs` for \
+             the inputs that the query declares. Returns the value of the query with the \
+             diagnostics that did not fail it. A query that fails is answered with its \
+             diagnostics, and so is a value that does not have the type of its input.",
         )
 }
 

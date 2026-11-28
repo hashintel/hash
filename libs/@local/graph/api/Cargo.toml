@@ -51,7 +51,7 @@ hashql-diagnostics             = { workspace = true, features = ["serde", "rende
 hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
 hashql-mir                     = { workspace = true }
-hashql-syntax-jexpr            = { workspace = true }
+hashql-syntax-jexpr            = { workspace = true, features = ["schemars"] }
 problematic                    = { workspace = true, features = ["aide", "axum"] }
 type-system                    = { workspace = true, features = ["schemars", "utoipa"] }
 

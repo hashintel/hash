@@ -1,12 +1,12 @@
 use alloc::alloc::Global;
 
 use hash_graph_authorization::policies::action::ActionName;
-use hashql_ast::{error::AstDiagnosticCategory, node::expr::Expr};
+use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
     heap::{self, CollectIn as _, Heap, ScopeAllocator as _, Scratch},
     module::ModuleRegistry,
-    span::{SpanId, SpanTable},
-    symbol::{Symbol, sym},
+    span::SpanId,
+    symbol::sym,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
@@ -28,11 +28,11 @@ use hashql_mir::{
     },
     reify::from_hir_value_in,
 };
-use hashql_syntax_jexpr::{
-    JsonPointers, ParserOptions, error::JExprDiagnosticCategory, span::Span,
-};
 
-use super::error::HashQlDiagnosticCategory;
+use super::{
+    error::HashQlDiagnosticCategory,
+    source::{InputValues, ParsedRequest, RequestSources},
+};
 
 /// Free stack below which a query is compiled on a stack of its own.
 const COMPILE_STACK_RED_ZONE: usize = 4 * 1024 * 1024;
@@ -65,25 +65,23 @@ pub(crate) struct Compilation<'heap> {
 }
 
 impl<'heap> Compilation<'heap> {
-    pub(crate) fn compile(
+    pub(crate) fn compile<'request>(
         heap: &'heap Heap,
         scratch: &mut Scratch,
-        spans: &mut SpanTable<Span>,
-        source: &str,
-    ) -> (Status<Self, HashQlDiagnosticCategory, SpanId>, JsonPointers) {
+        query: &'request str,
+        inputs: &'request InputValues,
+    ) -> (
+        Status<Self, HashQlDiagnosticCategory, SpanId>,
+        RequestSources<'request>,
+    ) {
         // The passes after the parser recurse once per level of nesting. A query nested to the
         // default limit of the parser needs more stack than a worker thread of the query pool
         // has, which is the 2 MiB default of a spawned thread.
         stacker::maybe_grow(COMPILE_STACK_RED_ZONE, COMPILE_STACK_SIZE, || {
-            let mut parser =
-                hashql_syntax_jexpr::Parser::new(heap, spans, ParserOptions::default());
+            let (sources, parsed) =
+                RequestSources::parse_in(heap, query, inputs, scratch.as_mut_scope());
 
-            let (parsed, pointers) = scratch
-                .as_mut_scope()
-                .scoped(|scope| parser.parse_expr_with_pointers_in(source, &scope));
-
-            let status = Self::compile_parsed(heap, scratch, parsed, Status::success(Vec::new()));
-            (status, pointers)
+            (Self::compile_parsed(heap, scratch, parsed), sources)
         })
     }
 
@@ -91,19 +89,14 @@ impl<'heap> Compilation<'heap> {
     fn compile_parsed(
         heap: &'heap Heap,
         scratch: &mut Scratch,
-        parsed: Status<Expr<'heap>, JExprDiagnosticCategory, SpanId>,
-        inputs: Status<
-            Vec<(Symbol<'heap>, hashql_ast::node::value::Value<'heap>)>,
-            JExprDiagnosticCategory,
-            SpanId,
-        >,
+        ParsedRequest { query, inputs }: ParsedRequest<'heap>,
     ) -> Status<Self, HashQlDiagnosticCategory, SpanId> {
         let scope = scratch.as_mut_scope();
 
         let Success {
             value: (mut ast, inputs),
             advisories,
-        } = Status::zip(parsed, inputs).map_category(HashQlDiagnosticCategory::JExpr)?;
+        } = Status::zip(query, inputs).map_category(HashQlDiagnosticCategory::JExpr)?;
 
         let mut env = Environment::new(heap);
         let modules = ModuleRegistry::new(&env);
@@ -306,50 +299,67 @@ impl<'heap> Compilation<'heap> {
 #[cfg(test)]
 mod tests {
     use hashql_core::{
-        heap::{Heap, ScopeAllocator as _, Scratch},
-        span::{SpanId, SpanTable},
+        heap::{Heap, Scratch, SymbolAllocator as _},
+        span::SpanId,
     };
-    use hashql_diagnostics::{
-        Diagnostic, Label, Source, Sources, Status, StatusExt as _, severity::Advisory,
-    };
-    use hashql_syntax_jexpr::{
-        Parser, ParserOptions,
-        error::{JExprDiagnosticCategory, ParserDiagnosticCategory},
-    };
+    use hashql_diagnostics::{Diagnostic, Label, Success, severity::Advisory};
+    use hashql_mir::interpret::value::{Int, Value};
+    use hashql_syntax_jexpr::error::{JExprDiagnosticCategory, ParserDiagnosticCategory};
 
     use super::Compilation;
+    use crate::rest::internal::hashql::source::{InputValues, RequestSources};
 
     #[test]
     fn parser_advisory() {
-        let source = r##"{"#literal": 1}"##;
+        let inputs: InputValues = serde_json::from_str("{}").expect("the values should parse");
 
-        let mut sources = Sources::new();
-        let mut spans = SpanTable::new(sources.push(Source::new(source)));
         let heap = Heap::new();
         let mut scratch = Scratch::new();
-
-        let mut parser = Parser::new(&heap, &mut spans, ParserOptions::default());
-        let (parsed, _) = scratch
-            .as_mut_scope()
-            .scoped(|scope| parser.parse_expr_with_pointers_in(source, &scope));
-
-        let mut parsed = parsed.expect("the query should parse");
-        parsed.advisories.push(
-            Diagnostic::new(
-                JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::ExpectedEof),
-                Advisory::WARNING,
-            )
-            .primary(Label::new(SpanId::SYNTHETIC, "warning of the parser")),
+        let (_sources, mut parsed) = RequestSources::parse_in(
+            &heap,
+            r##"{"#literal": 1}"##,
+            &inputs,
+            scratch.as_mut_scope(),
         );
 
-        let compiled = Compilation::compile_parsed(
-            &heap,
-            &mut scratch,
-            Ok(parsed),
-            Status::success(Vec::new()),
-        )
-        .expect("the query should compile");
+        parsed
+            .query
+            .as_mut()
+            .expect("the query should parse")
+            .advisories
+            .push(
+                Diagnostic::new(
+                    JExprDiagnosticCategory::Parser(ParserDiagnosticCategory::ExpectedEof),
+                    Advisory::WARNING,
+                )
+                .primary(Label::new(SpanId::SYNTHETIC, "warning of the parser")),
+            );
+
+        let compiled = Compilation::compile_parsed(&heap, &mut scratch, parsed)
+            .expect("the query should compile");
 
         assert_eq!(compiled.advisories.len(), 1);
+    }
+
+    #[test]
+    fn input_value() {
+        let inputs: InputValues =
+            serde_json::from_str(r##"{"x": {"#literal": 1}}"##).expect("the values should parse");
+
+        let heap = Heap::new();
+        let (compiled, _) = Compilation::compile(
+            &heap,
+            &mut Scratch::new(),
+            r#"["input", "x", "Integer"]"#,
+            &inputs,
+        );
+        let Success {
+            value: compilation, ..
+        } = compiled.expect("the query should compile");
+
+        assert_eq!(
+            compilation.inputs.get((&heap).alloc_symbol("x")),
+            Some(&Value::Integer(Int::from(1_i32)))
+        );
     }
 }

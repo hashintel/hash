@@ -1,5 +1,9 @@
-use alloc::{alloc::Global, borrow::Cow};
-use core::{alloc::Allocator, fmt::Write as _, ops::Range};
+use alloc::{alloc::Global, borrow::Cow, sync::Arc};
+use core::{
+    alloc::Allocator,
+    fmt::{self, Write as _},
+    range::Range,
+};
 use std::sync::OnceLock;
 
 use rowan::{GreenNode, GreenToken};
@@ -67,7 +71,7 @@ impl<A: Allocator> PointerIndex<A> {
         nodes.push(IndexNode {
             range: root.text_range(),
             segment: Segment::None,
-            children: 0..0,
+            children: (0..0).into(),
         });
 
         let mut queue = Vec::new_in(alloc);
@@ -99,19 +103,19 @@ impl<A: Allocator> PointerIndex<A> {
                 nodes.push(IndexNode {
                     range: child.text_range(),
                     segment,
-                    children: 0..0,
+                    children: (0..0).into(),
                 });
                 queue.push(child);
             }
 
-            nodes[cursor].children = children_start..nodes.len();
+            nodes[cursor].children = (children_start..nodes.len()).into();
             cursor += 1;
         }
 
         Self { nodes }
     }
 
-    fn resolve(&self, range: TextRange) -> Option<String> {
+    fn resolve(&self, range: TextRange) -> Option<JsonPointer> {
         let root = self.nodes.first()?;
         if !root.range.contains_range(range) {
             return None;
@@ -121,11 +125,12 @@ impl<A: Allocator> PointerIndex<A> {
         let mut current = root;
 
         loop {
-            let children = &self.nodes[current.children.clone()];
+            let children = &self.nodes[current.children];
             let index = children.partition_point(|child| child.range.end() < range.end());
             let Some(child) = children.get(index) else {
                 break;
             };
+
             if !child.range.contains_range(range) {
                 break;
             }
@@ -141,7 +146,26 @@ impl<A: Allocator> PointerIndex<A> {
             current = child;
         }
 
-        Some(pointer)
+        // caching doesn't make sense here, we'd need to allocate a new pointer anyway if a parent
+        // already exists, and the cheap work, the traversal, would still need to happen regardless,
+        // so we'll just rebuild it. This is optimistic, as spans tends to be associated with
+        // diagnostics, in which case the pointer is not going to be requested multiple times.
+        Some(JsonPointer(Arc::from(pointer)))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JsonPointer(Arc<str>);
+
+impl AsRef<str> for JsonPointer {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for JsonPointer {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
@@ -161,7 +185,7 @@ impl JsonPointers {
 
     /// Resolves the RFC 6901 JSON Pointer for `range`, or `None` outside the source bounds.
     #[must_use]
-    pub fn resolve(&self, range: TextRange) -> Option<String> {
+    pub fn resolve(&self, range: TextRange) -> Option<JsonPointer> {
         let index = self.index.get_or_init(|| {
             PointerIndex::build_in(
                 cst::SyntaxNodeData {
@@ -185,9 +209,10 @@ mod tests {
     use hashql_diagnostics::source::SourceId;
     use text_size::{TextRange, TextSize};
 
+    use super::JsonPointer;
     use crate::{Parser, ParserOptions};
 
-    fn pointer_at(source: &str, needle: &str) -> Option<String> {
+    fn pointer_at(source: &str, needle: &str) -> Option<JsonPointer> {
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0));
         let (_, pointers) = Parser::new(&heap, &mut spans, ParserOptions::default())
@@ -197,27 +222,35 @@ mod tests {
             TextSize::try_from(start).expect("start fits in TextSize"),
             TextSize::try_from(start + needle.len()).expect("end fits in TextSize"),
         );
+
         pointers.resolve(range)
     }
 
     #[test]
     fn root_and_nested_constructors() {
         let source = r##"{"#struct": {"items": {"#list": [{"#literal": 42}]}}}"##;
-        assert_eq!(pointer_at(source, source).as_deref(), Some(""));
         assert_eq!(
-            pointer_at(source, r#"{"items""#).as_deref(),
+            pointer_at(source, source).as_ref().map(AsRef::as_ref),
+            Some("")
+        );
+        assert_eq!(
+            pointer_at(source, r#"{"items""#)
+                .as_ref()
+                .map(AsRef::as_ref),
             Some("/#struct")
         );
         assert_eq!(
-            pointer_at(source, r#""items""#).as_deref(),
+            pointer_at(source, r#""items""#).as_ref().map(AsRef::as_ref),
             Some("/#struct/items")
         );
         assert_eq!(
-            pointer_at(source, r##"{"#literal": 42}"##).as_deref(),
+            pointer_at(source, r##"{"#literal": 42}"##)
+                .as_ref()
+                .map(AsRef::as_ref),
             Some("/#struct/items/#list/0")
         );
         assert_eq!(
-            pointer_at(source, "42").as_deref(),
+            pointer_at(source, "42").as_ref().map(AsRef::as_ref),
             Some("/#struct/items/#list/0/#literal")
         );
     }
@@ -225,31 +258,45 @@ mod tests {
     #[test]
     fn call_and_labeled_arguments() {
         let source = r##"["greet", "user.name", {":age": {"#literal": 30}}, ":active"]"##;
-        assert_eq!(pointer_at(source, r#""greet""#).as_deref(), Some("/0"));
-        assert_eq!(pointer_at(source, "name").as_deref(), Some("/1"));
-        assert_eq!(pointer_at(source, r#"":age""#).as_deref(), Some("/2/:age"));
         assert_eq!(
-            pointer_at(source, "30").as_deref(),
+            pointer_at(source, r#""greet""#).as_ref().map(AsRef::as_ref),
+            Some("/0")
+        );
+        assert_eq!(
+            pointer_at(source, "name").as_ref().map(AsRef::as_ref),
+            Some("/1")
+        );
+        assert_eq!(
+            pointer_at(source, r#"":age""#).as_ref().map(AsRef::as_ref),
+            Some("/2/:age")
+        );
+        assert_eq!(
+            pointer_at(source, "30").as_ref().map(AsRef::as_ref),
             Some("/2/:age/#literal")
         );
-        assert_eq!(pointer_at(source, r#"":active""#).as_deref(), Some("/3"));
+        assert_eq!(
+            pointer_at(source, r#"":active""#)
+                .as_ref()
+                .map(AsRef::as_ref),
+            Some("/3")
+        );
     }
 
     #[test]
     fn dict_array_and_escaped_keys() {
         let array_dict = r##"{"#dict": [[{"#literal": "k"}, {"#literal": "v"}]]}"##;
         assert_eq!(
-            pointer_at(array_dict, r#""k""#).as_deref(),
+            pointer_at(array_dict, r#""k""#).as_ref().map(AsRef::as_ref),
             Some("/#dict/0/0/#literal")
         );
         assert_eq!(
-            pointer_at(array_dict, r#""v""#).as_deref(),
+            pointer_at(array_dict, r#""v""#).as_ref().map(AsRef::as_ref),
             Some("/#dict/0/1/#literal")
         );
 
         let obj_dict = r##"{"#dict": {"a/b~c": {"#literal": 1}}}"##;
         assert_eq!(
-            pointer_at(obj_dict, "1").as_deref(),
+            pointer_at(obj_dict, "1").as_ref().map(AsRef::as_ref),
             Some("/#dict/a~1b~0c/#literal")
         );
     }
@@ -259,11 +306,11 @@ mod tests {
         // The invalid token is not an element. The elements after it keep their index.
         let source = r##"{"#list": [{"#literal": 1} @, {"#literal": 2}, {"#literal": 3}]}"##;
         assert_eq!(
-            pointer_at(source, "2").as_deref(),
+            pointer_at(source, "2").as_ref().map(AsRef::as_ref),
             Some("/#list/1/#literal")
         );
         assert_eq!(
-            pointer_at(source, "3").as_deref(),
+            pointer_at(source, "3").as_ref().map(AsRef::as_ref),
             Some("/#list/2/#literal")
         );
     }
@@ -291,25 +338,33 @@ mod tests {
         let a_start = TextSize::try_from(a_start).expect("start fits in TextSize");
         let a_end = TextSize::try_from(a_end).expect("end fits in TextSize");
         assert_eq!(
-            pointers.resolve(TextRange::empty(a_start)).as_deref(),
+            pointers
+                .resolve(TextRange::empty(a_start))
+                .as_ref()
+                .map(AsRef::as_ref),
             Some("/1")
         );
         assert_eq!(
-            pointers.resolve(TextRange::empty(a_end)).as_deref(),
+            pointers
+                .resolve(TextRange::empty(a_end))
+                .as_ref()
+                .map(AsRef::as_ref),
             Some("/1")
         );
         // Empty range in whitespace between elements resolves to the enclosing call.
         assert_eq!(
             pointers
                 .resolve(TextRange::empty(a_end + TextSize::new(1)))
-                .as_deref(),
+                .as_ref()
+                .map(AsRef::as_ref),
             Some("")
         );
         // Span straddling two siblings resolves to their enclosing call.
         assert_eq!(
             pointers
                 .resolve(TextRange::new(a_start, a_end + TextSize::new(4)))
-                .as_deref(),
+                .as_ref()
+                .map(AsRef::as_ref),
             Some("")
         );
     }
@@ -340,7 +395,7 @@ mod tests {
 
         for (index, range) in offsets.into_iter().enumerate() {
             assert_eq!(
-                pointers.resolve(range).as_deref(),
+                pointers.resolve(range).as_ref().map(AsRef::as_ref),
                 Some(format!("/{}", index + 1).as_str())
             );
         }

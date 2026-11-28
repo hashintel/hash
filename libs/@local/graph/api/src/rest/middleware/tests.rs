@@ -760,13 +760,20 @@ async fn legacy_routes_use_legacy_provider() {
     );
 }
 
-fn hashql_request(query: &serde_json::Value) -> Request<Body> {
+fn hashql_request_with_inputs(
+    query: &serde_json::Value,
+    inputs: &serde_json::Value,
+) -> Request<Body> {
     let mut request = request_with(Method::POST, &format!("{}/hashql", internal::PREFIX));
     request
         .headers_mut()
         .insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    *request.body_mut() = Body::from(json!({ "query": query }).to_string());
+    *request.body_mut() = Body::from(json!({ "query": query, "inputs": inputs }).to_string());
     request
+}
+
+fn hashql_request(query: &serde_json::Value) -> Request<Body> {
+    hashql_request_with_inputs(query, &json!({}))
 }
 
 fn hashql_router(internal_provider: StaticAuthenticationProvider) -> Router {
@@ -850,6 +857,56 @@ async fn hashql_invalid_query_interactive() {
     assert!(
         response.extensions().get::<Rejected>().is_some(),
         "the page should keep the rejection, through which the middleware records the error"
+    );
+}
+
+#[tokio::test]
+async fn hashql_invalid_input() {
+    let router = hashql_router(StaticAuthenticationProvider::Verified(ActorId::new(
+        Uuid::from_u128(1),
+        ActorType::User,
+    )));
+
+    let response = send_request(
+        &router,
+        hashql_request_with_inputs(
+            &json!(["input", "x", "Integer"]),
+            &json!({"x": {"#literal": "a"}}),
+        ),
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::BAD_REQUEST,
+        "a value of another type than its input should be answered 400"
+    );
+    let body = response_json(response).await;
+    assert_eq!(
+        body["diagnostics"][0]["labels"]["labels"][0]["span"],
+        json!({"location": "input.x", "range": {"start": 12, "end": 15}, "pointer": "/#literal"}),
+        "a span in a value should name the input of the value, got {body}"
+    );
+}
+
+#[tokio::test]
+async fn hashql_inputs_over_limit() {
+    let router = hashql_router(StaticAuthenticationProvider::Verified(ActorId::new(
+        Uuid::from_u128(1),
+        ActorType::User,
+    )));
+
+    let inputs: serde_json::Map<_, _> = (0..4095)
+        .map(|index| (index.to_string(), json!({"#literal": 1})))
+        .collect();
+    let response = send_request(
+        &router,
+        hashql_request_with_inputs(&json!({"#literal": 1}), &inputs.into()),
+    )
+    .await;
+    assert_eq!(
+        response.status(),
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "more values than a request can hold should be refused with the body"
     );
 }
 
