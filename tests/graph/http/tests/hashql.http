@@ -140,7 +140,8 @@ X-Session-Token: {{session_token}}
         ]
       ]
     ]
-  ]
+  ],
+  "inputs": {}
 }
 
 > {%
@@ -162,7 +163,8 @@ Authorization: <omit>
 X-Session-Token: {{session_token}}
 
 {
-  "query": {"not": "a valid query"}
+  "query": {"not": "a valid query"},
+  "inputs": {}
 }
 
 > {%
@@ -176,6 +178,48 @@ X-Session-Token: {{session_token}}
   client.test("has diagnostic", function() {
     client.assert(Array.isArray(response.body.diagnostics), "Expected diagnostics");
     client.assert(response.body.diagnostics[0].category !== undefined, "Expected diagnostic category");
+  });
+%}
+
+### HashQL: an input takes its value from the request
+POST http://127.0.0.1:4000/_api/hashql
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+Json-Compat: true
+
+{
+  "query": ["input", "limit", "Integer"],
+  "inputs": {"limit": {"#literal": 3}}
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.test("value", function() {
+    client.assert(response.body.value === 3, "Expected the value of the input, got: " + JSON.stringify(response.body.value));
+  });
+%}
+
+### HashQL: a value of another type than its input returns 400 with diagnostics
+POST http://127.0.0.1:4000/_api/hashql
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+{
+  "query": ["input", "limit", "Integer"],
+  "inputs": {"limit": {"#literal": "three"}}
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 400, "Expected 400 for a mistyped value");
+  });
+  client.test("span names the input", function() {
+    var span = response.body.diagnostics[0].labels.labels[0].span;
+    client.assert(span.location === "inputs.limit", "Expected the span to name the input, got: " + span.location);
   });
 %}
 
@@ -211,7 +255,8 @@ Json-Compat: true
         ]
       ]
     ]
-  ]
+  ],
+  "inputs": {}
 }
 
 > {%
@@ -234,7 +279,8 @@ X-Session-Token: {{session_token}}
 Interactive: true
 
 {
-  "query": {"not": "a valid query"}
+  "query": {"not": "a valid query"},
+  "inputs": {}
 }
 
 > {%

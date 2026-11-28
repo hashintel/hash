@@ -1202,7 +1202,10 @@ fn parse_value_constructors() {
         .absolute(root.entries[0].value.span)
         .expect("value span should exist")
         .range();
-    assert_eq!(pointers.resolve(num_span).as_deref(), Some("/#struct/num"));
+    assert_eq!(
+        pointers.resolve(num_span).as_ref().map(AsRef::as_ref),
+        Some("/#struct/num")
+    );
 }
 
 #[test]

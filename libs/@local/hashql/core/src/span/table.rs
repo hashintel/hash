@@ -68,6 +68,12 @@ impl<S> SpanTable<S> {
         }
     }
 
+    /// Returns the source whose spans this table holds.
+    #[must_use]
+    pub const fn source(&self) -> SourceId {
+        self.source_id
+    }
+
     /// Inserts a new span into the table with the specified ancestors.
     ///
     /// Creates a new [`SpanId`] that references the inserted span data and stores the ancestor

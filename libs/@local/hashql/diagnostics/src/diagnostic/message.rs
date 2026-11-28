@@ -13,6 +13,11 @@ use crate::source::DiagnosticSpan;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(rename = "DiagnosticMessageKind")
+)]
 enum MessageKind {
     Note,
     Help,
@@ -43,6 +48,14 @@ enum MessageKind {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticMessage",
+        description = "A note or a help text of a diagnostic."
+    )
+)]
 pub struct Message<S> {
     kind: MessageKind,
     contents: Cow<'static, str>,
@@ -50,6 +63,10 @@ pub struct Message<S> {
     pub suggestions: Option<Suggestions<S>>,
 
     #[cfg_attr(feature = "serde", serde(with = "crate::encoding::style_opt"))]
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(with = "Option<crate::encoding::style::StyleProxy>")
+    )]
     pub style: Option<Style>,
 }
 
@@ -262,6 +279,14 @@ impl<S> Message<S> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticMessages",
+        description = "The notes and help texts of a diagnostic."
+    )
+)]
 pub struct Messages<S> {
     messages: Vec<Message<S>>,
 }

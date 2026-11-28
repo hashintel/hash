@@ -7469,6 +7469,7 @@ dependencies = [
  "anstyle-lossy",
  "anstyle-svg",
  "rstest",
+ "schemars 1.2.2",
  "serde",
  "serde_core",
  "serde_json",

@@ -86,8 +86,14 @@ pub type AdvisoryDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Advisory>;
 /// ```
 #[must_use]
 #[derive(Debug)]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(transparent, inline)
+)]
 pub struct DiagnosticIssues<C, S, K = Severity> {
     diagnostics: VecDeque<Diagnostic<C, S, K>>,
+    #[cfg_attr(feature = "schemars", schemars(skip))]
     critical: usize,
 }
 

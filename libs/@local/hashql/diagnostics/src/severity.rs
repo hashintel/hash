@@ -242,6 +242,14 @@ pub enum Severity {
 }
 
 impl Severity {
+    #[expect(unsafe_code)]
+    // SAFETY: evaluated during CTFE, invalid transmutes will not compile
+    const VARIANTS: [Self; Self::VARIANTS_COUNT] = core::array::from_fn(const |index| unsafe {
+        #[expect(clippy::cast_possible_truncation)]
+        core::mem::transmute::<u8, Self>(index as u8)
+    });
+    const VARIANTS_COUNT: usize = mem::variant_count::<Self>();
+
     /// Returns an array of all severity variants.
     ///
     /// Provides access to all possible severity levels in a consistent order, typically used for
@@ -259,17 +267,7 @@ impl Severity {
     /// ```
     #[must_use]
     pub const fn variants() -> &'static [Self] {
-        const LEN: usize = mem::variant_count::<Severity>();
-        const VARIANTS: [Severity; LEN] = [
-            Severity::Bug,
-            Severity::Fatal,
-            Severity::Error,
-            Severity::Warning,
-            Severity::Note,
-            Severity::Debug,
-        ];
-
-        &VARIANTS
+        &Self::VARIANTS
     }
 
     /// Returns the complete metadata information for this severity level.
@@ -471,6 +469,65 @@ impl serde::Serialize for Severity {
     }
 }
 
+#[cfg(feature = "schemars")]
+fn one_of_schema(
+    generator: &mut schemars::SchemaGenerator,
+    description: &str,
+    severities: impl IntoIterator<Item = Severity>,
+) -> schemars::Schema {
+    use schemars::JsonSchema as _;
+
+    let color = crate::encoding::color::ColorProxy::json_schema(generator);
+
+    let one_of: Vec<_> = severities
+        .into_iter()
+        .map(|severity| {
+            let &SeverityInfo {
+                id,
+                code,
+                name,
+                description,
+                color: _,
+            } = severity.info();
+
+            schemars::json_schema!({
+                "title": name,
+                "description": description,
+                "type": "object",
+                "properties": {
+                    "id": { "const": id },
+                    "code": { "const": code },
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "color": color.clone()
+                },
+                "required": ["id", "code", "name", "description", "color"],
+                "additionalProperties": false
+            })
+        })
+        .collect();
+
+    schemars::json_schema!({
+        "description": description,
+        "oneOf": one_of
+    })
+}
+
+#[cfg(feature = "schemars")]
+impl schemars::JsonSchema for Severity {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("DiagnosticSeverity")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        one_of_schema(
+            generator,
+            "The severity of a diagnostic. A `code` of 400 or more fails the compilation.",
+            Self::variants().iter().copied(),
+        )
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Severity {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -622,13 +679,38 @@ impl serde::Serialize for Critical {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl schemars::JsonSchema for Critical {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("CriticalDiagnosticSeverity")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        one_of_schema(
+            generator,
+            "The severity of a diagnostic that fails the compilation.",
+            Severity::variants()
+                .iter()
+                .copied()
+                .filter(|severity| severity.is_critical()),
+        )
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Critical {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        Severity::deserialize(deserializer).map(Self)
+        let severity = Severity::deserialize(deserializer)?;
+
+        Self::try_new(severity).ok_or_else(|| {
+            serde::de::Error::custom(format_args!(
+                "expected a critical severity, found `{}`",
+                severity.id()
+            ))
+        })
     }
 }
 
@@ -760,12 +842,79 @@ impl serde::Serialize for Advisory {
     }
 }
 
+#[cfg(feature = "schemars")]
+impl schemars::JsonSchema for Advisory {
+    fn schema_name() -> alloc::borrow::Cow<'static, str> {
+        alloc::borrow::Cow::Borrowed("AdvisoryDiagnosticSeverity")
+    }
+
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        one_of_schema(
+            generator,
+            "The severity of a diagnostic that does not fail the compilation.",
+            Severity::variants()
+                .iter()
+                .copied()
+                .filter(|severity| severity.is_advisory()),
+        )
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for Advisory {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        Severity::deserialize(deserializer).map(Self)
+        let severity = Severity::deserialize(deserializer)?;
+
+        Self::try_new(severity).ok_or_else(|| {
+            serde::de::Error::custom(format_args!(
+                "expected an advisory severity, found `{}`",
+                severity.id()
+            ))
+        })
+    }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+    use super::{Advisory, Critical, Severity};
+
+    #[test]
+    fn critical_deserialize_advisory() {
+        let warning = serde_json::to_value(Severity::Warning).expect("should serialize");
+
+        let error = serde_json::from_value::<Critical>(warning).expect_err("should be refused");
+        assert_eq!(
+            error.to_string(),
+            "expected a critical severity, found `warning`"
+        );
+    }
+
+    #[test]
+    fn advisory_deserialize_critical() {
+        let fatal = serde_json::to_value(Severity::Fatal).expect("should serialize");
+
+        let error = serde_json::from_value::<Advisory>(fatal).expect_err("should be refused");
+        assert_eq!(
+            error.to_string(),
+            "expected an advisory severity, found `fatal`"
+        );
+    }
+
+    #[test]
+    fn kind_deserialize_own() {
+        let error = serde_json::to_value(Critical::ERROR).expect("should serialize");
+        assert_eq!(
+            serde_json::from_value::<Critical>(error).expect("should deserialize"),
+            Critical::ERROR
+        );
+
+        let note = serde_json::to_value(Advisory::NOTE).expect("should serialize");
+        assert_eq!(
+            serde_json::from_value::<Advisory>(note).expect("should deserialize"),
+            Advisory::NOTE
+        );
     }
 }

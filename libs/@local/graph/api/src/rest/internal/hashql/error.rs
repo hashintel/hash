@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt, ops::Range};
+use core::{error::Error, fmt};
 
 use aide::{
     OperationOutput,
@@ -13,9 +13,9 @@ use axum::{
 use error_stack::Report;
 use hash_middleware::problem::{InternalServerError, ServiceUnavailable};
 use hashql_ast::error::AstDiagnosticCategory;
-use hashql_core::span::{SpanId, SpanTable};
+use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    DiagnosticCategory, DiagnosticIssues, Failure, Sources, Success,
+    DiagnosticCategory, DiagnosticIssues, Failure, Success,
     category::canonical_category_id,
     diagnostic::render::{Format, RenderOptions},
     issues::AdvisoryDiagnosticIssues,
@@ -24,14 +24,15 @@ use hashql_diagnostics::{
 use hashql_eval::error::EvalDiagnosticCategory;
 use hashql_hir::error::HirDiagnosticCategory;
 use hashql_mir::error::MirDiagnosticCategory;
-use hashql_syntax_jexpr::{JsonPointers, error::JExprDiagnosticCategory, span::Span};
+use hashql_syntax_jexpr::error::JExprDiagnosticCategory;
 use http::{HeaderValue, StatusCode, header};
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::Serialize;
 
 use super::{
     CompilationOutputOptions,
+    source::{PointerSpan, RequestSources},
     value::{JsonValueSerialize, OwnedValue},
 };
 use crate::rest::{extract::Json, openapi};
@@ -54,6 +55,23 @@ impl serde::Serialize for HashQlDiagnosticCategory {
     }
 }
 
+impl JsonSchema for HashQlDiagnosticCategory {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("HashQlDiagnosticCategory")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "description": "The category of a diagnostic, as the path of its identifiers, such as `hashql::hir::lower::missing-input`.",
+            "type": "string"
+        })
+    }
+}
+
 impl DiagnosticCategory for HashQlDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         Cow::Borrowed("hashql")
@@ -71,30 +89,6 @@ impl DiagnosticCategory for HashQlDiagnosticCategory {
             Self::Mir(mir) => Some(mir),
             Self::Eval(eval) => Some(eval),
         }
-    }
-}
-
-/// A span of the query's source, with the JSON pointer to the value it lies in.
-#[derive(Debug, Serialize)]
-pub(crate) struct PointerSpan {
-    range: Range<usize>,
-    pointer: Option<String>,
-}
-
-impl PointerSpan {
-    fn resolve(id: SpanId, spans: &SpanTable<Span>, pointers: &JsonPointers) -> Option<Self> {
-        let absolute = spans.absolute(id)?;
-
-        let pointer = if id == SpanId::SYNTHETIC {
-            None
-        } else {
-            pointers.resolve(absolute.range())
-        };
-
-        Some(Self {
-            range: absolute.range().into(),
-            pointer,
-        })
     }
 }
 
@@ -146,7 +140,6 @@ impl Error for FailedQuery {}
 #[derive(Serialize, JsonSchema)]
 struct InvalidQuery<'error> {
     /// The diagnostics of the query, the one that failed it first.
-    #[schemars(with = "Vec<serde_json::Map<String, serde_json::Value>>")]
     diagnostics: &'error Diagnostics,
 }
 
@@ -168,7 +161,6 @@ impl ProblemVariant for InvalidQuery<'_> {
 #[derive(Serialize, JsonSchema)]
 struct CompilerBug<'error> {
     /// The diagnostics of the query, the one that failed it first.
-    #[schemars(with = "Vec<serde_json::Map<String, serde_json::Value>>")]
     diagnostics: &'error Diagnostics,
 }
 
@@ -327,15 +319,12 @@ pub(crate) struct QueryResponse {
     #[schemars(with = "serde_json::Value")]
     value: EncodedValue,
     /// The diagnostics of the query that did not fail it, such as warnings.
-    #[schemars(with = "Vec<serde_json::Map<String, serde_json::Value>>")]
     advisories: AdvisoryDiagnosticIssues<HashQlDiagnosticCategory, Option<PointerSpan>>,
 }
 
 pub(crate) fn status_to_response(
     status: Result<Success<OwnedValue, HashQlDiagnosticCategory, SpanId>, QueryFailure>,
-    sources: &Sources<'_>,
-    mut spans: &SpanTable<Span>,
-    pointers: &JsonPointers,
+    sources: &RequestSources<'_>,
     options: &CompilationOutputOptions,
 ) -> Result<Json<QueryResponse>, QueryRejection> {
     match status {
@@ -345,7 +334,7 @@ pub(crate) fn status_to_response(
             } else {
                 EncodedValue::Unstable(value)
             },
-            advisories: advisories.map_spans(|span| PointerSpan::resolve(span, spans, pointers)),
+            advisories: advisories.map_spans(|span| sources.resolve(span)),
         })),
         Err(QueryFailure::Internal(report)) => Err(report.into()),
         Err(QueryFailure::Diagnostics(Failure { primary, secondary })) => {
@@ -354,13 +343,15 @@ pub(crate) fn status_to_response(
             let mut diagnostics = secondary.generalize();
             diagnostics.insert_front(primary.generalize());
 
-            let html = options
-                .interactive
-                .then(|| diagnostics.render(RenderOptions::new(Format::Html, sources), &mut spans));
+            let html = options.interactive.then(|| {
+                diagnostics.render(
+                    RenderOptions::new(Format::Html, sources.table().sources()),
+                    &mut sources.table(),
+                )
+            });
             let failed = FailedQuery {
                 severity,
-                diagnostics: diagnostics
-                    .map_spans(|span| PointerSpan::resolve(span, spans, pointers)),
+                diagnostics: diagnostics.map_spans(|span| sources.resolve(span)),
             };
 
             Err(QueryRejection {
@@ -375,14 +366,12 @@ pub(crate) fn status_to_response(
 mod tests {
     use alloc::sync::Arc;
 
-    use axum::response::IntoResponse as _;
+    use axum::{body::to_bytes, response::IntoResponse as _};
     use hashql_core::{
         heap::{Heap, Scratch},
-        span::{SpanId, SpanTable},
+        span::SpanId,
     };
-    use hashql_diagnostics::{
-        DiagnosticIssues, Source, Sources, Status, Success, severity::Critical,
-    };
+    use hashql_diagnostics::{DiagnosticIssues, Status, Success, severity::Critical};
     use http::{StatusCode, header::CONTENT_TYPE};
     use serde_json::json;
 
@@ -392,12 +381,14 @@ mod tests {
     };
     use crate::rest::{
         extract::Json,
-        internal::hashql::{compile::Compilation, value::OwnedValue},
+        internal::hashql::{compile::Compilation, source::InputValues, value::OwnedValue},
+        test_utils::response_json,
     };
 
     /// Answers the query `source` with the outcome that `run` gives its compilation.
     fn answer(
         source: &str,
+        inputs: &InputValues,
         options: &CompilationOutputOptions,
         run: impl for<'heap> FnOnce(
             Status<Compilation<'heap>, HashQlDiagnosticCategory, SpanId>,
@@ -406,18 +397,16 @@ mod tests {
             QueryFailure,
         >,
     ) -> Result<Json<QueryResponse>, QueryRejection> {
-        let mut sources = Sources::new();
-        let mut spans = SpanTable::new(sources.push(Source::new(source)));
         let heap = Heap::new();
-        let (compiled, pointers) =
-            Compilation::compile(&heap, &mut Scratch::new(), &mut spans, source);
+        let (compiled, sources) = Compilation::compile(&heap, &mut Scratch::new(), source, inputs);
 
-        status_to_response(run(compiled), &sources, &spans, &pointers, options)
+        status_to_response(run(compiled), &sources, options)
     }
 
     fn response_value(json_compat: bool) -> serde_json::Value {
         let Ok(Json(response)) = answer(
             r##"{"#literal": 1}"##,
+            &InputValues::default(),
             &CompilationOutputOptions {
                 interactive: false,
                 json_compat,
@@ -460,6 +449,7 @@ mod tests {
         ] {
             let Err(rejection) = answer(
                 r#"{"not": "a query"}"#,
+                &InputValues::default(),
                 &CompilationOutputOptions {
                     interactive,
                     json_compat: false,
@@ -477,5 +467,56 @@ mod tests {
             assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
             assert_eq!(response.headers()[CONTENT_TYPE], media_type);
         }
+    }
+
+    /// Rejects the query `["input", "x", "Integer"]` for the value `"a"` of `x`.
+    fn mistyped_input(interactive: bool) -> QueryRejection {
+        let inputs =
+            serde_json::from_str(r##"{"x": {"#literal": "a"}}"##).expect("the values should parse");
+
+        let Err(rejection) = answer(
+            r#"["input", "x", "Integer"]"#,
+            &inputs,
+            &CompilationOutputOptions {
+                interactive,
+                json_compat: false,
+            },
+            |compiled| Err(compiled.err().expect("the value should be refused").into()),
+        ) else {
+            panic!("a query that failed should be rejected");
+        };
+
+        rejection
+    }
+
+    #[tokio::test]
+    async fn input_spans() {
+        let problem = response_json(mistyped_input(false).into_response()).await;
+
+        let spans: Vec<_> = problem["diagnostics"][0]["labels"]["labels"]
+            .as_array()
+            .expect("the diagnostic should have labels")
+            .iter()
+            .map(|label| &label["span"])
+            .collect();
+
+        assert_eq!(
+            json!(spans),
+            json!([
+                {"location": "inputs.x", "range": {"start": 13, "end": 16}, "pointer": "/#literal"},
+                {"location": "query", "range": {"start": 16, "end": 23}, "pointer": "/2"},
+            ])
+        );
+    }
+
+    #[tokio::test]
+    async fn input_page() {
+        let page = to_bytes(mistyped_input(true).into_response().into_body(), usize::MAX)
+            .await
+            .expect("the response body should be readable");
+        let page = String::from_utf8(page.into()).expect("the page should be UTF-8");
+
+        assert!(page.contains("inputs.x:1:14"));
+        assert!(page.contains("query:1:17"));
     }
 }

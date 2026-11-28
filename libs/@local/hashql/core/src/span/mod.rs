@@ -13,6 +13,7 @@
 //!
 //! - **[`SpanId`]**: A compact 4-byte identifier for spans
 //! - **[`SpanTable`]**: Storage and resolution for span data
+//! - **[`SourceTable`]**: The span tables of several sources, with the sources themselves
 //! - **[`Span`]**: Trait for types that can represent text ranges
 //! - **[`Spanned<T>`]**: Wrapper that associates values with their source spans
 //! - **[`SpanAncestors`]**: Represents hierarchical relationships between spans
@@ -140,9 +141,11 @@
 //! // (e.g., omit location, show as "generated", etc.)
 //! ```
 
+mod source;
 mod table;
 
 use core::{
+    alloc::Allocator,
     fmt::{self, Display},
     ops::Deref,
 };
@@ -150,7 +153,7 @@ use core::{
 use hashql_diagnostics::source::{DiagnosticSpan, SourceId, SourceSpan};
 pub use text_size::{TextRange, TextSize};
 
-pub use self::table::SpanTable;
+pub use self::{source::SourceTable, table::SpanTable};
 
 /// Represents a unique identifier for a span in some source.
 ///
@@ -505,6 +508,23 @@ where
     }
 
     fn absolute(&self, resolver: &mut &SpanTable<S>) -> Option<SourceSpan> {
+        resolver.absolute(*self)
+    }
+
+    fn is_synthetic(&self) -> bool {
+        *self == Self::SYNTHETIC
+    }
+}
+
+impl<S, A: Allocator> DiagnosticSpan<&SourceTable<'_, S, A>> for SpanId
+where
+    S: Span,
+{
+    fn source(&self) -> SourceId {
+        self.source_id()
+    }
+
+    fn absolute(&self, resolver: &mut &SourceTable<'_, S, A>) -> Option<SourceSpan> {
         resolver.absolute(*self)
     }
 

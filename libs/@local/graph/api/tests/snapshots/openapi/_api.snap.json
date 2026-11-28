@@ -199,8 +199,7 @@
                         "diagnostics": {
                           "description": "The diagnostics of the query, the one that failed it first.",
                           "items": {
-                            "additionalProperties": true,
-                            "type": "object"
+                            "$ref": "#/components/schemas/DiagnosticWithDiagnosticSeverity"
                           },
                           "type": "array"
                         }
@@ -317,8 +316,7 @@
                         "diagnostics": {
                           "description": "The diagnostics of the query, the one that failed it first.",
                           "items": {
-                            "additionalProperties": true,
-                            "type": "object"
+                            "$ref": "#/components/schemas/DiagnosticWithDiagnosticSeverity"
                           },
                           "type": "array"
                         }
@@ -815,16 +813,963 @@
       }
     },
     "schemas": {
+      "AdvisoryDiagnosticSeverity": {
+        "description": "The severity of a diagnostic that does not fail the compilation.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "A warning about potentially problematic code.",
+            "properties": {
+              "code": {
+                "const": 300
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "warning"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Warning",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Additional information about the code being compiled.",
+            "properties": {
+              "code": {
+                "const": 200
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "note"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Note",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Low-level debugging information.",
+            "properties": {
+              "code": {
+                "const": 100
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "debug"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Debug",
+            "type": "object"
+          }
+        ]
+      },
+      "DiagnosticLabel": {
+        "description": "A range of the source that a diagnostic points at, with the text that explains it.",
+        "properties": {
+          "highlight": {
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DiagnosticLabelKind"
+          },
+          "message": {
+            "type": "string"
+          },
+          "span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PointerSpan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "message",
+          "highlight"
+        ],
+        "type": "object"
+      },
+      "DiagnosticLabelKind": {
+        "enum": [
+          "Primary",
+          "Secondary"
+        ],
+        "type": "string"
+      },
+      "DiagnosticLabels": {
+        "description": "The labels of a diagnostic. The first one is the primary label, and every other one is secondary.",
+        "properties": {
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticLabel"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "labels"
+        ],
+        "type": "object"
+      },
+      "DiagnosticMessage": {
+        "description": "A note or a help text of a diagnostic.",
+        "properties": {
+          "contents": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DiagnosticMessageKind"
+          },
+          "style": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticStyle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suggestions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticSuggestions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "contents"
+        ],
+        "type": "object"
+      },
+      "DiagnosticMessageKind": {
+        "enum": [
+          "Note",
+          "Help"
+        ],
+        "type": "string"
+      },
+      "DiagnosticMessages": {
+        "description": "The notes and help texts of a diagnostic.",
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticMessage"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "type": "object"
+      },
+      "DiagnosticPatch": {
+        "description": "A replacement for a range of the source.",
+        "properties": {
+          "replacement": {
+            "type": "string"
+          },
+          "span": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PointerSpan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "replacement"
+        ],
+        "type": "object"
+      },
+      "DiagnosticSeverity": {
+        "description": "The severity of a diagnostic. A `code` of 400 or more fails the compilation.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "An internal compiler error, indicating a bug in the compiler itself.",
+            "properties": {
+              "code": {
+                "const": 600
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "ice"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Internal Compiler Error",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A fatal error that causes an immediate abort.",
+            "properties": {
+              "code": {
+                "const": 500
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "fatal"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Fatal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "An error that prevents compilation from finishing.",
+            "properties": {
+              "code": {
+                "const": 400
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "error"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Error",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A warning about potentially problematic code.",
+            "properties": {
+              "code": {
+                "const": 300
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "warning"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Warning",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Additional information about the code being compiled.",
+            "properties": {
+              "code": {
+                "const": 200
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "note"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Note",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Low-level debugging information.",
+            "properties": {
+              "code": {
+                "const": 100
+              },
+              "color": {
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "pattern": "^#[0-9A-F]{6}$",
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "id": {
+                "const": "debug"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "code",
+              "name",
+              "description",
+              "color"
+            ],
+            "title": "Debug",
+            "type": "object"
+          }
+        ]
+      },
+      "DiagnosticStyle": {
+        "description": "The style a terminal renders a message in.",
+        "properties": {
+          "background": {
+            "description": "A color as the hexadecimal code `#RRGGBB`.",
+            "pattern": "^#[0-9A-F]{6}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "effects": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticStyleEffect"
+            },
+            "type": "array"
+          },
+          "foreground": {
+            "description": "A color as the hexadecimal code `#RRGGBB`.",
+            "pattern": "^#[0-9A-F]{6}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "underline": {
+            "description": "A color as the hexadecimal code `#RRGGBB`.",
+            "pattern": "^#[0-9A-F]{6}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "effects"
+        ],
+        "type": "object"
+      },
+      "DiagnosticStyleEffect": {
+        "enum": [
+          "bold",
+          "dimmed",
+          "italic",
+          "underline",
+          "double-underline",
+          "curly-underline",
+          "dotted-underline",
+          "dashed-underline",
+          "blink",
+          "invert",
+          "hidden",
+          "strikethrough"
+        ],
+        "type": "string"
+      },
+      "DiagnosticSuggestions": {
+        "description": "The patches that a message suggests, with an optional text that follows them.",
+        "properties": {
+          "patches": {
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticPatch"
+            },
+            "type": "array"
+          },
+          "trailer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "patches"
+        ],
+        "type": "object"
+      },
+      "DiagnosticWithAdvisoryDiagnosticSeverity": {
+        "description": "An issue that a compilation reports, such as an error or a warning. A diagnostic publishes human readable components (`title`, `labels` and `messages`), which should be considered perma-unstable and may change without notice between versions, and `category` and `severity` which are considered stable, and designed for machine readability.",
+        "properties": {
+          "category": {
+            "description": "The category identifying the type of diagnostic issue.",
+            "type": "string"
+          },
+          "labels": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticLabels"
+              }
+            ],
+            "description": "Labels pointing to specific locations in source code.\n\nLabels highlight relevant parts of the code and can include explanatory messages about\nwhat's wrong at each location."
+          },
+          "messages": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticMessages"
+              }
+            ],
+            "description": "Additional explanatory notes about the diagnostic.\n\nNotes provide extra context or background information to help users understand the issue."
+          },
+          "severity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AdvisoryDiagnosticSeverity"
+              }
+            ],
+            "description": "The severity level of the diagnostic."
+          },
+          "title": {
+            "description": "Optional primary message describing the issue.\n\nIf not provided, the diagnostic will use the category's display name.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "severity",
+          "labels",
+          "messages"
+        ],
+        "type": "object"
+      },
+      "DiagnosticWithDiagnosticSeverity": {
+        "description": "An issue that a compilation reports, such as an error or a warning. A diagnostic publishes human readable components (`title`, `labels` and `messages`), which should be considered perma-unstable and may change without notice between versions, and `category` and `severity` which are considered stable, and designed for machine readability.",
+        "properties": {
+          "category": {
+            "description": "The category identifying the type of diagnostic issue.",
+            "type": "string"
+          },
+          "labels": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticLabels"
+              }
+            ],
+            "description": "Labels pointing to specific locations in source code.\n\nLabels highlight relevant parts of the code and can include explanatory messages about\nwhat's wrong at each location."
+          },
+          "messages": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticMessages"
+              }
+            ],
+            "description": "Additional explanatory notes about the diagnostic.\n\nNotes provide extra context or background information to help users understand the issue."
+          },
+          "severity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticSeverity"
+              }
+            ],
+            "description": "The severity level of the diagnostic."
+          },
+          "title": {
+            "description": "Optional primary message describing the issue.\n\nIf not provided, the diagnostic will use the category's display name.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "category",
+          "severity",
+          "labels",
+          "messages"
+        ],
+        "type": "object"
+      },
       "HashQlRequest": {
         "additionalProperties": false,
         "description": "The query to run.",
         "properties": {
+          "inputs": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InputValues"
+              }
+            ],
+            "description": "The value of each input that the query declares."
+          },
           "query": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JExpr"
+              }
+            ],
             "description": "The query, as a J-Expr."
           }
         },
         "required": [
-          "query"
+          "query",
+          "inputs"
+        ],
+        "type": "object"
+      },
+      "InputValues": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/JExprValue"
+        },
+        "description": "The values a request supplies for the inputs of its query, by the name of the input.\n\nA value is a J-Expr of literals and of the constructors for structs, tuples, lists and dicts.",
+        "maxProperties": 4094,
+        "type": "object"
+      },
+      "JExpr": {
+        "description": "A HashQL expression in J-Expr syntax. A string is a path, an array is a call and an object constructs a value. An expression that matches this schema can still fail to parse.",
+        "examples": [
+          [
+            "==",
+            {
+              "#literal": 2
+            },
+            {
+              "#literal": 3
+            }
+          ]
+        ],
+        "oneOf": [
+          {
+            "description": "A path in HashQL syntax, such as `x`, `entity.metadata` or `::core::math::add`.",
+            "title": "Path",
+            "type": "string"
+          },
+          {
+            "description": "The callee, followed by the arguments. A string argument `\":label\"` passes the variable `label` as the argument labeled `label`.",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/JExpr"
+                  },
+                  "description": "An argument under a single key, `:` followed by the label. Caveat: the schema is broader than the value J-Expr allows.",
+                  "maxProperties": 1,
+                  "minProperties": 1,
+                  "propertyNames": {
+                    "pattern": "^:"
+                  },
+                  "title": "Labeled argument",
+                  "type": "object"
+                }
+              ]
+            },
+            "minItems": 1,
+            "title": "Call",
+            "type": "array"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A primitive value. A number with a fraction or an exponent is a float and any other number an integer, which JSON parsing does not preserve.",
+            "properties": {
+              "#literal": {
+                "type": [
+                  "null",
+                  "boolean",
+                  "number",
+                  "string"
+                ]
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#literal"
+            ],
+            "title": "Literal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Fields by name. A name is an identifier. Caveat: the schema is broader than the value J-Expr allows.",
+            "properties": {
+              "#struct": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                "type": "object"
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#struct"
+            ],
+            "title": "Struct",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A fixed number of elements in order.",
+            "properties": {
+              "#tuple": {
+                "items": {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                "type": "array"
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Any number of elements in order.",
+            "properties": {
+              "#list": {
+                "items": {
+                  "$ref": "#/components/schemas/JExpr"
+                },
+                "type": "array"
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#list"
+            ],
+            "title": "List",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entries mapping keys to values, as an object keyed by string or as an array of `[key, value]` pairs.",
+            "properties": {
+              "#dict": {
+                "oneOf": [
+                  {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/JExpr"
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/JExpr"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array"
+                    },
+                    "type": "array"
+                  }
+                ]
+              },
+              "#type": {
+                "description": "The type of the constructed value in HashQL type syntax, such as `List<Integer>`. Caveat: the schema is broader than the value J-Expr allows.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "#dict"
+            ],
+            "title": "Dict",
+            "type": "object"
+          }
+        ],
+        "title": "J-Expr expression"
+      },
+      "JExprValue": {
+        "description": "A HashQL value in J-Expr syntax: a constructor object, whose items are values. A value has no paths, calls or `#type` annotations.",
+        "examples": [
+          {
+            "#struct": {
+              "name": {
+                "#literal": "Alice"
+              },
+              "tags": {
+                "#list": [
+                  {
+                    "#literal": "admin"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "A primitive value. A number with a fraction or an exponent is a float and any other number an integer, which JSON parsing does not preserve.",
+            "properties": {
+              "#literal": {
+                "type": [
+                  "null",
+                  "boolean",
+                  "number",
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "#literal"
+            ],
+            "title": "Literal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Fields by name. A name is an identifier. Caveat: the schema is broader than the value J-Expr allows.",
+            "properties": {
+              "#struct": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JExprValue"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "#struct"
+            ],
+            "title": "Struct",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "A fixed number of elements in order.",
+            "properties": {
+              "#tuple": {
+                "items": {
+                  "$ref": "#/components/schemas/JExprValue"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "#tuple"
+            ],
+            "title": "Tuple",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Any number of elements in order.",
+            "properties": {
+              "#list": {
+                "items": {
+                  "$ref": "#/components/schemas/JExprValue"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "#list"
+            ],
+            "title": "List",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entries mapping keys to values, as an object keyed by string or as an array of `[key, value]` pairs.",
+            "properties": {
+              "#dict": {
+                "oneOf": [
+                  {
+                    "additionalProperties": {
+                      "$ref": "#/components/schemas/JExprValue"
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/JExprValue"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array"
+                    },
+                    "type": "array"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "#dict"
+            ],
+            "title": "Dict",
+            "type": "object"
+          }
+        ],
+        "title": "J-Expr value"
+      },
+      "PointerSpan": {
+        "description": "A range of the text of the query or of an input value.",
+        "properties": {
+          "location": {
+            "description": "The text the span is in: `query`, or `inputs.<name>` for the value of the input `<name>`.",
+            "pattern": "^(query|inputs\\.[\\s\\S]*)$",
+            "type": "string"
+          },
+          "pointer": {
+            "description": "The RFC 6901 JSON Pointer of the innermost value that contains the span.\n\nThis pointer is relative to the query or the input value of its location.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "range": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Range_of_uint"
+              }
+            ],
+            "description": "The byte range of the span in the text of its location."
+          }
+        },
+        "required": [
+          "location",
+          "range"
         ],
         "type": "object"
       },
@@ -867,8 +1812,7 @@
           "advisories": {
             "description": "The diagnostics of the query that did not fail it, such as warnings.",
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/DiagnosticWithAdvisoryDiagnosticSeverity"
             },
             "type": "array"
           },
@@ -879,6 +1823,25 @@
         "required": [
           "value",
           "advisories"
+        ],
+        "type": "object"
+      },
+      "Range_of_uint": {
+        "properties": {
+          "end": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "start": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start",
+          "end"
         ],
         "type": "object"
       }
@@ -907,7 +1870,7 @@
   "paths": {
     "/_api/hashql": {
       "post": {
-        "description": "Compiles the query and evaluates it as the caller. Returns the value of the query with the diagnostics that did not fail it. A query that fails is answered with its diagnostics.",
+        "description": "Compiles the query and evaluates it as the caller, with the values of `inputs` for the inputs that the query declares. Returns the value of the query with the diagnostics that did not fail it. A query that fails is answered with its diagnostics, and so is a value that does not have the type of its input.",
         "operationId": "queryHashql",
         "parameters": [
           {

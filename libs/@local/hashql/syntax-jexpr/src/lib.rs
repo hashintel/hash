@@ -62,8 +62,8 @@ pub(crate) mod lower;
 pub(crate) mod parser;
 pub(crate) mod pointer;
 #[cfg(feature = "schemars")]
-pub mod schemas;
-pub mod span;
+pub mod schema;
+pub(crate) mod span;
 pub(crate) mod stack;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
@@ -72,7 +72,7 @@ mod tests;
 
 pub use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory},
-    pointer::JsonPointers,
+    pointer::{JsonPointer, JsonPointers},
     span::Span,
 };
 
@@ -141,6 +141,7 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
             self.options,
             &alloc,
         );
+
         let status = lower::lower_expr_in(self.heap, self.spans, self.options, &parse, &alloc);
         (status, JsonPointers::from_green(parse.into_green()))
     }
@@ -190,6 +191,7 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
             self.options,
             &alloc,
         );
+
         let status = lower::lower_value_in(self.heap, self.spans, self.options, &parse, &alloc);
         (status, JsonPointers::from_green(parse.into_green()))
     }

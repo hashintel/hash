@@ -1,4 +1,4 @@
-//! Parses one J-Expr document from stdin with [`Parser::parse_expr`].
+//! Parses one J-Expr document from stdin with [`Parser::parse_expr_in`].
 //!
 //! The binary lets a J-Expr producer outside Rust check its output against this crate's parser. On
 //! success, it writes the [`SyntaxDump`] of the parsed [`Expr`] to stdout and exits with status 0.
