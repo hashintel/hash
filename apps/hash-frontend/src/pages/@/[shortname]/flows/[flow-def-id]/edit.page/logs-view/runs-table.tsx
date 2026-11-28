@@ -5,7 +5,6 @@ import { Icon, SortMenu, Tabs, TextInput } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { RunFlowDialog } from "../shared/run-flow";
-import { getRunBlocker } from "../shared/run-form";
 import {
   formatDuration,
   formatEndTime,
@@ -13,6 +12,7 @@ import {
   getRunDuration,
 } from "../shared/run-times";
 import { tableStyle } from "../shared/table";
+import { useRunBlocker } from "../shared/use-run-blocker";
 import {
   countRunsByTab,
   defaultRunSort,
@@ -190,7 +190,7 @@ export const RunsTable = ({
     null,
   );
 
-  const rerunBlocker = getRunBlocker(runner.editorState);
+  const rerunBlocker = useRunBlocker(runner.editorState);
   const filtered = filterRuns(rows, filters).filter((row) =>
     matchesSearch(row, searchText, now),
   );

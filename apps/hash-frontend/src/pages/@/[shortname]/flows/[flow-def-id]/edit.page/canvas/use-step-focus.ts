@@ -1,7 +1,7 @@
 import { useNodesInitialized, useReactFlow, useStore } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 
-import { getStepNodeId } from "./flow-graph";
+import { getStepNodeId, startNodeId } from "./flow-graph";
 import { stepCardSize } from "./sizes";
 
 import type { Viewport } from "@xyflow/react";
@@ -32,12 +32,12 @@ export const getCenterToReveal = (
 };
 
 /**
- * Pans to centre the step a focus request names, in the part of the canvas a panel doesn't cover. Retried as nodes
- * appear, until the step can be brought into view.
+ * Pans to centre the step a focus request names, or Start, in the part of the canvas a panel doesn't cover. Retried as
+ * nodes appear, until the step can be brought into view.
  */
 export const useStepFocus = (
-  /** A new object each time, so the same step can be focused twice. */
-  focusRequest: { stepId: string } | null,
+  /** A new object each time, so the same step can be focused twice. A `null` step is Start. */
+  focusRequest: { stepId: string | null } | null,
   /** How much of the canvas's right edge a panel covers, in pixels. */
   coveredRight: number,
 ) => {
@@ -50,7 +50,11 @@ export const useStepFocus = (
       return;
     }
 
-    const node = getInternalNode(getStepNodeId(focusRequest.stepId));
+    const node = getInternalNode(
+      focusRequest.stepId === null
+        ? startNodeId
+        : getStepNodeId(focusRequest.stepId),
+    );
 
     if (node) {
       focusedRequestRef.current = focusRequest;

@@ -9,7 +9,6 @@ import { getOutputsAvailableToFlow } from "@local/hash-isomorphic-utils/flows/va
 import { findStep } from "./shared/find-step";
 import { useItemNames } from "./shared/item-name";
 import { getOutputLabel } from "./shared/name-label";
-import { getRunBlocker } from "./shared/run-form";
 import { PanelSection, PanelTitle, SidePanel } from "./shared/side-panel";
 import {
   getActionDefinition,
@@ -18,6 +17,7 @@ import {
 } from "./shared/step-display";
 import { StepIconTile } from "./shared/step-icon-tile";
 import { getStepPaths } from "./shared/step-paths";
+import { useRunBlocker } from "./shared/use-run-blocker";
 import { indexValueUses } from "./shared/value-uses";
 import { AggregationField } from "./step-panel/aggregation-field";
 import { ConditionField } from "./step-panel/condition-field";
@@ -478,13 +478,15 @@ export const StepPanel = ({
     () => indexValueUses(flowDefinition.steps),
     [flowDefinition.steps],
   );
+  /* A flow that can't run can't be scheduled. */
+  const runBlocker = useRunBlocker(editorState);
 
   if ("triggers" in subject) {
     return (
       <TriggersPanel
         flowDefinitionEntityId={flowDefinitionEntityId}
         schedules={schedules}
-        addBlocker={getRunBlocker(editorState)}
+        addBlocker={runBlocker}
       />
     );
   }

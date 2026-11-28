@@ -182,8 +182,8 @@ type CanvasProps = {
   startSelected: boolean;
   selectedTrigger: TriggerKind | null;
   onSelectionChange: (selection: CanvasSelection) => void;
-  /** A new object each time, so the same step can be focused twice. */
-  focusRequest: { stepId: string } | null;
+  /** A new object each time, so the same step can be focused twice. A `null` step is Start. */
+  focusRequest: { stepId: string | null } | null;
   collapsedStepIds: Set<string>;
   onToggleCollapsed: (stepId: string) => void;
   /** How much of the canvas's right edge a panel covers, in pixels. Steps are centred and fitted in the rest. */
@@ -306,7 +306,7 @@ const FlowCanvas = ({
     }
   }, [nodesInitialized, fitView, fitPadding]);
 
-  /* A step picked in the Steps tab replaces any selected connections. */
+  /* A step picked in the Steps tab, or Start, replaces any selected connections. */
   const [lastFocusRequest, setLastFocusRequest] = useState(focusRequest);
   if (focusRequest !== lastFocusRequest) {
     setLastFocusRequest(focusRequest);

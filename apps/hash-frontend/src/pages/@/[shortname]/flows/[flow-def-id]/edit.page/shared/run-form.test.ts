@@ -16,6 +16,7 @@ import type {
   FlowDefinition,
   FlowInputDefinition,
   FlowInputValues,
+  ForEachStepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 const instructionsInput: FlowInputDefinition = {
@@ -38,8 +39,28 @@ const draftFlow = (
   inputs: [instructionsInput, ...otherInputs],
 });
 
-const blockerOf = (flowDefinition: FlowDefinition<string>) =>
-  getRunBlocker(createFlowEditor(flowDefinition).getState());
+/** A valid flow with no AI step: the flight actions are among the few that aren't AI actions. */
+const flightsFlow: FlowDefinition<string> = {
+  ...flowWith([
+    actionStep("flights", {
+      actionDefinitionId: "getScheduledFlights",
+      inputs: {
+        airportIcao: { kind: "flow-input", inputName: "airport" },
+        date: { kind: "flow-input", inputName: "date" },
+      },
+    }),
+  ]),
+  inputs: [
+    { name: "airport", payloadKind: "Text", array: false, required: true },
+    { name: "date", payloadKind: "Date", array: false, required: true },
+  ],
+};
+
+const aiNotTurnedOn =
+  "AI isn't turned on for your account, so you can't run or schedule flows that use it. Ask an admin to turn it on.";
+
+const blockerOf = (flowDefinition: FlowDefinition<string>, canUseAi = true) =>
+  getRunBlocker(createFlowEditor(flowDefinition).getState(), { canUseAi });
 
 describe("getRunBlocker", () => {
   it("lets a valid flow run, even with warnings", () => {
@@ -67,6 +88,43 @@ describe("getRunBlocker", () => {
 
   it("stops a flow with no steps", () => {
     expect(blockerOf(flowWith([]))).toBe("Add a step to run this flow");
+  });
+
+  it("stops a flow with an AI step for a user without AI, before its other problems, even a step inside a For each", () => {
+    const draftForEach: ForEachStepDefinition<string> = {
+      kind: "for-each",
+      stepId: "each",
+      description: "",
+      over: { kind: "flow-input", inputName: "recipients" },
+      steps: [draftStep],
+      collect: { stepId: "draft", outputName: "body", as: "bodies" },
+    };
+    const nestedDraftFlow: FlowDefinition<string> = {
+      ...flowWith([draftForEach]),
+      inputs: [
+        instructionsInput,
+        {
+          name: "recipients",
+          payloadKind: "EntityId",
+          array: true,
+          required: true,
+        },
+      ],
+    };
+
+    expect(blockerOf(draftFlow(), false)).toBe(aiNotTurnedOn);
+    expect(
+      blockerOf(
+        flowWith([actionStep("draft", { ...draftStep, inputs: {} })]),
+        false,
+      ),
+    ).toBe(aiNotTurnedOn);
+    expect(blockerOf(nestedDraftFlow)).toBeNull();
+    expect(blockerOf(nestedDraftFlow, false)).toBe(aiNotTurnedOn);
+  });
+
+  it("lets a flow without an AI step run for a user without AI", () => {
+    expect(blockerOf(flightsFlow, false)).toBeNull();
   });
 
   it("stops a flow with a required input the form can't take, but not an optional one", () => {
