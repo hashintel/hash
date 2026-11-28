@@ -186,6 +186,7 @@ POST http://127.0.0.1:4000/_api/hashql
 Content-Type: application/json
 Authorization: <omit>
 X-Session-Token: {{session_token}}
+Json-Compat: true
 
 {
   "query": ["input", "limit", "Integer"],
@@ -197,7 +198,7 @@ X-Session-Token: {{session_token}}
     client.assert(response.status === 200, "Response status is not 200");
   });
   client.test("value", function() {
-    client.assert(response.body.value !== undefined, "Expected 'value' field");
+    client.assert(response.body.value === 3, "Expected the value of the input, got: " + JSON.stringify(response.body.value));
   });
 %}
 

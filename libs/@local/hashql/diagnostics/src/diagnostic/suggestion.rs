@@ -28,6 +28,14 @@ use crate::source::{DiagnosticSpan, SourceSpan};
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticPatch",
+        description = "A replacement for a range of the source."
+    )
+)]
 pub struct Patch<S> {
     span: S,
     replacement: Cow<'static, str>,
@@ -145,6 +153,15 @@ impl<S> Patch<S> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticSuggestions",
+        description = "The patches that a message suggests, with an optional text that follows \
+                       them."
+    )
+)]
 pub struct Suggestions<S> {
     patches: Vec<Patch<S>>,
     pub trailer: Option<Cow<'static, str>>,

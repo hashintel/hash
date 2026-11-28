@@ -175,6 +175,18 @@ impl<C, K> DiagnosticHeader<C, K> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticWith{K}",
+        description = "An issue that a compilation reports, such as an error or a warning. A \
+                       diagnostic publishes a human readable components (`title`, `labels` and \
+                       `messages`), which should be considered perma-unstable and may change \
+                       without notice between versions, and `category` and `severity` which are \
+                       considered stable, and designed for machine readability."
+    )
+)]
 #[must_use = "A diagnostic must be reported"]
 pub struct Diagnostic<C, S, K = Severity> {
     /// The category identifying the type of diagnostic issue.

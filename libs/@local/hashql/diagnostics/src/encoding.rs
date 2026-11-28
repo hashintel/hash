@@ -26,8 +26,20 @@ pub(crate) mod style {
     use super::color::ColorProxy;
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+    #[cfg_attr(
+        feature = "schemars",
+        derive(schemars::JsonSchema),
+        schemars(
+            rename = "DiagnosticStyle",
+            description = "The style a terminal renders a message in."
+        )
+    )]
     pub(crate) struct StyleProxy {
         #[serde(with = "super::effects")]
+        #[cfg_attr(
+            feature = "schemars",
+            schemars(with = "Vec<super::effects::EffectProxy>")
+        )]
         effects: Effects,
         foreground: Option<ColorProxy>,
         background: Option<ColorProxy>,
@@ -89,7 +101,12 @@ pub(crate) mod effects {
     ];
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
-    enum EffectProxy {
+    #[cfg_attr(
+        feature = "schemars",
+        derive(schemars::JsonSchema),
+        schemars(rename = "DiagnosticStyleEffect")
+    )]
+    pub(super) enum EffectProxy {
         #[serde(rename = "bold")]
         Bold,
         #[serde(rename = "dimmed")]
@@ -225,6 +242,25 @@ pub(crate) mod color {
             D: Deserializer<'de>,
         {
             deserialize(deserializer).map(ColorProxy)
+        }
+    }
+
+    #[cfg(feature = "schemars")]
+    impl schemars::JsonSchema for ColorProxy {
+        fn inline_schema() -> bool {
+            true
+        }
+
+        fn schema_name() -> alloc::borrow::Cow<'static, str> {
+            alloc::borrow::Cow::Borrowed("Color")
+        }
+
+        fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+            schemars::json_schema!({
+                "description": "A color as the hexadecimal code `#RRGGBB`.",
+                "type": "string",
+                "pattern": "^#[0-9A-F]{6}$"
+            })
         }
     }
 

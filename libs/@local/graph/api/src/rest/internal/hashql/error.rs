@@ -27,7 +27,7 @@ use hashql_mir::error::MirDiagnosticCategory;
 use hashql_syntax_jexpr::error::JExprDiagnosticCategory;
 use http::{HeaderValue, StatusCode, header};
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::Serialize;
 
 use super::{
@@ -52,6 +52,23 @@ impl serde::Serialize for HashQlDiagnosticCategory {
         S: serde::Serializer,
     {
         serializer.collect_str(&canonical_category_id(self))
+    }
+}
+
+impl JsonSchema for HashQlDiagnosticCategory {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("HashQlDiagnosticCategory")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "description": "The category of a diagnostic, as the path of its identifiers, such as `hashql::hir::lower::missing-input`.",
+            "type": "string"
+        })
     }
 }
 
@@ -123,7 +140,6 @@ impl Error for FailedQuery {}
 #[derive(Serialize, JsonSchema)]
 struct InvalidQuery<'error> {
     /// The diagnostics of the query, the one that failed it first.
-    #[schemars(with = "Vec<serde_json::Map<String, serde_json::Value>>")]
     diagnostics: &'error Diagnostics,
 }
 
@@ -145,7 +161,6 @@ impl ProblemVariant for InvalidQuery<'_> {
 #[derive(Serialize, JsonSchema)]
 struct CompilerBug<'error> {
     /// The diagnostics of the query, the one that failed it first.
-    #[schemars(with = "Vec<serde_json::Map<String, serde_json::Value>>")]
     diagnostics: &'error Diagnostics,
 }
 
@@ -304,7 +319,6 @@ pub(crate) struct QueryResponse {
     #[schemars(with = "serde_json::Value")]
     value: EncodedValue,
     /// The diagnostics of the query that did not fail it, such as warnings.
-    #[schemars(with = "Vec<serde_json::Map<String, serde_json::Value>>")]
     advisories: AdvisoryDiagnosticIssues<HashQlDiagnosticCategory, Option<PointerSpan>>,
 }
 
@@ -331,8 +345,8 @@ pub(crate) fn status_to_response(
 
             let html = options.interactive.then(|| {
                 diagnostics.render(
-                    RenderOptions::new(Format::Html, sources.sources()),
-                    &mut sources.spans(),
+                    RenderOptions::new(Format::Html, sources.table().sources()),
+                    &mut sources.table(),
                 )
             });
             let failed = FailedQuery {

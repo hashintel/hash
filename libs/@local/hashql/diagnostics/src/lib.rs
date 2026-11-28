@@ -5,12 +5,14 @@
 #![feature(
     // Language Features
     const_trait_impl,
-    const_convert,
-    const_default,
+    impl_restriction,
 
     // Library Features
+    const_array,
+    const_closures,
+    const_convert,
+    const_default,
     variant_count,
-    impl_restriction
 )]
 
 extern crate alloc;

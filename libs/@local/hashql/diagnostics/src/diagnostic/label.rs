@@ -11,6 +11,11 @@ use crate::source::{DiagnosticSpan, SourceSpan};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(rename = "DiagnosticLabelKind")
+)]
 pub(crate) enum LabelKind {
     Primary,
     Secondary,
@@ -35,6 +40,15 @@ pub(crate) enum LabelKind {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticLabel",
+        description = "A range of the source that a diagnostic points at, with the text that \
+                       explains it."
+    )
+)]
 pub struct Label<S> {
     span: S,
     kind: LabelKind,
@@ -227,6 +241,15 @@ impl<S> Label<S> {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(
+        rename = "DiagnosticLabels",
+        description = "The labels of a diagnostic. The first one is the primary label, and every \
+                       other one is secondary."
+    )
+)]
 pub struct Labels<S> {
     labels: Vec<Label<S>>,
 }

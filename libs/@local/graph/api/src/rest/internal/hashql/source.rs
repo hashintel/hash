@@ -4,17 +4,16 @@ use core::{fmt, ops::Range};
 use hashql_ast::node::{expr::Expr, value::Value};
 use hashql_core::{
     heap::{Heap, ScopeAllocator, SymbolAllocator as _},
-    span::{SpanId, SpanTable},
+    span::{SourceTable, SpanId},
     symbol::Symbol,
 };
 use hashql_diagnostics::{
-    IteratorStatusExt as _, Source, Sources, Status, StatusExt as _,
-    source::{DiagnosticSpan as _, SourceId},
+    IteratorStatusExt as _, Source, Status, StatusExt as _, source::SourceId,
 };
 use hashql_syntax_jexpr::{
     JsonPointer, JsonPointers, Parser, ParserOptions, Span, error::JExprDiagnosticCategory,
 };
-use schemars::JsonSchema;
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize, de::Error as _};
 use serde_json::value::RawValue;
 
@@ -29,9 +28,8 @@ pub(crate) struct InputValues(
 );
 
 impl InputValues {
-    // the query and each value are a source of their own. the source with the largest id stays
-    // unused, because `SpanId::SYNTHETIC` encodes it.
-    const MAX_LEN: usize = SpanId::MAX_SOURCE_ID as usize - 1;
+    // `-1` as the query occupies one source slot
+    const MAX_LEN: usize = SourceTable::<Span>::MAX_LEN - 1;
 }
 
 impl<'de> Deserialize<'de> for InputValues {
@@ -80,6 +78,23 @@ impl fmt::Display for ExpressionLocation<'_> {
     }
 }
 
+impl JsonSchema for ExpressionLocation<'_> {
+    fn inline_schema() -> bool {
+        true
+    }
+
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("ExpressionLocation")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "string",
+            "pattern": r"^(query|inputs\.[\s\S]*)$"
+        })
+    }
+}
+
 impl Serialize for ExpressionLocation<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -101,10 +116,17 @@ impl<T: fmt::Display> Serialize for SerializeThroughDisplay<T> {
     }
 }
 
-#[derive(Debug, Serialize)]
+/// A range of the text of the query or of an input value.
+#[derive(Debug, Serialize, JsonSchema)]
 pub(crate) struct PointerSpan {
+    /// The text the span is in: `query`, or `inputs.<name>` for the value of the input `<name>`.
     location: ExpressionLocation<'static>,
+    /// The bytes of the span in the text of its location.
     range: Range<usize>,
+    /// The RFC 6901 JSON Pointer of the innermost value that contains the span
+    ///
+    /// This pointer is relative to the query or the input value of its location.
+    #[schemars(with = "Option<String>")]
     pointer: Option<SerializeThroughDisplay<JsonPointer>>,
 }
 
@@ -124,8 +146,7 @@ pub(crate) struct RequestSource<'request> {
 ///
 /// The query is the first source. The value of each input follows, in the order of the names.
 pub(crate) struct RequestSources<'request> {
-    sources: Sources<'request>,
-    spans: Vec<SpanTable<Span>>,
+    table: SourceTable<'request, Span>,
     origins: Vec<RequestSource<'request>>,
 }
 
@@ -137,14 +158,13 @@ impl<'request> RequestSources<'request> {
         text: &'request str,
         parse: impl FnOnce(Parser<'heap, '_>) -> (T, JsonPointers),
     ) -> T {
-        let source = self
-            .sources
+        let spans = self
+            .table
             .push(Source::new(text).with_path(location.to_string()));
+        let source = spans.source();
 
-        let mut spans = SpanTable::new(source);
-        let (parsed, pointers) = parse(Parser::new(heap, &mut spans, ParserOptions::default()));
+        let (parsed, pointers) = parse(Parser::new(heap, spans, ParserOptions::default()));
 
-        self.spans.push(spans);
         self.origins.push(RequestSource {
             source,
             location,
@@ -165,8 +185,7 @@ impl<'request> RequestSources<'request> {
         S: ScopeAllocator<'scratch>,
     {
         let mut this = Self {
-            sources: Sources::new(),
-            spans: Vec::with_capacity(values.len() + 1),
+            table: SourceTable::with_capacity(values.len() + 1),
             origins: Vec::with_capacity(values.len() + 1),
         };
 
@@ -194,16 +213,12 @@ impl<'request> RequestSources<'request> {
         (this, ParsedRequest { query, inputs })
     }
 
-    pub(crate) const fn sources(&self) -> &Sources<'request> {
-        &self.sources
-    }
-
-    pub(crate) fn spans(&self) -> &[SpanTable<Span>] {
-        &self.spans
+    pub(crate) const fn table(&self) -> &SourceTable<'request, Span> {
+        &self.table
     }
 
     pub(crate) fn resolve(&self, span: SpanId) -> Option<PointerSpan> {
-        let absolute = span.absolute(&mut self.spans())?;
+        let absolute = self.table.absolute(span)?;
         let &RequestSource {
             source,
             ref location,
