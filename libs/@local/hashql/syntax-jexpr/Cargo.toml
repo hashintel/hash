@@ -13,6 +13,7 @@ hashql-core        = { workspace = true, public = true }
 hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
+schemars  = { workspace = true, public = true, optional = true }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
@@ -21,6 +22,7 @@ text-size = { workspace = true, public = true }
 logos                 = { workspace = true, features = ["export_derive"] }
 memchr                = { workspace = true }
 rowan                 = { workspace = true }
+serde_json            = { workspace = true, optional = true }
 simple-mermaid        = { workspace = true }
 stacker               = { workspace = true }
 unicode-ident         = { workspace = true }
@@ -39,7 +41,8 @@ serde                     = { workspace = true }
 serde_json                = { workspace = true, features = ["raw_value"] }
 
 [features]
-bench = []
+bench    = []
+schemars = ["dep:schemars", "dep:serde_json"]
 
 [lints]
 workspace = true
