@@ -15,6 +15,14 @@ export class FlowChangedElsewhereError extends Error {
 /** Thrown by a save the API refused, with why as its message. The same definition is refused again until it changes. */
 export class FlowSaveRefusedError extends Error {
   override readonly name = "FlowSaveRefusedError";
+
+  /** Whether it was refused because it would stop the flow's schedules from running it. */
+  readonly blockedBySchedules: boolean;
+
+  constructor(message: string, { blockedBySchedules = false } = {}) {
+    super(message);
+    this.blockedBySchedules = blockedBySchedules;
+  }
 }
 
 export type FlowSaveStatus = "saving" | "saved" | "failed";
@@ -27,7 +35,7 @@ export const autosaveDelayMs = 800;
  * edition the previous one created. If the flow was saved elsewhere meanwhile, the editor is replaced by one holding
  * the flow as it is now, and `changedElsewhere` is set.
  *
- * A failed save is tried again with the next edit, or by calling `flush`. If the API refused it, `saveRefusedReason`
+ * A failed save is tried again with the next edit, or by calling `flush`. If the API refused it, `saveRefusal`
  * says why until a save succeeds.
  */
 export const useAutosavedFlowEditor = ({
@@ -54,8 +62,8 @@ export const useAutosavedFlowEditor = ({
 }): {
   editor: FlowEditor;
   status: FlowSaveStatus;
-  /** Why the API refused the last save, if it did. */
-  saveRefusedReason: string | null;
+  /** The API's refusal of the last save, if it refused it, with why as its message. */
+  saveRefusal: FlowSaveRefusedError | null;
   changedElsewhere: boolean;
   dismissChangedElsewhere: () => void;
   /**
@@ -71,7 +79,7 @@ export const useAutosavedFlowEditor = ({
     createFlowEditor(flow.flowDefinition),
   );
   const [status, setStatus] = useState<FlowSaveStatus>("saved");
-  const [saveRefusedReason, setSaveRefusedReason] = useState<string | null>(
+  const [saveRefusal, setSaveRefusal] = useState<FlowSaveRefusedError | null>(
     null,
   );
   const [changedElsewhere, setChangedElsewhere] = useState(false);
@@ -107,15 +115,13 @@ export const useAutosavedFlowEditor = ({
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- edits made while the save was in flight set it
       setStatus(unsavedRef.current ? "saving" : "saved");
-      setSaveRefusedReason(null);
+      setSaveRefusal(null);
     } catch (error) {
       if (!(error instanceof FlowChangedElsewhereError)) {
         unsavedRef.current = true;
         refusedRef.current = error instanceof FlowSaveRefusedError;
         setStatus("failed");
-        setSaveRefusedReason(
-          error instanceof FlowSaveRefusedError ? error.message : null,
-        );
+        setSaveRefusal(error instanceof FlowSaveRefusedError ? error : null);
         return;
       }
 
@@ -138,7 +144,7 @@ export const useAutosavedFlowEditor = ({
       setEditor(reloadedEditor);
       setChangedElsewhere(true);
       setStatus("saved");
-      setSaveRefusedReason(null);
+      setSaveRefusal(null);
     }
   }, []);
 
@@ -231,7 +237,7 @@ export const useAutosavedFlowEditor = ({
   return {
     editor,
     status,
-    saveRefusedReason,
+    saveRefusal,
     changedElsewhere,
     dismissChangedElsewhere,
     flush,

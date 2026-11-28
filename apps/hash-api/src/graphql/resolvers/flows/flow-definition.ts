@@ -20,6 +20,7 @@ import {
 } from "./flow-schedule";
 import {
   getFlowScheduleProblems,
+  getFlowTypeProblem,
   getScheduledFlowRun,
 } from "./shared/get-flow-schedule-problems";
 import { getFlowDefinitionEntity } from "./shared/get-runnable-flow-definition";
@@ -131,24 +132,36 @@ export const updateFlowDefinitionResolver: ResolverFn<
       activeSchedules.map(async (schedule) => {
         const { name } = simplifyProperties(schedule.properties);
 
+        const { taskQueue: scheduledFlowType } = await getScheduledFlowRun(
+          graphQLContext,
+          schedule,
+        );
+
+        /* Pausing can't help a schedule set up for another type of flow, which resuming would still refuse. */
         const problems = checked.isRunnable
           ? getFlowScheduleProblems({
               flowDefinition: checked.flowDefinition,
               schedule,
-              scheduledFlowType: (
-                await getScheduledFlowRun(graphQLContext, schedule)
-              ).taskQueue,
+              scheduledFlowType,
             })
-          : ["the flow wouldn't be valid"];
+          : [
+              getFlowTypeProblem({
+                flowDefinition: checked.flowDefinition,
+                scheduledFlowType,
+              }) ??
+                "it can only run the flow once its problems are fixed. Pause it to save your changes, and resume it once they're fixed.",
+            ];
 
-        return problems.map((problem) => `- schedule "${name}": ${problem}`);
+        return problems.map((problem) => `- "${name}": ${problem}`);
       }),
     )
   ).flat();
 
   if (scheduleProblems.length > 0) {
+    /* Lets the editor link to the flow's triggers. */
     throw GraphQLError.badRequest(
-      `This change would stop the flow's active schedules from running it. Pause them first to make it.\n${scheduleProblems.join("\n")}`,
+      `This change would stop the flow's schedules from running it:\n${scheduleProblems.join("\n")}`,
+      { blockedBySchedules: true },
     );
   }
 

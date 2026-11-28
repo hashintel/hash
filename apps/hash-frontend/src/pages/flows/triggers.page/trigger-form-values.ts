@@ -12,7 +12,7 @@ import type { RunFormValues } from "../../@/[shortname]/flows/[flow-def-id]/edit
 import type { RepeatRule, ScheduleTime } from "../../shared/schedule-repeat";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
-import type { FlowInputDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 /** A rule the form makes, or a spec it can't, e.g. an interval, kept until another repeat is chosen. */
 type RepeatChoice =
@@ -114,17 +114,24 @@ export const getScheduleBlocker = (
 };
 
 /**
- * Why a trigger can't be added yet, or `null` if it can: no flow or name, a schedule that can't be saved, or a required
- * input of the flow that's blank or can't be given here. `inputs` is `null` while the flow's aren't known.
+ * Why a trigger can't be added yet, or `null` if it can: no flow or name, a flow with no steps, a schedule that can't be
+ * saved, or a required input of the flow that's blank or can't be given here. `flow` is `null` while it isn't known.
  */
 export const getNewTriggerBlocker = (
   values: NewTriggerFormValues,
-  inputs: FlowInputDefinition[] | null,
+  flow: Pick<FlowDefinition<string>, "inputs" | "steps"> | null,
   nextRuns: Date[] | null,
 ): string | null => {
-  if (values.flowEntityId === null || inputs === null) {
+  if (values.flowEntityId === null || flow === null) {
     return "Choose a flow";
   }
+
+  /* A schedule only runs the type of flow it's added for, which a flow with no steps isn't yet. */
+  if (flow.steps.length === 0) {
+    return "Add a step to this flow before scheduling it";
+  }
+
+  const { inputs } = flow;
 
   if (values.name.trim() === "") {
     return "Name the trigger";
